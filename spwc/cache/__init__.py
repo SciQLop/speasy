@@ -6,4 +6,5 @@ import diskcache as dc
 from appdirs import *
 from .cache import Cache
 
-cache = Cache(str(user_cache_dir("SciQLop","LPP")))
+_cache = Cache(str(user_cache_dir("SciQLop","LPP")))
+
