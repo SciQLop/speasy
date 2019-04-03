@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""amda package for Space Physics WebServices Client."""
+"""cdaweb package for Space Physics WebServices Client."""
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
