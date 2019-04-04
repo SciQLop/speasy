@@ -28,8 +28,8 @@ class _CacheTest(unittest.TestCase):
         df = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
         self.assertIsNotNone(df)
         self.assertEqual(df.index[0], tstart)
-        self.assertEqual(df.index[-1], tend)
-        self.assertEqual(len(df), 11)
+        self.assertEqual(df.index[-1], tend-timedelta(minutes=1))
+        self.assertEqual(len(df), 10)
 
     def test_get_more_than_one_hour(self):
         tstart = datetime(2016, 6, 1, 13)
@@ -37,8 +37,8 @@ class _CacheTest(unittest.TestCase):
         df = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
         self.assertIsNotNone(df)
         self.assertEqual(df.index[0], tstart)
-        self.assertEqual(df.index[-1], tend)
-        self.assertEqual(len(df), 71)
+        self.assertEqual(df.index[-1], tend-timedelta(minutes=1))
+        self.assertEqual(len(df), 70)
 
     def tearDown(self):
         del self.cache

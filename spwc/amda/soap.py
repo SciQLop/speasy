@@ -4,7 +4,7 @@ from zeep import Client
 
 class AmdaSoap:
     def __init__(self, server_url="http://amda.irap.omp.eu", wsdl='AMDA/public/wsdl/Methods_AMDA.wsdl', strict=True):
-        self.soap_client = Client(server_url + '/' + wsdl, strict=strict)
+        self.soap_client = Client(server_url + '/' + wsdl)
         self.server_url = server_url
 
     def get_parameter(self, **kwargs):

@@ -93,7 +93,7 @@ class cdaweb:
         pds.DataFrame]:
         result = None
         cache_product = f"cdaweb/{dataset}/{variable}"
-        result = _cache.get_data2(cache_product, DateTimeRange(tstart, tend),
+        result = _cache.get_data(cache_product, DateTimeRange(tstart, tend),
                                   partial(self._dl_variable, dataset, variable))
         return result
 

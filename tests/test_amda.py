@@ -3,33 +3,27 @@
 
 """Tests for `amda` package."""
 
-import pytest
+import unittest
+from typing import List
+from ddt import ddt, data, unpack
+from datetime import datetime, timedelta
+from spwc.amda import AMDA
 
-from spwc.amda import amda
-from datetime import datetime
-
-'''
-startdate=datetime(2006,1,8,1,0,0)
-stopdate= datetime(2006,1,9,6,0,0)
-parameterID = "c1_b_gsm"
-'''
-
-_get_param = [
-        (datetime(2006,1,8,1,0,0), datetime(2006,1,8,1,0,1), "c1_b_gsm"),
-        pytest.param(datetime(2006,1,8,1,0,0), datetime(2006,1,8,1,0,0), "c1_b_gsm",
-                     marks=pytest.mark.xfail),
-    ]
+import tempfile
+import shutil
+from multiprocessing import dummy
 
 
-@pytest.mark.parametrize("start_date,stop_date,parameter_id", _get_param)
-def test_amda_get_param_soap(start_date,stop_date,parameter_id):
-    ws = amda.AMDA()
-    data = ws.get_parameter(start_date, stop_date, parameter_id, method="SOAP")
-    assert(data is not None)
+class simple_request(unittest.TestCase):
+    def setUp(self):
+        self.ws = AMDA()
 
+    def tearDown(self):
+        pass
 
-@pytest.mark.parametrize("start_date,stop_date,parameter_id", _get_param)
-def test_amda_get_param_rest(start_date,stop_date,parameter_id):
-    ws = amda.AMDA()
-    data = ws.get_parameter(start_date, stop_date, parameter_id,method="REST")
-    assert(data is not None)
+    def test_get_variable(self):
+        start_date = datetime(2006, 1, 8, 1, 0, 0)
+        stop_date = datetime(2006, 1, 8, 1, 0, 1)
+        parameter_id = "c1_b_gsm"
+        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method="REST")
+        self.assertIsNotNone(result)

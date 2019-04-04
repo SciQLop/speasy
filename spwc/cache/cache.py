@@ -5,6 +5,7 @@ import uuid
 
 import jsonpickle
 from ..common.datetime_range import DateTimeRange
+import numpy as np
 import diskcache as dc
 import pandas as pds
 from _datetime import datetime, timedelta
@@ -48,4 +49,4 @@ class Cache:
                     result = pds.concat([df, result])
                 else:
                     result = pds.concat([result, df])
-        return result[dt_range.start_time:dt_range.stop_time]
+        return result[np.logical_and(result.index >= dt_range.start_time, result.index < dt_range.stop_time)]
