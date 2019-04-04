@@ -27,6 +27,9 @@ class Cache:
     def __getitem__(self, key):
         return self._data[key]
 
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
                  requtest: Callable[[datetime, datetime], pds.DataFrame]) -> List[pds.DataFrame]:
         start = datetime(dt_range.start_time.year, dt_range.start_time.month, dt_range.start_time.day,
