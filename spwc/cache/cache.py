@@ -66,19 +66,28 @@ class Cache:
     def __getitem__(self, item):
         return self._data[item]
 
-    def add_entry(self, product: str, tstart: datetime, tend: datetime, data: pds.DataFrame) -> object:
+    def add_entry(self, parameter_id: str, tstart: datetime, tend: datetime, data: pds.DataFrame) -> None:
         name = str(uuid.uuid4())
         entry = CacheEntry(DateTimeRange(tstart, tend), name)
-        if product in self._data:
-            entry_list = self._data[product]
+        merge_list = []
+        if parameter_id in self._data:
+            entry_list = self._data[parameter_id]
             for e in entry_list:
                 if entry.dt_range.intersect(e.dt_range):
-                    print(f"Woops collision {entry.dt_range}  {e.dt_range}")
+                    if entry.dt_range == e.dt_range:
+                        print(f"Woops collision {entry.dt_range}  {e.dt_range}")
+                        if self._data[e.data_entry] is None and data is not None:
+                            self._data[e.data_entry] = data
+                        return
+                    merge_list.append(e)
             entry_list.append(entry)
-            self._data[product] = entry_list
+            entry_list.sort(key=lambda x: x.dt_range.start_time)
+            self._data[parameter_id] = entry_list
         else:
-            self._data[product] = [entry]
+            self._data[parameter_id] = [entry]
         self._data[entry.data_entry] = data
+        if len(merge_list):
+            self.merge_entries(parameter_id, [entry] + merge_list)
 
     def get_entries(self, parameter_id: str, dt_range: DateTimeRange) -> List[CacheEntry]:
         if parameter_id in self:
@@ -92,6 +101,32 @@ class Cache:
         if parameter_id in self:
             entries = self[parameter_id]
             self._data[parameter_id] = [e for e in entries if e.data_entry != entry.data_entry]
+        if entry.data_entry in self._data:
+            if entry.data_entry in self._data:
+                self._data.delete(entry.data_entry)
+
+    def merge_entries(self, parameter_id: str, entries: List[CacheEntry]) -> None:
+        merged_df = None
+        start_time = None
+        stop_time = None
+        for entry in entries:
+            if start_time is None:
+                start_time = entry.start_time
+                stop_time = entry.stop_time
+            else:
+                start_time = min(start_time, entry.start_time)
+                stop_time = max(stop_time, entry.stop_time)
+            df = self._data[entry.data_entry]
+            if merged_df is None:
+                merged_df = df
+            elif df is not None:
+                if merged_df.index[0] > df.index[-1]:
+                    merged_df = pds.concat([df, merged_df])
+                else:
+                    merged_df = pds.concat([merged_df, df])
+        self.add_entry(parameter_id, start_time, stop_time, merged_df)
+        for entry in entries:
+            self.drop_entry(parameter_id, entry)
 
     def get_data(self, parameter_id: str, dt_range: DateTimeRange) -> List[pds.DataFrame]:
         entries = self.get_entries(parameter_id, dt_range)

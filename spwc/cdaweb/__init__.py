@@ -8,7 +8,7 @@ __version__ = '0.1.0'
 
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pds
 import requests
 from ..cache import _cache
@@ -92,6 +92,8 @@ class cdaweb:
     def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[pds.DataFrame]:
         result = None
         cache_product = f"cdaweb/{dataset}/{variable}"
+        if (tend-tstart) <= timedelta(minutes=1):
+            tend += timedelta(minutes=5)
         hit = _cache.get_data(cache_product, DateTimeRange(tstart, tend))
         for df in hit:
             if result is None:

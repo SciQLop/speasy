@@ -16,7 +16,7 @@ class simple_request(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_contains(self):
+    def test_get_variable(self):
         result = self.cd.get_variable(dataset="MMS2_SCM_SRVY_L2_SCSRVY", variable="mms2_scm_acb_gse_scsrvy_srvy_l2",
                                       tstart=datetime(2016, 6, 1), tend=datetime(2016, 6, 1, 0, 10))
         self.assertIsNotNone(result)
@@ -30,7 +30,7 @@ class ConcurrentRequests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_contains(self):
+    def test_get_variable(self):
         def func(i):
             return self.cd.get_variable(dataset="MMS2_SCM_SRVY_L2_SCSRVY", variable="mms2_scm_acb_gse_scsrvy_srvy_l2",
                                         tstart=datetime(2016, 6, 1, 0, 10), tend=datetime(2016, 6, 1, 0, 20))
