@@ -6,13 +6,13 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-
 from typing import Optional
 from datetime import datetime, timedelta
 import pandas as pds
 import requests
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
+from functools import partial
 
 
 class cdaweb:
@@ -89,30 +89,11 @@ class cdaweb:
         return pds.read_csv(resp.json()['FileDescription'][0]['Name'], comment='#', index_col=0,
                             infer_datetime_format=True, parse_dates=True)
 
-    def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[pds.DataFrame]:
+    def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[
+        pds.DataFrame]:
         result = None
         cache_product = f"cdaweb/{dataset}/{variable}"
-        if (tend-tstart) <= timedelta(minutes=1):
-            tend += timedelta(minutes=5)
-        hit = _cache.get_data(cache_product, DateTimeRange(tstart, tend))
-        for df in hit:
-            if result is None:
-                result = df
-            elif df is not None:
-                if result.index[0] > df.index[-1]:
-                    result = pds.concat([df, result])
-                else:
-                    result = pds.concat([result, df])
-
-        miss = _cache.get_missing_ranges(cache_product, DateTimeRange(tstart, tend))
-        for slice in miss:
-            df = self._dl_variable(dataset, variable, slice.start_time, slice.stop_time)
-            _cache.add_entry(cache_product,slice.start_time, slice.stop_time, df)
-            if result is None:
-                result = df
-            elif df is not None:
-                if result.index[0] > df.index[-1]:
-                    result = pds.concat([df, result])
-                else:
-                    result = pds.concat([result, df])
+        result = _cache.get_data2(cache_product, DateTimeRange(tstart, tend),
+                                  partial(self._dl_variable, dataset, variable))
         return result
+

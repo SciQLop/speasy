@@ -1,53 +1,13 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Callable
 import uuid
 
 import jsonpickle
 from ..common.datetime_range import DateTimeRange
 import diskcache as dc
 import pandas as pds
-from _datetime import datetime
-
-
-class CacheEntry:
-    dt_range: DateTimeRange
-    data_entry: str
-
-    __slots__ = ['dt_range', 'data_entry']
-
-    def __init__(self, dt_range: DateTimeRange, data_entry: str):
-        self.dt_range = dt_range
-        self.data_entry = data_entry
-
-    def __eq__(self, other):
-        assert type(other) is CacheEntry
-        return (self.dt_range == other.dt_range) and (self.data_entry == other.data_entry)
-
-    @property
-    def start_time(self):
-        return self.dt_range.start_time
-
-    @property
-    def stop_time(self):
-        return self.dt_range.stop_time
-
-    def __getitem__(self, item):
-        return self.start_time if item == 0 else self.stop_time
-
-    def __contains__(self, item: object) -> bool:
-        return item in self.dt_range
-
-    def __lt__(self, other):
-        return self.start_time < other.start_time
-
-    def __gt__(self, other):
-        return self.start_time > other.start_time
-
-    def __repr__(self):
-        return f"CacheEntry: \n" \
-            f"dt_range = {self.dt_range}\n" \
-            f"data_entry = {self.data_entry}"
+from _datetime import datetime, timedelta
 
 
 class Cache:
@@ -63,84 +23,29 @@ class Cache:
     def __contains__(self, item):
         return item in self._data
 
-    def __getitem__(self, item):
-        return self._data[item]
+    def __getitem__(self, key):
+        return self._data[key]
 
-    def add_entry(self, parameter_id: str, tstart: datetime, tend: datetime, data: pds.DataFrame) -> None:
-        name = str(uuid.uuid4())
-        entry = CacheEntry(DateTimeRange(tstart, tend), name)
-        merge_list = []
-        if parameter_id in self._data:
-            entry_list = self._data[parameter_id]
-            for e in entry_list:
-                if entry.dt_range.intersect(e.dt_range):
-                    if entry.dt_range == e.dt_range:
-                        print(f"Woops collision {entry.dt_range}  {e.dt_range}")
-                        if self._data[e.data_entry] is None and data is not None:
-                            self._data[e.data_entry] = data
-                        return
-                    merge_list.append(e)
-            entry_list.append(entry)
-            entry_list.sort(key=lambda x: x.dt_range.start_time)
-            self._data[parameter_id] = entry_list
-        else:
-            self._data[parameter_id] = [entry]
-        self._data[entry.data_entry] = data
-        if len(merge_list):
-            self.merge_entries(parameter_id, [entry] + merge_list)
-
-    def get_entries(self, parameter_id: str, dt_range: DateTimeRange) -> List[CacheEntry]:
-        if parameter_id in self:
-            entries = [entry for entry in self[parameter_id] if dt_range.intersect(entry.dt_range)]
-            # return entries if len(entries) else None
-            return entries
-        else:
-            return []
-
-    def drop_entry(self, parameter_id: str, entry: CacheEntry) -> None:
-        if parameter_id in self:
-            entries = self[parameter_id]
-            self._data[parameter_id] = [e for e in entries if e.data_entry != entry.data_entry]
-        if entry.data_entry in self._data:
-            if entry.data_entry in self._data:
-                self._data.delete(entry.data_entry)
-
-    def merge_entries(self, parameter_id: str, entries: List[CacheEntry]) -> None:
-        merged_df = None
-        start_time = None
-        stop_time = None
-        for entry in entries:
-            if start_time is None:
-                start_time = entry.start_time
-                stop_time = entry.stop_time
+    def get_data(self, parameter_id: str, dt_range: DateTimeRange,
+                 requtest: Callable[[datetime, datetime], pds.DataFrame]) -> List[pds.DataFrame]:
+        start = datetime(dt_range.start_time.year, dt_range.start_time.month, dt_range.start_time.day,
+                         dt_range.start_time.hour)
+        stop = datetime(dt_range.stop_time.year, dt_range.stop_time.month, dt_range.stop_time.day,
+                        dt_range.stop_time.hour + 1)
+        fragments = [start + timedelta(hours=t) for t in range(int((stop - start) / timedelta(hours=1)))]
+        result = None
+        for fragment in fragments:
+            key = f"{parameter_id}/{fragment.isoformat()}"
+            if key in self._data:
+                df = self._data[key]
             else:
-                start_time = min(start_time, entry.start_time)
-                stop_time = max(stop_time, entry.stop_time)
-            df = self._data[entry.data_entry]
-            if merged_df is None:
-                merged_df = df
+                df = requtest(fragment, fragment + timedelta(hours=1))
+                self._data[key] = df
+            if result is None:
+                result = df
             elif df is not None:
-                if merged_df.index[0] > df.index[-1]:
-                    merged_df = pds.concat([df, merged_df])
+                if result.index[0] > df.index[-1]:
+                    result = pds.concat([df, result])
                 else:
-                    merged_df = pds.concat([merged_df, df])
-        self.add_entry(parameter_id, start_time, stop_time, merged_df)
-        for entry in entries:
-            self.drop_entry(parameter_id, entry)
-
-    def get_data(self, parameter_id: str, dt_range: DateTimeRange) -> List[pds.DataFrame]:
-        entries = self.get_entries(parameter_id, dt_range)
-        data = []
-        for entry in entries:
-            if entry.data_entry in self._data:
-                data.append(self._data[entry.data_entry])
-            else:
-                self.drop_entry(parameter_id, entry)
-        return data
-
-    def get_missing_ranges(self, parameter_id: str, dt_range: DateTimeRange) -> List[DateTimeRange]:
-        hit_ranges = self.get_entries(parameter_id, dt_range)
-        if hit_ranges:
-            return dt_range - hit_ranges
-        else:
-            return [dt_range]
+                    result = pds.concat([result, df])
+        return result[dt_range.start_time:dt_range.stop_time]
