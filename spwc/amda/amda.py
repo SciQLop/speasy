@@ -83,8 +83,10 @@ class AMDA:
         url = self.METHODS[method.upper()].get_parameter(
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
-            return pds.read_csv(url, delim_whitespace=True, comment='#', parse_dates=True, infer_datetime_format=True,
+            df = pds.read_csv(url, delim_whitespace=True, comment='#', parse_dates=True, infer_datetime_format=True,
                                 index_col=0, header=None)
+            df.index = pds.to_datetime(df.index, unit='s', utc=True)
+            return df
         return None
 
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
