@@ -12,8 +12,10 @@ class AmdaRest:
             url += key + "=" + str(val) + "&"
         r = requests.get(url+"&token="+self.get_token)
         print(url)
-        if r.json()['success']:
+        if 'success' in r.json():
             return r.json()['dataFileURLs']
+        else:
+            print(r.text)
         return None
 
     @property

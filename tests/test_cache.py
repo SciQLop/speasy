@@ -40,6 +40,15 @@ class _CacheTest(unittest.TestCase):
         self.assertEqual(df.index[-1], tend-timedelta(minutes=1))
         self.assertEqual(len(df), 70)
 
+    def test_get_over_midnight(self):
+        tstart = datetime(2016, 6, 1, 23,30)
+        tend = datetime(2016, 6, 2, 0, 30)
+        df = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
+        self.assertIsNotNone(df)
+        self.assertEqual(df.index[0], tstart)
+        self.assertEqual(df.index[-1], tend-timedelta(minutes=1))
+        self.assertEqual(len(df), 60)
+
     def tearDown(self):
         del self.cache
         shutil.rmtree(self.dirpath)

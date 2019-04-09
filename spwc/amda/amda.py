@@ -78,10 +78,10 @@ class AMDA:
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[pds.DataFrame]:
 
-        start_time = start_time.isoformat()
-        stop_time = stop_time.isoformat()
+        start_time = start_time.timestamp()
+        stop_time = stop_time.timestamp()
         url = self.METHODS[method.upper()].get_parameter(
-            startTime=start_time, stopTime=stop_time, parameterID=parameter_id, **kwargs)
+            startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
             return pds.read_csv(url, delim_whitespace=True, comment='#', parse_dates=True, infer_datetime_format=True,
                                 index_col=0, header=None)
