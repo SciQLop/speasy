@@ -84,7 +84,7 @@ class AMDA:
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
             df = pds.read_csv(url, delim_whitespace=True, comment='#', parse_dates=True, infer_datetime_format=True,
-                                index_col=0, header=None)
+                              index_col=0, header=None)
             df.index = pds.to_datetime(df.index, unit='s', utc=True)
             return df
         return None
@@ -94,7 +94,8 @@ class AMDA:
         result = None
         cache_product = f"amda/{parameter_id}"
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
-                                 partial(self._dl_parameter, parameter_id=parameter_id, method=method))
+                                 partial(self._dl_parameter, parameter_id=parameter_id, method=method),
+                                 fragment_hours=6)
         return result
 
     def get_obs_data_tree(self, method="SOAP") -> dict:

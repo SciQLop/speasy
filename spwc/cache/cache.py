@@ -35,7 +35,7 @@ class Cache:
         if df is None:
             df = fragment
         elif df is not None:
-            if df.index[0] > fragment.index[-1]:
+            if len(fragment) and len(df) and df.index[0] > fragment.index[-1]:
                 df = pds.concat([fragment, df])
             else:
                 df = pds.concat([df, fragment])

@@ -1,7 +1,7 @@
 import unittest
 from typing import List
 from ddt import ddt, data, unpack
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from spwc.cache.cache import Cache
 from spwc.common.datetime_range import DateTimeRange
 import pandas as pds
@@ -23,8 +23,8 @@ class _CacheTest(unittest.TestCase):
         return pds.DataFrame(index=index, data=data)
 
     def test_get_less_than_one_hour(self):
-        tstart = datetime(2016, 6, 1, 13)
-        tend = datetime(2016, 6, 1, 13, 10)
+        tstart = datetime(2016, 6, 1, 13, tzinfo=timezone.utc)
+        tend = datetime(2016, 6, 1, 13, 10, tzinfo=timezone.utc)
         df = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
         self.assertIsNotNone(df)
         self.assertEqual(df.index[0], tstart)
@@ -32,8 +32,8 @@ class _CacheTest(unittest.TestCase):
         self.assertEqual(len(df), 10)
 
     def test_get_more_than_one_hour(self):
-        tstart = datetime(2016, 6, 1, 13)
-        tend = datetime(2016, 6, 1, 14, 10)
+        tstart = datetime(2016, 6, 1, 13, tzinfo=timezone.utc)
+        tend = datetime(2016, 6, 1, 14, 10, tzinfo=timezone.utc)
         df = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
         self.assertIsNotNone(df)
         self.assertEqual(df.index[0], tstart)
@@ -41,8 +41,8 @@ class _CacheTest(unittest.TestCase):
         self.assertEqual(len(df), 70)
 
     def test_get_over_midnight(self):
-        tstart = datetime(2016, 6, 1, 23,30)
-        tend = datetime(2016, 6, 2, 0, 30)
+        tstart = datetime(2016, 6, 1, 23,30, tzinfo=timezone.utc)
+        tend = datetime(2016, 6, 2, 0, 30, tzinfo=timezone.utc)
         df = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
         self.assertIsNotNone(df)
         self.assertEqual(df.index[0], tstart)
