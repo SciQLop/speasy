@@ -89,7 +89,8 @@ class cdaweb:
         try:
             df = pds.read_csv(resp.json()['FileDescription'][0]['Name'], comment='#', index_col=0,
                               infer_datetime_format=True, parse_dates=True)
-            df.index = df.index.tz_localize('UTC')
+            if df.index.tz is None:
+                df.index = df.index.tz_localize('UTC')
             return df
         except pds.io.common.EmptyDataError:
             return pds.DataFrame()

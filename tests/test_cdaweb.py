@@ -1,14 +1,11 @@
 import unittest
-from typing import List
 from ddt import ddt, data, unpack
-from datetime import datetime, timedelta, timezone
-from spwc.cdaweb import cdaweb
-
-import tempfile
-import shutil
+from datetime import datetime, timezone
 from multiprocessing import dummy
 
+from spwc.cdaweb import cdaweb
 
+@ddt
 class simple_request(unittest.TestCase):
     def setUp(self):
         self.cd = cdaweb()
@@ -16,10 +13,22 @@ class simple_request(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_get_variable(self):
-        result = self.cd.get_variable(dataset="MMS2_SCM_SRVY_L2_SCSRVY", variable="mms2_scm_acb_gse_scsrvy_srvy_l2",
-                                      tstart=datetime(2016, 6, 1, tzinfo=timezone.utc),
-                                      tend=datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc))
+    @data(
+        {
+            "dataset":"MMS2_SCM_SRVY_L2_SCSRVY",
+            "variable":"mms2_scm_acb_gse_scsrvy_srvy_l2",
+            "tstart":datetime(2016, 6, 1, tzinfo=timezone.utc),
+            "tend":datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "THA_L2_FGM",
+            "variable": "tha_fgl_gsm",
+            "tstart": datetime(2014, 6, 1, tzinfo=timezone.utc),
+            "tend": datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc)
+        }
+    )
+    def test_get_variable(self,kw):
+        result = self.cd.get_variable(**kw)
         self.assertIsNotNone(result)
 
 
