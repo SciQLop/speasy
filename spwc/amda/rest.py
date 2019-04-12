@@ -6,16 +6,19 @@ class AmdaRest:
         self.server_url = server_url
 
     def get_parameter(self, **kwargs: dict):
-        url = "{0}/php/rest/getParameter.php?".format(self.server_url)
+        base_url = "{0}/php/rest/getParameter.php?".format(self.server_url)
         key: str
         for key, val in kwargs.items():
-            url += key + "=" + str(val) + "&"
-        r = requests.get(url+"&token="+self.get_token)
-        print(url)
-        if 'success' in r.json():
-            return r.json()['dataFileURLs']
-        else:
-            print(r.text)
+            base_url += key + "=" + str(val) + "&"
+        for i in [None]*3: # sometime fails with no reason...
+            url = base_url+ "token="+self.get_token
+            r = requests.get(url)
+            js = r.json()
+            if 'success' in js and js['success'] is True and 'dataFileURLs' in js:
+                return js['dataFileURLs']
+            else:
+                print(url)
+                print(r.text)
         return None
 
     @property

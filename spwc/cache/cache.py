@@ -32,19 +32,20 @@ class Cache:
 
     @staticmethod
     def _merge_dataframe(df: pds.DataFrame, fragment: pds.DataFrame) -> pds.DataFrame:
-        if df is None:
+        if df is None or len(df) == 0:
             df = fragment
-        elif df is not None:
-            if len(fragment) and len(df) and df.index[0] > fragment.index[-1]:
+        elif len(fragment):
+            if df.index[0] > fragment.index[-1]:
                 df = pds.concat([fragment, df])
             else:
                 df = pds.concat([df, fragment])
         return df
 
     def _add_to_cache(self, df: pds.DataFrame, fragments: List[datetime], parameter_id: str, fragment_hours=1):
-        for fragment in fragments:
-            self._data[f"{parameter_id}/{fragment.isoformat()}"] = df[
-                np.logical_and(df.index >= fragment, df.index < fragment + timedelta(hours=fragment_hours))]
+        if df is not None:
+            for fragment in fragments:
+                self._data[f"{parameter_id}/{fragment.isoformat()}"] = df[
+                    np.logical_and(df.index >= fragment, df.index < fragment + timedelta(hours=fragment_hours))]
 
     def _get_fragments(self, df: pds.DataFrame, parameter_id: str, fragments: List[datetime],
                        request: Callable[[datetime, datetime], pds.DataFrame], fragment_hours=1) -> pds.DataFrame:
@@ -67,11 +68,15 @@ class Cache:
             key = f"{parameter_id}/{fragment.isoformat()}"
             df = None
             if key in self._data:
-                if len(contiguous_fragments):
-                    result = self._get_fragments(result, parameter_id, contiguous_fragments, request, fragment_hours)
-                    contiguous_fragments = []
                 df = self._data[key]
-                result = self._merge_dataframe(result, df)
+                if df is not None:
+                    if len(contiguous_fragments):
+                        result = self._get_fragments(result, parameter_id, contiguous_fragments, request,
+                                                     fragment_hours)
+                        contiguous_fragments = []
+                    result = self._merge_dataframe(result, df)
+                else:
+                    contiguous_fragments.append(fragment)
             else:
                 contiguous_fragments.append(fragment)
         if len(contiguous_fragments):

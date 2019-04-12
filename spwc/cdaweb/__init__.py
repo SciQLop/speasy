@@ -81,19 +81,23 @@ class cdaweb:
 
     def _dl_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[pds.DataFrame]:
         tstart, tend = tstart.strftime('%Y%m%dT%H%M%SZ'), tend.strftime('%Y%m%dT%H%M%SZ')
-        resp = requests.get(
-            f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{tstart},{tend}/{variable}?format=csv",
-            headers={"Accept": "application/json"})
+        url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{tstart},{tend}/{variable}?format=csv"
+        print(url)
+        resp = requests.get(url, headers={"Accept": "application/json"})
         if not resp.ok or 'FileDescription' not in resp.json():
             return None
-        return pds.read_csv(resp.json()['FileDescription'][0]['Name'], comment='#', index_col=0,
-                            infer_datetime_format=True, parse_dates=True)
+        try:
+            df = pds.read_csv(resp.json()['FileDescription'][0]['Name'], comment='#', index_col=0,
+                              infer_datetime_format=True, parse_dates=True)
+            df.index = df.index.tz_localize('UTC')
+            return df
+        except pds.io.common.EmptyDataError:
+            return pds.DataFrame()
 
     def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[
         pds.DataFrame]:
         result = None
         cache_product = f"cdaweb/{dataset}/{variable}"
         result = _cache.get_data(cache_product, DateTimeRange(tstart, tend),
-                                  partial(self._dl_variable, dataset, variable))
+                                 partial(self._dl_variable, dataset, variable))
         return result
-
