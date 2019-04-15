@@ -95,7 +95,7 @@ class AMDA:
         cache_product = f"amda/{parameter_id}"
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_parameter, parameter_id=parameter_id, method=method),
-                                 fragment_hours=6)
+                                 fragment_hours=2)
         return result
 
     def get_obs_data_tree(self, method="SOAP") -> dict:

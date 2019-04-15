@@ -60,8 +60,12 @@ class Cache:
         start = datetime(dt_range.start_time.year, dt_range.start_time.month, dt_range.start_time.day,
                          dt_range.start_time.hour, tzinfo=timezone.utc)
         stop = datetime(dt_range.stop_time.year, dt_range.stop_time.month, dt_range.stop_time.day,
-                        dt_range.stop_time.hour, tzinfo=timezone.utc) + timedelta(hours=fragment_hours)
-        fragments = [start + timedelta(hours=t) for t in range(int((stop - start) / timedelta(hours=fragment_hours)))]
+                        dt_range.stop_time.hour, tzinfo=timezone.utc) + timedelta(hours=1)
+        fragments = []
+        tend = start
+        while tend < stop:
+            fragments.append(tend)
+            tend += timedelta(hours=fragment_hours)
         result = None
         contiguous_fragments = []
         for fragment in fragments:
@@ -81,4 +85,6 @@ class Cache:
                 contiguous_fragments.append(fragment)
         if len(contiguous_fragments):
             result = self._get_fragments(result, parameter_id, contiguous_fragments, request, fragment_hours)
-        return result[np.logical_and(result.index >= dt_range.start_time, result.index < dt_range.stop_time)]
+        if result is not None:
+            return result[np.logical_and(result.index >= dt_range.start_time, result.index < dt_range.stop_time)]
+        return None
