@@ -45,7 +45,7 @@ setup(
     include_package_data=True,
     keywords='spwc',
     name='spwc',
-    packages=find_packages(include=['spwc']),
+    packages=find_packages(include=['spwc','spwc.amda','spwc.cache','spwc.cdaweb','spwc.common']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
