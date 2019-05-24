@@ -17,3 +17,4 @@ def listify(obj: list or object) -> list:
         return obj
     else:
         return [obj]
+
