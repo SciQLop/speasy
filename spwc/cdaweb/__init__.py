@@ -12,7 +12,20 @@ import pandas as pds
 import requests
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
+from ..common.variable import SpwcVariable, load_csv
 from functools import partial
+import numpy as np
+
+
+def _read_csv(url: str) -> SpwcVariable:
+    try:
+        df = pds.read_csv(url, comment='#', index_col=0, infer_datetime_format=True, parse_dates=True)
+        if df.index.tz is None:
+            df.index = df.index.tz_localize('UTC')
+        time = np.array([t.timestamp() for t in df.index])
+        return SpwcVariable(time=time, data=df.values, columns=[c for c in df.columns])
+    except pds.io.common.EmptyDataError:
+        return SpwcVariable()
 
 
 class cdaweb:
@@ -79,24 +92,16 @@ class cdaweb:
         variables = [varaible for varaible in resp.json()['VariableDescription']]
         return variables
 
-    def _dl_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[pds.DataFrame]:
+    def _dl_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[SpwcVariable]:
         tstart, tend = tstart.strftime('%Y%m%dT%H%M%SZ'), tend.strftime('%Y%m%dT%H%M%SZ')
         url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{tstart},{tend}/{variable}?format=csv"
         print(url)
         resp = requests.get(url, headers={"Accept": "application/json"})
         if not resp.ok or 'FileDescription' not in resp.json():
             return None
-        try:
-            df = pds.read_csv(resp.json()['FileDescription'][0]['Name'], comment='#', index_col=0,
-                              infer_datetime_format=True, parse_dates=True)
-            if df.index.tz is None:
-                df.index = df.index.tz_localize('UTC')
-            return df
-        except pds.io.common.EmptyDataError:
-            return pds.DataFrame()
+        return _read_csv(resp.json()['FileDescription'][0]['Name'])
 
-    def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[
-        pds.DataFrame]:
+    def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[SpwcVariable]:
         result = None
         cache_product = f"cdaweb/{dataset}/{variable}"
         result = _cache.get_data(cache_product, DateTimeRange(tstart, tend),

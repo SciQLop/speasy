@@ -8,6 +8,7 @@ from typing import Optional
 from ..common import listify
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
+from ..common.variable import SpwcVariable, load_csv
 from functools import partial
 
 
@@ -76,22 +77,19 @@ class AMDA:
         return self.METHODS[method.upper()].get_token
 
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "SOAP", **kwargs) -> Optional[pds.DataFrame]:
+                      method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
 
         start_time = start_time.timestamp()
         stop_time = stop_time.timestamp()
         url = self.METHODS[method.upper()].get_parameter(
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
-            df = pds.read_csv(url, delim_whitespace=True, comment='#', parse_dates=True, infer_datetime_format=True,
-                              index_col=0, header=None)
-            df.index = pds.to_datetime(df.index, unit='s', utc=True)
-            return df
+            var = load_csv(url)
+            return var
         return None
 
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "SOAP", **kwargs) -> Optional[pds.DataFrame]:
-        result = None
+                      method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
         cache_product = f"amda/{parameter_id}"
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_parameter, parameter_id=parameter_id, method=method),
