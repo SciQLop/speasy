@@ -5,7 +5,7 @@
 
 import unittest
 import os
-from spwc.common.variable import SpwcVariable, merge, load_csv
+from spwc.common.variable import SpwcVariable, merge
 import numpy as np
 
 
@@ -14,22 +14,6 @@ def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef:
     var.time = np.arange(start, stop, step)
     var.data = var.time * coef
     return var
-
-
-class ASpwcVariable(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_load_csv(self):
-        var = load_csv(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt')
-        self.assertEqual(var.data.shape[0], len(var.time))
-        self.assertEqual(var.data.shape[1], len(var.columns))
-        self.assertGreater(len(var.time), 0)
-        self.assertTrue('MISSION_ID' in var.meta)
-
 
 class SpwcVariableSlice(unittest.TestCase):
     def setUp(self):

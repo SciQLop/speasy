@@ -4,8 +4,6 @@ import numpy as np
 import pandas as pds
 from datetime import datetime
 from typing import List, Any
-from urllib.request import urlopen
-import os
 
 
 class SpwcVariable(object):
@@ -36,24 +34,6 @@ class SpwcVariable(object):
                 stop = self.time[-1] + 1. if key.stop is None else key.stop.timestamp()
                 return self.view(np.logical_and(self.time >= start, self.time < stop))
 
-
-def load_csv(filename: str):
-    if '://' not in filename:
-        filename = f"file://{os.path.abspath(filename)}"
-    with urlopen(filename) as csv:
-        line = csv.readline().decode()
-        meta = {}
-        columns = []
-        while line[0] == '#':
-            if ':' in line:
-                key, value = line[1:].split(':', 1)
-                meta[key.strip()] = value.strip()
-            line = csv.readline().decode()
-        data = pds.read_csv(csv, comment='#', delim_whitespace=True).values.transpose()
-        time, data = data[0], data[1:].transpose()
-        if 'DATA_COLUMNS' in meta:
-            columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[1:]]
-        return SpwcVariable(time, data, meta, columns)
 
 
 def from_dataframe(df: pds.DataFrame) -> SpwcVariable:

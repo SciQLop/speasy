@@ -12,7 +12,7 @@ import pandas as pds
 import requests
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
-from ..common.variable import SpwcVariable, load_csv
+from ..common.variable import SpwcVariable
 from functools import partial
 import numpy as np
 

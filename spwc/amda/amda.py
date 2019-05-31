@@ -8,8 +8,29 @@ from typing import Optional
 from ..common import listify
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
-from ..common.variable import SpwcVariable, load_csv
+from ..common.variable import SpwcVariable
 from functools import partial
+from urllib.request import urlopen
+import os
+
+
+def load_csv(filename: str):
+    if '://' not in filename:
+        filename = f"file://{os.path.abspath(filename)}"
+    with urlopen(filename) as csv:
+        line = csv.readline().decode()
+        meta = {}
+        columns = []
+        while line[0] == '#':
+            if ':' in line:
+                key, value = line[1:].split(':', 1)
+                meta[key.strip()] = value.strip()
+            line = csv.readline().decode()
+        data = pds.read_csv(csv, comment='#', delim_whitespace=True).values.transpose()
+        time, data = data[0], data[1:].transpose()
+        if 'DATA_COLUMNS' in meta:
+            columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[1:]]
+        return SpwcVariable(time, data, meta, columns)
 
 
 class AMDA:
@@ -93,7 +114,7 @@ class AMDA:
         cache_product = f"amda/{parameter_id}"
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_parameter, parameter_id=parameter_id, method=method),
-                                 fragment_hours=2)
+                                 fragment_hours=12)
         return result
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
