@@ -1,7 +1,7 @@
 from .rest import AmdaRest
 from .soap import AmdaSoap
 import xmltodict
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pds
 import requests
 from typing import Optional
@@ -112,6 +112,8 @@ class AMDA:
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
         cache_product = f"amda/{parameter_id}"
+        start_time = start_time.replace(tzinfo=timezone.utc)
+        stop_time = stop_time.replace(tzinfo=timezone.utc)
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_parameter, parameter_id=parameter_id, method=method),
                                  fragment_hours=12)

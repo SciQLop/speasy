@@ -7,7 +7,7 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 import pandas as pds
 import requests
 from ..cache import _cache
@@ -105,6 +105,8 @@ class cdaweb:
 
     def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[SpwcVariable]:
         result = None
+        tstart = tstart.replace(tzinfo=timezone.utc)
+        tend = tend.replace(tzinfo=timezone.utc)
         cache_product = f"cdaweb/{dataset}/{variable}"
         result = _cache.get_data(cache_product, DateTimeRange(tstart, tend),
                                  partial(self._dl_variable, dataset, variable))
