@@ -22,6 +22,8 @@ def _read_csv(url: str) -> SpwcVariable:
         df = pds.read_csv(url, comment='#', index_col=0, infer_datetime_format=True, parse_dates=True)
         if df.index.tz is None:
             df.index = df.index.tz_localize('UTC')
+        else:
+            df.index = df.index.tz_convert('UTC')
         time = np.array([t.timestamp() for t in df.index])
         return SpwcVariable(time=time, data=df.values, columns=[c for c in df.columns])
     except pds.io.common.EmptyDataError:
