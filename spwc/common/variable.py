@@ -3,7 +3,8 @@ from math import nan
 import numpy as np
 import pandas as pds
 from datetime import datetime
-from typing import List, Any
+from typing import List, Any, TypeVar
+import matplotlib.pyplot as plt
 
 
 class SpwcVariable(object):
@@ -16,7 +17,13 @@ class SpwcVariable(object):
         self.columns = columns
 
     def view(self, range):
-        return SpwcVariable(self.time[range], self.data[range], self.meta)
+        return SpwcVariable(self.time[range], self.data[range], self.meta, self.columns)
+
+    def __eq__(self, other: 'SpwcVariable') -> bool:
+        return self.meta == other.meta and \
+               self.columns == other.columns and \
+               np.all(self.time == other.time) and \
+               np.all(self.data == other.data)
 
     def __len__(self):
         return len(self.time)
@@ -34,14 +41,31 @@ class SpwcVariable(object):
                 stop = self.time[-1] + 1. if key.stop is None else key.stop.timestamp()
                 return self.view(np.logical_and(self.time >= start, self.time < stop))
 
+    def to_dataframe(self, datetime_index=False) -> pds.DataFrame:
+        if datetime_index:
+            time = pds.to_datetime(self.time, unit='s')
+        else:
+            time = self.time
+        return pds.DataFrame(index=time, data=self.data, columns=self.columns, copy=True)
+
+    def plot(self, *args, **kwargs):
+        return self.to_dataframe(datetime_index=True).plot(*args, **kwargs)
+
+    @staticmethod
+    def from_dataframe(df: pds.DataFrame) -> 'SpwcVariable':
+        if hasattr(df.index[0], 'timestamp'):
+            time = np.array([d.timestamp() for d in df.index])
+        else:
+            time = df.index.values
+        return SpwcVariable(time, df.values, {}, [c for c in df.columns])
 
 
 def from_dataframe(df: pds.DataFrame) -> SpwcVariable:
-    if hasattr(df.index[0], 'timestamp'):
-        time = np.array([d.timestamp() for d in df.index])
-    else:
-        time = df.index.values
-    return SpwcVariable(time, df.values, {}, [c for c in df.columns])
+    return SpwcVariable.from_dataframe(df)
+
+
+def to_dataframe(var: SpwcVariable, datetime_index=False) -> pds.DataFrame:
+    return SpwcVariable.to_dataframe(var)
 
 
 def merge(variables: List[SpwcVariable]):
@@ -80,4 +104,4 @@ def merge(variables: List[SpwcVariable]):
         time[pos:pos + frag_len] = r.time[0:frag_len]
         data[pos:pos + frag_len] = r.data[0:frag_len]
         pos += frag_len
-    return SpwcVariable(time, data, sorted_var_list[0].meta)
+    return SpwcVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns)

@@ -13,6 +13,7 @@ import requests
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpwcVariable
+from ..common import make_utc_datetime
 from functools import partial
 import numpy as np
 
@@ -105,9 +106,13 @@ class cdaweb:
 
     def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[SpwcVariable]:
         result = None
-        tstart = tstart.replace(tzinfo=timezone.utc)
-        tend = tend.replace(tzinfo=timezone.utc)
+        tstart = make_utc_datetime(tstart)
+        tend = make_utc_datetime(tend)
         cache_product = f"cdaweb/{dataset}/{variable}"
         result = _cache.get_data(cache_product, DateTimeRange(tstart, tend),
                                  partial(self._dl_variable, dataset, variable))
         return result
+
+    def get_data(self, path, start_time: datetime, stop_time: datetime):
+        components = path.split('/')
+        return self.get_variable(tstart=start_time, tend=stop_time,dataset=components[0], variable=components[1])

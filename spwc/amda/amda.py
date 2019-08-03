@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pandas as pds
 import requests
 from typing import Optional
-from ..common import listify
+from ..common import listify, make_utc_datetime
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpwcVariable
@@ -30,7 +30,7 @@ def load_csv(filename: str):
         time, data = data[0], data[1:].transpose()
         if 'DATA_COLUMNS' in meta:
             columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[1:]]
-        return SpwcVariable(time, data, meta, columns)
+        return SpwcVariable(time=time, data=data, meta=meta, columns=columns)
 
 
 class AMDA:
@@ -112,12 +112,15 @@ class AMDA:
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
         cache_product = f"amda/{parameter_id}"
-        start_time = start_time.replace(tzinfo=timezone.utc)
-        stop_time = stop_time.replace(tzinfo=timezone.utc)
+        start_time = make_utc_datetime(start_time)
+        stop_time = make_utc_datetime(stop_time)
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_parameter, parameter_id=parameter_id, method=method),
                                  fragment_hours=12)
         return result
+
+    def get_data(self, path, start_time: datetime, stop_time: datetime):
+        return self.get_parameter(start_time=start_time, stop_time=stop_time,parameter_id=path)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
         datatree = xmltodict.parse(requests.get(

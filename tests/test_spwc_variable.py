@@ -15,6 +15,7 @@ def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef:
     var.data = var.time * coef
     return var
 
+
 class SpwcVariableSlice(unittest.TestCase):
     def setUp(self):
         pass
@@ -36,8 +37,8 @@ class SpwcVariableSlice(unittest.TestCase):
 
     def test_view_should_modify_it_source(self):
         var = make_simple_var(1., 10., 1., 1.)
-        var[:].data[1]=999.
-        self.assertEqual(var.data[1],999.)
+        var[:].data[1] = 999.
+        self.assertEqual(var.data[1], 999.)
 
 
 class SpwcVariableMerge(unittest.TestCase):
@@ -68,3 +69,11 @@ class SpwcVariableMerge(unittest.TestCase):
         var2 = make_simple_var(10., 20., 1., 10.)
         var = merge([var1, var2])
         self.assertListEqual(var.time.tolist(), np.arange(1., 20., 1.).tolist())
+
+
+class SpwcVariableCompare(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
