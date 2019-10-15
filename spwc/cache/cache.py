@@ -14,7 +14,6 @@ class Cache:
 
     def __init__(self, cache_path: str = ""):
         self._data = dc.Cache(cache_path, size_limit=int(20e9))
-        self._data.check(fix=True)
 
     def __del__(self):
         pass
