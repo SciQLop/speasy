@@ -7,7 +7,6 @@ import pytest
 
 from click.testing import CliRunner
 
-from spwc import spwc
 from spwc import cli
 
 

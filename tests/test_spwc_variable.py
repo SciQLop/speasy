@@ -4,7 +4,6 @@
 """Tests for `SpwcVariable` class."""
 
 import unittest
-import os
 from spwc.common.variable import SpwcVariable, merge
 import numpy as np
 

@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pds
 from datetime import datetime
 from typing import List, Any, TypeVar
-import matplotlib.pyplot as plt
 
 
 class SpwcVariable(object):

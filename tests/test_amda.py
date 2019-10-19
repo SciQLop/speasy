@@ -5,14 +5,9 @@
 
 import unittest
 import os
-from typing import List
-from ddt import ddt, data, unpack
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from spwc.amda import AMDA,load_csv
 
-import tempfile
-import shutil
-from multiprocessing import dummy
 
 class AMDAModule(unittest.TestCase):
     def setUp(self):
