@@ -70,6 +70,8 @@ class AMDA:
         self.dataCenter = {}
         if "AMDA/inventory" in _cache:
             self._unpack_inventory(_cache["AMDA/inventory"])
+        else:
+            self.update_inventory()
 
     def __del__(self):
         _cache["AMDA/inventory"] = self._pack_inventory()
