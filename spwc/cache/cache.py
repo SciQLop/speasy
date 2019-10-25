@@ -1,7 +1,6 @@
 from typing import List, Callable, Optional
 
 from ..common.datetime_range import DateTimeRange
-import numpy as np
 import diskcache as dc
 import pandas as pds
 from ..common.variable import SpwcVariable, from_dataframe
@@ -26,17 +25,6 @@ class Cache:
 
     def __setitem__(self, key, value):
         self._data[key] = value
-
-    # @staticmethod
-    # def _merge_dataframe(df: pds.DataFrame, fragment: pds.DataFrame) -> pds.DataFrame:
-    #    if df is None or len(df) == 0:
-    #        df = fragment
-    #    elif len(fragment):
-    #        if df.index[0] > fragment.index[-1]:
-    #            df = pds.concat([fragment, df])
-    #        else:
-    #            df = pds.concat([df, fragment])
-    #    return df
 
     def _add_to_cache(self, var: SpwcVariable, fragments: List[datetime], parameter_id: str, fragment_duration_hours=1):
         if var is not None:
