@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Union
 
 from ..common.datetime_range import DateTimeRange
 import diskcache as dc
@@ -6,6 +6,34 @@ import pandas as pds
 from ..common.variable import SpwcVariable, from_dataframe
 from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
+
+
+def _round(value: int, factor: int):
+    return int(value / factor) * factor
+
+
+def _round_for_cache(dt_range: DateTimeRange, fragment_hours: int):
+    start_time = datetime(dt_range.start_time.year, dt_range.start_time.month, dt_range.start_time.day,
+                          _round(dt_range.start_time.hour, fragment_hours),
+                          tzinfo=dt_range.start_time.tzinfo)
+    stop_time = datetime(dt_range.stop_time.year, dt_range.stop_time.month, dt_range.stop_time.day,
+                         _round(dt_range.stop_time.hour, fragment_hours),
+                         tzinfo=dt_range.stop_time.tzinfo)
+    if stop_time != dt_range.stop_time:
+        stop_time += timedelta(hours=fragment_hours)
+    return DateTimeRange(start_time, stop_time)
+
+
+def _change_tz(dt: Union[DateTimeRange, datetime], tz):
+    if type(dt) is datetime:
+        if tz != dt.tzinfo:
+            return datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, tzinfo=tz)
+        else:
+            return dt
+    elif type(dt) is DateTimeRange:
+        return DateTimeRange(_change_tz(dt.start_time, tz), _change_tz(dt.stop_time, tz))
+    else:
+        raise TypeError()
 
 
 class Cache:
@@ -41,17 +69,14 @@ class Cache:
         return var
 
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
-                 request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1) -> Optional[SpwcVariable]:
+                 request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1, last_update=None) -> Optional[
+        SpwcVariable]:
 
-        margins = (dt_range.stop_time - dt_range.start_time) * 0.2
-        start = dt_range.start_time - margins
-        stop = dt_range.stop_time + margins
-        start = datetime(start.year, start.month, start.day, int(start.hour / fragment_hours) * fragment_hours,
-                         tzinfo=timezone.utc)
-        stop = datetime(stop.year, stop.month, stop.day, stop.hour, tzinfo=timezone.utc) + timedelta(hours=1)
+        dt_range = _change_tz(dt_range, timezone.utc)
+        cache_dt_range = _round_for_cache(dt_range * 1.2, fragment_hours)
         fragments = []
-        tend = start
-        while tend < stop:
+        tend = cache_dt_range.start_time
+        while tend < cache_dt_range.stop_time:
             fragments.append(tend)
             tend += timedelta(hours=fragment_hours)
         result = None

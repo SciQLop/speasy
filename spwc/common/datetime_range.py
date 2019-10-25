@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from copy import copy
 
 
 class DateTimeRange:
@@ -17,7 +18,7 @@ class DateTimeRange:
 
     def intersect(self, other):
         return ((self.stop_time >= other[0]) and (self.start_time <= other[1])) or (
-                    other[0] <= self.start_time <= other[1]) or (other[0] <= self.stop_time <= other[1])
+            other[0] <= self.start_time <= other[1]) or (other[0] <= self.stop_time <= other[1])
 
     def __repr__(self):
         return str(self.start_time.isoformat() + "->" + self.stop_time.isoformat())
@@ -69,6 +70,21 @@ class DateTimeRange:
             else:
                 return [self]
             return diff
+        else:
+            raise TypeError()
+
+    def __mul__(self, other):
+        if type(other) is float:
+            result = copy(self)
+            if other >= 1.:
+                margins = (result.stop_time - result.start_time) * (other - 1.) / 2.
+                result.start_time -= margins
+                result.stop_time += margins
+            else:
+                margins = (result.stop_time - result.start_time) * other / 2.
+                result.start_time += margins
+                result.stop_time -= margins
+            return result
         else:
             raise TypeError()
 
