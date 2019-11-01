@@ -69,7 +69,7 @@ class Cache:
         return var
 
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
-                 request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1, last_update=None) -> Optional[
+                 request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1, version=None) -> Optional[
         SpwcVariable]:
 
         dt_range = _change_tz(dt_range, timezone.utc)
@@ -83,7 +83,6 @@ class Cache:
         contiguous_fragments = []
         for fragment in fragments:
             key = f"{parameter_id}/{fragment.isoformat()}"
-            var = None
             if key in self._data:
                 var = self._data[key]
                 if isinstance(var, pds.DataFrame):  # convert any remaining DataFrame from previous releases

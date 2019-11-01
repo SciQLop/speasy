@@ -14,12 +14,6 @@ class AmdaSoap:
         else:
             return None
 
-    @property
-    def get_token(self) -> str:
-        url = self.server_url + "/php/rest/auth.php?"
-        r = requests.get(url)
-        return r.text
-
     def get_obs_data_tree(self):
         resp = self.soap_client.service.getObsDataTree().__json__()
         if resp["success"]:

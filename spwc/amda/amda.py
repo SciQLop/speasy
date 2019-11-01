@@ -96,8 +96,8 @@ class AMDA:
         storage = self._pack_inventory()
         AMDA.ObsDataTreeParser.extrac_all(tree, storage)
 
-    def get_token(self, method: str = "SOAP", **kwargs: dict) -> str:
-        return self.METHODS[method.upper()].get_token
+    def get_token(self, **kwargs: dict) -> str:
+        return self.METHODS["REST"].get_token
 
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
@@ -116,13 +116,14 @@ class AMDA:
         cache_product = f"amda/{parameter_id}"
         start_time = make_utc_datetime(start_time)
         stop_time = make_utc_datetime(stop_time)
+        version = self.dataset[self.parameter[parameter_id]["dataset"]]['lastUpdate']
         result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_parameter, parameter_id=parameter_id, method=method),
-                                 fragment_hours=12)
+                                 fragment_hours=12, version=version)
         return result
 
     def get_data(self, path, start_time: datetime, stop_time: datetime):
-        return self.get_parameter(start_time=start_time, stop_time=stop_time,parameter_id=path)
+        return self.get_parameter(start_time=start_time, stop_time=stop_time, parameter_id=path)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
         datatree = xmltodict.parse(requests.get(

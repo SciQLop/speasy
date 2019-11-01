@@ -2,8 +2,10 @@ import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
 from spwc.cache.cache import Cache, _round_for_cache
+from spwc.cache.version import str_to_version, version_to_str
 from spwc.common.datetime_range import DateTimeRange
 from spwc.common.variable import SpwcVariable
+import operator
 import numpy as np
 
 import tempfile
@@ -169,3 +171,25 @@ class _DateTimeRangeTest(unittest.TestCase):
     @unpack
     def test_range_rounding(self, dt_range, fragment_hours, expected):
         self.assertEqual(_round_for_cache(dt_range, fragment_hours), expected)
+
+
+@ddt
+class _CacheVersionTest(unittest.TestCase):
+
+    @data(
+        ("1.1.1", "1.1.1", operator.eq),
+        ("1.1.1", "1.1.2", operator.lt),
+        ("1.1.1", "1.1.0", operator.gt),
+        ("1.1", "1.1", operator.eq),
+        ("1.1", "1.2", operator.lt),
+        ("1.1", "1.0", operator.gt),
+        ("1", "1", operator.eq),
+        ("1", "2", operator.lt),
+        ("1", "0", operator.gt),
+        ("2019-09-01T20:17:57Z", "2019-09-01T20:17:57Z", operator.eq),
+        ("2019-09-01T20:17:57Z", "2019-09-01T21:17:57Z", operator.lt),
+        ("2019-09-01T22:17:57Z", "2019-09-01T20:17:57Z", operator.gt)
+    )
+    @unpack
+    def test_compare_version(self, lhs, rhs, op):
+        self.assertTrue(op(str_to_version(lhs), str_to_version(rhs)))
