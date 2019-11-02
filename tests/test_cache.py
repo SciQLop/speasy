@@ -11,7 +11,10 @@ import numpy as np
 import tempfile
 import shutil
 
+start_date = datetime(2016, 6, 1, 12, tzinfo=timezone.utc)
 
+
+@ddt
 class _CacheTest(unittest.TestCase):
     def setUp(self):
         self.dirpath = tempfile.mkdtemp()
@@ -25,36 +28,46 @@ class _CacheTest(unittest.TestCase):
         self._make_data_cntr += 1
         return SpwcVariable(time=index, data=data)
 
-    def _get_and_check(self,start,stop):
-        var = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(start, stop), self._make_data)
+    def _get_and_check(self, start, stop):
+        var = self.cache.get_data("...", DateTimeRange(start, stop), self._make_data)
         self.assertIsNotNone(var)
         test = start.timestamp()
         self.assertEqual(var.time[0], start.timestamp())
         self.assertEqual(var.time[-1], (stop - timedelta(minutes=1)).timestamp())
-        self.assertEqual(len(var), (stop-start).seconds/60)
+        self.assertEqual(len(var), (stop - start).seconds / 60)
 
-    def test_get_less_than_one_hour(self):
-        tstart = datetime(2016, 6, 1, 13, tzinfo=timezone.utc)
-        tend = datetime(2016, 6, 1, 13, 10, tzinfo=timezone.utc)
-        self._get_and_check(tstart,tend)
-
-    def test_get_more_than_one_hour(self):
-        tstart = datetime(2016, 6, 1, 13, tzinfo=timezone.utc)
-        tend = datetime(2016, 6, 1, 14, 10, tzinfo=timezone.utc)
-        self._get_and_check(tstart,tend)
-
-    def test_get_over_midnight(self):
-        tstart = datetime(2016, 6, 1, 23, 30, tzinfo=timezone.utc)
-        tend = datetime(2016, 6, 2, 0, 30, tzinfo=timezone.utc)
-        self._get_and_check(tstart,tend)
+    @data(
+        (start_date, start_date + timedelta(minutes=10), "Less than one hour"),
+        (start_date, start_date + timedelta(minutes=70), "More than one hour"),
+        (start_date, start_date + timedelta(hours=13), "Over midnight")
+    )
+    @unpack
+    def test_get_data(self, tstart, tend, name):
+        self._get_and_check(tstart, tend)
 
     def test_get_data_more_than_once(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         for _ in range(10):
-            var = self.cache.get_data("test_get_less_than_one_hour", DateTimeRange(tstart, tend), self._make_data)
-            self.assertEqual(self._make_data_cntr,1)
+            var = self.cache.get_data("test_get_data_more_than_once", DateTimeRange(tstart, tend), self._make_data)
+            self.assertEqual(self._make_data_cntr, 1)
+
+    def test_get_newer_version_data(self):
+        tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
+        tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
+        self.assertEqual(self._make_data_cntr, 0)
+        for i in range(10):
+            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data, version=f"{i}")
+            self.assertEqual(self._make_data_cntr, i+1)
+
+    def test_get_same_version_data(self):
+        tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
+        tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
+        self.assertEqual(self._make_data_cntr, 0)
+        for i in range(10):
+            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data, version="1.1.1")
+            self.assertEqual(self._make_data_cntr, 1)
 
     def tearDown(self):
         del self.cache
@@ -144,7 +157,7 @@ class _DateTimeRangeTest(unittest.TestCase):
             DateTimeRange(datetime(2000, 1, 1, 0, 30, 0), datetime(2000, 1, 1, 2, 30, 0)),
             .5,
             DateTimeRange(datetime(2000, 1, 1, 1, 0, 0), datetime(2000, 1, 1, 2, 0, 0))
-        ),
+        )
     )
     @unpack
     def test_scale(self, dt_range, factor, expected):

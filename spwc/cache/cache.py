@@ -39,6 +39,16 @@ def _change_tz(dt: Union[DateTimeRange, datetime], tz):
         raise TypeError()
 
 
+class CacheItem:
+    def __init__(self, data, version):
+        self.data = data
+        self.version = version
+
+
+def _is_up_to_date(item: CacheItem, version):
+    return (item.version is None) or (item.version >= version)
+
+
 class Cache:
     __slots__ = ['cache_file', '_data']
 
@@ -68,18 +78,20 @@ class Cache:
     def __setitem__(self, key, value):
         self._data[key] = value
 
-    def _add_to_cache(self, var: SpwcVariable, fragments: List[datetime], parameter_id: str, fragment_duration_hours=1):
+    def _add_to_cache(self, var: SpwcVariable, fragments: List[datetime], parameter_id: str, fragment_duration_hours=1,
+                      version=None):
         if var is not None:
             for fragment in fragments:
-                self._data[f"{parameter_id}/{fragment.isoformat()}"] = var[fragment:fragment + timedelta(
-                    hours=fragment_duration_hours)]
+                self._data[f"{parameter_id}/{fragment.isoformat()}"] = CacheItem(var[fragment:fragment + timedelta(
+                    hours=fragment_duration_hours)], version)
 
     def _get_fragments(self, var: SpwcVariable, parameter_id: str, fragments: List[datetime],
-                       request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1) -> SpwcVariable:
+                       request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1,
+                       version=None) -> SpwcVariable:
         if len(fragments):
             new_var = request(fragments[0], fragments[-1] + timedelta(hours=fragment_hours))
             var = merge_variables([var, new_var])
-            self._add_to_cache(new_var, fragments, parameter_id, fragment_hours)
+            self._add_to_cache(new_var, fragments, parameter_id, fragment_hours, version)
         return var
 
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
@@ -98,21 +110,19 @@ class Cache:
         for fragment in fragments:
             key = f"{parameter_id}/{fragment.isoformat()}"
             if key in self._data:
-                var = self._data[key]
-                if isinstance(var, pds.DataFrame):  # convert any remaining DataFrame from previous releases
-                    var = from_dataframe(var)
-                if var is not None:
+                item = self._data[key]
+                if item.data is not None and _is_up_to_date(item, version):
                     if len(contiguous_fragments):
                         result = self._get_fragments(result, parameter_id, contiguous_fragments, request,
-                                                     fragment_hours)
+                                                     fragment_hours, version)
                         contiguous_fragments = []
-                    result = merge_variables([result, var])
+                    result = merge_variables([result, item.data])
                 else:
                     contiguous_fragments.append(fragment)
             else:
                 contiguous_fragments.append(fragment)
         if len(contiguous_fragments):
-            result = self._get_fragments(result, parameter_id, contiguous_fragments, request, fragment_hours)
+            result = self._get_fragments(result, parameter_id, contiguous_fragments, request, fragment_hours, version)
         if result is not None:
             return result[dt_range.start_time:dt_range.stop_time]
         return None
