@@ -214,3 +214,7 @@ class _CacheVersionTest(unittest.TestCase):
     @unpack
     def test_compare_version(self, lhs, rhs, op):
         self.assertTrue(op(str_to_version(lhs), str_to_version(rhs)))
+
+
+if __name__ == '__main__':
+    unittest.main()

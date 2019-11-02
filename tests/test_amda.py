@@ -61,3 +61,7 @@ class SimpleRequest(unittest.TestCase):
         parameter_id = "c1_b_gsm"
         result = self.ws.get_parameter(start_date, stop_date, parameter_id, method=method)
         self.assertIsNotNone(result)
+
+
+if __name__ == '__main__':
+    unittest.main()

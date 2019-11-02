@@ -94,6 +94,9 @@ class Cache:
             self._add_to_cache(new_var, fragments, parameter_id, fragment_hours, version)
         return var
 
+    def set(self, key, value, expire=None):
+        self._data.set(key, value, expire=expire)
+
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
                  request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1, version=None) -> Optional[
         SpwcVariable]:

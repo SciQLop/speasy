@@ -57,3 +57,7 @@ class ConcurrentRequests(unittest.TestCase):
         results = self.pool.map(func, [1] * 8)
         for result in results:
             self.assertIsNotNone(result)
+
+
+if __name__ == '__main__':
+    unittest.main()
