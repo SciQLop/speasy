@@ -74,7 +74,7 @@ class AMDA:
             self.update_inventory()
 
     def __del__(self):
-        _cache["AMDA/inventory"] = self._pack_inventory()
+        _cache.set("AMDA/inventory", self._pack_inventory(), expire=7 * 24 * 60 * 60)
 
     def _pack_inventory(self):
         return {
