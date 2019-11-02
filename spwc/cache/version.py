@@ -1,12 +1,12 @@
-from packaging import version
+from packaging.version import Version, parse, InvalidVersion
 import dateutil, datetime
 from typing import Union
 
 
-def str_to_version(v:str):
+def str_to_version(v: str):
     try:
-        v = version.parse(v)
-    except version.InvalidVersion:
+        v = parse(v)
+    except InvalidVersion:
         try:
             v = dateutil.parser.parse(v)
         except ValueError:
@@ -14,9 +14,8 @@ def str_to_version(v:str):
     return v
 
 
-def version_to_str(v:Union[version.Version,datetime.datetime]):
-    if type(v) is version.Version:
+def version_to_str(v: Union[Version, datetime.datetime]):
+    if type(v) is Version:
         return str(v)
     elif type(v) is datetime.datetime:
         return v.isoformat()
-

@@ -6,6 +6,9 @@ import pandas as pds
 from ..common.variable import SpwcVariable, from_dataframe
 from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
+from .version import str_to_version, version_to_str, Version
+
+cache_version = str_to_version("1.0")
 
 
 def _round(value: int, factor: int):
@@ -41,6 +44,17 @@ class Cache:
 
     def __init__(self, cache_path: str = ""):
         self._data = dc.Cache(cache_path, size_limit=int(20e9))
+        if self.version < cache_version:
+            self._data.clear()
+            self.version = cache_version
+
+    @property
+    def version(self):
+        return str_to_version(self._data.get("cache/version", default="0.0.0"))
+
+    @version.setter
+    def version(self, v: Union[str, Version]):
+        self._data["cache/version"] = v if type(v) is str else version_to_str(v)
 
     def __del__(self):
         pass
