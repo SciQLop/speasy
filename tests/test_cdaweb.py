@@ -2,16 +2,24 @@ import unittest
 from ddt import ddt, data
 from datetime import datetime, timezone
 from multiprocessing import dummy
-
+import spwc.cdaweb as cd
 from spwc.cdaweb import cdaweb
+from spwc.cache import Cache
+import tempfile
+import shutil
+
 
 @ddt
-class simple_request(unittest.TestCase):
+class SimpleRequest(unittest.TestCase):
     def setUp(self):
+        self.default_cache_path = cd._cache._data.directory
+        self.cache_path = tempfile.mkdtemp()
+        cd._cache = Cache(self.cache_path)
         self.cd = cdaweb()
 
     def tearDown(self):
-        pass
+        cd._cache = Cache(self.default_cache_path)
+        shutil.rmtree(self.cache_path)
 
     @data(
         {
@@ -49,3 +57,7 @@ class ConcurrentRequests(unittest.TestCase):
         results = self.pool.map(func, [1] * 8)
         for result in results:
             self.assertIsNotNone(result)
+
+
+if __name__ == '__main__':
+    unittest.main()

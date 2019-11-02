@@ -7,12 +7,12 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 from .common.variable import SpwcVariable
 from .amda import AMDA
-from .cdaweb import cdaweb
+from .cdaweb import cdaweb as cd
 from typing import *
 import functools
 
 amda = AMDA()
-cda = cdaweb()
+cda = cd()
 __PROVIDERS__ = {
     'amda':amda.get_data,
     'cdaweb':cda.get_data

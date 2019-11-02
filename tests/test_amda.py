@@ -6,7 +6,12 @@
 import unittest
 import os
 from datetime import datetime, timezone
-from spwc.amda import AMDA,load_csv
+from spwc.amda import amda
+from spwc.cache import Cache
+from spwc.amda import AMDA, load_csv
+import tempfile
+import shutil
+from ddt import ddt, data, unpack
 
 
 class AMDAModule(unittest.TestCase):
@@ -23,28 +28,40 @@ class AMDAModule(unittest.TestCase):
         self.assertGreater(len(var.time), 0)
         self.assertTrue('MISSION_ID' in var.meta)
 
-class simple_request(unittest.TestCase):
+
+@ddt
+class SimpleRequest(unittest.TestCase):
     def setUp(self):
+        self.default_cache_path = amda._cache._data.directory
+        self.cache_path = tempfile.mkdtemp()
+        amda._cache = Cache(self.cache_path)
         self.ws = AMDA()
 
     def tearDown(self):
-        pass
+        amda._cache = Cache(self.default_cache_path)
+        shutil.rmtree(self.cache_path)
 
-    def test_get_variable(self):
+    @data("REST", "SOAP")
+    def test_get_variable(self, method):
         start_date = datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 8, 1, 0, 1, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method="REST")
+        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method=method)
         self.assertIsNotNone(result)
         start_date = datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2016, 1, 8, 1, 0, 1, tzinfo=timezone.utc)
         parameter_id = "c1_hia_prest"
-        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method="REST")
+        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method=method)
         self.assertIsNotNone(result)
 
-    def test_get_variable_over_midnight(self):
+    @data("REST", "SOAP")
+    def test_get_variable_over_midnight(self, method):
         start_date = datetime(2006, 1, 8, 23, 30, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 9, 0, 30, 0, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method="REST")
+        result = self.ws.get_parameter(start_date, stop_date, parameter_id, method=method)
         self.assertIsNotNone(result)
+
+
+if __name__ == '__main__':
+    unittest.main()
