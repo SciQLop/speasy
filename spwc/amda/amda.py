@@ -3,6 +3,7 @@ from .soap import AmdaSoap
 import xmltodict
 from datetime import datetime, timezone
 import pandas as pds
+import numpy as np
 import requests
 from typing import Optional
 from ..common import listify, make_utc_datetime
@@ -21,6 +22,7 @@ def load_csv(filename: str):
         line = csv.readline().decode()
         meta = {}
         columns = []
+        y = None
         while line[0] == '#':
             if ':' in line:
                 key, value = line[1:].split(':', 1)
@@ -28,9 +30,17 @@ def load_csv(filename: str):
             line = csv.readline().decode()
         data = pds.read_csv(csv, comment='#', delim_whitespace=True).values.transpose()
         time, data = data[0], data[1:].transpose()
+        if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
+            min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[1]"].split(',')])
+            max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[1]"].split(',')])
+            y = (max_v + min_v) / 2.
+        elif "PARAMETER_TABLE_MIN_VALUES[0]" in meta:
+            min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
+            max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
+            y = (max_v + min_v) / 2.
         if 'DATA_COLUMNS' in meta:
             columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[1:]]
-        return SpwcVariable(time=time, data=data, meta=meta, columns=columns)
+        return SpwcVariable(time=time, data=data, meta=meta, columns=columns, y=y)
 
 
 class AMDA:

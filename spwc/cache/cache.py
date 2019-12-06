@@ -8,7 +8,7 @@ from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
 from .version import str_to_version, version_to_str, Version
 
-cache_version = str_to_version("1.0")
+cache_version = str_to_version("1.1")
 
 
 def _round(value: int, factor: int):

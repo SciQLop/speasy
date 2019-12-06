@@ -7,16 +7,17 @@ from typing import List, Any, TypeVar
 
 
 class SpwcVariable(object):
-    __slots__ = ['meta', 'time', 'data', 'columns']
+    __slots__ = ['meta', 'time', 'data', 'columns', 'y']
 
-    def __init__(self, time=np.empty(0), data=np.empty(0), meta={}, columns=[]):
+    def __init__(self, time=np.empty(0), data=np.empty(0), meta={}, columns=[], y=None):
         self.meta = meta
         self.time = time
         self.data = data
         self.columns = columns
+        self.y = y
 
     def view(self, range):
-        return SpwcVariable(self.time[range], self.data[range], self.meta, self.columns)
+        return SpwcVariable(self.time[range], self.data[range], self.meta, self.columns, self.y)
 
     def __eq__(self, other: 'SpwcVariable') -> bool:
         return self.meta == other.meta and \
@@ -103,4 +104,4 @@ def merge(variables: List[SpwcVariable]):
         time[pos:pos + frag_len] = r.time[0:frag_len]
         data[pos:pos + frag_len] = r.data[0:frag_len]
         pos += frag_len
-    return SpwcVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns)
+    return SpwcVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=sorted_var_list[0].y)
