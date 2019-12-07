@@ -10,8 +10,8 @@ class AmdaRest:
         key: str
         for key, val in kwargs.items():
             base_url += key + "=" + str(val) + "&"
-        for i in [None]*3: # sometime fails with no reason...
-            url = base_url+ "token="+self.get_token
+        for i in [None] * 3:  # sometime fails with no reason...
+            url = base_url + "token=" + self.get_token
             r = requests.get(url)
             js = r.json()
             if 'success' in js and js['success'] is True and 'dataFileURLs' in js:

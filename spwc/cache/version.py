@@ -1,6 +1,7 @@
-from packaging.version import Version, parse, InvalidVersion
-import dateutil, datetime
 from typing import Union
+import datetime
+import dateutil
+from packaging.version import Version, parse, InvalidVersion
 
 
 def str_to_version(v: str):

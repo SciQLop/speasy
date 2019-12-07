@@ -3,7 +3,7 @@ import os
 try:
     from teamcity import is_running_under_teamcity
     from teamcity.unittestpy import TeamcityTestRunner
-except:
+except ImportError:
     def is_running_under_teamcity():
         return False
 

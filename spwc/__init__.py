@@ -8,26 +8,23 @@ __version__ = '0.1.0'
 from .common.variable import SpwcVariable
 from .amda import AMDA
 from .cdaweb import cdaweb as cd
-from typing import *
-import functools
+from typing import List
 
 amda = AMDA()
 cda = cd()
 __PROVIDERS__ = {
-    'amda':amda.get_data,
-    'cdaweb':cda.get_data
+    'amda': amda.get_data,
+    'cdaweb': cda.get_data
 }
-
-
 
 
 # @TODO implement me, this function should be able to look inside all servers
 # and return something that could be passed to get_data
-def find_product(name:str) -> List[str]:
+def find_product(name: str) -> List[str]:
     pass
 
 
-def get_data(path:str, start_time, stop_time) -> SpwcVariable:
+def get_data(path: str, start_time, stop_time) -> SpwcVariable:
     components = path.split('/')
     if components[0] in __PROVIDERS__:
         return __PROVIDERS__[components[0]](path='/'.join(components[1:]), start_time=start_time, stop_time=stop_time)

@@ -1,5 +1,5 @@
 import diskcache as dc
-from appdirs import *
+from appdirs import user_cache_dir
 from datetime import datetime, timezone
 from dateutil.parser import parse
 

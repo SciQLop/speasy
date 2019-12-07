@@ -1,9 +1,7 @@
-from math import nan
-
 import numpy as np
 import pandas as pds
 from datetime import datetime
-from typing import List, Any, TypeVar
+from typing import List
 
 
 class SpwcVariable(object):

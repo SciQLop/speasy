@@ -7,7 +7,7 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime
 import pandas as pds
 import requests
 from ..cache import _cache
@@ -53,7 +53,7 @@ class cdaweb:
         if not resp.ok:
             return None
         instruments = [instrument for instrument in resp.json()['InstrumentDescription'] if
-                       instrument['Name'] is not '']
+                       instrument['Name'] != '']
         return instruments
 
     def get_datasets(self, dataview='sp_phys', observatoryGroup=None, instrumentType=None, observatory=None,
@@ -115,4 +115,4 @@ class cdaweb:
 
     def get_data(self, path, start_time: datetime, stop_time: datetime):
         components = path.split('/')
-        return self.get_variable(tstart=start_time, tend=stop_time,dataset=components[0], variable=components[1])
+        return self.get_variable(tstart=start_time, tend=stop_time, dataset=components[0], variable=components[1])

@@ -2,8 +2,7 @@ from typing import List, Callable, Optional, Union
 
 from ..common.datetime_range import DateTimeRange
 import diskcache as dc
-import pandas as pds
-from ..common.variable import SpwcVariable, from_dataframe
+from ..common.variable import SpwcVariable
 from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
 from .version import str_to_version, version_to_str, Version
@@ -99,7 +98,7 @@ class Cache:
 
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
                  request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1, version=None) -> Optional[
-        SpwcVariable]:
+            SpwcVariable]:
 
         dt_range = _change_tz(dt_range, timezone.utc)
         cache_dt_range = _round_for_cache(dt_range * 1.2, fragment_hours)

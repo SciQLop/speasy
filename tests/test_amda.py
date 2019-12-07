@@ -11,7 +11,7 @@ from spwc.cache import Cache
 from spwc.amda import AMDA, load_csv
 import tempfile
 import shutil
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 
 class AMDAModule(unittest.TestCase):

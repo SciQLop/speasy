@@ -2,7 +2,7 @@ import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
 from spwc.cache.cache import Cache, _round_for_cache
-from spwc.cache.version import str_to_version, version_to_str
+from spwc.cache.version import str_to_version
 from spwc.common.datetime_range import DateTimeRange
 from spwc.common.variable import SpwcVariable
 import operator
@@ -31,7 +31,6 @@ class _CacheTest(unittest.TestCase):
     def _get_and_check(self, start, stop):
         var = self.cache.get_data("...", DateTimeRange(start, stop), self._make_data)
         self.assertIsNotNone(var)
-        test = start.timestamp()
         self.assertEqual(var.time[0], start.timestamp())
         self.assertEqual(var.time[-1], (stop - timedelta(minutes=1)).timestamp())
         self.assertEqual(len(var), (stop - start).seconds / 60)
@@ -58,15 +57,17 @@ class _CacheTest(unittest.TestCase):
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         for i in range(10):
-            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data, version=f"{i}")
-            self.assertEqual(self._make_data_cntr, i+1)
+            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
+                                      version=f"{i}")
+            self.assertEqual(self._make_data_cntr, i + 1)
 
     def test_get_same_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         for i in range(10):
-            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data, version="1.1.1")
+            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
+                                      version="1.1.1")
             self.assertEqual(self._make_data_cntr, 1)
 
     def tearDown(self):

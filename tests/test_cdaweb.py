@@ -23,10 +23,10 @@ class SimpleRequest(unittest.TestCase):
 
     @data(
         {
-            "dataset":"MMS2_SCM_SRVY_L2_SCSRVY",
-            "variable":"mms2_scm_acb_gse_scsrvy_srvy_l2",
-            "tstart":datetime(2016, 6, 1, tzinfo=timezone.utc),
-            "tend":datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc)
+            "dataset": "MMS2_SCM_SRVY_L2_SCSRVY",
+            "variable": "mms2_scm_acb_gse_scsrvy_srvy_l2",
+            "tstart": datetime(2016, 6, 1, tzinfo=timezone.utc),
+            "tend": datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc)
         },
         {
             "dataset": "THA_L2_FGM",
@@ -35,7 +35,7 @@ class SimpleRequest(unittest.TestCase):
             "tend": datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc)
         }
     )
-    def test_get_variable(self,kw):
+    def test_get_variable(self, kw):
         result = self.cd.get_variable(**kw)
         self.assertIsNotNone(result)
 

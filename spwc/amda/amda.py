@@ -1,7 +1,7 @@
 from .rest import AmdaRest
 from .soap import AmdaSoap
 import xmltodict
-from datetime import datetime, timezone
+from datetime import datetime
 import pandas as pds
 import numpy as np
 import requests
