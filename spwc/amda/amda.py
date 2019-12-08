@@ -5,11 +5,12 @@ from datetime import datetime
 import pandas as pds
 import numpy as np
 import requests
-from typing import Optional
+from typing import Optional, re
 from ..common import listify, make_utc_datetime
 from ..cache import _cache
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpwcVariable
+from ..proxy import Proxyfiable, GetProduct
 from functools import partial
 from urllib.request import urlopen
 import os
@@ -109,6 +110,11 @@ class AMDA:
     def get_token(self, **kwargs: dict) -> str:
         return self.METHODS["REST"].get_token
 
+    @staticmethod
+    def get_parameter_args(start_time: datetime, stop_time: datetime, parameter_id: str):
+        return {'path': f'amda/{parameter_id}', 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
+
+    @Proxyfiable(GetProduct, get_parameter_args)
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
 
