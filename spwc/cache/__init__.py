@@ -1,4 +1,4 @@
-from appdirs import user_cache_dir
 from .cache import Cache
+from ..config import cache_path
 
-_cache = Cache(str(user_cache_dir("SciQLop", "LPP")))
+_cache = Cache(cache_path.get())

@@ -6,6 +6,7 @@ from ..common.variable import SpwcVariable
 from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
 from .version import str_to_version, version_to_str, Version
+from ..config import cache_size
 
 cache_version = str_to_version("1.1")
 
@@ -52,7 +53,7 @@ class Cache:
     __slots__ = ['cache_file', '_data']
 
     def __init__(self, cache_path: str = ""):
-        self._data = dc.Cache(cache_path, size_limit=int(20e9))
+        self._data = dc.Cache(cache_path, size_limit=int(float(cache_size.get())))
         if self.version < cache_version:
             self._data.clear()
             self.version = cache_version
