@@ -89,7 +89,7 @@ class Cache:
                        request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1,
                        version=None) -> SpwcVariable:
         if len(fragments):
-            new_var = request(fragments[0], fragments[-1] + timedelta(hours=fragment_hours))
+            new_var = request(start_time=fragments[0], stop_time=fragments[-1] + timedelta(hours=fragment_hours))
             var = merge_variables([var, new_var])
             self._add_to_cache(new_var, fragments, parameter_id, fragment_hours, version)
         return var

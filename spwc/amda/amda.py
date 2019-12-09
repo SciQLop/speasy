@@ -44,6 +44,10 @@ def load_csv(filename: str):
         return SpwcVariable(time=time, data=data, meta=meta, columns=columns, y=y)
 
 
+def get_parameter_args(start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs):
+    return {'path': f'amda/{parameter_id}', 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
+
+
 class AMDA:
     class ObsDataTreeParser:
         @staticmethod
@@ -109,10 +113,6 @@ class AMDA:
 
     def get_token(self, **kwargs: dict) -> str:
         return self.METHODS["REST"].get_token
-
-    @staticmethod
-    def get_parameter_args(start_time: datetime, stop_time: datetime, parameter_id: str):
-        return {'path': f'amda/{parameter_id}', 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
 
     @Proxyfiable(GetProduct, get_parameter_args)
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
