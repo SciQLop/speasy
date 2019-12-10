@@ -95,24 +95,24 @@ class cdaweb:
         variables = [varaible for varaible in resp.json()['VariableDescription']]
         return variables
 
-    def _dl_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[SpwcVariable]:
-        tstart, tend = tstart.strftime('%Y%m%dT%H%M%SZ'), tend.strftime('%Y%m%dT%H%M%SZ')
-        url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{tstart},{tend}/{variable}?format=csv"
+    def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[SpwcVariable]:
+        start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
+        url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format=csv"
         print(url)
         resp = requests.get(url, headers={"Accept": "application/json"})
         if not resp.ok or 'FileDescription' not in resp.json():
             return None
         return _read_csv(resp.json()['FileDescription'][0]['Name'])
 
-    def get_variable(self, dataset: str, variable: str, tstart: datetime, tend: datetime) -> Optional[SpwcVariable]:
+    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[SpwcVariable]:
         result = None
-        tstart = make_utc_datetime(tstart)
-        tend = make_utc_datetime(tend)
+        start_time = make_utc_datetime(start_time)
+        stop_time = make_utc_datetime(stop_time)
         cache_product = f"cdaweb/{dataset}/{variable}"
-        result = _cache.get_data(cache_product, DateTimeRange(tstart, tend),
+        result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
                                  partial(self._dl_variable, dataset, variable))
         return result
 
     def get_data(self, path, start_time: datetime, stop_time: datetime):
         components = path.split('/')
-        return self.get_variable(tstart=start_time, tend=stop_time, dataset=components[0], variable=components[1])
+        return self.get_variable(start_time=start_time, stop_time=stop_time, dataset=components[0], variable=components[1])

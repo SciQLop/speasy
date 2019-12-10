@@ -53,7 +53,7 @@ class Cache:
     __slots__ = ['cache_file', '_data']
 
     def __init__(self, cache_path: str = ""):
-        self._data = dc.Cache(cache_path, size_limit=int(float(cache_size.get())))
+        self._data = dc.FanoutCache(cache_path, shards=8, size_limit=int(float(cache_size.get())))
         if self.version < cache_version:
             self._data.clear()
             self.version = cache_version

@@ -27,8 +27,6 @@ class Proxyfiable(object):
         @wraps(func)
         def wrapped(*args, **kwargs):
             if proxy_enabled.get().lower() == "true":
-                print(args)
-                print(kwargs)
                 return self.request.get(**self.arg_builder(**kwargs))
             else:
                 return func(*args, **kwargs)

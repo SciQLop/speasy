@@ -21,9 +21,9 @@ class _CacheTest(unittest.TestCase):
         self.cache = Cache(self.dirpath)
         self._make_data_cntr = 0
 
-    def _make_data(self, tstart, tend):
+    def _make_data(self, start_time, stop_time):
         index = np.array(
-            [(tstart + timedelta(minutes=delta)).timestamp() for delta in range(int((tend - tstart).seconds / 60))])
+            [(start_time + timedelta(minutes=delta)).timestamp() for delta in range(int((stop_time - start_time).seconds / 60))])
         data = index / 3600.
         self._make_data_cntr += 1
         return SpwcVariable(time=index, data=data)
