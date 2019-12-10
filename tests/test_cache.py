@@ -1,8 +1,8 @@
 import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
-from spwc.cache.cache import Cache, _round_for_cache
-from spwc.cache import Cacheable
+from spwc.cache.cache import Cache
+from spwc.cache import Cacheable, _round_for_cache
 from spwc.cache.version import str_to_version
 from spwc.common.datetime_range import DateTimeRange
 from spwc.common.variable import SpwcVariable
