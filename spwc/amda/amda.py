@@ -7,7 +7,7 @@ import numpy as np
 import requests
 from typing import Optional, re
 from ..common import listify, make_utc_datetime
-from ..cache import _cache
+from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpwcVariable
 from ..proxy import Proxyfiable, GetProduct
@@ -44,8 +44,8 @@ def load_csv(filename: str):
         return SpwcVariable(time=time, data=data, meta=meta, columns=columns, y=y)
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs):
-    return {'path': f'amda/{parameter_id}', 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+    return {'path': f"amda/{product}", 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
 
 
 class AMDA:
@@ -114,7 +114,6 @@ class AMDA:
     def get_token(self, **kwargs: dict) -> str:
         return self.METHODS["REST"].get_token
 
-    @Proxyfiable(GetProduct, get_parameter_args)
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
 
@@ -127,19 +126,17 @@ class AMDA:
             return var
         return None
 
+    def product_version(self, parameter_id):
+        return self.dataset[self.parameter[parameter_id]["dataset"]]['lastUpdate']
+
+    @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
+    @Proxyfiable(GetProduct, get_parameter_args)
+    def get_data(self, product, start_time: datetime, stop_time: datetime):
+        return self._dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
+
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
-        cache_product = f"amda/{parameter_id}"
-        start_time = make_utc_datetime(start_time)
-        stop_time = make_utc_datetime(stop_time)
-        version = self.dataset[self.parameter[parameter_id]["dataset"]]['lastUpdate']
-        result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
-                                 partial(self._dl_parameter, parameter_id=parameter_id, method=method),
-                                 fragment_hours=12, version=version)
-        return result
-
-    def get_data(self, path, start_time: datetime, stop_time: datetime):
-        return self.get_parameter(start_time=start_time, stop_time=stop_time, parameter_id=path)
+        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
         datatree = xmltodict.parse(requests.get(

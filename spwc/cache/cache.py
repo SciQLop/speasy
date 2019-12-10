@@ -1,12 +1,14 @@
 from typing import List, Callable, Optional, Union
 
 from ..common.datetime_range import DateTimeRange
+from ..common import make_utc_datetime
 import diskcache as dc
 from ..common.variable import SpwcVariable
 from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
 from .version import str_to_version, version_to_str, Version
 from ..config import cache_size
+from functools import wraps
 
 cache_version = str_to_version("1.1")
 
@@ -69,6 +71,9 @@ class Cache:
     def __del__(self):
         pass
 
+    def keys(self):
+        return [item for item in self._data]
+
     def __contains__(self, item):
         return item in self._data
 
@@ -99,7 +104,7 @@ class Cache:
 
     def get_data(self, parameter_id: str, dt_range: DateTimeRange,
                  request: Callable[[datetime, datetime], SpwcVariable], fragment_hours=1, version=None) -> Optional[
-            SpwcVariable]:
+        SpwcVariable]:
 
         dt_range = _change_tz(dt_range, timezone.utc)
         cache_dt_range = _round_for_cache(dt_range * 1.2, fragment_hours)
@@ -129,3 +134,5 @@ class Cache:
         if result is not None:
             return result[dt_range.start_time:dt_range.stop_time]
         return None
+
+

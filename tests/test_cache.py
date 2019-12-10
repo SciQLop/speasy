@@ -2,6 +2,7 @@ import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
 from spwc.cache.cache import Cache, _round_for_cache
+from spwc.cache import Cacheable
 from spwc.cache.version import str_to_version
 from spwc.common.datetime_range import DateTimeRange
 from spwc.common.variable import SpwcVariable
@@ -13,23 +14,30 @@ import shutil
 
 start_date = datetime(2016, 6, 1, 12, tzinfo=timezone.utc)
 
+dirpath = tempfile.mkdtemp()
+cache = Cache(dirpath)
+
 
 @ddt
 class _CacheTest(unittest.TestCase):
     def setUp(self):
-        self.dirpath = tempfile.mkdtemp()
-        self.cache = Cache(self.dirpath)
         self._make_data_cntr = 0
+        self._version = 0
 
-    def _make_data(self, start_time, stop_time):
+    def version(self, product):
+        return self._version
+
+    @Cacheable(prefix="", cache_instance=cache, version=version)
+    def _make_data(self, product, start_time, stop_time):
         index = np.array(
-            [(start_time + timedelta(minutes=delta)).timestamp() for delta in range(int((stop_time - start_time).seconds / 60))])
+            [(start_time + timedelta(minutes=delta)).timestamp() for delta in
+             range(int((stop_time - start_time).seconds / 60))])
         data = index / 3600.
         self._make_data_cntr += 1
         return SpwcVariable(time=index, data=data)
 
     def _get_and_check(self, start, stop):
-        var = self.cache.get_data("...", DateTimeRange(start, stop), self._make_data)
+        var = self._make_data("...", start, stop)
         self.assertIsNotNone(var)
         self.assertEqual(var.time[0], start.timestamp())
         self.assertEqual(var.time[-1], (stop - timedelta(minutes=1)).timestamp())
@@ -49,7 +57,8 @@ class _CacheTest(unittest.TestCase):
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         for _ in range(10):
-            var = self.cache.get_data("test_get_data_more_than_once", DateTimeRange(tstart, tend), self._make_data)
+            var = self._make_data("test_get_data_more_than_once", tstart,
+                                  tend)  # self.cache.get_data("test_get_data_more_than_once", DateTimeRange(tstart, tend), self._make_data)
             self.assertEqual(self._make_data_cntr, 1)
 
     def test_get_newer_version_data(self):
@@ -57,22 +66,25 @@ class _CacheTest(unittest.TestCase):
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         for i in range(10):
-            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
-                                      version=f"{i}")
+            self._version = f"{i}"
+            var = self._make_data("test_get_newer_version_data", tstart, tend)
+            # var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
+            #                          version=f"{i}")
             self.assertEqual(self._make_data_cntr, i + 1)
 
     def test_get_same_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
+        self._version = "1.1.1"
         for i in range(10):
-            var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
-                                      version="1.1.1")
+            var = self._make_data("test_get_same_version_data", tstart, tend)
+            # var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
+            #                          version="1.1.1")
             self.assertEqual(self._make_data_cntr, 1)
 
     def tearDown(self):
-        del self.cache
-        shutil.rmtree(self.dirpath)
+        pass
 
 
 @ddt
@@ -219,3 +231,6 @@ class _CacheVersionTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+del cache
+shutil.rmtree(dirpath)
