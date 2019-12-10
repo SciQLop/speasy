@@ -10,11 +10,9 @@ from typing import Optional
 from datetime import datetime
 import pandas as pds
 import requests
-from ..cache import _cache
-from ..common.datetime_range import DateTimeRange
+from ..cache import _cache, Cacheable
 from ..common.variable import SpwcVariable
-from ..common import make_utc_datetime
-from functools import partial
+from ..proxy import Proxyfiable, GetProduct
 import numpy as np
 
 
@@ -29,6 +27,9 @@ def _read_csv(url: str) -> SpwcVariable:
         return SpwcVariable(time=time, data=df.values, columns=[c for c in df.columns])
     except pds.io.common.EmptyDataError:
         return SpwcVariable()
+
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+    return {'path': f"cdaweb/{product}", 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
 
 
 class cdaweb:
@@ -104,15 +105,11 @@ class cdaweb:
             return None
         return _read_csv(resp.json()['FileDescription'][0]['Name'])
 
-    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[SpwcVariable]:
-        result = None
-        start_time = make_utc_datetime(start_time)
-        stop_time = make_utc_datetime(stop_time)
-        cache_product = f"cdaweb/{dataset}/{variable}"
-        result = _cache.get_data(cache_product, DateTimeRange(start_time, stop_time),
-                                 partial(self._dl_variable, dataset, variable))
-        return result
+    @Cacheable(prefix="cda", fragment_hours=lambda x: 1)
+    @Proxyfiable(GetProduct, get_parameter_args)
+    def get_data(self, product, start_time: datetime, stop_time: datetime):
+        components = product.split('/')
+        return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=components[0], variable=components[1])
 
-    def get_data(self, path, start_time: datetime, stop_time: datetime):
-        components = path.split('/')
-        return self.get_variable(start_time=start_time, stop_time=stop_time, dataset=components[0], variable=components[1])
+    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[SpwcVariable]:
+        return  self.get_data(f"{dataset}/{variable}", start_time, stop_time)

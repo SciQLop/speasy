@@ -6,12 +6,11 @@ import pandas as pds
 import numpy as np
 import requests
 from typing import Optional, re
-from ..common import listify, make_utc_datetime
+from ..common import listify
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpwcVariable
 from ..proxy import Proxyfiable, GetProduct
-from functools import partial
 from urllib.request import urlopen
 import os
 
