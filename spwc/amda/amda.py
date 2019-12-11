@@ -88,7 +88,7 @@ class AMDA:
             self.update_inventory()
 
     def __del__(self):
-        _cache.set("AMDA/inventory", self._pack_inventory(), expire=7 * 24 * 60 * 60)
+        pass
 
     def _pack_inventory(self):
         return {
@@ -109,6 +109,8 @@ class AMDA:
         tree = self.get_obs_data_tree()
         storage = self._pack_inventory()
         AMDA.ObsDataTreeParser.extrac_all(tree, storage)
+        _cache.set("AMDA/inventory", self._pack_inventory(), expire=7 * 24 * 60 * 60)
+
 
     def get_token(self, **kwargs: dict) -> str:
         return self.METHODS["REST"].get_token
@@ -135,7 +137,7 @@ class AMDA:
 
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
-        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time)
+        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time,  **kwargs)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
         datatree = xmltodict.parse(requests.get(
