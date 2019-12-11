@@ -13,8 +13,9 @@ Space Physics WebServices Client
         :target: https://spwc.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-
-
+.. image:: https://codecov.io/gh/SciQLop/spwc/coverage.svg?branch=master
+        :target: https://codecov.io/gh/SciQLop/spwc/branch/master
+        :alt: Coverage Status
 
 A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..) mainly written to ease development of SciQLop.
 
