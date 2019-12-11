@@ -111,5 +111,5 @@ class cdaweb:
         components = product.split('/')
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=components[0], variable=components[1])
 
-    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[SpwcVariable]:
-        return  self.get_data(f"{dataset}/{variable}", start_time, stop_time)
+    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> Optional[SpwcVariable]:
+        return  self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)

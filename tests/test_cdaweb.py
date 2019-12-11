@@ -36,7 +36,7 @@ class SimpleRequest(unittest.TestCase):
         }
     )
     def test_get_variable(self, kw):
-        result = self.cd.get_variable(**kw)
+        result = self.cd.get_variable(**kw, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
 
 
@@ -52,7 +52,8 @@ class ConcurrentRequests(unittest.TestCase):
         def func(i):
             return self.cd.get_variable(dataset="MMS2_SCM_SRVY_L2_SCSRVY", variable="mms2_scm_acb_gse_scsrvy_srvy_l2",
                                         start_time=datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc),
-                                        stop_time=datetime(2016, 6, 1, 0, 20, tzinfo=timezone.utc))
+                                        stop_time=datetime(2016, 6, 1, 0, 20, tzinfo=timezone.utc), disable_proxy=True,
+                                        disable_cache=True)
 
         results = self.pool.map(func, [1] * 8)
         for result in results:

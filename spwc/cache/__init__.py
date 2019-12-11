@@ -49,7 +49,8 @@ def _make_range(start_time, stop_time):
 
 
 class Cacheable(object):
-    def __init__(self, prefix, cache_instance =_cache, start_time_arg='start_time', stop_time_arg='stop_time', version=None,
+    def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
+                 version=None,
                  fragment_hours=lambda x: 1, cache_margins=1.2):
         self.start_time_arg = start_time_arg
         self.stop_time_arg = stop_time_arg
@@ -62,7 +63,8 @@ class Cacheable(object):
     def add_to_cache(self, variable: SpwcVariable, fragments, product, fragment_duration_hours, version):
         if variable is not None:
             for fragment in fragments:
-                self.cache[f"{self.prefix}/{product}/{fragment.isoformat()}"] = CacheItem(variable[fragment:fragment + timedelta(hours=fragment_duration_hours)], version)
+                self.cache[f"{self.prefix}/{product}/{fragment.isoformat()}"] = CacheItem(
+                    variable[fragment:fragment + timedelta(hours=fragment_duration_hours)], version)
 
     def get_from_cache(self, fragment, product, version):
         key = f"{self.prefix}/{product}/{fragment.isoformat()}"
@@ -74,12 +76,12 @@ class Cacheable(object):
 
     def __call__(self, get_data):
         @wraps(get_data)
-        def wrapped(wrapped_self, product, start_time, stop_time):
-            if self.version:
-                version = self.version(wrapped_self, product)
-            else:
-                version = 0
+        def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
+            version = self.version(wrapped_self, product) if self.version else 0
             dt_range = _make_range(start_time, stop_time)
+            if kwargs.pop("disable_cache", False):
+                return get_data(wrapped_self, product=product, start_time=dt_range.start_time,
+                                stop_time=dt_range.stop_time, **kwargs)
             fragment_hours = self.fragment_hours(product)
             cache_dt_range = _round_for_cache(dt_range * self.cache_margins, fragment_hours)
             fragments = []
@@ -90,19 +92,19 @@ class Cacheable(object):
             result = None
             contiguous_fragments = []
             for fragment in fragments:
-                data = self.get_from_cache(fragment,product,version)
+                data = self.get_from_cache(fragment, product, version)
                 if data is None:
                     contiguous_fragments.append(fragment)
                 else:
                     if len(contiguous_fragments):
                         result = get_data(wrapped_self, product=product, start_time=fragments[0],
-                                          stop_time=fragments[-1] + timedelta(hours=fragment_hours))
+                                          stop_time=fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
                         self.add_to_cache(result, contiguous_fragments, product, fragment_hours, version)
                         contiguous_fragments = []
                     result = merge_variables([result, data])
             if len(contiguous_fragments):
                 result = get_data(wrapped_self, product=product, start_time=fragments[0],
-                                  stop_time=fragments[-1] + timedelta(hours=fragment_hours))
+                                  stop_time=fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
                 self.add_to_cache(result, contiguous_fragments, product, fragment_hours, version)
             if result is not None:
                 return result[dt_range.start_time:dt_range.stop_time]

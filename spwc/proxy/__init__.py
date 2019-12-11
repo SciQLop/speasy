@@ -26,7 +26,8 @@ class Proxyfiable(object):
     def __call__(self, func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            if proxy_enabled.get().lower() == "true":
+            disable_proxy = kwargs.pop("disable_proxy", False)
+            if proxy_enabled.get().lower() == "true" and not disable_proxy:
                 return self.request.get(**self.arg_builder(**kwargs))
             else:
                 return func(*args, **kwargs)
