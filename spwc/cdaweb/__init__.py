@@ -20,7 +20,7 @@ import tempfile
 from urllib.request import urlopen
 
 
-def _read_csv(url: str, **kwargs) -> SpwcVariable:
+def _read_csv(url: str, *args, **kwargs) -> SpwcVariable:
     try:
         df = pds.read_csv(url, comment='#', index_col=0, infer_datetime_format=True, parse_dates=True)
         if df.index.tz is None:
@@ -33,7 +33,7 @@ def _read_csv(url: str, **kwargs) -> SpwcVariable:
         return SpwcVariable()
 
 
-def _read_cdf(url: str, varname: str) -> SpwcVariable:
+def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpwcVariable:
     try:
         with tempfile.NamedTemporaryFile(delete=False) as f:
             with urlopen(url) as remote_file:
@@ -114,10 +114,10 @@ class cdaweb:
         variables = [varaible for varaible in resp.json()['VariableDescription']]
         return variables
 
-    def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[
+    def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, fmt:str=None) -> Optional[
         SpwcVariable]:
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
-        if cdf.have_cdf:
+        if cdf.have_cdf and fmt != "csv":
             fmt = "cdf"
             loader = _read_cdf
         else:
@@ -132,10 +132,10 @@ class cdaweb:
 
     @Cacheable(prefix="cda", fragment_hours=lambda x: 1)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime):
+    def get_data(self, product, start_time: datetime, stop_time: datetime, **kwargs):
         components = product.split('/')
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=components[0],
-                                 variable=components[1])
+                                 variable=components[1], **kwargs)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> \
     Optional[SpwcVariable]:

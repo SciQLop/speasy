@@ -43,7 +43,6 @@ class SimpleRequest(unittest.TestCase):
 class ConcurrentRequests(unittest.TestCase):
     def setUp(self):
         self.cd = cdaweb()
-        self.pool = dummy.Pool(8)
 
     def tearDown(self):
         pass
@@ -53,9 +52,10 @@ class ConcurrentRequests(unittest.TestCase):
             return self.cd.get_variable(dataset="MMS2_SCM_SRVY_L2_SCSRVY", variable="mms2_scm_acb_gse_scsrvy_srvy_l2",
                                         start_time=datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc),
                                         stop_time=datetime(2016, 6, 1, 0, 20, tzinfo=timezone.utc), disable_proxy=True,
-                                        disable_cache=True)
+                                        disable_cache=True, fmt="csv")
 
-        results = self.pool.map(func, [1] * 8)
+        with dummy.Pool(8) as pool:
+            results = pool.map(func, [1] * 8)
         for result in results:
             self.assertIsNotNone(result)
 
