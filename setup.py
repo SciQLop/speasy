@@ -38,6 +38,7 @@ setup(
         ],
     },
     install_requires=requirements,
+    extras_require={'CDF':  ["spacepy"]},
     license="GNU General Public License v3",
     long_description=readme + '\n\n' + history,
     include_package_data=True,

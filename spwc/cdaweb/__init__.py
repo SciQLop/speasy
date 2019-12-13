@@ -6,17 +6,21 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
+import os
 from typing import Optional
 from datetime import datetime
 import pandas as pds
 import requests
 from ..cache import _cache, Cacheable
 from ..common.variable import SpwcVariable
+from ..common import cdf
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
+import tempfile
+from urllib.request import urlopen
 
 
-def _read_csv(url: str) -> SpwcVariable:
+def _read_csv(url: str, **kwargs) -> SpwcVariable:
     try:
         df = pds.read_csv(url, comment='#', index_col=0, infer_datetime_format=True, parse_dates=True)
         if df.index.tz is None:
@@ -27,6 +31,20 @@ def _read_csv(url: str) -> SpwcVariable:
         return SpwcVariable(time=time, data=df.values, columns=[c for c in df.columns])
     except pds.io.common.EmptyDataError:
         return SpwcVariable()
+
+
+def _read_cdf(url: str, varname: str) -> SpwcVariable:
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            with urlopen(url) as remote_file:
+                f.write(remote_file.read())
+            f.close()
+            var = cdf.load_cdf(f.name,varname)
+            os.unlink(f.name)
+            return var
+    except:
+        return SpwcVariable()
+
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"cdaweb/{product}", 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
@@ -96,20 +114,29 @@ class cdaweb:
         variables = [varaible for varaible in resp.json()['VariableDescription']]
         return variables
 
-    def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[SpwcVariable]:
+    def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime) -> Optional[
+        SpwcVariable]:
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
-        url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format=csv"
+        if cdf.have_cdf:
+            fmt = "cdf"
+            loader = _read_cdf
+        else:
+            loader = _read_csv
+            fmt = "csv"
+        url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format={fmt}"
         print(url)
         resp = requests.get(url, headers={"Accept": "application/json"})
         if not resp.ok or 'FileDescription' not in resp.json():
             return None
-        return _read_csv(resp.json()['FileDescription'][0]['Name'])
+        return loader(resp.json()['FileDescription'][0]['Name'], variable)
 
     @Cacheable(prefix="cda", fragment_hours=lambda x: 1)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime):
         components = product.split('/')
-        return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=components[0], variable=components[1])
+        return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=components[0],
+                                 variable=components[1])
 
-    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> Optional[SpwcVariable]:
-        return  self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)
+    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> \
+    Optional[SpwcVariable]:
+        return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)
