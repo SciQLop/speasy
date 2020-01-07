@@ -2,36 +2,54 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `spwc` package."""
-
-import pytest
-
-from click.testing import CliRunner
-
-from spwc import cli
+import unittest
+from datetime import datetime, timezone
+import spwc
+from ddt import ddt, data
 
 
-@pytest.fixture
-def response():
-    """Sample pytest fixture.
+class AMDARequest(unittest.TestCase):
+    def setUp(self):
+        pass
 
-    See more at: http://doc.pytest.org/en/latest/fixture.html
-    """
-    # import requests
-    # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+    def tearDown(self):
+        pass
+
+    def test_get_variable(self):
+        start_date = datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
+        stop_date = datetime(2006, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
+        result = spwc.get_data("amda/c1_b_gsm", start_date, stop_date, disable_proxy=True, disable_cache=True)
+        self.assertIsNotNone(result)
+        start_date = datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
+        stop_date = datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
+        parameter_id = "c1_hia_prest"
+        result = spwc.get_data("amda/c1_hia_prest", start_date, stop_date, disable_proxy=True, disable_cache=True)
+        self.assertIsNotNone(result)
 
 
-def test_content(response):
-    """Sample pytest test function with the pytest fixture as an argument."""
-    # from bs4 import BeautifulSoup
-    # assert 'GitHub' in BeautifulSoup(response.content).title.string
+@ddt
+class CDARequest(unittest.TestCase):
+    def setUp(self):
+        pass
 
+    def tearDown(self):
+        pass
 
-def test_command_line_interface():
-    """Test the CLI."""
-    runner = CliRunner()
-    result = runner.invoke(cli.main)
-    assert result.exit_code == 0
-    assert 'spwc.cli.main' in result.output
-    help_result = runner.invoke(cli.main, ['--help'])
-    assert help_result.exit_code == 0
-    assert '--help  Show this message and exit.' in help_result.output
+    @data(
+        {
+            "dataset": "MMS2_SCM_SRVY_L2_SCSRVY",
+            "variable": "mms2_scm_acb_gse_scsrvy_srvy_l2",
+            "start_time": datetime(2016, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "THA_L2_FGM",
+            "variable": "tha_fgl_gsm",
+            "start_time": datetime(2014, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc)
+        }
+    )
+    def test_get_variable(self, kw):
+        result = spwc.get_data(f'cdaweb/{kw["dataset"]}/{kw["variable"]}', kw["start_time"], kw["stop_time"],
+                               disable_proxy=True, disable_cache=True)
+        self.assertIsNotNone(result)

@@ -24,8 +24,9 @@ def find_product(name: str) -> List[str]:
     pass
 
 
-def get_data(path: str, start_time, stop_time) -> SpwcVariable:
+def get_data(path: str, start_time, stop_time, **kwargs) -> SpwcVariable:
     components = path.split('/')
     if components[0] in __PROVIDERS__:
-        return __PROVIDERS__[components[0]](path='/'.join(components[1:]), start_time=start_time, stop_time=stop_time)
+        return __PROVIDERS__[components[0]]('/'.join(components[1:]), start_time=start_time, stop_time=stop_time,
+                                            **kwargs)
     raise ValueError(f'{components[0]} not found in data provider list')
