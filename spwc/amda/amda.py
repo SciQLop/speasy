@@ -1,7 +1,7 @@
 from .rest import AmdaRest
 from .soap import AmdaSoap
 import xmltodict
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pds
 import numpy as np
 import requests
@@ -13,6 +13,9 @@ from ..common.variable import SpwcVariable
 from ..proxy import Proxyfiable, GetProduct
 from urllib.request import urlopen
 import os
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def load_csv(filename: str):
@@ -44,7 +47,8 @@ def load_csv(filename: str):
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
-    return {'path': f"amda/{product}", 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
+    return {'path': f"amda/{product}", 'start_time': f'{start_time.isoformat()}',
+            'stop_time': f'{stop_time.isoformat()}'}
 
 
 class AMDA:
@@ -111,7 +115,6 @@ class AMDA:
         AMDA.ObsDataTreeParser.extrac_all(tree, storage)
         _cache.set("AMDA/inventory", self._pack_inventory(), expire=7 * 24 * 60 * 60)
 
-
     def get_token(self, **kwargs: dict) -> str:
         return self.METHODS["REST"].get_token
 
@@ -124,6 +127,14 @@ class AMDA:
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
             var = load_csv(url)
+            if len(var):
+                log.debug(
+                    'Loaded var: data shape = {shape}, data start time = {start_time}, data stop time = {stop_time}'.format(
+                        shape=var.data.shape,
+                        start_time=datetime.utcfromtimestamp(var.time[0]),
+                        stop_time=datetime.utcfromtimestamp(var.time[-1])))
+            else:
+                log.debug('Loaded var: Empty var')
             return var
         return None
 
@@ -133,11 +144,14 @@ class AMDA:
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime):
+        log.debug(
+            'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}'.format(
+                product=product, start_time=start_time, stop_time=stop_time))
         return self._dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
-        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time,  **kwargs)
+        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
         datatree = xmltodict.parse(requests.get(

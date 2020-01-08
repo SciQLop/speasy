@@ -47,7 +47,7 @@ def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpwcVariable:
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
-    return {'path': f"cdaweb/{product}", 'start_time': f'{start_time}', 'stop_time': f'{stop_time}'}
+    return {'path': f"cdaweb/{product}", 'start_time': f'{start_time.isoformat()}', 'stop_time': f'{stop_time.isoformat()}'}
 
 
 class cdaweb:
