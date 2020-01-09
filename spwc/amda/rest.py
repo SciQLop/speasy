@@ -1,4 +1,7 @@
 import requests
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class AmdaRest:
@@ -12,13 +15,14 @@ class AmdaRest:
             base_url += key + "=" + str(val) + "&"
         for _ in [None] * 3:  # sometime fails with no reason...
             url = base_url + "token=" + self.get_token
+            log.debug(f"Send request on AMDA server {url}")
             r = requests.get(url)
             js = r.json()
             if 'success' in js and js['success'] is True and 'dataFileURLs' in js:
+                log.debug(f"success: {js['dataFileURLs']}")
                 return js['dataFileURLs']
             else:
-                print(url)
-                print(r.text)
+                log.debug(f"Failed: {r.text}")
         return None
 
     @property

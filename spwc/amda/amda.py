@@ -24,14 +24,15 @@ def load_csv(filename: str):
     with urlopen(filename) as csv:
         line = csv.readline().decode()
         meta = {}
-        columns = []
         y = None
         while line[0] == '#':
             if ':' in line:
                 key, value = line[1:].split(':', 1)
                 meta[key.strip()] = value.strip()
             line = csv.readline().decode()
-        data = pds.read_csv(csv, comment='#', delim_whitespace=True).values.transpose()
+        columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[:]]
+        with urlopen(filename) as f:
+            data = pds.read_csv(f, comment='#', delim_whitespace=True, header=None, names=columns).values.transpose()
         time, data = data[0], data[1:].transpose()
         if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[1]"].split(',')])
@@ -41,9 +42,7 @@ def load_csv(filename: str):
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
-        if 'DATA_COLUMNS' in meta:
-            columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[1:]]
-        return SpwcVariable(time=time, data=data, meta=meta, columns=columns, y=y)
+        return SpwcVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -119,7 +118,7 @@ class AMDA:
         return self.METHODS["REST"].get_token
 
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
+                      method: str = "REST", **kwargs) -> Optional[SpwcVariable]:
 
         start_time = start_time.timestamp()
         stop_time = stop_time.timestamp()
@@ -150,7 +149,7 @@ class AMDA:
         return self._dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "SOAP", **kwargs) -> Optional[SpwcVariable]:
+                      method: str = "REST", **kwargs) -> Optional[SpwcVariable]:
         return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:

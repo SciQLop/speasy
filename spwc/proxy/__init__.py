@@ -9,9 +9,13 @@ class GetProduct:
         pass
 
     @staticmethod
-    def get(path:str, start_time:str, stop_time:str):
+    def get(path: str, start_time: str, stop_time: str):
         url = proxy_url.get()
-        resp=requests.get(f"{url}/get_data?path={path}&start_time={start_time}&stop_time={stop_time}")
+        resp = requests.get(f"{url}/get_data?", params={
+            'path': path,
+            'start_time': start_time,
+            'stop_time': stop_time
+        })
         if resp.status_code == 200:
             var = pickle.loads(resp.content)
             return var
@@ -31,4 +35,5 @@ class Proxyfiable(object):
                 return self.request.get(**self.arg_builder(**kwargs))
             else:
                 return func(*args, **kwargs)
+
         return wrapped
