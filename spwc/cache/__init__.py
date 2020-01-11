@@ -48,6 +48,14 @@ def _make_range(start_time, stop_time):
     return _change_tz(dt_range, timezone.utc)
 
 
+def cache_len():
+    return len(_cache)
+
+
+def cache_disk_size():
+    return _cache.disk_size()
+
+
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,

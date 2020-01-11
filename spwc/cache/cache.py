@@ -36,6 +36,12 @@ class Cache:
     def version(self, v: Union[str, Version]):
         self._data["cache/version"] = v if type(v) is str else version_to_str(v)
 
+    def disk_size(self):
+        return self._data.volume()
+
+    def __len__(self):
+        return len(self._data)
+
     def __del__(self):
         pass
 
