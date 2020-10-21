@@ -54,7 +54,7 @@ class ConcurrentRequests(unittest.TestCase):
                                         stop_time=datetime(2016, 6, 1, 0, 20, tzinfo=timezone.utc), disable_proxy=True,
                                         disable_cache=True, fmt="csv")
 
-        with dummy.Pool(8) as pool:
+        with dummy.Pool(3) as pool:
             results = pool.map(func, [1] * 8)
         for result in results:
             self.assertIsNotNone(result)
