@@ -55,15 +55,11 @@ class _CacheTest(unittest.TestCase):
     def test_get_data_more_than_once(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
-        stats = cache.stats()
         self.assertEqual(self._make_data_cntr, 0)
         for _ in range(10):
             var = self._make_data("test_get_data_more_than_once", tstart,
                                   tend)  # self.cache.get_data("test_get_data_more_than_once", DateTimeRange(tstart, tend), self._make_data)
             self.assertEqual(self._make_data_cntr, 1)
-        new_stats = cache.stats()
-        self.assertGreater(new_stats["hit"], stats["hit"])
-        self.assertGreater(new_stats["misses"], stats["misses"])
 
     def test_get_newer_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
@@ -234,7 +230,11 @@ class _CacheVersionTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    stats = cache.stats()
     unittest.main()
+    new_stats = cache.stats()
+    assert (new_stats["hit"] > stats["hit"])
+    assert (new_stats["misses"] > stats["misses"])
 
 del cache
 shutil.rmtree(dirpath)
