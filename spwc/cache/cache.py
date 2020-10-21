@@ -39,6 +39,13 @@ class Cache:
     def disk_size(self):
         return self._data.volume()
 
+    def stats(self):
+        s = self._data.stats()
+        return {
+            "hit": s[0],
+            "misses": s[1]
+        }
+
     def __len__(self):
         return len(self._data)
 
@@ -59,6 +66,3 @@ class Cache:
 
     def set(self, key, value, expire=None):
         self._data.set(key, value, expire=expire)
-
-
-

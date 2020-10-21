@@ -56,6 +56,10 @@ def cache_disk_size():
     return _cache.disk_size()
 
 
+def stats():
+    return _cache.stats()
+
+
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,
