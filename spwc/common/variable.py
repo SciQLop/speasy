@@ -20,6 +20,7 @@ class SpwcVariable(object):
     def __eq__(self, other: 'SpwcVariable') -> bool:
         return self.meta == other.meta and \
                self.columns == other.columns and \
+               len(self.time) == len(other.time) and \
                np.all(self.time == other.time) and \
                np.all(self.data == other.data)
 

@@ -20,10 +20,12 @@ class CacheItem:
 
 
 class Cache:
-    __slots__ = ['cache_file', '_data']
+    __slots__ = ['cache_file', '_data', '_hit', '_miss']
 
     def __init__(self, cache_path: str = ""):
         self._data = dc.FanoutCache(cache_path, shards=8, size_limit=int(float(cache_size.get())))
+        self._hit = 0
+        self._miss = 0
         if self.version < cache_version:
             self._data.clear()
             self.version = cache_version
@@ -40,10 +42,9 @@ class Cache:
         return self._data.volume()
 
     def stats(self):
-        s = self._data.stats()
         return {
-            "hit": s[0],
-            "misses": s[1]
+            "hit": self._hit,
+            "misses": self._miss
         }
 
     def __len__(self):
@@ -53,12 +54,20 @@ class Cache:
         pass
 
     def keys(self):
-        return [item for item in self._data]
+        return list(self._data)
 
     def __contains__(self, item):
-        return item in self._data
+        if item in self._data:
+            self._hit += 1
+            return True
+        self._miss += 1
+        return False
 
     def __getitem__(self, key):
+        if key in self._data:
+            self._hit += 1
+        else:
+            self._miss += 1
         return self._data[key]
 
     def __setitem__(self, key, value):

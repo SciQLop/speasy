@@ -27,7 +27,7 @@ class _CacheTest(unittest.TestCase):
     def version(self, product):
         return self._version
 
-    @Cacheable(prefix="", cache_instance=cache, version=version)
+    @Cacheable(prefix="", cache_instance=cache, version=version, leak_cache=True)
     def _make_data(self, product, start_time, stop_time):
         index = np.array(
             [(start_time + timedelta(minutes=delta)).timestamp() for delta in
@@ -56,21 +56,29 @@ class _CacheTest(unittest.TestCase):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
+        stats = self._make_data.cache.stats()
         for _ in range(10):
             var = self._make_data("test_get_data_more_than_once", tstart,
                                   tend)  # self.cache.get_data("test_get_data_more_than_once", DateTimeRange(tstart, tend), self._make_data)
             self.assertEqual(self._make_data_cntr, 1)
+        new_stats = self._make_data.cache.stats()
+        self.assertGreater(new_stats["hit"], stats["hit"])
+        self.assertGreater(new_stats["misses"], stats["misses"])
 
     def test_get_newer_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
+        stats = self._make_data.cache.stats()
         for i in range(10):
             self._version = f"{i}"
             var = self._make_data("test_get_newer_version_data", tstart, tend)
             # var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
             #                          version=f"{i}")
             self.assertEqual(self._make_data_cntr, i + 1)
+        new_stats = self._make_data.cache.stats()
+        self.assertGreater(new_stats["hit"], stats["hit"])
+        self.assertGreater(new_stats["misses"], stats["misses"])
 
     def test_get_same_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
@@ -82,6 +90,12 @@ class _CacheTest(unittest.TestCase):
             # var = self.cache.get_data("test_get_newer_version_data", DateTimeRange(tstart, tend), self._make_data,
             #                          version="1.1.1")
             self.assertEqual(self._make_data_cntr, 1)
+
+    def test_list_keys(self):
+        keys = self._make_data.cache.keys()
+        types = [type(key) for key in keys]
+        self.assertGreater(len(keys), 0)
+        self.assertListEqual(types, [str] * len(types))
 
     def tearDown(self):
         pass
@@ -230,11 +244,7 @@ class _CacheVersionTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    stats = cache.stats()
     unittest.main()
-    new_stats = cache.stats()
-    assert (new_stats["hit"] > stats["hit"])
-    assert (new_stats["misses"] > stats["misses"])
 
 del cache
 shutil.rmtree(dirpath)

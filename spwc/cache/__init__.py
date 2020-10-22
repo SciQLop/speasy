@@ -60,10 +60,14 @@ def stats():
     return _cache.stats()
 
 
+def entries():
+    return _cache.keys()
+
+
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,
-                 fragment_hours=lambda x: 1, cache_margins=1.2):
+                 fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False):
         self.start_time_arg = start_time_arg
         self.stop_time_arg = stop_time_arg
         self.version = version
@@ -71,6 +75,7 @@ class Cacheable(object):
         self.cache_margins = cache_margins
         self.cache = cache_instance
         self.prefix = prefix
+        self.leak_cache = leak_cache
 
     def add_to_cache(self, variable: SpwcVariable, fragments, product, fragment_duration_hours, version):
         if variable is not None:
@@ -122,4 +127,6 @@ class Cacheable(object):
                 return result[dt_range.start_time:dt_range.stop_time]
             return None
 
+        if self.leak_cache:
+            wrapped.cache = self.cache
         return wrapped
