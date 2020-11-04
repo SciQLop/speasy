@@ -5,16 +5,21 @@
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.6.0'
+
 from .common.variable import SpwcVariable
 from .amda import AMDA
 from .cdaweb import cdaweb as cd
+from .sscweb import SscWeb
 from typing import List
 
 amda = AMDA()
 cda = cd()
+ssc = SscWeb()
+
 __PROVIDERS__ = {
     'amda': amda.get_data,
-    'cdaweb': cda.get_data
+    'cdaweb': cda.get_data,
+    'sscweb': ssc.get_orbit
 }
 
 
@@ -30,3 +35,7 @@ def get_data(path: str, start_time, stop_time, **kwargs) -> SpwcVariable:
         return __PROVIDERS__[components[0]]('/'.join(components[1:]), start_time=start_time, stop_time=stop_time,
                                             **kwargs)
     raise ValueError(f'{components[0]} not found in data provider list')
+
+
+def get_orbit(body: str, start_time, stop_time, coordinate_systems: str = 'gse') -> SpwcVariable:
+    return ssc.get_orbit(body, start_time, stop_time, coordinate_systems)
