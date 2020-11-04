@@ -11,7 +11,7 @@ from typing import Optional
 from datetime import datetime
 import pandas as pds
 import requests
-from ..cache import Cacheable
+from ..cache import Cacheable, _cache # _cache is used for tests (hack...)
 from ..common.variable import SpwcVariable
 from ..common import cdf
 from ..proxy import Proxyfiable, GetProduct
