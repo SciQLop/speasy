@@ -11,7 +11,8 @@ from ddt import ddt, data
 @ddt
 class GetSpwc(unittest.TestCase):
     def setUp(self):
-        pass
+        spwc.config.proxy_enabled.set("true")
+        spwc.config.proxy_url.set("http://sciqlop.lpp.polytechnique.fr/cache")
 
     def tearDown(self):
         pass
@@ -30,6 +31,12 @@ class GetSpwc(unittest.TestCase):
             "disable_proxy": True
         },
         {
+            "path": "cdaweb/THA_L2_FGM/tha_fgl_gsm",
+            "start_time": datetime(2015, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2015, 6, 1, 0, 10, tzinfo=timezone.utc),
+            "disable_proxy": False
+        },
+        {
             "path": "amda/c1_hia_prest",
             "start_time": datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc),
@@ -40,6 +47,12 @@ class GetSpwc(unittest.TestCase):
             "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2006, 1, 8, 1, 0, 10, tzinfo=timezone.utc),
             "disable_proxy": True
+        },
+        {
+            "path": "amda/c1_b_gsm",
+            "start_time": datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc),
+            "disable_proxy": False
         },
         {
             "path": "sscweb/moon",
