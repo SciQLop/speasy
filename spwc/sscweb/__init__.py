@@ -45,9 +45,11 @@ class SscWeb:
         return res.json()['Observatory'][1]
 
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24)
-    def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_systems: str = 'gse') -> \
+    def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_systems: str = 'gse', debug=False) -> \
         Optional[SpwcVariable]:
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_systems}/"
+        if debug:
+            print(url)
         res = requests.get(url, headers={"Accept": "application/json"})
         orbit = res.json()
         if res.ok and _is_valid(orbit):

@@ -37,5 +37,5 @@ def get_data(path: str, start_time, stop_time, **kwargs) -> SpwcVariable:
     raise ValueError(f'{components[0]} not found in data provider list')
 
 
-def get_orbit(body: str, start_time, stop_time, coordinate_systems: str = 'gse') -> SpwcVariable:
-    return ssc.get_orbit(body, start_time, stop_time, coordinate_systems)
+def get_orbit(body: str, start_time, stop_time, coordinate_systems: str = 'gse', **kwargs) -> SpwcVariable:
+    return ssc.get_orbit(body, start_time, stop_time, coordinate_systems=coordinate_systems, **kwargs)

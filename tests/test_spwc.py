@@ -9,7 +9,7 @@ from ddt import ddt, data
 
 
 @ddt
-class GetData(unittest.TestCase):
+class GetSpwc(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -47,8 +47,32 @@ class GetData(unittest.TestCase):
             "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
         }
     )
-    def test_get_variable(self, kw):
+    def test_get_data(self, kw):
         result = spwc.get_data(**kw,
                                disable_cache=True)
         self.assertIsNotNone(result)
-        self.assertGreater(len(result),0)
+        self.assertGreater(len(result), 0)
+
+    @data(
+        {
+            "body": "moon",
+            "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+        },
+        {
+            "body": "bepicolombo",
+            "start_time": datetime(2019, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2019, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+        },
+        {
+            "body": "mms1",
+            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2021, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+        }
+    )
+    def test_get_orbit(self, kw):
+        result = spwc.get_orbit(**kw,
+                                debug=True,
+                                disable_cache=True)
+        self.assertIsNotNone(result)
+        self.assertGreater(len(result), 0)
