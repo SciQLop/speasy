@@ -34,6 +34,11 @@ def _is_valid(orbit: dict):
     return orbit['Result']['StatusCode'] == 'SUCCESS' and orbit['Result']['StatusSubCode'] == 'SUCCESS'
 
 
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+    return {'path': f"sscweb/{product}", 'start_time': f'{start_time.isoformat()}',
+            'stop_time': f'{stop_time.isoformat()}'}
+
+
 class SscWeb:
     def __init__(self):
         self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
@@ -45,6 +50,7 @@ class SscWeb:
         return res.json()['Observatory'][1]
 
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24)
+    @Proxyfiable(GetProduct, get_parameter_args)
     def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_systems: str = 'gse', debug=False) -> \
         Optional[SpwcVariable]:
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_systems}/"

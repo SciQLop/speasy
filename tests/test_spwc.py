@@ -57,7 +57,8 @@ class GetSpwc(unittest.TestCase):
         {
             "path": "sscweb/moon",
             "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "disable_proxy": True
         }
     )
     def test_get_data(self, kw):
@@ -70,17 +71,20 @@ class GetSpwc(unittest.TestCase):
         {
             "body": "moon",
             "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "disable_proxy": True
         },
         {
             "body": "bepicolombo",
             "start_time": datetime(2019, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2019, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+            "stop_time": datetime(2019, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "disable_proxy": True
         },
         {
             "body": "mms1",
             "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2021, 1, 8, 10, 0, 0, tzinfo=timezone.utc)
+            "stop_time": datetime(2021, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "disable_proxy": True
         }
     )
     def test_get_orbit(self, kw):

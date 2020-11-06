@@ -36,11 +36,12 @@ class SscWeb(unittest.TestCase):
     def test_get_orbit(self, kw):
         result = self.ssc.get_orbit(**kw,
                                     debug=True,
-                                    disable_cache=True)
+                                    disable_cache=True,
+                                    disable_proxy=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
     def test_get_observatories(self):
         obs_list = self.ssc.get_observatories()
         self.assertIsNotNone(obs_list)
-        self.assertGreater(len(obs_list), 10) # it has to return few elements 
+        self.assertGreater(len(obs_list), 10)  # it has to return few elements
