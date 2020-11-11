@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pandas as pds
 import numpy as np
 import requests
-from typing import Optional, re
+from typing import Optional
 from ..common import listify
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange

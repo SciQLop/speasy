@@ -91,5 +91,11 @@ class DateTimeRange:
     def __lt__(self, other):
         return self.start_time < other.start_time
 
+    def __le__(self, other):
+        return self.start_time <= other.start_time
+
     def __gt__(self, other):
         return self.start_time > other.start_time
+
+    def __ge__(self, other):
+        return self.start_time >= other.start_time
