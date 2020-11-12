@@ -97,6 +97,11 @@ class _CacheTest(unittest.TestCase):
         self.assertGreater(len(keys), 0)
         self.assertListEqual(types, [str] * len(types))
 
+    def test_global_keys(self, cache=cache):
+        self.assertIsNone(cache.get("Not In Cache"))
+        cache.set("In Cache",True)
+        self.assertTrue(cache.get("In Cache"))
+
     def tearDown(self):
         pass
 

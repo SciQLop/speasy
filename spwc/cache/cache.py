@@ -69,3 +69,6 @@ class Cache:
 
     def set(self, key, value, expire=None):
         self._data.set(key, value, expire=expire)
+
+    def get(self, key, default_value=None):
+        return self._data.get(key, default_value)

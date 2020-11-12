@@ -2,9 +2,13 @@ from datetime import datetime, timezone
 from dateutil.parser import parse
 import os
 
-def listify(obj: list or object) -> list:
-    if type(obj) is list:
+
+def listify(obj: list or tuple or object) -> list:
+    obj_t = type(obj)
+    if obj_t is list:
         return obj
+    if obj_t is tuple:
+        return list(obj)
     else:
         return [obj]
 

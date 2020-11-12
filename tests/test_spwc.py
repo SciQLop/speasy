@@ -67,6 +67,10 @@ class GetSpwc(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
+    def test_get_data_wrong_path(self):
+        with self.assertRaises(ValueError):
+            spwc.get_data('wrong/path',datetime.now(),datetime.now())
+
     @data(
         {
             "body": "moon",

@@ -64,6 +64,14 @@ def entries():
     return _cache.keys()
 
 
+def add_item(key, item, expires=None):
+    _cache.set(key, item, expires)
+
+
+def get_item(key, default_value=None):
+    return _cache.get(key, default_value)
+
+
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,
