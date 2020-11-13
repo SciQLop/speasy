@@ -2,6 +2,9 @@ from ..config import proxy_enabled, proxy_url
 from functools import wraps
 import requests
 import pickle
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class GetProduct:
@@ -16,6 +19,7 @@ class GetProduct:
             'start_time': start_time,
             'stop_time': stop_time
         })
+        log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             var = pickle.loads(resp.content)
             return var

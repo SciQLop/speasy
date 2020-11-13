@@ -35,6 +35,10 @@ def _is_valid(orbit: dict):
     return orbit['Result']['StatusCode'] == 'SUCCESS' and orbit['Result']['StatusSubCode'] == 'SUCCESS'
 
 
+def _make_cache_entry_name(prefix: str, product: str, start_time: str, coordinate_system: str, **kwargs):
+    return f"{prefix}/{product}/{coordinate_system}/{start_time}"
+
+
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"sscweb/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}'}
@@ -53,7 +57,7 @@ class SscWeb:
     def version(self, product):
         return 1
 
-    @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version)
+    @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                   debug=False) -> Optional[SpwcVariable]:

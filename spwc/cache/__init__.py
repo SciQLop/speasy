@@ -7,7 +7,9 @@ from ..common import make_utc_datetime
 from ..common.variable import merge as merge_variables
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+import logging
 
+log = logging.getLogger(__name__)
 _cache = Cache(cache_path.get())
 
 
@@ -72,10 +74,14 @@ def get_item(key, default_value=None):
     return _cache.get(key, default_value)
 
 
+def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
+    return f"{prefix}/{product}/{start_time}"
+
+
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,
-                 fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False):
+                 fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name):
         self.start_time_arg = start_time_arg
         self.stop_time_arg = stop_time_arg
         self.version = version
@@ -84,19 +90,26 @@ class Cacheable(object):
         self.cache = cache_instance
         self.prefix = prefix
         self.leak_cache = leak_cache
+        self.entry_name = entry_name
 
-    def add_to_cache(self, variable: SpwcVariable, fragments, product, fragment_duration_hours, version):
+    def add_to_cache(self, variable: SpwcVariable, fragments, product, fragment_duration_hours, version, **kwargs):
         if variable is not None:
             for fragment in fragments:
-                self.cache[f"{self.prefix}/{product}/{fragment.isoformat()}"] = CacheItem(
-                    variable[fragment:fragment + timedelta(hours=fragment_duration_hours)], version)
+                key = self.entry_name(self.prefix, product, fragment.isoformat(), **kwargs)
+                log.debug(f"add {key} into cache")
+                self.cache[key] = CacheItem(variable[fragment:fragment + timedelta(hours=fragment_duration_hours)],
+                                            version)
 
-    def get_from_cache(self, fragment, product, version):
-        key = f"{self.prefix}/{product}/{fragment.isoformat()}"
+    def get_from_cache(self, fragment, product, version, **kwargs):
+        key = self.entry_name(self.prefix, product, fragment.isoformat(), **kwargs)
         if key in self.cache:
             entry = self.cache[key]
             if _is_up_to_date(entry, version):
+                log.debug(f"Found {key} inside cache")
                 return entry.data
+            log.debug(f"Found outdated {key} inside cache")
+        else:
+            log.debug(f"{key} not found inside cache")
         return None
 
     def __call__(self, get_data):
@@ -117,20 +130,21 @@ class Cacheable(object):
             result = None
             contiguous_fragments = []
             for fragment in fragments:
-                data = self.get_from_cache(fragment, product, version)
+                data = self.get_from_cache(fragment=fragment, product=product, version=version, **kwargs)
                 if data is None:
                     contiguous_fragments.append(fragment)
                 else:
                     if len(contiguous_fragments):
                         result = get_data(wrapped_self, product=product, start_time=fragments[0],
                                           stop_time=fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
-                        self.add_to_cache(result, contiguous_fragments, product, fragment_hours, version)
+                        self.add_to_cache(variable=result, fragments=contiguous_fragments, product=product,
+                                          fragment_duration_hours=fragment_hours, version=version, **kwargs)
                         contiguous_fragments = []
                     result = merge_variables([result, data])
             if len(contiguous_fragments):
                 result = get_data(wrapped_self, product=product, start_time=fragments[0],
                                   stop_time=fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
-                self.add_to_cache(result, contiguous_fragments, product, fragment_hours, version)
+                self.add_to_cache(result, contiguous_fragments, product, fragment_hours, version, **kwargs)
             if result is not None:
                 return result[dt_range.start_time:dt_range.stop_time]
             return None
