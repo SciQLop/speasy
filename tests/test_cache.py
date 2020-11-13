@@ -3,9 +3,11 @@ from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
 from spwc.cache.cache import Cache
 from spwc.cache import Cacheable, _round_for_cache
-from spwc.cache.version import str_to_version
+from spwc.cache.version import str_to_version, version_to_str
 from spwc.common.datetime_range import DateTimeRange
 from spwc.common.variable import SpwcVariable
+import packaging.version as Version
+import dateutil.parser as dt_parser
 import operator
 import numpy as np
 
@@ -99,7 +101,7 @@ class _CacheTest(unittest.TestCase):
 
     def test_global_keys(self, cache=cache):
         self.assertIsNone(cache.get("Not In Cache"))
-        cache.set("In Cache",True)
+        cache.set("In Cache", True)
         self.assertTrue(cache.get("In Cache"))
 
     def tearDown(self):
@@ -246,6 +248,15 @@ class _CacheVersionTest(unittest.TestCase):
     @unpack
     def test_compare_version(self, lhs, rhs, op):
         self.assertTrue(op(str_to_version(lhs), str_to_version(rhs)))
+
+    @data(
+        ('1.2.3', Version.parse),
+        ("2019-09-01T20:17:57Z", dt_parser.parse),
+        ('-', lambda x: None)
+    )
+    @unpack
+    def test_conversion(self, version_str, op):
+        self.assertEqual(op(version_to_str(str_to_version(version_str))), op(version_str))
 
 
 if __name__ == '__main__':

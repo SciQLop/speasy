@@ -1,18 +1,17 @@
 from typing import Union
 import datetime
 import dateutil
-from packaging.version import Version, parse, InvalidVersion
+from packaging.version import Version, parse, InvalidVersion, LegacyVersion
 
 
 def str_to_version(v: str):
-    try:
-        v = parse(v)
-    except InvalidVersion:
+    version = parse(v)
+    if type(version) is LegacyVersion:
         try:
-            v = dateutil.parser.parse(v)
+            version = dateutil.parser.parse(v)
         except ValueError:
-            v = None
-    return v
+            version = None
+    return version
 
 
 def version_to_str(v: Union[Version, datetime.datetime]):
