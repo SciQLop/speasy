@@ -39,9 +39,10 @@ def _make_cache_entry_name(prefix: str, product: str, start_time: str, coordinat
     return f"{prefix}/{product}/{coordinate_system}/{start_time}"
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, coordinate_system: str = 'gse',
+                       **kwargs):
     return {'path': f"sscweb/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}'}
+            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': coordinate_system}
 
 
 class SscWeb:
