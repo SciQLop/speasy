@@ -11,12 +11,12 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', 'requests', 'zeep', 'xmltodict', 'pandas', 'diskcache', 'appdirs', 'numpy', 'ddt',
-                'packaging', 'python-dateutil']
+requirements = ['Click>=6.0', 'requests', 'zeep', 'xmltodict', 'pandas', 'diskcache', 'appdirs', 'numpy',
+                'packaging', 'python-dateutil', 'astropy']
 
 setup_requirements = ['pytest-runner', ]
 
-test_requirements = ['pytest', ]
+test_requirements = ['pytest', 'ddt']
 
 setup(
     author="Alexis Jeandet",
