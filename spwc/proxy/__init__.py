@@ -12,13 +12,12 @@ class GetProduct:
         pass
 
     @staticmethod
-    def get(path: str, start_time: str, stop_time: str):
+    def get(path: str, start_time: str, stop_time: str, **kwargs):
         url = proxy_url.get()
-        resp = requests.get(f"{url}/get_data?", params={
-            'path': path,
-            'start_time': start_time,
-            'stop_time': stop_time
-        })
+        kwargs['path']=path
+        kwargs['start_time'] = start_time
+        kwargs['stop_time'] = stop_time
+        resp = requests.get(f"{url}/get_data?", params=kwargs)
         log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             var = pickle.loads(resp.content)
