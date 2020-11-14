@@ -21,14 +21,14 @@ def _variable(orbit: dict) -> Optional[SpwcVariable]:
     data = orbit['Result']['Data'][1][0]['Coordinates'][1][0]
     keys = list(data.keys())
     keys.remove('CoordinateSystem')
-    values = np.array([data[key][1] for key in keys]).transpose() * units.km
+    values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose() * units.km
     # this is damn slow!
     time = np.array([datetime.strptime(v[1], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() for v in
                      orbit['Result']['Data'][1][0]['Time'][1]])
     return SpwcVariable(time=time,
                         data=values,
                         meta={'CoordinateSystem': data['CoordinateSystem']},
-                        columns=keys)
+                        columns=['X', 'Y', 'Z'])
 
 
 def _is_valid(orbit: dict):
@@ -56,7 +56,7 @@ class SscWeb:
         return res.json()['Observatory'][1]
 
     def version(self, product):
-        return 1
+        return 2
 
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
