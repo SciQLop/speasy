@@ -4,15 +4,16 @@
 """Tests for `SpwcVariable` class."""
 
 import unittest
-from spwc.common.variable import SpwcVariable, merge
+
+from spwc.common.variable import SpwcVariable, merge, to_dataframe, from_dataframe
 import numpy as np
+import pandas as pds
 
 
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
-    var = SpwcVariable()
-    var.time = np.arange(start, stop, step)
-    var.data = var.time * coef
-    return var
+    time = np.arange(start, stop, step)
+    values = time * coef
+    return SpwcVariable(time=time, data=values, meta=None, columns=["Values"], y=None)
 
 
 class SpwcVariableSlice(unittest.TestCase):
@@ -47,6 +48,9 @@ class SpwcVariableMerge(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_empty_list(self):
+        self.assertIsNone(merge([]))
+
     def test_drops_empty(self):
         var = merge([make_simple_var(), make_simple_var()])
         self.assertListEqual(var.time.tolist(), make_simple_var().time.tolist())
@@ -68,6 +72,32 @@ class SpwcVariableMerge(unittest.TestCase):
         var2 = make_simple_var(10., 20., 1., 10.)
         var = merge([var1, var2])
         self.assertListEqual(var.time.tolist(), np.arange(1., 20., 1.).tolist())
+
+
+class ASpwcVariable(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_to_dataframe(self):
+        var = make_simple_var(1., 10., 1., 10.)
+        df = to_dataframe(var)
+        self.assertIs(type(df), pds.DataFrame)
+        self.assertIs(type(df.index[0]), np.float64)
+        self.assertEqual(var.data.squeeze().shape, df.values.squeeze().shape)
+        df = to_dataframe(var, datetime_index=True)
+        self.assertIs(type(df.index[0]), pds.Timestamp)
+
+    def test_from_dataframe(self):
+        var1 = make_simple_var(1., 10., 1., 10.)
+        var2 = from_dataframe(to_dataframe(var1))
+        self.assertListEqual(var1.time.tolist(), var2.time.tolist())
+        self.assertListEqual(var1.data.squeeze().tolist(), var2.data.squeeze().tolist())
+        var3 = from_dataframe(to_dataframe(var1, datetime_index=True))
+        self.assertListEqual(var1.time.tolist(), var3.time.tolist())
+        self.assertListEqual(var1.data.squeeze().tolist(), var3.data.squeeze().tolist())
 
 
 class SpwcVariableCompare(unittest.TestCase):

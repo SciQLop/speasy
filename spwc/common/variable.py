@@ -1,21 +1,25 @@
 import numpy as np
 import pandas as pds
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 
 class SpwcVariable(object):
     __slots__ = ['meta', 'time', 'data', 'columns', 'y']
 
-    def __init__(self, time=np.empty(0), data=np.empty(0), meta={}, columns=[], y=None):
+    def __init__(self, time=np.empty(0), data=np.empty(0), meta=None, columns=None, y=None):
+        if meta is None:
+            meta = dict()
+        if columns is None:
+            columns = []
         self.meta = meta
         self.time = time
         self.data = data
         self.columns = columns
         self.y = y
 
-    def view(self, range):
-        return SpwcVariable(self.time[range], self.data[range], self.meta, self.columns, self.y)
+    def view(self, time_range):
+        return SpwcVariable(self.time[time_range], self.data[time_range], self.meta, self.columns, self.y)
 
     def __eq__(self, other: 'SpwcVariable') -> bool:
         return self.meta == other.meta and \
@@ -64,10 +68,12 @@ def from_dataframe(df: pds.DataFrame) -> SpwcVariable:
 
 
 def to_dataframe(var: SpwcVariable, datetime_index=False) -> pds.DataFrame:
-    return SpwcVariable.to_dataframe(var)
+    return SpwcVariable.to_dataframe(var, datetime_index)
 
 
-def merge(variables: List[SpwcVariable]):
+def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
+    if len(variables) == 0:
+        return None
     variables = [v for v in variables if v is not None]
     sorted_var_list = [v for v in variables if len(v.time)]
     sorted_var_list.sort(key=lambda v: v.time[0])
@@ -83,7 +89,7 @@ def merge(variables: List[SpwcVariable]):
             sorted_var_list.remove(current)
 
     if len(sorted_var_list) == 0:
-        return SpwcVariable()
+        return SpwcVariable(columns=variables[0].columns, meta=variables[0].meta, y=variables[0].y)
 
     overlaps = [np.where(current.time >= nxt.time[0])[0][0] if current.time[-1] >= nxt.time[0] else -1 for current, nxt
                 in
