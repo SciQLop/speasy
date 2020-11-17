@@ -1,32 +1,5 @@
 from datetime import datetime, timedelta
-from copy import copy
-from typing import List, Any, Sequence
-
-
-def is_span(maybe_span: Any):
-    return hasattr(maybe_span, '__getitem__') and len(maybe_span) == 2 and maybe_span[0] <= maybe_span[1]
-
-
-def span_difference(span: Sequence, other: Sequence) -> List[Sequence]:
-    assert is_span(span)
-    assert is_span(other)
-
-    def span_ctor(start, stop):
-        if start < stop:
-            t = type(span)
-            if t is list or t is tuple:
-                return t((start, stop))
-            else:
-                return type(span)(start, stop)
-        else:
-            return None
-
-    diff = [
-        span_ctor(span[0], other[0]),
-        span_ctor(other[1], span[1])
-    ]
-    diff = [part for part in diff if part is not None]
-    return diff
+from . import span_utils
 
 
 class DateTimeRange:
@@ -40,12 +13,10 @@ class DateTimeRange:
         self.stop_time = stop_time
 
     def __eq__(self, other):
-        assert type(other) is DateTimeRange
-        return (self.start_time == other.start_time) and (self.stop_time == other.stop_time)
+        return span_utils.equals(self, other)
 
     def intersect(self, other):
-        return ((self.stop_time >= other[0]) and (self.start_time <= other[1])) or (
-            other[0] <= self.start_time <= other[1]) or (other[0] <= self.stop_time <= other[1])
+        return span_utils.intersects(self, other)
 
     def __repr__(self):
         return str(self.start_time.isoformat() + "->" + self.stop_time.isoformat())
@@ -53,67 +24,29 @@ class DateTimeRange:
     def __getitem__(self, item):
         return self.start_time if item == 0 else self.stop_time
 
+    def __setitem__(self, key, value):
+        if key == 0:
+            self.start_time = value
+        else:
+            self.stop_time = value
+
     def __len__(self):
         return 2
 
     def __contains__(self, item: object) -> bool:
-        if item[0] > item[1]:
-            raise ValueError("Negative time range")
-        return (self.start_time <= item[0] <= self.stop_time) or \
-               (self.start_time <= item[1] <= self.stop_time)
+        return span_utils.contains(self, other=item)
 
     def __add__(self, other):
         if type(other) is timedelta:
-            return DateTimeRange(self.start_time + other, self.stop_time + other)
+            return span_utils.shift(self, other)
         else:
             raise TypeError()
 
     def __sub__(self, other):
         if type(other) is timedelta:
-            return DateTimeRange(self.start_time - other, self.stop_time - other)
-        elif hasattr(other, 'start_time') and hasattr(other, 'stop_time'):
-            res = []
-            if not self.intersect(other):
-                res = [DateTimeRange(self.start_time, self.stop_time)]
-            else:
-                if self.start_time < other[0]:
-                    res.append(DateTimeRange(self.start_time, other[0]))
-                if self.stop_time > other[1]:
-                    res.append(DateTimeRange(other[1], self.stop_time))
-            return res
-        elif type(other) is list:
-            diff = []
-            if len(other) > 1:
-                other.sort(key=lambda item: item.start_time)
-                left = (DateTimeRange(self.start_time, other[0].stop_time) - other[0])
-                if left:
-                    diff += left
-                diff += [
-                    DateTimeRange(pair[0].stop_time, pair[1].start_time)
-                    for pair in zip(other[0:-1], other[1:]) if pair[0].stop_time != pair[1].start_time
-                ]
-                right = (DateTimeRange(other[-1].start_time, self.stop_time) - other[-1])
-                if right:
-                    diff += right
-            elif len(other):
-                diff += (self - other[0])
-            else:
-                return [self]
-            return diff
+            return span_utils.shift(self, -other)
         else:
-            raise TypeError()
+            return span_utils.difference(self, other)
 
     def __mul__(self, other):
-        if type(other) is float:
-            result = copy(self)
-            if other >= 1.:
-                margins = (result.stop_time - result.start_time) * (other - 1.) / 2.
-                result.start_time -= margins
-                result.stop_time += margins
-            else:
-                margins = (result.stop_time - result.start_time) * other / 2.
-                result.start_time += margins
-                result.stop_time -= margins
-            return result
-        else:
-            raise TypeError()
+        return span_utils.zoom(self, factor=other)
