@@ -17,8 +17,8 @@ Space Physics WebServices Client
         :target: https://codecov.io/gh/SciQLop/spwc/branch/master
         :alt: Coverage Status
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4118781.svg
-   :target: https://doi.org/10.5281/zenodo.4118781
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg
+   :target: https://doi.org/10.5281/zenodo.4118780
    :alt: Zendoo DOI
 
 A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..) mainly written to ease development of SciQLop.
