@@ -7,14 +7,17 @@ from typing import List, Optional
 class SpwcVariable(object):
     __slots__ = ['meta', 'time', 'data', 'columns', 'y']
 
-    def __init__(self, time=np.empty(0), data=np.empty(0), meta=None, columns=None, y=None):
+    def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta=None, columns=None, y=None):
         if meta is None:
             meta = dict()
         if columns is None:
             columns = []
         self.meta = meta
+        if len(data.shape) == 1:
+            self.data = data.reshape((data.shape[0], 1))  # to be consistent with pandas
+        else:
+            self.data = data
         self.time = time
-        self.data = data
         self.columns = columns
         self.y = y
 
