@@ -1,5 +1,32 @@
 from datetime import datetime, timedelta
 from copy import copy
+from typing import List, Any, Sequence
+
+
+def is_span(maybe_span: Any):
+    return hasattr(maybe_span, '__getitem__') and len(maybe_span) == 2 and maybe_span[0] <= maybe_span[1]
+
+
+def span_difference(span: Sequence, other: Sequence) -> List[Sequence]:
+    assert is_span(span)
+    assert is_span(other)
+
+    def span_ctor(start, stop):
+        if start < stop:
+            t = type(span)
+            if t is list or t is tuple:
+                return t((start, stop))
+            else:
+                return type(span)(start, stop)
+        else:
+            return None
+
+    diff = [
+        span_ctor(span[0], other[0]),
+        span_ctor(other[1], span[1])
+    ]
+    diff = [part for part in diff if part is not None]
+    return diff
 
 
 class DateTimeRange:
@@ -25,6 +52,9 @@ class DateTimeRange:
 
     def __getitem__(self, item):
         return self.start_time if item == 0 else self.stop_time
+
+    def __len__(self):
+        return 2
 
     def __contains__(self, item: object) -> bool:
         if item[0] > item[1]:
@@ -54,7 +84,7 @@ class DateTimeRange:
         elif type(other) is list:
             diff = []
             if len(other) > 1:
-                other.sort()
+                other.sort(key=lambda item: item.start_time)
                 left = (DateTimeRange(self.start_time, other[0].stop_time) - other[0])
                 if left:
                     diff += left
@@ -87,15 +117,3 @@ class DateTimeRange:
             return result
         else:
             raise TypeError()
-
-    def __lt__(self, other):
-        return self.start_time < other.start_time
-
-    def __le__(self, other):
-        return self.start_time <= other.start_time
-
-    def __gt__(self, other):
-        return self.start_time > other.start_time
-
-    def __ge__(self, other):
-        return self.start_time >= other.start_time
