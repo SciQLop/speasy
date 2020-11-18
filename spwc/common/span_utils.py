@@ -75,7 +75,7 @@ def difference(span: Sequence, other_s: Sequence) -> List[Sequence]:
 def zoom(span: Sequence, factor: float):
     if not is_span(span):
         raise TypeError("You must provide a Span like object")
-    if not type(factor) is float:
+    if type(factor) is not float and type(factor) is not int:
         raise TypeError("factor must be float")
 
     width = (span[1] - span[0]) / 2
@@ -85,4 +85,6 @@ def zoom(span: Sequence, factor: float):
 
 
 def shift(span: Sequence, distance):
+    if not is_span(span):
+        raise TypeError("You must provide a Span like object")
     return span_ctor(type(span), span[0] + distance, span[1] + distance)

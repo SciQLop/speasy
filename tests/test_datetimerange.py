@@ -33,11 +33,21 @@ class SpanTransComparaisons(unittest.TestCase):
         (DateTimeRange(datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)),
          [datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)], True),
         ([datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)],
-         DateTimeRange(datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)), True),
+         DateTimeRange(datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 3, 0, 0)), False),
     )
     @unpack
     def test_equal(self, span, other, expected_result):
-        self.assertEqual(span_utils.contains(span, other), expected_result)
+        self.assertEqual(span_utils.equals(span, other), expected_result)
+
+    @data(
+        ([1., 1.], [1., 1.], True),
+        ([1., 10.], [0., 10.], True),
+        ([1., 10.], [20., 25.], False),
+        ([20., 25.], [1., 10.], False)
+    )
+    @unpack
+    def test_intersects(self, span, other, expected_result):
+        self.assertEqual(span_utils.intersects(span, other), expected_result)
 
 
 @ddt
@@ -51,7 +61,7 @@ class SpanTransformations(unittest.TestCase):
     @data(
         ([1., 1.], 10., [1., 1.]),
         ([1., 10.], 1., [1., 10.]),
-        ([-1., 1.], 2., [-2., 2.]),
+        ([-1., 1.], 2, [-2., 2.]),
         ([-2., 2.], .5, [-1., 1.]),
         ([datetime(2020, 1, 1), datetime(2020, 1, 2)], 1., [datetime(2020, 1, 1), datetime(2020, 1, 2)]),
         ([datetime(2020, 1, 2), datetime(2020, 1, 3)], 2., [datetime(2020, 1, 1, 12), datetime(2020, 1, 3, 12)]),
@@ -71,6 +81,29 @@ class SpanTransformations(unittest.TestCase):
     @unpack
     def test_shift(self, span, distance, expected_result):
         self.assertEqual(span_utils.shift(span, distance), expected_result)
+
+    @data(
+        ([], 1.),
+        ([1], 1.),
+        (1, 1.)
+    )
+    @unpack
+    def test_shift_raises_with_wrong_span_type(self, span, dist):
+        with self.assertRaises(TypeError):
+            span_utils.shift(span, dist)
+
+    @data(
+        ([], 1.),
+        ([1], 1.),
+        (1, 1.),
+        ([1., 1.], None),
+        ([1., 1.], [1.]),
+        ([1., 1.], [1., 1.])
+    )
+    @unpack
+    def test_zoom_raises_with_wrong_types(self, span, factor):
+        with self.assertRaises(TypeError):
+            span_utils.zoom(span, factor)
 
 
 class SpanMergeTest(unittest.TestCase):
