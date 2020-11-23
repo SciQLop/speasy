@@ -19,8 +19,8 @@ class AMDAModule(unittest.TestCase):
 
     def test_loads_csv(self):
         var = load_csv(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt')
-        self.assertEqual(var.data.shape[0], len(var.time))
-        self.assertEqual(var.data.shape[1], len(var.columns))
+        self.assertEqual(var.values.shape[0], len(var.time))
+        self.assertEqual(var.values.shape[1], len(var.columns))
         self.assertGreater(len(var.time), 0)
         self.assertTrue('MISSION_ID' in var.meta)
 

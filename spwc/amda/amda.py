@@ -129,7 +129,7 @@ class AMDA:
             if len(var):
                 log.debug(
                     'Loaded var: data shape = {shape}, data start time = {start_time}, data stop time = {stop_time}'.format(
-                        shape=var.data.shape,
+                        shape=var.values.shape,
                         start_time=datetime.utcfromtimestamp(var.time[0]),
                         stop_time=datetime.utcfromtimestamp(var.time[-1])))
             else:

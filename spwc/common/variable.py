@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pds
 from datetime import datetime
 from typing import List, Optional
+from . import deprecation
 
 
 class SpwcVariable(object):
-    __slots__ = ['meta', 'time', 'data', 'columns', 'y']
+    __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 
     def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta=None, columns=None, y=None):
         if meta is None:
@@ -14,22 +15,22 @@ class SpwcVariable(object):
             columns = []
         self.meta = meta
         if len(data.shape) == 1:
-            self.data = data.reshape((data.shape[0], 1))  # to be consistent with pandas
+            self.values = data.reshape((data.shape[0], 1))  # to be consistent with pandas
         else:
-            self.data = data
+            self.values = data
         self.time = time
         self.columns = columns
         self.y = y
 
     def view(self, time_range):
-        return SpwcVariable(self.time[time_range], self.data[time_range], self.meta, self.columns, self.y)
+        return SpwcVariable(self.time[time_range], self.values[time_range], self.meta, self.columns, self.y)
 
     def __eq__(self, other: 'SpwcVariable') -> bool:
         return self.meta == other.meta and \
                self.columns == other.columns and \
                len(self.time) == len(other.time) and \
                np.all(self.time == other.time) and \
-               np.all(self.data == other.data)
+               np.all(self.values == other.values)
 
     def __len__(self):
         return len(self.time)
@@ -52,10 +53,20 @@ class SpwcVariable(object):
             time = pds.to_datetime(self.time, unit='s')
         else:
             time = self.time
-        return pds.DataFrame(index=time, data=self.data, columns=self.columns, copy=True)
+        return pds.DataFrame(index=time, data=self.values, columns=self.columns, copy=True)
 
     def plot(self, *args, **kwargs):
         return self.to_dataframe(datetime_index=True).plot(*args, **kwargs)
+
+    @property
+    def data(self):
+        deprecation('data will be removed soon')
+        return self.values
+
+    @data.setter
+    def data(self, values):
+        deprecation('data will be removed soon')
+        self.values = values
 
     @staticmethod
     def from_dataframe(df: pds.DataFrame) -> 'SpwcVariable':
@@ -103,13 +114,13 @@ def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
     dest_len += len(sorted_var_list[-1].time)
 
     time = np.zeros(dest_len)
-    data = np.zeros((dest_len, sorted_var_list[0].data.shape[1])) if len(
-        sorted_var_list[0].data.shape) == 2 else np.zeros(dest_len)
+    data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
+        sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
 
     pos = 0
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
         frag_len = len(r.time) if overlap == -1 else overlap
         time[pos:pos + frag_len] = r.time[0:frag_len]
-        data[pos:pos + frag_len] = r.data[0:frag_len]
+        data[pos:pos + frag_len] = r.values[0:frag_len]
         pos += frag_len
     return SpwcVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=sorted_var_list[0].y)

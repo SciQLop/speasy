@@ -30,7 +30,7 @@ class CdfTest(unittest.TestCase):
         cdf_file.close()
         var = cdf.load_cdf(cdf_file_name, 'data')
         self.assertTrue(np.all(var.time == time_epoch))
-        self.assertTrue(np.all(var.data == values))
+        self.assertTrue(np.all(var.values == values))
         if os.path.exists(cdf_file_name):
             os.remove(cdf_file_name)
 

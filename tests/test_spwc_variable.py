@@ -25,20 +25,20 @@ class SpwcVariableSlice(unittest.TestCase):
 
     def test_with_indexes(self):
         var = make_simple_var(1., 10., 1., 1.)
-        self.assertListEqual(var[2:4].data.squeeze().tolist(), np.arange(3., 5.).tolist())
-        self.assertListEqual(var[:4].data.squeeze().tolist(), np.arange(1., 5.).tolist())
-        self.assertListEqual(var[2:].data.squeeze().tolist(), np.arange(3., 10.).tolist())
+        self.assertListEqual(var[2:4].values.squeeze().tolist(), np.arange(3., 5.).tolist())
+        self.assertListEqual(var[:4].values.squeeze().tolist(), np.arange(1., 5.).tolist())
+        self.assertListEqual(var[2:].values.squeeze().tolist(), np.arange(3., 10.).tolist())
 
     def test_with_epoch(self):
         var = make_simple_var(1., 10., 1., 1.)
-        self.assertListEqual(var[2.:4.].data.squeeze().tolist(), np.arange(2., 4.).tolist())
-        self.assertListEqual(var[:4.].data.squeeze().tolist(), np.arange(1., 4.).tolist())
-        self.assertListEqual(var[2.:].data.squeeze().tolist(), np.arange(2., 10.).tolist())
+        self.assertListEqual(var[2.:4.].values.squeeze().tolist(), np.arange(2., 4.).tolist())
+        self.assertListEqual(var[:4.].values.squeeze().tolist(), np.arange(1., 4.).tolist())
+        self.assertListEqual(var[2.:].values.squeeze().tolist(), np.arange(2., 10.).tolist())
 
     def test_view_should_modify_it_source(self):
         var = make_simple_var(1., 10., 1., 1.)
-        var[:].data[1] = 999.
-        self.assertEqual(var.data[1], 999.)
+        var[:].values[1] = 999.
+        self.assertEqual(var.values[1], 999.)
 
 
 class SpwcVariableMerge(unittest.TestCase):
@@ -86,7 +86,7 @@ class ASpwcVariable(unittest.TestCase):
         df = to_dataframe(var)
         self.assertIs(type(df), pds.DataFrame)
         self.assertIs(type(df.index[0]), np.float64)
-        self.assertEqual(var.data.shape, df.values.shape)
+        self.assertEqual(var.values.shape, df.values.shape)
         df = to_dataframe(var, datetime_index=True)
         self.assertIs(type(df.index[0]), pds.Timestamp)
 
@@ -94,10 +94,10 @@ class ASpwcVariable(unittest.TestCase):
         var1 = make_simple_var(1., 10., 1., 10.)
         var2 = from_dataframe(to_dataframe(var1))
         self.assertListEqual(var1.time.tolist(), var2.time.tolist())
-        self.assertListEqual(var1.data.tolist(), var2.data.tolist())
+        self.assertListEqual(var1.values.tolist(), var2.values.tolist())
         var3 = from_dataframe(to_dataframe(var1, datetime_index=True))
         self.assertListEqual(var1.time.tolist(), var3.time.tolist())
-        self.assertListEqual(var1.data.tolist(), var3.data.tolist())
+        self.assertListEqual(var1.values.tolist(), var3.values.tolist())
 
 
 class SpwcVariableCompare(unittest.TestCase):
