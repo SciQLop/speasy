@@ -13,3 +13,4 @@ numpy
 python_dateutil
 teamcity_messages
 typing
+astropy
