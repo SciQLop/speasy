@@ -29,7 +29,7 @@ now offers an intuitive and efficient access to any scientist or student who jus
 
 
 Features
---------
+========
 
 - Local cache to avoid repeating twice the same request
 - Simple and intuitive API
@@ -37,13 +37,11 @@ Features
 - Quick functions to convert a variable to a Pandas DataFrame
 
 Examples
---------
-.. include:: examples/simple_getdata.py
-  :literal:
-
+========
+See `here <https://github.com/SciQLop/spwc/blob/master/examples/demo.ipynb>`_ for a complete list of examples.
 
 Credits
--------
+========
 
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
