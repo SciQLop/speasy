@@ -64,7 +64,7 @@ class SscWeb:
                   debug=False) -> Optional[SpwcVariable]:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
-        url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system}/"
+        url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
         if debug:
             print(url)
         res = requests.get(url, headers={"Accept": "application/json"})

@@ -41,6 +41,18 @@ class SscWeb(unittest.TestCase):
             "product": "mms1",
             "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc)
+        },
+        {
+            "product": "mms1",
+            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc),
+            "coordinate_system": "GSE"
+        },
+        {
+            "product": "mms1",
+            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc),
+            "coordinate_system": "gse"
         }
     )
     def test_get_orbit(self, kw):
