@@ -4,7 +4,7 @@
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
-__version__ = '0.7.3'
+__version__ = '0.8.0'
 
 from .common.variable import SpwcVariable
 from .amda import AMDA
