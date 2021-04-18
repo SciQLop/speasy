@@ -38,7 +38,7 @@ Features
 
 Examples
 ========
-See `here <https://github.com/SciQLop/spwc/blob/master/examples/demo.ipynb>`_ for a complete list of examples.
+See `here <https://nbviewer.jupyter.org/github/SciQLop/spwc/blob/master/examples/demo.ipynb>`_ for a complete list of examples.
 
 Credits
 ========
