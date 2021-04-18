@@ -21,17 +21,26 @@ Space Physics WebServices Client
    :target: https://doi.org/10.5281/zenodo.4118780
    :alt: Zendoo DOI
 
-A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..) mainly written to ease development of SciQLop.
-
+A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..).
+This package was initially written to ease development of `SciQLop <https://github.com/SciQLop/SciQLop>`_ , but
+now offers an intuitive and efficient access to any scientist or student who just want get spacecraft data.
 
 * Free software: GNU General Public License v3
-* Documentation: https://spwc.readthedocs.io.
 
 
 Features
 --------
 
-* TODO
+- Local cache to avoid repeating twice the same request
+- Simple and intuitive API
+- Pandas DataFrame like interface for variables
+- Quick functions to convert a variable to a Pandas DataFrame
+
+Examples
+--------
+.. include:: examples/simple_getdata.py
+  :literal:
+
 
 Credits
 -------
