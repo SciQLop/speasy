@@ -8,7 +8,7 @@ __version__ = '0.1.0'
 
 import os
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 from ..cache import _cache, Cacheable
 from ..common.variable import SpwcVariable
@@ -62,11 +62,13 @@ class SscWeb:
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                   debug=False) -> Optional[SpwcVariable]:
+        if stop_time - start_time < timedelta(days=1):
+            stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system}/"
         if debug:
             print(url)
         res = requests.get(url, headers={"Accept": "application/json"})
         orbit = res.json()
         if res.ok and _is_valid(orbit):
-            return _variable(orbit)
+            return _variable(orbit)[start_time:stop_time]
         return None
