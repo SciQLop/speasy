@@ -35,7 +35,7 @@ def _is_valid(orbit: dict):
     return orbit['Result']['StatusCode'] == 'SUCCESS' and orbit['Result']['StatusSubCode'] == 'SUCCESS'
 
 
-def _make_cache_entry_name(prefix: str, product: str, start_time: str, coordinate_system: str, **kwargs):
+def _make_cache_entry_name(prefix: str, product: str, start_time: str, coordinate_system: str = 'gse', **kwargs):
     return f"{prefix}/{product}/{coordinate_system}/{start_time}"
 
 

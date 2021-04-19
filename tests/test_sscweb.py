@@ -5,6 +5,7 @@
 import unittest
 from datetime import datetime, timezone, timedelta
 from spwc import sscweb
+from astropy import units
 from ddt import ddt, data
 
 
@@ -64,6 +65,13 @@ class SscWeb(unittest.TestCase):
         self.assertGreater(len(result), 0)
         self.assertGreater(60., kw["start_time"].timestamp() - result.time[0])
         self.assertGreater(60., kw["stop_time"].timestamp() - result.time[-1])
+
+    def test_get_data_from_cache_preserve_unit(self):
+        # https://github.com/SciQLop/spwc/issues/7
+        for _ in range(3):
+            result = self.ssc.get_orbit('moon', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+                                        datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))
+            self.assertIs(type(result.data), units.quantity.Quantity)
 
     def test_get_observatories(self):
         obs_list = self.ssc.get_observatories()
