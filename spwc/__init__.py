@@ -34,7 +34,8 @@ def get_data(path: str, start_time, stop_time, **kwargs) -> SpwcVariable:
     if components[0] in __PROVIDERS__:
         return __PROVIDERS__[components[0]]('/'.join(components[1:]), start_time=start_time, stop_time=stop_time,
                                             **kwargs)
-    raise ValueError(f'{components[0]} not found in data provider list')
+    raise ValueError(
+        f'{components[0]} not found in data provider list\nSupported providers are:\n{list(__PROVIDERS__.keys())}')
 
 
 def get_orbit(body: str, start_time, stop_time, coordinate_system: str = 'gse', **kwargs) -> SpwcVariable:
