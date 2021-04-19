@@ -25,16 +25,23 @@ A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMD
 This package was initially written to ease development of `SciQLop <https://github.com/SciQLop/SciQLop>`_ , but
 now offers an intuitive and efficient access to any scientist or student who just want get spacecraft data.
 
+As simple as:
+
+.. code-block:: python
+
+    import spwc
+    ace_mag = spwc.get_data('amda/imf', "2016-6-2", "2016-6-5")
+
 * Free software: GNU General Public License v3
 
 
 Features
 ========
 
-- Local cache to avoid repeating twice the same request
 - Simple and intuitive API
 - Pandas DataFrame like interface for variables
 - Quick functions to convert a variable to a Pandas DataFrame
+- Local cache to avoid repeating twice the same request
 
 Examples
 ========
