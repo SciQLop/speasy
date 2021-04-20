@@ -117,8 +117,9 @@ def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
     data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
         sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
 
-    if hasattr(sorted_var_list[0].data, 'unit'):
-        data *= sorted_var_list[0].data.unit
+    units = [var.data.unit for var in sorted_var_list if hasattr(var.data, 'unit')]
+    if len(units):
+        data *= units[0]
 
     pos = 0
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):

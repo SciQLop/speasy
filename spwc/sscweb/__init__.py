@@ -35,14 +35,13 @@ def _is_valid(orbit: dict):
     return orbit['Result']['StatusCode'] == 'SUCCESS' and orbit['Result']['StatusSubCode'] == 'SUCCESS'
 
 
-def _make_cache_entry_name(prefix: str, product: str, start_time: str, coordinate_system: str = 'gse', **kwargs):
-    return f"{prefix}/{product}/{coordinate_system}/{start_time}"
+def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
+    return f"{prefix}/{product}/{kwargs.get('coordinate_system', 'gse')}/{start_time}"
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, coordinate_system: str = 'gse',
-                       **kwargs):
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"sscweb/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': coordinate_system}
+            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_system', 'gse')}
 
 
 class SscWeb:
@@ -58,10 +57,20 @@ class SscWeb:
     def version(self, product):
         return 2
 
+# Wrapper to ensure that whatever the source (Proxy, Cache, SSCWeb) the returned variable is in km
+    def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
+                  debug=False, **kwargs) -> Optional[SpwcVariable]:
+        var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
+                              coordinate_system=coordinate_system, debug=debug, **kwargs)
+        if var:
+            if not hasattr(var.data, 'unit'):
+                var.data *= units.km
+        return var
+
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                  debug=False) -> Optional[SpwcVariable]:
+    def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
+                   debug=False) -> Optional[SpwcVariable]:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
