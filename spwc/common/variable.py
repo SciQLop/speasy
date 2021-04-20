@@ -117,7 +117,7 @@ def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
     data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
         sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
 
-    units = [var.data.unit for var in sorted_var_list if hasattr(var.data, 'unit')]
+    units = [var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')]
     if len(units):
         data *= units[0]
 

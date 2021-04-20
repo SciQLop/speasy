@@ -63,8 +63,8 @@ class SscWeb:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
                               coordinate_system=coordinate_system, debug=debug, **kwargs)
         if var:
-            if not hasattr(var.data, 'unit'):
-                var.data *= units.km
+            if not hasattr(var.values, 'unit'):
+                var.values *= units.km
         return var
 
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)

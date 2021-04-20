@@ -71,7 +71,7 @@ class SscWeb(unittest.TestCase):
         for _ in range(3):
             result = self.ssc.get_orbit('moon', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
                                         datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))
-            self.assertIs(type(result.data), units.quantity.Quantity)
+            self.assertIs(type(result.values), units.quantity.Quantity)
 
     def test_get_observatories(self):
         obs_list = self.ssc.get_observatories()

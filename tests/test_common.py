@@ -22,4 +22,4 @@ class Listify(unittest.TestCase):
     )
     @unpack
     def test_listify(self, input, expected):
-        self.assertEquals(com.listify(input), expected)
+        self.assertEqual(com.listify(input), expected)
