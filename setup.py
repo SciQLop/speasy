@@ -36,7 +36,7 @@ setup(
     description="A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..) mainly written to ease development of SciQLop.",
     entry_points={
         'console_scripts': [
-            'spwc=spwc.cli:main',
+            'speasy=speasy.cli:main',
         ],
     },
     install_requires=requirements,
@@ -44,14 +44,14 @@ setup(
     license="GNU General Public License v3",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
-    keywords='spwc',
-    name='spwc',
-    packages=find_packages(include=['spwc','spwc.amda','spwc.cache','spwc.cdaweb','spwc.common','spwc.config',
-                                    'spwc.sscweb','spwc.proxy']),
+    keywords='speasy',
+    name='speasy',
+    packages=find_packages(include=['speasy','speasy.amda','speasy.cache','speasy.cdaweb','speasy.common','speasy.config',
+                                    'speasy.sscweb','speasy.proxy']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/SciQLop/spwc',
+    url='https://github.com/SciQLop/speasy',
     version='0.8.2',
     zip_safe=False,
 )

@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `spwc` package."""
+"""Tests for `speasy` package."""
 import unittest
 from datetime import datetime, timezone
-import spwc
+import speasy
 from ddt import ddt, data
 
 
 @ddt
 class GetSpwc(unittest.TestCase):
     def setUp(self):
-        spwc.config.proxy_enabled.set("true")
-        spwc.config.proxy_url.set("http://sciqlop.lpp.polytechnique.fr/cache")
+        speasy.config.proxy_enabled.set("true")
+        speasy.config.proxy_url.set("http://sciqlop.lpp.polytechnique.fr/cache")
 
     def tearDown(self):
         pass
@@ -62,14 +62,14 @@ class GetSpwc(unittest.TestCase):
         }
     )
     def test_get_data(self, kw):
-        result = spwc.get_data(**kw,
-                               disable_cache=True)
+        result = speasy.get_data(**kw,
+                                 disable_cache=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
     def test_get_data_wrong_path(self):
         with self.assertRaises(ValueError):
-            spwc.get_data('wrong/path',datetime.now(),datetime.now())
+            speasy.get_data('wrong/path', datetime.now(), datetime.now())
 
     @data(
         {
@@ -92,8 +92,8 @@ class GetSpwc(unittest.TestCase):
         }
     )
     def test_get_orbit(self, kw):
-        result = spwc.get_orbit(**kw,
-                                debug=True,
-                                disable_cache=True)
+        result = speasy.get_orbit(**kw,
+                                  debug=True,
+                                  disable_cache=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)

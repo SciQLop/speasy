@@ -51,7 +51,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8
-	flake8 spwc tests --count --select=E9,F63,F7,F82 --show-source --statistics
+	flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
 
 test: ## run tests quickly with the default Python
 	py.test
@@ -60,15 +60,15 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source spwc -m pytest
+	coverage run --source speasy -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/spwc.rst
+	rm -f docs/speasy.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ spwc
+	sphinx-apidoc -o docs/ speasy
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html

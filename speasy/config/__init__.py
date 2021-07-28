@@ -2,7 +2,7 @@ import configparser, os
 import appdirs
 from ..common import mkdir
 
-_CONFIG_FNAME = str(appdirs.user_config_dir(appname="spwc", appauthor="LPP")) + "/config.ini"
+_CONFIG_FNAME = str(appdirs.user_config_dir(appname="speasy", appauthor="LPP")) + "/config.ini"
 mkdir(os.path.dirname(_CONFIG_FNAME))
 _config = configparser.ConfigParser()
 _config.read(_CONFIG_FNAME)
@@ -32,4 +32,4 @@ proxy_enabled = ConfigEntry("PROXY", "enabled", "False")
 proxy_url = ConfigEntry("PROXY", "url", "")
 
 cache_size = ConfigEntry("CACHE", "size", "20e9")
-cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("spwc", "LPP")))
+cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")))

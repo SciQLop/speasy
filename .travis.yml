@@ -25,5 +25,5 @@ deploy:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: jeandet/spwc
+    repo: jeandet/speasy
     python: 3.6

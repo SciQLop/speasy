@@ -1,4 +1,4 @@
-from spwc import SpwcVariable
+from speasy import SpwcVariable
 from .cache import Cache, CacheItem
 from ..config import cache_path
 from typing import List, Callable, Optional, Union

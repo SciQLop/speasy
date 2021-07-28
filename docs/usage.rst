@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use Space Physics WebServices Client in a project::
+To use SPEASY in a project::
 
-    import spwc
+    import speasy as spz

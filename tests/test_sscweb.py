@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `spwc` package."""
+"""Tests for `speasy` package."""
 import unittest
 from datetime import datetime, timezone, timedelta
-from spwc import sscweb
+from speasy import sscweb
 from astropy import units
 from ddt import ddt, data
 
@@ -67,7 +67,7 @@ class SscWeb(unittest.TestCase):
         self.assertGreater(60., kw["stop_time"].timestamp() - result.time[-1])
 
     def test_get_data_from_cache_preserve_unit(self):
-        # https://github.com/SciQLop/spwc/issues/7
+        # https://github.com/SciQLop/speasy/issues/7
         for _ in range(3):
             result = self.ssc.get_orbit('moon', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
                                         datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))

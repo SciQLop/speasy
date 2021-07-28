@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `spwc.common` package."""
+"""Tests for `speasy.common` package."""
 import unittest
-import spwc.common as com
+import speasy.common as com
 from ddt import ddt, data, unpack
 
 

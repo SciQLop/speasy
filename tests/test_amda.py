@@ -6,7 +6,7 @@
 import unittest
 import os
 from datetime import datetime, timezone
-from spwc.amda import AMDA, load_csv
+from speasy.amda import AMDA, load_csv
 from ddt import ddt, data
 
 

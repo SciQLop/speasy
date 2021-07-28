@@ -1,10 +1,10 @@
 import unittest
 from ddt import ddt, data, unpack
-from spwc.common import cdf
+from speasy.common import cdf
 from datetime import datetime
-from spwc.cache.version import str_to_version
-from spwc.common.datetime_range import DateTimeRange
-from spwc.common.variable import SpwcVariable
+from speasy.cache.version import str_to_version
+from speasy.common.datetime_range import DateTimeRange
+from speasy.common.variable import SpwcVariable
 
 import numpy as np
 

@@ -5,7 +5,7 @@
 
 import unittest
 
-from spwc.common.variable import SpwcVariable, merge, to_dataframe, from_dataframe
+from speasy.common.variable import SpwcVariable, merge, to_dataframe, from_dataframe
 import numpy as np
 import pandas as pds
 

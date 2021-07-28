@@ -1,11 +1,11 @@
 import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
-from spwc.cache.cache import Cache
-from spwc.cache import Cacheable, _round_for_cache
-from spwc.cache.version import str_to_version, version_to_str
-from spwc.common.datetime_range import DateTimeRange
-from spwc.common.variable import SpwcVariable
+from speasy.cache.cache import Cache
+from speasy.cache import Cacheable, _round_for_cache
+from speasy.cache.version import str_to_version, version_to_str
+from speasy.common.datetime_range import DateTimeRange
+from speasy.common.variable import SpwcVariable
 import packaging.version as Version
 import dateutil.parser as dt_parser
 import operator

@@ -2,9 +2,9 @@ import unittest
 from ddt import ddt, data
 from datetime import datetime, timezone
 from multiprocessing import dummy
-import spwc.cdaweb as cd
-from spwc.cdaweb import cdaweb
-from spwc.cache import Cache
+import speasy.cdaweb as cd
+from speasy.cdaweb import cdaweb
+from speasy.cache import Cache
 import tempfile
 import shutil
 
