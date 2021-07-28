@@ -14,7 +14,7 @@ with open('HISTORY.rst') as history_file:
 requirements = ['Click>=6.0', 'requests', 'zeep', 'xmltodict', 'pandas', 'diskcache', 'appdirs', 'numpy',
                 'packaging', 'python-dateutil', 'astropy']
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = []
 
 test_requirements = ['pytest', 'ddt']
 

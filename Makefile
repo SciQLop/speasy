@@ -51,7 +51,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8
-	flake8 spwc tests
+	flake8 spwc tests --count --select=E9,F63,F7,F82 --show-source --statistics
 
 test: ## run tests quickly with the default Python
 	py.test
