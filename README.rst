@@ -6,8 +6,8 @@ Space Physics WebServices Client
 .. image:: https://img.shields.io/pypi/v/spwc.svg
         :target: https://pypi.python.org/pypi/spwc
 
-.. image:: https://github.com/SciQLop/spwc/workflows/Python%20package/badge.svg
-        :target: https://github.com/SciQLop/spwc/actions?query=workflow%3A%22Python+package%22
+.. image:: https://github.com/SciQLop/spwc/workflows/Tests/badge.svg
+        :target: https://github.com/SciQLop/spwc/actions?query=workflow%3A%22Tests%22
 
 .. image:: https://readthedocs.org/projects/spwc/badge/?version=latest
         :target: https://spwc.readthedocs.io/en/latest/?badge=latest
