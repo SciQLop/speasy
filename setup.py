@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['Click>=6.0', 'requests', 'zeep', 'xmltodict', 'pandas', 'diskcache', 'appdirs', 'numpy',
-                'packaging', 'python-dateutil', 'astropy']
+                'packaging', 'python-dateutil', 'astropy', 'spwc']
 
 setup_requirements = []
 

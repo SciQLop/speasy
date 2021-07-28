@@ -13,3 +13,4 @@ typing
 python-dateutil
 astropy
 ddt
+spwc
