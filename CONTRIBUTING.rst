@@ -15,7 +15,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/jeandet/spwc/issues.
+Report bugs at https://github.com/SciQLop/spwc/issues.
 
 If you are reporting a bug, please include:
 
@@ -45,7 +45,7 @@ articles, and such.
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/jeandet/spwc/issues.
+The best way to send feedback is to file an issue at https://github.com/SciQLop/spwc/issues.
 
 If you are proposing a feature:
 
@@ -102,8 +102,8 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.7, 3.4, 3.5 and 3.6, and for PyPy. Check
-   https://travis-ci.org/jeandet/spwc/pull_requests
+3. The pull request should work for Python from 3.6 to 3.9, and for PyPy. Check
+   https://github.com/SciQLop/spwc/actions
    and make sure that the tests pass for all supported Python versions.
 
 Tips
@@ -125,4 +125,4 @@ $ bumpversion patch # possible: major / minor / patch
 $ git push
 $ git push --tags
 
-Travis will then deploy to PyPI if tests pass.
+GH Actions will then deploy to PyPI if tests pass.
