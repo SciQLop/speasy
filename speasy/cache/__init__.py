@@ -1,4 +1,4 @@
-from speasy import SpwcVariable
+from speasy import SpeasyVariable
 from .cache import Cache, CacheItem
 from ..config import cache_path
 from typing import List, Callable, Optional, Union
@@ -92,7 +92,7 @@ class Cacheable(object):
         self.leak_cache = leak_cache
         self.entry_name = entry_name
 
-    def add_to_cache(self, variable: SpwcVariable, fragments, product, fragment_duration_hours, version, **kwargs):
+    def add_to_cache(self, variable: SpeasyVariable, fragments, product, fragment_duration_hours, version, **kwargs):
         if variable is not None:
             for fragment in fragments:
                 key = self.entry_name(self.prefix, product, fragment.isoformat(), **kwargs)

@@ -5,7 +5,7 @@ from typing import List, Optional
 from . import deprecation
 
 
-class SpwcVariable(object):
+class SpeasyVariable(object):
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 
     def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta=None, columns=None, y=None):
@@ -23,9 +23,9 @@ class SpwcVariable(object):
         self.y = y
 
     def view(self, time_range):
-        return SpwcVariable(self.time[time_range], self.values[time_range], self.meta, self.columns, self.y)
+        return SpeasyVariable(self.time[time_range], self.values[time_range], self.meta, self.columns, self.y)
 
-    def __eq__(self, other: 'SpwcVariable') -> bool:
+    def __eq__(self, other: 'SpeasyVariable') -> bool:
         return self.meta == other.meta and \
                self.columns == other.columns and \
                len(self.time) == len(other.time) and \
@@ -69,23 +69,23 @@ class SpwcVariable(object):
         self.values = values
 
     @staticmethod
-    def from_dataframe(df: pds.DataFrame) -> 'SpwcVariable':
+    def from_dataframe(df: pds.DataFrame) -> 'SpeasyVariable':
         if hasattr(df.index[0], 'timestamp'):
             time = np.array([d.timestamp() for d in df.index])
         else:
             time = df.index.values
-        return SpwcVariable(time, df.values, {}, [c for c in df.columns])
+        return SpeasyVariable(time, df.values, {}, [c for c in df.columns])
 
 
-def from_dataframe(df: pds.DataFrame) -> SpwcVariable:
-    return SpwcVariable.from_dataframe(df)
+def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
+    return SpeasyVariable.from_dataframe(df)
 
 
-def to_dataframe(var: SpwcVariable, datetime_index=False) -> pds.DataFrame:
-    return SpwcVariable.to_dataframe(var, datetime_index)
+def to_dataframe(var: SpeasyVariable, datetime_index=False) -> pds.DataFrame:
+    return SpeasyVariable.to_dataframe(var, datetime_index)
 
 
-def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
+def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     if len(variables) == 0:
         return None
     variables = [v for v in variables if v is not None]
@@ -103,7 +103,7 @@ def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
             sorted_var_list.remove(current)
 
     if len(sorted_var_list) == 0:
-        return SpwcVariable(columns=variables[0].columns, meta=variables[0].meta, y=variables[0].y)
+        return SpeasyVariable(columns=variables[0].columns, meta=variables[0].meta, y=variables[0].y)
 
     overlaps = [np.where(current.time >= nxt.time[0])[0][0] if current.time[-1] >= nxt.time[0] else -1 for current, nxt
                 in
@@ -127,4 +127,4 @@ def merge(variables: List[SpwcVariable]) -> Optional[SpwcVariable]:
         time[pos:pos + frag_len] = r.time[0:frag_len]
         data[pos:pos + frag_len] = r.values[0:frag_len]
         pos += frag_len
-    return SpwcVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=sorted_var_list[0].y)
+    return SpeasyVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=sorted_var_list[0].y)

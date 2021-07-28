@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `SpwcVariable` class."""
+"""Tests for `SpeasyVariable` class."""
 
 import unittest
 
-from speasy.common.variable import SpwcVariable, merge, to_dataframe, from_dataframe
+from speasy.common.variable import SpeasyVariable, merge, to_dataframe, from_dataframe
 import numpy as np
 import pandas as pds
 
@@ -13,7 +13,7 @@ import pandas as pds
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpwcVariable(time=time, data=values, meta=None, columns=["Values"], y=None)
+    return SpeasyVariable(time=time, data=values, meta=None, columns=["Values"], y=None)
 
 
 class SpwcVariableSlice(unittest.TestCase):

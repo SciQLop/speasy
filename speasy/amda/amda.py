@@ -9,7 +9,7 @@ from typing import Optional
 from ..common import listify
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
-from ..common.variable import SpwcVariable
+from ..common.variable import SpeasyVariable
 from ..proxy import Proxyfiable, GetProduct
 from urllib.request import urlopen
 import os
@@ -42,7 +42,7 @@ def load_csv(filename: str):
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
-        return SpwcVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
+        return SpeasyVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -118,7 +118,7 @@ class AMDA:
         return self.METHODS["REST"].get_token
 
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "REST", **kwargs) -> Optional[SpwcVariable]:
+                      method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
 
         start_time = start_time.timestamp()
         stop_time = stop_time.timestamp()
@@ -149,7 +149,7 @@ class AMDA:
         return self._dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
     def get_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "REST", **kwargs) -> Optional[SpwcVariable]:
+                      method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
         return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
 
     def get_obs_data_tree(self, method="SOAP") -> dict:

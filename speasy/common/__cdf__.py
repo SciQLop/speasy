@@ -1,6 +1,6 @@
 from spacepy import pycdf
 import threading
-from .variable import SpwcVariable
+from .variable import SpeasyVariable
 
 
 def tt2000_to_unix_epoch(variable: pycdf.Var):
@@ -35,5 +35,5 @@ def load_cdf(cdf_file, product):
             data_var = f[product]
             time_var = f.raw_var(get_depend(data_var))
             time = convert_time(time_var)
-            return SpwcVariable(time=time, data=data_var[:], meta={}, columns=[], y=None)
+            return SpeasyVariable(time=time, data=data_var[:], meta={}, columns=[], y=None)
         return None

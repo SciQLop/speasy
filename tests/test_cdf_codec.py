@@ -4,7 +4,7 @@ from speasy.common import cdf
 from datetime import datetime
 from speasy.cache.version import str_to_version
 from speasy.common.datetime_range import DateTimeRange
-from speasy.common.variable import SpwcVariable
+from speasy.common.variable import SpeasyVariable
 
 import numpy as np
 

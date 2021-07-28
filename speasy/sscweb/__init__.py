@@ -11,13 +11,13 @@ from typing import Optional
 from datetime import datetime, timedelta
 import requests
 from ..cache import _cache, Cacheable
-from ..common.variable import SpwcVariable
+from ..common.variable import SpeasyVariable
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
 from astropy import units
 
 
-def _variable(orbit: dict) -> Optional[SpwcVariable]:
+def _variable(orbit: dict) -> Optional[SpeasyVariable]:
     data = orbit['Result']['Data'][1][0]['Coordinates'][1][0]
     keys = list(data.keys())
     keys.remove('CoordinateSystem')
@@ -25,10 +25,10 @@ def _variable(orbit: dict) -> Optional[SpwcVariable]:
     # this is damn slow!
     time = np.array([datetime.strptime(v[1], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() for v in
                      orbit['Result']['Data'][1][0]['Time'][1]])
-    return SpwcVariable(time=time,
-                        data=values,
-                        meta={'CoordinateSystem': data['CoordinateSystem']},
-                        columns=['X', 'Y', 'Z'])
+    return SpeasyVariable(time=time,
+                          data=values,
+                          meta={'CoordinateSystem': data['CoordinateSystem']},
+                          columns=['X', 'Y', 'Z'])
 
 
 def _is_valid(orbit: dict):
@@ -59,7 +59,7 @@ class SscWeb:
 
 # Wrapper to ensure that whatever the source (Proxy, Cache, SSCWeb) the returned variable is in km
     def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                  debug=False, **kwargs) -> Optional[SpwcVariable]:
+                  debug=False, **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
                               coordinate_system=coordinate_system, debug=debug, **kwargs)
         if var:
@@ -70,7 +70,7 @@ class SscWeb:
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                   debug=False) -> Optional[SpwcVariable]:
+                   debug=False) -> Optional[SpeasyVariable]:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"

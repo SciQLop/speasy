@@ -12,7 +12,7 @@ from datetime import datetime
 import pandas as pds
 import requests
 from ..cache import Cacheable, _cache # _cache is used for tests (hack...)
-from ..common.variable import SpwcVariable
+from ..common.variable import SpeasyVariable
 from ..common import cdf
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
@@ -20,7 +20,7 @@ import tempfile
 from urllib.request import urlopen
 
 
-def _read_csv(url: str, *args, **kwargs) -> SpwcVariable:
+def _read_csv(url: str, *args, **kwargs) -> SpeasyVariable:
     try:
         df = pds.read_csv(url, comment='#', index_col=0, infer_datetime_format=True, parse_dates=True)
         if df.index.tz is None:
@@ -28,12 +28,12 @@ def _read_csv(url: str, *args, **kwargs) -> SpwcVariable:
         else:
             df.index = df.index.tz_convert('UTC')
         time = np.array([t.timestamp() for t in df.index])
-        return SpwcVariable(time=time, data=df.values, columns=[c for c in df.columns])
+        return SpeasyVariable(time=time, data=df.values, columns=[c for c in df.columns])
     except pds.io.common.EmptyDataError:
-        return SpwcVariable()
+        return SpeasyVariable()
 
 
-def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpwcVariable:
+def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpeasyVariable:
     try:
         with tempfile.NamedTemporaryFile(delete=False) as f:
             with urlopen(url) as remote_file:
@@ -43,7 +43,7 @@ def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpwcVariable:
             os.unlink(f.name)
             return var
     except:
-        return SpwcVariable()
+        return SpeasyVariable()
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -115,7 +115,7 @@ class cdaweb:
         return variables
 
     def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, fmt:str=None) -> Optional[
-        SpwcVariable]:
+        SpeasyVariable]:
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         if cdf.have_cdf and fmt != "csv":
             fmt = "cdf"
@@ -138,5 +138,5 @@ class cdaweb:
                                  variable=components[1], **kwargs)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> \
-    Optional[SpwcVariable]:
+    Optional[SpeasyVariable]:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)

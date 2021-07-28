@@ -5,7 +5,7 @@ from speasy.cache.cache import Cache
 from speasy.cache import Cacheable, _round_for_cache
 from speasy.cache.version import str_to_version, version_to_str
 from speasy.common.datetime_range import DateTimeRange
-from speasy.common.variable import SpwcVariable
+from speasy.common.variable import SpeasyVariable
 import packaging.version as Version
 import dateutil.parser as dt_parser
 import operator
@@ -36,7 +36,7 @@ class _CacheTest(unittest.TestCase):
              range(int((stop_time - start_time).seconds / 60))])
         data = index / 3600.
         self._make_data_cntr += 1
-        return SpwcVariable(time=index, data=data)
+        return SpeasyVariable(time=index, data=data)
 
     def _get_and_check(self, start, stop):
         var = self._make_data("...", start, stop)

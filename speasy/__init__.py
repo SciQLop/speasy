@@ -6,7 +6,7 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.8.3'
 
-from .common.variable import SpwcVariable
+from .common.variable import SpeasyVariable
 from .amda import AMDA
 from .cdaweb import cdaweb as cd
 from .sscweb import SscWeb
@@ -29,7 +29,7 @@ def find_product(name: str) -> List[str]:
     pass
 
 
-def get_data(path: str, start_time, stop_time, **kwargs) -> SpwcVariable:
+def get_data(path: str, start_time, stop_time, **kwargs) -> SpeasyVariable:
     components = path.split('/')
     if components[0] in __PROVIDERS__:
         return __PROVIDERS__[components[0]]('/'.join(components[1:]), start_time=start_time, stop_time=stop_time,
@@ -38,5 +38,5 @@ def get_data(path: str, start_time, stop_time, **kwargs) -> SpwcVariable:
         f'{components[0]} not found in data provider list\nSupported providers are:\n{list(__PROVIDERS__.keys())}')
 
 
-def get_orbit(body: str, start_time, stop_time, coordinate_system: str = 'gse', **kwargs) -> SpwcVariable:
+def get_orbit(body: str, start_time, stop_time, coordinate_system: str = 'gse', **kwargs) -> SpeasyVariable:
     return ssc.get_orbit(body, start_time, stop_time, coordinate_system=coordinate_system, **kwargs)
