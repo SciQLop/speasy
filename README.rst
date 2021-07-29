@@ -3,6 +3,10 @@ Space Physics made EASY
 ================================
 
 
+.. image:: https://matrix.to/img/matrix-badge.svg
+        :target: https://matrix.to/#/#speasy:matrix.org
+        :alt: Chat on Matrix
+
 .. image:: https://img.shields.io/pypi/v/speasy.svg
         :target: https://pypi.python.org/pypi/speasy
 
