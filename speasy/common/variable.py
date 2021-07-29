@@ -6,6 +6,19 @@ from . import deprecation
 
 
 class SpeasyVariable(object):
+    """SpeasyVariable object. Base class for storing variable data.
+
+    :param time: time data
+    :type time: numpy.ndarray
+    :param data: data
+    :type data: numpy.ndarray
+    :param meta: metadata
+    :type meta: dict
+    :param columns: column names
+    :type columns: list[str]
+    :param y: I DONT KNOW
+    :type y: ?????
+    """
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 
     def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta=None, columns=None, y=None):
