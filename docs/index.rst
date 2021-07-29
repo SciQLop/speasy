@@ -9,6 +9,7 @@ Welcome to Space Physics WebServices Client's documentation!
    installation
    usage
    modules
+   amda
    contributing
    authors
    history

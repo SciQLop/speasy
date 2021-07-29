@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""amda package for Space Physics WebServices Client."""
+"""
+speasy.amda
+-----------
+
+This module deals with getting data from the AMDA webservice server
+"""
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
