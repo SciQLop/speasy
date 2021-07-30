@@ -11,13 +11,17 @@ from typing import Optional
 from datetime import datetime
 import pandas as pds
 import requests
-from ..cache import Cacheable, _cache # _cache is used for tests (hack...)
+from ..cache import Cacheable, _cache  # _cache is used for tests (hack...)
 from ..common.variable import SpeasyVariable
 from ..common import cdf
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
 import tempfile
 from urllib.request import urlopen
+from time import sleep
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def _read_csv(url: str, *args, **kwargs) -> SpeasyVariable:
@@ -39,7 +43,7 @@ def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpeasyVariable:
             with urlopen(url) as remote_file:
                 f.write(remote_file.read())
             f.close()
-            var = cdf.load_cdf(f.name,varname)
+            var = cdf.load_cdf(f.name, varname)
             os.unlink(f.name)
             return var
     except:
@@ -47,7 +51,8 @@ def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpeasyVariable:
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
-    return {'path': f"cdaweb/{product}", 'start_time': f'{start_time.isoformat()}', 'stop_time': f'{stop_time.isoformat()}'}
+    return {'path': f"cdaweb/{product}", 'start_time': f'{start_time.isoformat()}',
+            'stop_time': f'{stop_time.isoformat()}'}
 
 
 class cdaweb:
@@ -114,8 +119,10 @@ class cdaweb:
         variables = [varaible for varaible in resp.json()['VariableDescription']]
         return variables
 
-    def _dl_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, fmt:str=None) -> Optional[
-        SpeasyVariable]:
+    def _dl_variable(self,
+                     dataset: str, variable: str,
+                     start_time: datetime, stop_time: datetime, fmt: str = None) -> Optional[SpeasyVariable]:
+
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         if cdf.have_cdf and fmt != "csv":
             fmt = "cdf"
@@ -124,8 +131,17 @@ class cdaweb:
             loader = _read_csv
             fmt = "csv"
         url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format={fmt}"
-        print(url)
-        resp = requests.get(url, headers={"Accept": "application/json"})
+        headers = {"Accept": "application/json"}
+        log.debug(url)
+        resp = requests.get(url, headers=headers)
+        while resp.status_code in [429, 523]:
+            try:
+                delay = float(resp.headers['Retry-After'])
+            except ValueError:
+                delay = 5
+            log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
+            sleep(delay)
+            resp = requests.get(url, headers=headers)
         if not resp.ok or 'FileDescription' not in resp.json():
             return None
         return loader(resp.json()['FileDescription'][0]['Name'], variable)
@@ -138,5 +154,5 @@ class cdaweb:
                                  variable=components[1], **kwargs)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> \
-    Optional[SpeasyVariable]:
+        Optional[SpeasyVariable]:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)
