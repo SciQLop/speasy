@@ -3,7 +3,7 @@ from ddt import ddt, data
 from datetime import datetime, timezone
 from multiprocessing import dummy
 import speasy.cdaweb as cd
-from speasy.cdaweb import cdaweb
+from speasy.cdaweb import cdaweb, CdaWebException
 from speasy.cache import Cache
 import tempfile
 import shutil
@@ -38,6 +38,18 @@ class SimpleRequest(unittest.TestCase):
     def test_get_variable(self, kw):
         result = self.cd.get_variable(**kw, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
+
+    @data(
+        {
+            "dataset": "THA_L2_FGM",
+            "variable": "not a variable",
+            "start_time": datetime(2014, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc)
+        }
+    )
+    def test_raises_when_request_fails(self, kw):
+        with self.assertRaises(CdaWebException):
+            self.cd.get_variable(**kw, disable_proxy=True, disable_cache=True)
 
 
 class ConcurrentRequests(unittest.TestCase):

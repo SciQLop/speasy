@@ -24,6 +24,11 @@ import logging
 log = logging.getLogger(__name__)
 
 
+class CdaWebException(BaseException):
+    def __init__(self, text):
+        super(CdaWebException,self).__init__(text)
+
+
 def _read_csv(url: str, *args, **kwargs) -> SpeasyVariable:
     try:
         df = pds.read_csv(url, comment='#', index_col=0, infer_datetime_format=True, parse_dates=True)
@@ -142,6 +147,8 @@ class cdaweb:
             log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
             sleep(delay)
             resp = requests.get(url, headers=headers)
+        if resp.status_code != 200:
+            raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
         if not resp.ok or 'FileDescription' not in resp.json():
             return None
         return loader(resp.json()['FileDescription'][0]['Name'], variable)
