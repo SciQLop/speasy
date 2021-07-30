@@ -12,7 +12,7 @@ from datetime import datetime
 import pandas as pds
 from ..cache import Cacheable, _cache  # _cache is used for tests (hack...)
 from ..common.variable import SpeasyVariable
-from ..common import cdf, http
+from ..common import http
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
 import tempfile
@@ -38,19 +38,6 @@ def _read_csv(url: str, *args, **kwargs) -> SpeasyVariable:
         time = np.array([t.timestamp() for t in df.index])
         return SpeasyVariable(time=time, data=df.values, columns=[c for c in df.columns])
     except pds.io.common.EmptyDataError:
-        return SpeasyVariable()
-
-
-def _read_cdf(url: str, varname: str, *args, **kwargs) -> SpeasyVariable:
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            with urlopen(url) as remote_file:
-                f.write(remote_file.read())
-            f.close()
-            var = cdf.load_cdf(f.name, varname)
-            os.unlink(f.name)
-            return var
-    except:
         return SpeasyVariable()
 
 
@@ -128,12 +115,8 @@ class cdaweb:
                      start_time: datetime, stop_time: datetime, fmt: str = None) -> Optional[SpeasyVariable]:
 
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
-        if cdf.have_cdf and fmt != "csv":
-            fmt = "cdf"
-            loader = _read_cdf
-        else:
-            loader = _read_csv
-            fmt = "csv"
+        loader = _read_csv
+        fmt = "csv"
         url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format={fmt}"
         headers = {"Accept": "application/json"}
         log.debug(url)

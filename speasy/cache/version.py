@@ -1,7 +1,7 @@
 from typing import Union
 import datetime
 import dateutil
-from packaging.version import Version, parse, InvalidVersion, LegacyVersion
+from packaging.version import Version, parse, LegacyVersion
 
 
 def str_to_version(v: str):
