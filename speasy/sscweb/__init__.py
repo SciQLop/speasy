@@ -9,9 +9,9 @@ __version__ = '0.1.0'
 import os
 from typing import Optional
 from datetime import datetime, timedelta
-import requests
 from ..cache import _cache, Cacheable
 from ..common.variable import SpeasyVariable
+from ..common import http
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
 from astropy import units
@@ -49,7 +49,7 @@ class SscWeb:
         self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
 
     def get_observatories(self):
-        res = requests.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
+        res = http.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
         if not res.ok:
             return None
         return res.json()['Observatory'][1]
@@ -76,7 +76,7 @@ class SscWeb:
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
         if debug:
             print(url)
-        res = requests.get(url, headers={"Accept": "application/json"})
+        res = http.get(url, headers={"Accept": "application/json"})
         orbit = res.json()
         if res.ok and _is_valid(orbit):
             return _variable(orbit)[start_time:stop_time]

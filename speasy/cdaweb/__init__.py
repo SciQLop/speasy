@@ -10,10 +10,9 @@ import os
 from typing import Optional
 from datetime import datetime
 import pandas as pds
-import requests
 from ..cache import Cacheable, _cache  # _cache is used for tests (hack...)
 from ..common.variable import SpeasyVariable
-from ..common import cdf
+from ..common import cdf, http
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
 import tempfile
@@ -65,7 +64,7 @@ class cdaweb:
         self.__url = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1"
 
     def get_dataviews(self):
-        resp = requests.get(self.__url + '/dataviews', headers={"Accept": "application/json"})
+        resp = http.get(self.__url + '/dataviews', headers={"Accept": "application/json"})
         if not resp.ok:
             return None
         dataviews = [dv['Id'] for dv in resp.json()['DataviewDescription']]
@@ -77,7 +76,7 @@ class cdaweb:
             args.append(f'observatory={observatory}')
         if instrumentType is not None:
             args.append(f'instrumentType={instrumentType}')
-        resp = requests.get(self.__url + f'/dataviews/{dataview}/instruments?' + "&".join(args),
+        resp = http.get(self.__url + f'/dataviews/{dataview}/instruments?' + "&".join(args),
                             headers={"Accept": "application/json"})
         if not resp.ok:
             return None
@@ -108,7 +107,7 @@ class cdaweb:
         if notesPattern is not None:
             args.append(f'notesPattern={notesPattern}')
 
-        resp = requests.get(self.__url + f'/dataviews/{dataview}/datasets?' + "&".join(args),
+        resp = http.get(self.__url + f'/dataviews/{dataview}/datasets?' + "&".join(args),
                             headers={"Accept": "application/json"})
         if not resp.ok:
             return None
@@ -116,7 +115,7 @@ class cdaweb:
         return datasets
 
     def get_variables(self, dataset, dataview='sp_phys'):
-        resp = requests.get(self.__url + f'/dataviews/{dataview}/datasets/{dataset}/variables',
+        resp = http.get(self.__url + f'/dataviews/{dataview}/datasets/{dataset}/variables',
                             headers={"Accept": "application/json"})
 
         if not resp.ok:
@@ -138,7 +137,7 @@ class cdaweb:
         url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format={fmt}"
         headers = {"Accept": "application/json"}
         log.debug(url)
-        resp = requests.get(url, headers=headers)
+        resp = http.get(url, headers=headers)
         while resp.status_code in [429, 523]:
             try:
                 delay = float(resp.headers['Retry-After'])
@@ -146,7 +145,8 @@ class cdaweb:
                 delay = 5
             log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
             sleep(delay)
-            resp = requests.get(url, headers=headers)
+            resp = http.get(url, headers=headers)
+        print(resp.status_code)
         if resp.status_code != 200:
             raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
         if not resp.ok or 'FileDescription' not in resp.json():
