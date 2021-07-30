@@ -129,7 +129,6 @@ class cdaweb:
             log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
             sleep(delay)
             resp = http.get(url, headers=headers)
-        print(resp.status_code)
         if resp.status_code != 200:
             raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
         if not resp.ok or 'FileDescription' not in resp.json():
