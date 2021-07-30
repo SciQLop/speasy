@@ -17,8 +17,8 @@ Space Physics made EASY
         :target: https://speasy.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://codecov.io/gh/SciQLop/speasy/coverage.svg?branch=master
-        :target: https://codecov.io/gh/SciQLop/speasy/branch/master
+.. image:: https://codecov.io/gh/SciQLop/speasy/coverage.svg?branch=main
+        :target: https://codecov.io/gh/SciQLop/speasy/branch/main
         :alt: Coverage Status
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg
@@ -49,7 +49,7 @@ Features
 
 Examples
 ========
-See `here <https://nbviewer.jupyter.org/github/SciQLop/speasy/blob/master/examples/demo.ipynb>`_ for a complete list of examples.
+See `here <https://nbviewer.jupyter.org/github/SciQLop/speasy/blob/main/examples/demo.ipynb>`_ for a complete list of examples.
 
 Credits
 ========
