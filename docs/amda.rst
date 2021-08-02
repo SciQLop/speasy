@@ -1,6 +1,9 @@
 AMDA
 ====
 
+
+
+
 Getting AMDA dataset and parameters
 -----------------------------------
 
@@ -68,6 +71,63 @@ You can get the list of parameters contained in a dataset with::
 User parameters
 ---------------
 
-Users with an account on AMDA can access their private parameters
+Users with an account on AMDA can access their private parameters. First store the users credentials
+using the :class:`~speasy.config.ConfigEntry` class::
+   
+   >>> from speasy.config import ConfigEntry
+   >>> ConfigEntry("AMDA", "username").set("your_username")
+   >>> ConfigEntry("AMDA", "password").set("your_password")
+
+The login credentials are stored locally, you only need to execute the previous lines of code once
+to save the credentials. The configuration file can be found at :data:`/<user_config_dir>/speasy/config.ini`. 
+
+Parameters defined on your account can now be listed like follows::
+
+   >>> params = amda.list_user_parameters()
+   >>> for param in params:
+   >>>     print(param["id"], param["name"])
+   ws_0 your_first_parameter
+   ws_1 your_second_parameter
+   ...
+   ws_n your_nth_parameter
+
+Getting the parameter is then done with :meth:`~speasy.amda.amda.AMDA.get_user_parameter()`::
+
+   >>> from datetime import datetime
+   >>> start, stop = datetime(2000,1,1), datetime(2000,1,2)
+   >>> param = amda.get_user_parameter("ws_0", start, stop)
+   >>> param
+   <speasy.common.variable.SpeasyVariable object at 0x7f8e6f31c220>
+   >>> param.data
+   array([[-6.156],
+          [-6.15],
+          [-6.088],
+          ...,
+          [-3.088],
+          [-2.816],
+          [-3.568]], dtype=object)
+   >>> p.time
+   array(['2001-01-01T00:00:00.000', '2001-01-01T00:00:16.000',
+          '2001-01-01T00:00:32.000', ..., '2001-01-31T23:59:28.000',
+          '2001-01-31T23:59:44.000', '2001-02-01T00:00:00.000'], dtype=object)
+   
+See :meth:`~speasy.amda.amda.AMDA.list_user_parameters()` for a list of user parameter attributes.
+
+Calling :meth:`~speasy.amda.amda.AMDA.list_user_parameters()` or :meth:`~speasy.amda.amda.AMDA.get_user_parameter()` will raise an :class:`~speasy.config.exception.UndefinedConfigEntry` exception if the 
+credentials could not be found::
+
+   raise UndefinedConfigEntry(key1=self.key1, key2=self.key2, default=self.default)
 
 
+
+Examples
+--------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   amda_example_1
+   amda_example_2
+   amda_example_3
+ 

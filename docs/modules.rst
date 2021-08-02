@@ -1,8 +1,6 @@
 Modules
 -------
 
-List of `speasy` submodules.
-
 .. automodule:: speasy.amda
     :members:
     :undoc-members:
@@ -23,3 +21,15 @@ List of `speasy` submodules.
     :members:
     :undoc-members:
     :show-inheritance:
+
+.. automodule:: speasy.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: speasy.config.exceptions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+

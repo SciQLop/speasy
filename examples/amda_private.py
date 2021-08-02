@@ -5,8 +5,8 @@ import speasy
 from speasy.config import ConfigEntry
 from speasy.amda import AMDA
 
-amda_user = ConfigEntry("AMDA", "username").set("schulz")
-amda_pwd  = ConfigEntry("AMDA", "password").set("sirapass")
+#amda_user = ConfigEntry("AMDA", "username").set("user")
+#amda_pwd  = ConfigEntry("AMDA", "password").set("sirapass")
 
 amda      = AMDA()
 
