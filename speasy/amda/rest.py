@@ -7,6 +7,31 @@ log = logging.getLogger(__name__)
 class AmdaRest:
     def __init__(self, server_url="http://amda.irap.omp.eu"):
         self.server_url = server_url
+    def get_timetable_list(self, **kwargs: dict):
+        base_url="{0}/php/rest/getTimeTablesList.php?".format(self.server_url)
+        key: str
+        for key, val in kwargs.items():
+            base_url += key + "=" + str(val) + "&"
+        for _ in [None] * 3:  # sometime fails with no reason...
+            url = base_url + "token=" + self.get_token
+            log.debug(f"Send request on AMDA server {url}")
+            r = requests.get(url)
+            r = requests.get(r.text.strip())
+            return r.text.strip()
+        return None
+    def get_user_parameters(self, **kwargs: dict):
+        base_url = "{0}/php/rest/getParameterList.php?".format(self.server_url)
+        key: str
+        for key, val in kwargs.items():
+            base_url += key + "=" + str(val) + "&"
+        for _ in [None] * 3:  # sometime fails with no reason...
+            url = base_url + "token=" + self.get_token
+            log.debug(f"Send request on AMDA server {url}")
+            r = requests.get(url)
+            return r.text.strip()
+        return None
+
+
     def get_timetable(self, **kwargs: dict):
         base_url = "{0}/php/rest/getTimeTable.php?".format(self.server_url)
         key: str
@@ -19,9 +44,8 @@ class AmdaRest:
             return r.text.strip()
         return None
 
-
+    
     def get_parameter(self, **kwargs: dict):
-        print("GET PARA")
         base_url = "{0}/php/rest/getParameter.php?".format(self.server_url)
         key: str
         for key, val in kwargs.items():

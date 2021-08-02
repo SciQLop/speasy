@@ -22,3 +22,4 @@ for param in dataset:
 # time table
 ttid="sharedtimeTable_0"
 tt=amda.get_timetable(ttid)
+print(tt.to_dataframe())
