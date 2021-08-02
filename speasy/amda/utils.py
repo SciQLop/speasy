@@ -2,11 +2,14 @@
 conversion procedures for parsing CSV and VOTable data.
 
 """
+import os
 import datetime
 from urllib.request import urlopen
 from lxml import etree
 from speasy.common.variable import SpeasyVariable
 import pandas as pds
+import numpy as np
+
 def load_csv(filename: str):
     """Load a CSV file
 

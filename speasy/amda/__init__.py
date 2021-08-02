@@ -4,7 +4,7 @@
 speasy.amda
 -----------
 
-This module deals with getting data from the AMDA webservice server
+This module deals with getting data from the AMDA webservice server.
 """
 
 __author__ = """Alexis Jeandet"""

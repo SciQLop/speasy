@@ -16,8 +16,9 @@ class SpeasyVariable(object):
     :type meta: dict
     :param columns: column names
     :type columns: list[str]
-    :param y: I DONT KNOW
-    :type y: ?????
+    :param y: 
+    :type y: 
+
     """
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 

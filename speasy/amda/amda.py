@@ -61,6 +61,7 @@ class ProductType(Enum):
 
 
 class AMDA:
+    __datetime_format__="%Y-%m-%dT%H:%M:%S.%f"
     """AMDA connexion class. This class manages the connexion to AMDA. Use the :meth:`get_data` or
     :meth:`get_parameter` methods for retrieving data.
 
@@ -134,8 +135,9 @@ class AMDA:
         :rtype: str
         """
         return self.METHODS["REST"].get_token
-    def _dl_user_parameter(self, parameter_id: str, username: str, password: str):
-        url=self.METHODS["REST"].get_parameter(parameterID=parameter_id,userID=username, password=password, startTime="2001-01-01T00:00:00", stopTime="2001-02-01T00:00:00")
+    def _dl_user_parameter(self, parameter_id: str, username: str, password: str, start_time: datetime, stop_time: datetime):
+        url=self.METHODS["REST"].get_parameter(parameterID=parameter_id,userID=username, password=password, startTime=start_time.strftime(self.__datetime_format__), stopTime=stop_time.strftime(self.__datetime_format__))
+
         if not url is None:
             var=load_csv(url)
             if len(var):
@@ -204,10 +206,22 @@ class AMDA:
             'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}'.format(
                 product=product, start_time=start_time, stop_time=stop_time))
         return self._dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
-    def get_user_parameter(self, parameter_id: str):
+    def get_user_parameter(self, parameter_id: str, start_time: datetime, stop_time: datetime):
+        """Get user parameter. Raises an exception if user is not authenticated.
+
+
+        :param parameter_id: parameter id
+        :type parameter_id: str
+        :param start_time: begining of data time
+        :type start_time: datetime.datetime
+        :param stop_time: end of data time
+        :type stop_time: datetime.datetime
+        :return: user parameter
+        :rtype: speasy.common.variable.SpeasyVariable
+        """
         username=ConfigEntry("AMDA","username").get()
         password=ConfigEntry("AMDA","password").get()
-        return self._dl_user_parameter(parameter_id=parameter_id, username=username, password=password)
+        return self._dl_user_parameter(parameter_id=parameter_id, username=username, password=password, start_time=start_time, stop_time=stop_time)
 
     def get_parameter(self,  parameter_id: str, start_time: datetime, stop_time: datetime,
                       method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
@@ -235,7 +249,7 @@ class AMDA:
 
         return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
     
-    def get_dataset(self, dataset_id: str, start: datetime, stop: datetime):
+    def get_dataset(self, dataset_id: str, start: datetime, stop: datetime, **kwargs):
         """Get dataset contents. TEMPORARY : returns list of SpeasyVariable objects, one for each
         parameter in the dataset
 
@@ -257,7 +271,7 @@ class AMDA:
         """
         # get list of parameters for this dataset
         parameters = self.list_parameters(dataset_id)
-        return [self.get_parameter(p, start, stop) for p in parameters]
+        return [self.get_parameter(p, start, stop, **kwargs) for p in parameters]
 
     def get_timetable(self, timetable_id: str):
         """Get timetable data (NOT YET IMPLEMENTED)
@@ -332,6 +346,23 @@ class AMDA:
             return [k for k in self.parameter if self.parameter[k]["dataset"]==dataset_id]
         return [k for k in self.parameter]
     def list_user_parameters(self):
+        """Get a list of user parameters.                 
+
+        :return: list of user parameters
+        :rtype: list[dict]
+
+        Each parameter is returned as a dict object, the available
+        attributes are : 
+
+          - :data:`id`
+          - :data:`name`
+          - :data:`buildchain` : the parameters formula as defined in AMDA
+          - :data:`timestep` : sampling rate in seconds
+          - :data:`dim_1`
+          - :data:`dim_2`
+
+
+        """
         # check for authentication
         username, password=ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA","password").get()
         # get list of private parameters
@@ -346,7 +377,7 @@ class AMDA:
                     v=p[k]
                     del p[k]
                     p["id"]=v
-        return pp
+        return [dict(d) for d in pp]
     def list_timetables(self):
         return [t for t in self.timeTable]
     def list_datasets(self):
