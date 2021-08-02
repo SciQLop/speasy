@@ -130,4 +130,5 @@ Examples
    amda_example_1
    amda_example_2
    amda_example_3
+   amda_example_4
  
