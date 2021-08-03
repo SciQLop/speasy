@@ -11,6 +11,8 @@ from speasy.common.variable import SpeasyVariable
 from ddt import ddt, data
 import numpy as np
 
+from speasy.amda.dataset import Dataset
+from speasy.amda.parameter import Parameter
 
 @ddt
 class SimpleRequest(unittest.TestCase):
@@ -38,14 +40,13 @@ class SimpleRequest(unittest.TestCase):
         self.assertTrue( self.data.values.shape[0]==self.data.time.shape[0])
     # check that time is of type float
     def test_time_datatype(self):
-        print( self.data.time.dtype)
         self.assertTrue( self.data.time.dtype == float )
     # check that start and stop times are correct
     # NOTE : in AMDA when requesting data between t1 and t2 the resulting array represents the
     #        time period [t1,t2] (note the inclusion of t2).
     def test_time_range(self):
-        self.assertTrue( self.data.time[0]==self.start )
-        self.assertTrue( self.data.time[-1]==self.stop )
+        self.assertTrue( datetime.utcfromtimestamp(self.data.time[0])==self.start )
+        self.assertTrue( datetime.utcfromtimestamp(self.data.time[-1])==self.stop )
 
 
     ## Dataset tests
@@ -54,14 +55,14 @@ class SimpleRequest(unittest.TestCase):
         self.assertIsNotNone(self.dataset)
     # check that the dataset object is a list
     def test_dataset_type(self):
-        self.assertTrue(isinstance(self.dataset, list))
+        self.assertTrue(isinstance(self.dataset, Dataset))
     # check that dataset is not empty
     def test_dataset_not_empty(self):
         self.assertTrue(len(self.dataset)>0)
     # check that every item of the dataset is a SpeasyVariable object
     def test_dataset_items_datatype(self):
-        for item in self.dataset:
-            self.assertTrue(isinstance(item, SpeasyVariable))
+        for item in self.dataset.parameters:
+            self.assertTrue(isinstance(self.dataset.parameters[item], SpeasyVariable))
     # check that all items in the dataset have the same time dimensions
     ##def test_dataset_items_dimensions(self):
     ##    c=None
