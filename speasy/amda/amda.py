@@ -17,6 +17,7 @@ and parameters.
 
 
 """
+import speasy as spz
 
 # AMDA, provider specific modules
 from .rest import AmdaRest
@@ -25,6 +26,9 @@ from .soap import AmdaSoap
 #from .tttree import TimeTableTree REMOVED
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
+from .parameter import Parameter
+from .timetable import TimeTable, Catalog
+from .dataset import Dataset
 
 import io
 import xmltodict
@@ -148,7 +152,8 @@ class AMDA:
         url=self.METHODS["REST"].get_parameter(parameterID=parameter_id,userID=username, password=password, startTime=start_time.strftime(self.__datetime_format__), stopTime=stop_time.strftime(self.__datetime_format__))
 
         if not url is None:
-            var=load_csv(url)
+            # get a SpeasyVariable object
+            var=load_csv(url, datatype_constructor=Parameter)
             if len(var):
                 log.debug("Loaded user parameter : data shape {shape}, username {username}".format(
                     shape=var.values.shape, username=username))
@@ -156,14 +161,14 @@ class AMDA:
                 log.debug("Loaded user parameter : empty var")
             return var
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
+            method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
 
         start_time = start_time.timestamp()
         stop_time = stop_time.timestamp()
         url = self.METHODS[method.upper()].get_parameter(
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
-            var = load_csv(url)
+            var = load_csv(url, datatype_constructor=Parameter)
             if len(var):
                 log.debug(
                     'Loaded var: data shape = {shape}, data start time = {start_time}, data stop time = {stop_time}'.format(
@@ -177,7 +182,7 @@ class AMDA:
     def _dl_timetable(self, timetable_id: str, method: str = "REST", **kwargs):
         url = self.METHODS[method.upper()].get_timetable(ttID=timetable_id, **kwargs)
         if not url is None:
-            var = load_timetable(url)
+            var = load_timetable(url, datatype_constructor=TimeTable)
             if var:
                 log.debug(
                     'Loaded timetable: id = {}'.format(timetable_id))
@@ -189,7 +194,7 @@ class AMDA:
     def _dl_catalog(self, catalog_id: str, method: str = "REST", **kwargs):
         url = self.METHODS[method.upper()].get_catalog(catID=catalog_id, **kwargs)
         if not url is None:
-            var = load_catalog(url)
+            var = load_catalog(url, datatype_constructor=Catalog)
             if var:
                 log.debug(
                     'Loaded catalog: id = {}'.format(catalog_id))
@@ -359,7 +364,7 @@ class AMDA:
         """
         # get list of parameters for this dataset
         parameters = self.list_parameters(dataset_id)
-        return [self.get_parameter(p, start, stop, **kwargs) for p in parameters]
+        return Dataset({p:self.get_parameter(p, start, stop, **kwargs) for p in parameters})
 
     def get_timetable(self, timetable_id: str):
         """Get timetable data by ID.
