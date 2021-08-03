@@ -13,4 +13,6 @@ AMDA Examples
    amda_example_get_catalog
    amda_example_list_user_timetables
    amda_example_list_user_catalogs
+   amda_example_get_user_timetable
+   amda_example_get_user_catalog
 
