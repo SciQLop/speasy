@@ -33,6 +33,10 @@ Space Physics made EASY
    :target: https://doi.org/10.5281/zenodo.4118780
    :alt: Zendoo DOI
 
+.. image:: https://mybinder.org/badge_logo.svg
+    :target: https://mybinder.org/v2/gh/SciQLop/spwc/HEAD?filepath=examples%2Fdemo.ipynb
+    :alt: Discover on MyBinder
+
 A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..).
 This package was initially written to ease development of `SciQLop <https://github.com/SciQLop/SciQLop>`_ , but
 now offers an intuitive and efficient access to any scientist or student who just want get spacecraft data.
