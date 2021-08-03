@@ -174,7 +174,7 @@ class AMDA:
             return var
         return None
     def _dl_timetable(self, timetable_id: str, method: str = "REST", **kwargs):
-        url = self.METHODS[method.upper()].get_timetable(ttID=timetable_id)
+        url = self.METHODS[method.upper()].get_timetable(ttID=timetable_id, **kwargs)
         if not url is None:
             var = load_timetable(url)
             if var:
@@ -184,8 +184,9 @@ class AMDA:
                 log.debug('Loaded timetable: Empty tt')
             return var
         return None
+
     def _dl_catalog(self, catalog_id: str, method: str = "REST", **kwargs):
-        url = self.METHODS[method.upper()].get_catalog(catID=catalog_id)
+        url = self.METHODS[method.upper()].get_catalog(catID=catalog_id, **kwargs)
         if not url is None:
             var = load_catalog(url)
             if var:
@@ -260,6 +261,54 @@ class AMDA:
         username=ConfigEntry("AMDA","username").get()
         password=ConfigEntry("AMDA","password").get()
         return self._dl_user_parameter(parameter_id=parameter_id, username=username, password=password, start_time=start_time, stop_time=stop_time)
+    def get_user_timetable(self, timetable_id: str):
+        """Get user timetable. Raises an exception if user is not authenticated.
+
+
+        :param timetable_id: timetable id
+        :type timetable: str
+        :return: user timetable
+        :rtype: speasy.common.variable.SpeasyVariable
+
+        Example::
+
+           >>> amda.get_user_timetable("tt_0")
+           <speasy.common.variable.SpeasyVariable object at 0x7f078a0eb6d0>
+
+        .. warning::
+            Calling :meth:`~speasy.amda.amda.AMDA.get_user_timetable` without having defined AMDA
+            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
+            exception being raised.
+
+        """
+        username=ConfigEntry("AMDA","username").get()
+        password=ConfigEntry("AMDA","password").get()
+        return self._dl_timetable(timetable_id=timetable_id, userID=username, password=password)
+    def get_user_catalog(self, catalog_id: str):
+        """Get user catalog. Raises an exception if user is not authenticated.
+
+
+        :param catalog_id: catalog id
+        :type catalog_id: str
+        :return: user catalog
+        :rtype: speasy.common.variable.SpeasyVariable
+
+        Example::
+
+           >>> amda.get_user_catalog("tt_0")
+           <speasy.common.variable.SpeasyVariable object at 0x7f078a0eb6d0>
+
+        .. warning::
+            Calling :meth:`~speasy.amda.amda.AMDA.get_user_catalog` without having defined AMDA
+            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
+            exception being raised.
+
+        """
+        username=ConfigEntry("AMDA","username").get()
+        password=ConfigEntry("AMDA","password").get()
+        return self._dl_catalog(catalog_id=catalog_id, userID=username, password=password)
+
+
 
     def get_parameter(self,  parameter_id: str, start_time: datetime, stop_time: datetime,
                       method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
