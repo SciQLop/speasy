@@ -69,6 +69,35 @@ def load_timetable(filename: str):
         var = SpeasyVariable(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
         return var
 
+def load_catalog(filename: str):
+    """Load a timetable file
+
+    :param filename: filename
+    :type filename: str
+    :return: SpeasyVariable
+    :rtype: ????
+
+    """
+    if '://' not in filename:
+        filename = f"file://{os.path.abspath(filename)}"
+    with urlopen(filename) as votable:
+        # save the timetable as a dataframe, speasy.common.SpeasyVariable
+        # get header data first
+        from astropy.io.votable import parse as parse_votable
+        import io
+        votable=parse_votable(io.BytesIO(votable.read()))
+        # convert astropy votable structure to SpeasyVariable
+        tab=votable.resources[0].tables[0]
+        import numpy as np
+        # prepare data
+        data=np.array([list(row) for row in tab.array])
+        # convert first and second rows to datetime
+        data[:,0]=np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:,0]])
+        data[:,1]=np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:,1]])
+        var = SpeasyVariable(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
+        return var
+
+
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     """Get parameter arguments
 
