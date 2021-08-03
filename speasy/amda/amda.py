@@ -594,7 +594,7 @@ class AMDA:
         # check for authentication
         username, password=ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA","password").get()
         # get list of private parameters
-        l = self.METHODS["REST"].get_user_parameters(userID=username,password=password).strip()
+        l = self.METHODS["REST"].get_user_parameters(username,password).strip()
         d=xmltodict.parse("<root>{}</root>".format(l),attr_prefix="")
         t=requests.get(d["root"]["UserDefinedParameters"]).text
         tree=etree.parse(io.StringIO(t), parser=etree.XMLParser(recover=True))
