@@ -23,7 +23,7 @@ from .rest import AmdaRest
 from .soap import AmdaSoap
 from .obstree import ObsDataTreeParser
 from .tttree import TimeTableTree
-from .utils import load_csv, load_timetable, get_parameter_args
+from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 
 import io
 import xmltodict
@@ -86,6 +86,7 @@ class AMDA:
         self.dataCenter = {}
         self.folder = {}
         self.timeTable = {}
+        self.catalog = {}
         if "AMDA/inventory" in _cache:
             self._unpack_inventory(_cache["AMDA/inventory"])
         else:
@@ -105,7 +106,8 @@ class AMDA:
             'component': self.component,
             'dataCenter': self.dataCenter,
             'folder': self.folder,
-            'timeTable': self.timeTable
+            'timeTable': self.timeTable,
+            'catalog': self.catalog
         }
 
     def _unpack_inventory(self, inventory):
@@ -120,11 +122,15 @@ class AMDA:
         tree = self.get_obs_data_tree()
         storage = self._pack_inventory()
         ObsDataTreeParser.extrac_all(tree, storage)
+        from .inventory import InventoryTree
+        # get timetable inventory
         tttree=self.get_timetable_tree()
-        TimeTableTree.extrac_all(tttree, storage)
+        InventoryTree.extrac_all(tttree["timeTableList"], storage)
+        # get catalog inventory
+        cattree=self.get_catalog_tree()
+        InventoryTree.extrac_all(cattree["catalogList"], storage)
         #_cache.set("AMDA/inventory", self._pack_inventory(), expire=7 * 24 * 60 * 60)
         _cache.set("AMDA/inventory", storage, expire=7 * 24 * 60 * 60)
-
 
     def get_token(self, **kwargs: dict) -> str:
         """Get authentication token.
@@ -171,11 +177,23 @@ class AMDA:
             var = load_timetable(url)
             if var:
                 log.debug(
-                    'Loaded tt: id = {}'.format(timetable_id))
+                    'Loaded timetable: id = {}'.format(timetable_id))
             else:
-                log.debug('Loaded tt: Empty tt')
+                log.debug('Loaded timetable: Empty tt')
             return var
         return None
+    def _dl_catalog(self, catalog_id: str, method: str = "REST", **kwargs):
+        url = self.METHODS[method.upper()].get_catalog(catID=catalog_id)
+        if not url is None:
+            var = load_catalog(url)
+            if var:
+                log.debug(
+                    'Loaded catalog: id = {}'.format(catalog_id))
+            else:
+                log.debug('Loaded catalog: Empty catalog')
+            return var
+        return None
+
 
 
     def product_version(self, parameter_id):
@@ -291,7 +309,7 @@ class AMDA:
         :return: catalog data
         :rtype: ???
         """
-        pass
+        return self._dl_catalog(catalog_id)
 
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
@@ -303,6 +321,11 @@ class AMDA:
         ttt=self.METHODS[method.upper()].get_timetable_list()
         content= xmltodict.parse(ttt)
         return content
+    def get_catalog_tree(self, method="REST"):
+        ttt=self.METHODS[method.upper()].get_catalog_list()
+        content= xmltodict.parse(ttt)
+        return content
+
 
     def parameter_range(self, parameter_id):
         """Get product time range.

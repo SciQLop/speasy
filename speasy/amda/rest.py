@@ -19,6 +19,19 @@ class AmdaRest:
             r = requests.get(r.text.strip())
             return r.text.strip()
         return None
+    def get_catalog_list(self, **kwargs: dict):
+        base_url="{0}/php/rest/getCatalogsList.php?".format(self.server_url)
+        key: str
+        for key, val in kwargs.items():
+            base_url += key + "=" + str(val) + "&"
+        for _ in [None] * 3:  # sometime fails with no reason...
+            url = base_url + "token=" + self.get_token
+            log.debug(f"Send request on AMDA server {url}")
+            r = requests.get(url)
+            r = requests.get(r.text.strip())
+            return r.text.strip()
+        return None
+
     def get_user_parameters(self, **kwargs: dict):
         base_url = "{0}/php/rest/getParameterList.php?".format(self.server_url)
         key: str
@@ -43,6 +56,19 @@ class AmdaRest:
             r = requests.get(url)
             return r.text.strip()
         return None
+
+    def get_catalog(self, **kwargs: dict):
+        base_url = "{0}/php/rest/getCatalog.php?".format(self.server_url)
+        key: str
+        for key, val in kwargs.items():
+            base_url += key + "=" + str(val) + "&"
+        for _ in [None] * 3:  # sometime fails with no reason...
+            url = base_url + "token=" + self.get_token
+            log.debug(f"Send request on AMDA server {url}")
+            r = requests.get(url)
+            return r.text.strip()
+        return None
+
 
     
     def get_parameter(self, **kwargs: dict):
