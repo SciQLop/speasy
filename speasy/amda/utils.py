@@ -10,11 +10,16 @@ from speasy.common.variable import SpeasyVariable
 import pandas as pds
 import numpy as np
 
-def load_csv(filename: str):
+from .timetable import TimeTable, Catalog
+from .parameter import Parameter
+
+def load_csv(filename, datatype_constructor=SpeasyVariable):
     """Load a CSV file
 
     :param filename: CSV filename
     :type filename: str
+    :param datatype_constructor: constructor function of the desired output, must be a subclass of :class:`~speasy.common.variable.SpeasyVariable`
+    :type datatype_constructor: func
     :return: CSV contents
     :rtype: SpeasyVariable
     """
@@ -41,15 +46,15 @@ def load_csv(filename: str):
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
-        return SpeasyVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
+        return datatype_constructor(time=time, data=data, meta=meta, columns=columns[1:], y=y)
 
-def load_timetable(filename: str):
+def load_timetable(filename, datatype_constructor=TimeTable):
     """Load a timetable file
 
     :param filename: filename
     :type filename: str
-    :return: SpeasyVariable
-    :rtype: ????
+    :return: AMDA timetable
+    :rtype: speasy.amda.timetable.TimeTable
 
     """
     if '://' not in filename:
@@ -66,16 +71,16 @@ def load_timetable(filename: str):
         # prepare data
         data=np.array([[datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f").timestamp(),\
                 datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f").timestamp()] for (t0,t1) in tab.array], dtype=float)
-        var = SpeasyVariable(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
+        var = datatype_constructor(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
         return var
 
-def load_catalog(filename: str):
+def load_catalog(filename, datatype_constructor=Catalog):
     """Load a timetable file
 
     :param filename: filename
     :type filename: str
-    :return: SpeasyVariable
-    :rtype: ????
+    :return: speasy.amda.timetable.Catalog
+    :rtype: speasy.amda.timetable.Catalog
 
     """
     if '://' not in filename:
@@ -94,7 +99,7 @@ def load_catalog(filename: str):
         # convert first and second rows to datetime
         data[:,0]=np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:,0]])
         data[:,1]=np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:,1]])
-        var = SpeasyVariable(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
+        var = datatype_constructor(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
         return var
 
 

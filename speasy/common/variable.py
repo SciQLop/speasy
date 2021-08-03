@@ -23,6 +23,8 @@ class SpeasyVariable(object):
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 
     def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta=None, columns=None, y=None):
+        """Constructor
+        """
         if meta is None:
             meta = dict()
         if columns is None:
@@ -47,6 +49,13 @@ class SpeasyVariable(object):
         return SpeasyVariable(self.time[time_range], self.values[time_range], self.meta, self.columns, self.y)
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
+        """Check if this variable equals another.
+
+        :param other: another SpeasyVariable object
+        :type other: speasy.common.variable.SpeasyVariable
+        :return: condition result
+        :rtype: bool
+        """
         return self.meta == other.meta and \
                self.columns == other.columns and \
                len(self.time) == len(other.time) and \
@@ -54,9 +63,18 @@ class SpeasyVariable(object):
                np.all(self.values == other.values)
 
     def __len__(self):
+        """Get lenght of the timeseries
+        """
         return len(self.time)
 
     def __getitem__(self, key):
+        """Item getter
+
+        :param key: key
+        :type key: slice 
+        :return: data slice
+        :rtype: speasy.common.variable.SpeasyVariable
+        """
         if isinstance(key, slice):
             if isinstance(key.start, int) or isinstance(key.stop, int) or (key.start is None and key.stop is None):
                 return self.view(key)
