@@ -1,0 +1,11 @@
+name: binder-environment
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - ipympl
+  - pip
+  - pip:
+    - speasy
+    - matplotlib
