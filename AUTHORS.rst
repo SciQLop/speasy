@@ -10,4 +10,8 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+AMDA
+^^^^
+
+* Alexandre Schulz <alexandre.schulz@irap.omp.eu>
+* Benjamin Renard <benjamin.renard@irap.omp.eu>

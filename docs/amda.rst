@@ -1,8 +1,13 @@
 AMDA
 ====
 
+.. toctree::
+   :maxdepth: 1
 
-
+   amda_products
+   amda_examples
+   amda_notebooks
+ 
 
 Getting AMDA dataset and parameters
 -----------------------------------
@@ -140,15 +145,5 @@ respective products::
 
 For a description of the :data:`timetable` and :data:`catalog` attributes see the :class:`~speasy.amda.amda.AMDA` class documentation.
 
-Examples
---------
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
-   amda_example_1
-   amda_example_2
-   amda_example_3
-   amda_example_4
- 
