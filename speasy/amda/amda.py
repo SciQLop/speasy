@@ -199,6 +199,13 @@ class AMDA:
 
 
     def product_version(self, parameter_id):
+        """Get date of last modification of dataset or parameter.
+
+        :param parameter_id: parameter id
+        :type parameter_id: str
+        :return: product version
+        :rtype: str
+        """
         return self.dataset[self.parameter[parameter_id]["dataset"]]['lastUpdate']
 
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
@@ -238,6 +245,17 @@ class AMDA:
         :type stop_time: datetime.datetime
         :return: user parameter
         :rtype: speasy.common.variable.SpeasyVariable
+
+        Example::
+
+           >>> amda.get_user_parameter("ws_0")
+           <speasy.common.variable.SpeasyVariable object at 0x7f078a0eb6d0>
+
+        .. warning::
+            Calling :meth:`~speasy.amda.amda.AMDA.get_user_parameter` without having defined AMDA
+            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
+            exception being raised.
+
         """
         username=ConfigEntry("AMDA","username").get()
         password=ConfigEntry("AMDA","password").get()
@@ -270,8 +288,8 @@ class AMDA:
         return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
     
     def get_dataset(self, dataset_id: str, start: datetime, stop: datetime, **kwargs):
-        """Get dataset contents. TEMPORARY : returns list of SpeasyVariable objects, one for each
-        parameter in the dataset
+        """Get dataset contents. Returns list of SpeasyVariable objects, one for each
+        parameter in the dataset.
 
         :param dataset_id: dataset id
         :type dataset_id: str
@@ -294,36 +312,69 @@ class AMDA:
         return [self.get_parameter(p, start, stop, **kwargs) for p in parameters]
 
     def get_timetable(self, timetable_id: str):
-        """Get timetable data (NOT YET IMPLEMENTED)
+        """Get timetable data by ID.
 
         :param timetable_id: time table id
         :type timetable_id: str
         :return: timetable data
-        :rtype: ???
+        :rtype: speasy.common.variable.SpeasyVariable
+
+        Example::
+
+           >>> amda.get_timetable("sharedtimeTable_0")
+           <speasy.common.variable.SpeasyVariable object at 0x7efce01b3f90>
+
         """
         return self._dl_timetable(timetable_id)
 
     def get_catalog(self, catalog_id: str):
-        """Get catalog data (NOT YET IMPLEMENTED)
+        """Get catalog data by ID.
 
         :param catalog_id: catalog id
         :type catalog_id: str
         :return: catalog data
-        :rtype: ???
+        :rtype: speasy.common.variable.SpeasyVariable
+
+        Example::
+
+           >>> amda.get_catalog("sharedcatalog_0")
+           <speasy.common.variable.SpeasyVariable object at 0x7f829cc644a0>
+
         """
         return self._dl_catalog(catalog_id)
 
 
     def get_obs_data_tree(self, method="SOAP") -> dict:
+        """Get observatory data tree, a XML file containing information about available products.
+        
+        :param method: retrieval method (default: SOAP)
+        :type method: str
+        :return: observatory data tree
+        :rtype: dict
+        """
         ttt=requests.get(
             self.METHODS[method.upper()].get_obs_data_tree()).text
         datatree = xmltodict.parse(ttt)
         return datatree
     def get_timetable_tree(self, method="REST"):
+        """Get timetable tree, XML file containing information about all timetables in AMDA.
+
+        :param method: retrieval method (default: REST)
+        :type method: str
+        :return: timetable inventory tree
+        :rtype: dict
+        """
         ttt=self.METHODS[method.upper()].get_timetable_list()
         content= xmltodict.parse(ttt)
         return content
     def get_catalog_tree(self, method="REST"):
+        """Get catalog tree, XML file containing information about public catalogs in AMDA.
+
+        :param method: retrieval method (default: REST)
+        :type method: str
+        :return: catalog inventory tree
+        :rtype: dict
+        """
         ttt=self.METHODS[method.upper()].get_catalog_list()
         content= xmltodict.parse(ttt)
         return content
@@ -336,6 +387,12 @@ class AMDA:
         :type parameter_id: str
         :return: Data time range
         :rtype: DateTimeRange
+
+        Example::
+
+           >>> amda.parameter_range("imf")
+           1997-09-02T00:00:12->2021-07-24T23:59:53
+
         """
         if not len(self.parameter):
             self.update_inventory()
@@ -366,25 +423,50 @@ class AMDA:
         :type dataset_id: str
         :return: list of parameter ids
         :rtype: list[str]
+
+        Example::
+
+           >>> for parameter_id in amda.list_parameters():
+           >>>     print(parameter_id)
+           imf_mag
+           ...
+           wnd_swe_pdyn
+
         """
         if not dataset_id is None:
             return [k for k in self.parameter if self.parameter[k]["dataset"]==dataset_id]
         return [k for k in self.parameter]
+    def list_catalogs(self):
+        """Get list of public catalog IDs:
+
+        :return: list of catalog IDs
+        :rtype: list[str]
+
+        Example::
+
+            >>> for catalog_id in amda.list_catalogs():
+            >>>     print(catalog_id)
+            sharedcatalog_0
+            ...
+            sharedcatalog_16
+
+        """
+        return [k for k in self.catalog]
     def list_user_parameters(self):
-        """Get a list of user parameters.                 
+        """Get a list of user parameters. User parameters are represented as dictionary objects.
 
         :return: list of user parameters
         :rtype: list[dict]
+        
+        Example::
+          
+           >>> amda.list_user_parameters()
+           [{'name': 'der', 'buildchain': '(ace_xyz_gse(0) - shiftT_(ace_xyz_gse(0),10)) / shiftT_(ace_xyz_gse(0),10)', 'timestep': '1', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_0'}, {'name': 'zaaaa', 'buildchain': 'imf(0)*2', 'timestep': '16', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_1'}]
 
-        Each parameter is returned as a dict object, the available
-        attributes are : 
-
-          - :data:`id`
-          - :data:`name`
-          - :data:`buildchain` : the parameters formula as defined in AMDA
-          - :data:`timestep` : sampling rate in seconds
-          - :data:`dim_1`
-          - :data:`dim_2`
+        .. warning::
+           Calling :meth:`~speasy.amda.amda.AMDA.get_user_parameter` without having defined AMDA
+           login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
+           exception being raised.
 
 
         """
@@ -404,12 +486,35 @@ class AMDA:
                     p["id"]=v
         return [dict(d) for d in pp]
     def list_timetables(self):
+        """Get list of public timetables.
+
+        :return: list of timetable IDs.
+        :rtype: list[str]
+
+        Example::
+
+            >>> for timetable_id in amda.list_timetables():
+            >>>     print(timetable_id)
+            sharedtimeTable_0
+            ...
+            sharedtimeTable_139
+
+        """
         return [t for t in self.timeTable]
     def list_datasets(self):
         """Get list of dataset id available in AMDA
 
         :return: list if dataset ids
         :rtype: list[str]
+
+        Example::
+
+            >>> for dataset_id in amda.list_datasets():
+            >>>     print(dataset_id)
+            ace-imf-all
+            ...
+            wnd-swe-kp
+
         """
         return [k for k in self.dataset]
     def get_product_type(self, product_id):

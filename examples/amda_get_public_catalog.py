@@ -3,9 +3,10 @@ sys.path.insert(0,"..")
 
 from speasy.amda import AMDA
 
+# connect to AMDA
 amda = AMDA()
-print(amda.catalog)
-for c in amda.catalog:
-    print()
-    print(c, amda.catalog[c])
-    print(amda.get_catalog(c))
+
+# loop over catalogs and download
+catalog_id = amda.list_catalogs()[0]
+catalog = amda.get_catalog(catalog_id)
+print(catalog.values)
