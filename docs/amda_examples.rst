@@ -11,3 +11,6 @@ AMDA Examples
    amda_example_list_timetables
    amda_example_list_catalogs
    amda_example_get_catalog
+   amda_example_list_user_timetables
+   amda_example_list_user_catalogs
+

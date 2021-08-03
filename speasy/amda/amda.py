@@ -452,6 +452,73 @@ class AMDA:
 
         """
         return [k for k in self.catalog]
+    def list_user_timetables(self):
+        """Get a list of user timetables. User timetable are represented as dictionary objects.
+
+        :return: list of user timetables.
+        :rtype: list[dict]
+        
+        Example::
+          
+           >>> amda.list_user_timetables()
+           [{'name': 'der', 'buildchain': '(ace_xyz_gse(0) - shiftT_(ace_xyz_gse(0),10)) / shiftT_(ace_xyz_gse(0),10)', 'timestep': '1', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_0'}, {'name': 'zaaaa', 'buildchain': 'imf(0)*2', 'timestep': '16', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_1'}]
+
+        .. warning::
+           Calling :meth:`~speasy.amda.amda.AMDA.get_user_timetables` without having defined AMDA
+           login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
+           exception being raised.
+
+
+        """
+        # check for authentication
+        username, password=ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA","password").get()
+        # get list of private parameters
+        l = self.METHODS["REST"].list_user_timetables(username,password).strip()
+        d=xmltodict.parse(l)
+        tree=etree.parse(io.StringIO(l), parser=etree.XMLParser(recover=True))
+
+        pp=[e.attrib for e in tree.iter(tag="timetab")]
+        for p in pp:
+            for k in p:
+                if k.endswith("}id"):
+                    v=p[k]
+                    del p[k]
+                    p["id"]=v
+        return [dict(d) for d in pp]
+    def list_user_catalogs(self):
+        """Get a list of user catalogs. User catalogs are represented as dictionary objects.
+
+        :return: list of user catalogs.
+        :rtype: list[dict]
+        
+        Example::
+          
+           >>> amda.list_user_catalogs()
+           {'name': 'mycata', 'intervals': '1457', 'id': 'cat_0'}
+
+        .. warning::
+           Calling :meth:`~speasy.amda.amda.AMDA.get_user_catalogs` without having defined AMDA
+           login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
+           exception being raised.
+
+
+        """
+        # check for authentication
+        username, password=ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA","password").get()
+        # get list of private parameters
+        l = self.METHODS["REST"].list_user_catalogs(username,password).strip()
+        tree=etree.parse(io.StringIO(l), parser=etree.XMLParser(recover=True))
+
+        pp=[e.attrib for e in tree.iter(tag="catalog")]
+        for p in pp:
+            for k in p:
+                if k.endswith("}id"):
+                    v=p[k]
+                    del p[k]
+                    p["id"]=v
+        return [dict(d) for d in pp]
+
+
     def list_user_parameters(self):
         """Get a list of user parameters. User parameters are represented as dictionary objects.
 
@@ -460,8 +527,12 @@ class AMDA:
         
         Example::
           
-           >>> amda.list_user_parameters()
-           [{'name': 'der', 'buildchain': '(ace_xyz_gse(0) - shiftT_(ace_xyz_gse(0),10)) / shiftT_(ace_xyz_gse(0),10)', 'timestep': '1', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_0'}, {'name': 'zaaaa', 'buildchain': 'imf(0)*2', 'timestep': '16', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_1'}]
+            >>> for utt in amda.list_user_parameters():
+            >>>     print(utt)
+            {'name': 'output-1', 'intervals': '389', 'id': 'tt_0'}
+            {'name': 'output-12', 'intervals': '389', 'id': 'tt_1'}
+            {'name': 'output-newell', 'intervals': '55446', 'id': 'tt_2'}
+            {'name': 'output-newell-ext', 'intervals': '55446', 'id': 'tt_3'}
 
         .. warning::
            Calling :meth:`~speasy.amda.amda.AMDA.get_user_parameter` without having defined AMDA
