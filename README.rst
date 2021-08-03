@@ -50,6 +50,10 @@ As simple as:
 
 * Free software: GNU General Public License v3
 
+Documentation
+=============
+
+Check out the documentation and examples at `speasy documentation <https://spwc.readthedocs.io/en/latest/?badge=latest>`_.
 
 Features
 ========
