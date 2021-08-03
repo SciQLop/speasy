@@ -217,7 +217,7 @@ class AMDA:
 
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime):
+    def get_data(self, product, start_time, stop_time, datatype_constructor=SpeasyVariable):
         """Get product data by id. 
 
         :param product: product id
@@ -340,7 +340,7 @@ class AMDA:
         """
 
 
-        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
+        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, datatype_constructor=Parameter, **kwargs)
     
     def get_dataset(self, dataset_id: str, start: datetime, stop: datetime, **kwargs):
         """Get dataset contents. Returns list of SpeasyVariable objects, one for each
