@@ -118,7 +118,27 @@ credentials could not be found::
 
    raise UndefinedConfigEntry(key1=self.key1, key2=self.key2, default=self.default)
 
+Timetables and catalogs
+-----------------------
 
+The methods :meth:`~speasy.amda.amda.AMDA.get_timetable` and :meth:`~speasy.amda.amda.AMDA.get_catalog` allow you to download one of many timetables and catalogs available on AMDA. Listing the publicly
+available products is achieved through using the :meth:`~speasy.amda.amda.AMDA.list_timetables` and :meth:`~speasy.amda.amda.AMDA.list_catalogs` to list products by ID::
+
+   >>> for ttid in amda.list_timetables():
+   >>>     print(ttid)
+   sharedtimeTable_0
+   ...
+   sharedtimeTable_130
+
+You can get more information about the timetables and catalogs through the :data:`amda.timetable` and :data:`amda.catalog` attributes. These attributes are dictionaries indexed by the ID of their
+respective products::
+
+    >>> for ttid in amda.timetable:
+    >>>     print(amda.timetable[ttid])
+    {'xml:id': 'sharedtimeTable_139', 'id': 'sharedtimeTable_139', 'name': 'MMS_Burst_Mode_2021July', 'created': '2020-08-26T00:00:55', 'modified': '1970-01-01T00:00:00', 'surveyStart': '2021-07-01T00:03:43', 'surveyStop': '2021-07-25T13:51:53', 'contact': 'MMS_Burst_Mode_2021July', 'description': 'Time intervals for which MMS burst mode data are available. source: http://mmsburst.sr.unh.edu/', 'history': '', 'nbIntervals': '441', 'sharedBy': 'AMDA', 'sharedDate': '2021-08-02T03:25:05+00:00', 'folder': 'MMS_BURST_MODE_timeTable', 'timeTable': 'sharedtimeTable_139'}
+    ...
+
+For a description of the :data:`timetable` and :data:`catalog` attributes see the :class:`~speasy.amda.amda.AMDA` class documentation.
 
 Examples
 --------

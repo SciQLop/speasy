@@ -91,7 +91,9 @@ class AMDA:
             self._unpack_inventory(_cache["AMDA/inventory"])
         else:
             self.update_inventory()
-
+    @property
+    def timetable(self):
+        return self.timeTable
     def __del__(self):
         pass
 
