@@ -21,9 +21,10 @@ and parameters.
 # AMDA, provider specific modules
 from .rest import AmdaRest
 from .soap import AmdaSoap
-from .obstree import ObsDataTreeParser
-from .tttree import TimeTableTree
+#from .obstree import ObsDataTreeParser REMOVED
+#from .tttree import TimeTableTree REMOVED
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
+from .inventory import InventoryTree
 
 import io
 import xmltodict
@@ -123,8 +124,8 @@ class AMDA:
         """
         tree = self.get_obs_data_tree()
         storage = self._pack_inventory()
-        ObsDataTreeParser.extrac_all(tree, storage)
-        from .inventory import InventoryTree
+        #ObsDataTreeParser.extrac_all(tree, storage)
+        InventoryTree.extrac_all(tree["dataRoot"], storage)
         # get timetable inventory
         tttree=self.get_timetable_tree()
         InventoryTree.extrac_all(tttree["timeTableList"], storage)
