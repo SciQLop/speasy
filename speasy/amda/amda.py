@@ -135,7 +135,6 @@ class AMDA:
         # get catalog inventory
         cattree=self.get_catalog_tree()
         InventoryTree.extrac_all(cattree["catalogList"], storage)
-        #_cache.set("AMDA/inventory", self._pack_inventory(), expire=7 * 24 * 60 * 60)
         _cache.set("AMDA/inventory", storage, expire=7 * 24 * 60 * 60)
 
     def get_token(self, **kwargs: dict) -> str:
