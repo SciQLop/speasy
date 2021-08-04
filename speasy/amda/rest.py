@@ -4,20 +4,21 @@ from enum import Enum
 
 log = logging.getLogger(__name__)
 
+
 class Endpoint(Enum):
     """AMDA REST API endpoints.
     """
-    AUTH="auth.php"
-    OBSTREE="getObsDataTree.php"
+    AUTH = "auth.php"
+    OBSTREE = "getObsDataTree.php"
 
-    LISTTT="getTimeTablesList.php"
-    LISTCAT="getCatalogsList.php"
-    LISTPARAM="getParameterList.php"
+    LISTTT = "getTimeTablesList.php"
+    LISTCAT = "getCatalogsList.php"
+    LISTPARAM = "getParameterList.php"
 
-    GETTT="getTimeTable.php"
-    GETCAT="getCatalog.php"
-    GETPARAM="getParameter.php"
-    
+    GETTT = "getTimeTable.php"
+    GETCAT = "getCatalog.php"
+    GETPARAM = "getParameter.php"
+
 
 class AmdaRest:
     """AMDA REST client.
@@ -25,10 +26,12 @@ class AmdaRest:
     :param server_url: AMDA REST service URL
     :type server_url: str
     """
+
     def __init__(self, server_url="http://amda.irap.omp.eu"):
         """Constructor
         """
         self.server_url = server_url
+
     @property
     def get_token(self) -> str:
         """Get authentication token.
@@ -36,7 +39,7 @@ class AmdaRest:
         :return: authentication token
         :rtype: str
         """
-        #url = "{0}/php/rest/auth.php?".format(self.server_url)
+        # url = "{0}/php/rest/auth.php?".format(self.server_url)
         url = self.request_url(Endpoint.AUTH)
         r = requests.get(url)
         return r.text.strip()
@@ -53,9 +56,10 @@ class AmdaRest:
         """
         if len(kwargs):
             return self.request_add_args(self.request_url(endpoint), **kwargs)
-        if isinstance(endpoint,Endpoint):
+        if isinstance(endpoint, Endpoint):
             return "{}/php/rest/{}?".format(self.server_url, endpoint.value)
         return "{}/php/rest/{}?".format(self.server_url, endpoint)
+
     def request_add_args(self, url, **kwargs: dict):
         """Add set of arguments to input URL.
 
@@ -66,10 +70,11 @@ class AmdaRest:
         :return: URL with appended args
         :rtype: str
         """
-        u=url
-        for k,v in kwargs.items():
-            u+="{}={}&".format(k,v)
+        u = url
+        for k, v in kwargs.items():
+            u += "{}={}&".format(k, v)
         return u
+
     def send_request(self, url, n_try=3):
         """Send a request to the AMDA REST service. Retry up to :data:`n_try` times upon failure.
 
@@ -80,8 +85,8 @@ class AmdaRest:
         :return: request result text, stripped of spaces and newlines
         :rtype: str
         """
-        url+="token={}".format(self.get_token)
-        for _ in [None]*n_try: # in case of failure
+        url += "token={}".format(self.get_token)
+        for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
             r = requests.get(url)
@@ -90,7 +95,6 @@ class AmdaRest:
                 continue
             return r.text.strip()
         return None
-
 
     def send_request_double(self, url, n_try=3):
         """Send a request to the AMDA REST service. The request is special in that the result
@@ -104,14 +108,15 @@ class AmdaRest:
         :return: request result, stripped of spaces and newlines
         :rtype: str
         """
-        url+="token={}".format(self.get_token)
-        for _ in [None]*n_try: # in case of failure
+        url += "token={}".format(self.get_token)
+        for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
             r = requests.get(url)
             r = requests.get(r.text.strip())
             return r.text.strip()
         return None
+
     def send_request_json(self, url, n_try=3):
         """Send a request to the AMDA REST service. We expect the result to be JSON data.
 
@@ -122,21 +127,20 @@ class AmdaRest:
         :return: request result
         :rtype: str
         """
-        url+="token={}".format(self.get_token)
-        for _ in [None]*n_try: # in case of failure
+        url += "token={}".format(self.get_token)
+        for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
             r = requests.get(url)
             js = r.json()
             if 'success' in js and \
-                    js['success'] is True and \
-                    'dataFileURLs' in js:
+                js['success'] is True and \
+                'dataFileURLs' in js:
                 log.debug(f"success: {js['dataFileURLs']}")
                 return js['dataFileURLs']
             else:
                 log.debug(f"Failed: {r.text}")
         return None
-
 
     def get_timetable_list(self, **kwargs: dict):
         """Get list of timetables.
@@ -146,7 +150,7 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
-        base_url=self.request_url(Endpoint.LISTTT, **kwargs)
+        base_url = self.request_url(Endpoint.LISTTT, **kwargs)
         return self.send_request_double(base_url)
 
     def get_catalog_list(self, **kwargs: dict):
@@ -157,10 +161,11 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
- 
-        base_url=self.request_url(Endpoint.LISTCAT, **kwargs)
+
+        base_url = self.request_url(Endpoint.LISTCAT, **kwargs)
         return self.send_request_double(base_url)
-    def list_user_timetables(self,username, password, **kwargs: dict):
+
+    def list_user_timetables(self, username, password, **kwargs: dict):
         """Get private timetables.
 
         :param username: username
@@ -173,6 +178,7 @@ class AmdaRest:
         :rtype: str
         """
         return self.get_timetable_list(userID=username, password=password, **kwargs)
+
     def list_user_catalogs(self, username, password, **kwargs: dict):
         """Get private catalogs.
 
@@ -187,8 +193,7 @@ class AmdaRest:
         """
         return self.get_catalog_list(userID=username, password=password, **kwargs)
 
-
-    def get_user_parameters(self, username, password,  **kwargs: dict):
+    def get_user_parameters(self, username, password, **kwargs: dict):
         """Get private parameters.
 
         :param username: username
@@ -200,9 +205,10 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
- 
-        base_url=self.request_url(Endpoint.LISTPARAM, userID=username, password=password, **kwargs)
+
+        base_url = self.request_url(Endpoint.LISTPARAM, userID=username, password=password, **kwargs)
         return self.send_request(base_url)
+
     def get_timetable(self, **kwargs: dict):
         """Get timetable request.
 
@@ -211,8 +217,9 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
-        base_url=self.request_url(Endpoint.GETTT, **kwargs)
+        base_url = self.request_url(Endpoint.GETTT, **kwargs)
         return self.send_request(base_url)
+
     def get_catalog(self, **kwargs: dict):
         """Get catalog request.
 
@@ -221,10 +228,10 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
- 
-        base_url=self.request_url(Endpoint.GETCAT, **kwargs)
+
+        base_url = self.request_url(Endpoint.GETCAT, **kwargs)
         return self.send_request(base_url)
-    
+
     def get_parameter(self, **kwargs: dict):
         """Get parameter request.
 
@@ -233,8 +240,9 @@ class AmdaRest:
         :return: request result, JSON
         :rtype: dict
         """
-        base_url=self.request_url(Endpoint.GETPARAM, **kwargs)
+        base_url = self.request_url(Endpoint.GETPARAM, **kwargs)
         return self.send_request_json(base_url)
+
     def get_obs_data_tree(self):
         """Get observatory data tree.
 
