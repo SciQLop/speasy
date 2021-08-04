@@ -128,7 +128,6 @@ class AMDA:
         """
         tree = self.get_obs_data_tree()
         storage = self._pack_inventory()
-        #ObsDataTreeParser.extrac_all(tree, storage)
         InventoryTree.extrac_all(tree["dataRoot"], storage)
         # get timetable inventory
         tttree=self.get_timetable_tree()
