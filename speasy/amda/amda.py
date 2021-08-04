@@ -95,6 +95,11 @@ class AMDA:
         self.catalog = {}
         if "AMDA/inventory" in _cache:
             self._unpack_inventory(_cache["AMDA/inventory"])
+            if any(map(lambda d: d == {},
+                       [self.parameter, self.mission, self.observatory, self.instrument, self.dataset,
+                        self.datasetGroup, self.component, self.dataCenter, self.folder, self.timeTable,
+                        self.catalog])):
+                self.update_inventory()
         else:
             self.update_inventory()
 
