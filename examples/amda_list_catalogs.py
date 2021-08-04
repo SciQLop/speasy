@@ -9,4 +9,3 @@ ttlist = amda.list_catalogs()
 for catalog in amda.list_catalogs():
     print(catalog)
     print(amda.catalog[catalog])
-    #print(amda.get_catalog(catalog).data)
