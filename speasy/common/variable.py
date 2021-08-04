@@ -166,7 +166,7 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     """Merge a list of :class:`~speasy.common.variable.SpeasyVariable` objects.
 
     :param variables: list of variables
-    :type variable: list[speasy.common.variable.SpeasyVariable
+    :type variable: list[speasy.common.variable.SpeasyVariable]
     """
     if len(variables) == 0:
         return None
