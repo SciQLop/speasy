@@ -27,7 +27,7 @@ from .soap import AmdaSoap
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .parameter import Parameter
-from .timetable import TimeTable, Catalog
+from .timetable import TimeTable, Catalog, TimetableIndex
 from .dataset import Dataset
 
 import io
@@ -377,11 +377,11 @@ class AMDA:
         parameters = self.list_parameters(dataset_id)
         return Dataset({p: self.get_parameter(p, start, stop, **kwargs) for p in parameters})
 
-    def get_timetable(self, timetable_id: str):
+    def get_timetable(self, timetable_id: str or TimetableIndex):
         """Get timetable data by ID.
 
         :param timetable_id: time table id
-        :type timetable_id: str
+        :type timetable_id: str or TimetableIndex
         :return: timetable data
         :rtype: speasy.common.variable.SpeasyVariable
 
@@ -391,6 +391,8 @@ class AMDA:
            <speasy.common.variable.SpeasyVariable object at 0x7efce01b3f90>
 
         """
+        if type(timetable_id) is TimetableIndex:
+            timetable_id = timetable_id.uid
         return self._dl_timetable(timetable_id)
 
     def get_catalog(self, catalog_id: str):
@@ -640,7 +642,7 @@ class AMDA:
             sharedtimeTable_139
 
         """
-        return [t for t in self.timeTable]
+        return [TimetableIndex(uid=uid, name=t['name']) for uid,t in self.timeTable.items()]
 
     def list_datasets(self):
         """Get list of dataset id available in AMDA
