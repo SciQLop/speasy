@@ -79,8 +79,12 @@ class SimpleRequest(unittest.TestCase):
         result = self.ws.list_timetables()
         self.assertTrue(len(result) != 0)
 
-    def test_get_timetable(self):
+    def test_get_sharedtimeTable_0(self):
         r = self.ws.get_timetable("sharedtimeTable_0")
+        self.assertIsNotNone(r)
+
+    def test_get_timetable_from_TimetableIndex(self):
+        r = self.ws.get_timetable(self.ws.list_timetables()[-1])
         self.assertIsNotNone(r)
 
 

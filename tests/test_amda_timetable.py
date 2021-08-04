@@ -4,15 +4,11 @@
 """Tests for `amda` package timetable implementation."""
 
 import unittest
-import os
-from datetime import datetime, timezone
-from speasy.amda import AMDA, load_csv
-from ddt import ddt, data
+from speasy.amda import AMDA
 import numpy as np
 
 
-@ddt
-class SimpleRequest(unittest.TestCase):
+class ATimeTable(unittest.TestCase):
     def setUp(self):
         self.ws = AMDA()
         self.tt = self.ws.get_timetable("sharedtimeTable_0")
