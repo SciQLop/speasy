@@ -5,7 +5,7 @@
 
 import unittest
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from speasy.amda import AMDA, load_csv
 from speasy.common.variable import SpeasyVariable
 from ddt import ddt, data
@@ -43,8 +43,11 @@ class SimpleRequest(unittest.TestCase):
         self.assertTrue(self.data.time.dtype == float)
 
     def test_time_range(self):
-        self.assertTrue(datetime.utcfromtimestamp(self.data.time[0]) == self.start)
-        self.assertTrue(datetime.utcfromtimestamp(self.data.time[-1]) == self.stop)
+        min_dt = min(self.data.time[1:] - self.data.time[:-1])
+        self.assertTrue(
+            self.start <= datetime.utcfromtimestamp(self.data.time[0]) < self.start + timedelta(seconds=min_dt))
+        self.assertTrue(
+            self.stop > datetime.utcfromtimestamp(self.data.time[-1]) >= self.stop - timedelta(seconds=min_dt))
 
     def test_dataset_not_none(self):
         self.assertIsNotNone(self.dataset)
