@@ -151,7 +151,7 @@ class AMDA:
     def _dl_user_parameter(self, parameter_id: str, username: str, password: str, start_time: datetime, stop_time: datetime):
         url=self.METHODS["REST"].get_parameter(parameterID=parameter_id,userID=username, password=password, startTime=start_time.strftime(self.__datetime_format__), stopTime=stop_time.strftime(self.__datetime_format__))
 
-        if not url is None:
+        if url is not None:
             # get a SpeasyVariable object
             var=load_csv(url, datatype_constructor=Parameter)
             if len(var):
@@ -666,4 +666,3 @@ class AMDA:
         if product_id in self.component:
             return ProductType.COMPONENT
         return ProductType.UNKNOWN
-
