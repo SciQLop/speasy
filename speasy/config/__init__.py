@@ -40,11 +40,8 @@ class ConfigEntry:
         """
         if self.key1 in _config and self.key2 in _config[self.key1]:
             return _config[self.key1][self.key2]
-        else:
-            if len(self.default):
-                return self.default
-            # key is not defined, raise an UndefinedConfigEntry exception
-            raise UndefinedConfigEntry(key1=self.key1, key2=self.key2, default=self.default)
+        return self.default
+            
 
     def set(self, value):
         if self.key1 not in _config:
