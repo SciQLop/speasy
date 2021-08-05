@@ -26,7 +26,7 @@ from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .parameter import Parameter
 from .timetable import TimeTable, Catalog
-from .indexes import DatasetIndex, TimetableIndex, xmlid
+from .indexes import DatasetIndex, TimetableIndex, CatalogIndex, ParameterIndex, xmlid
 from .dataset import Dataset
 
 import io
@@ -209,7 +209,7 @@ class AMDA:
             return var
         return None
 
-    def product_version(self, parameter_id):
+    def product_version(self, parameter_id: str or ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
         :param parameter_id: parameter id
@@ -217,7 +217,7 @@ class AMDA:
         :return: product version
         :rtype: str
         """
-        return self.dataset[self.parameter[parameter_id]["dataset"]]['lastUpdate']
+        return self.dataset[self.parameter[xmlid(parameter_id)]["dataset"]]['lastUpdate']
 
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
@@ -322,7 +322,7 @@ class AMDA:
         password = ConfigEntry("AMDA", "password").get()
         return self._dl_catalog(catalog_id=catalog_id, userID=username, password=password)
 
-    def get_parameter(self, parameter_id: str, start_time: datetime, stop_time: datetime,
+    def get_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime, stop_time: datetime,
                       method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
         """Get parameter data.
 
@@ -345,7 +345,7 @@ class AMDA:
 
         """
 
-        return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
+        return self.get_data(product=xmlid(parameter_id), start_time=start_time, stop_time=stop_time, **kwargs)
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: datetime, stop: datetime, **kwargs):
         """Get dataset contents. Returns list of SpeasyVariable objects, one for each
@@ -496,8 +496,9 @@ class AMDA:
         """
         if dataset_id is not None:
             dataset_id = xmlid(dataset_id)
-            return [k for k in self.parameter if self.parameter[k]["dataset"] == dataset_id]
-        return [k for k in self.parameter]
+            return [ParameterIndex(uid=uid, name=p['name']) for uid, p in self.parameter.items() if
+                    p["dataset"] == dataset_id]
+        return [ParameterIndex(uid=uid, name=p['name']) for uid, p in self.parameter.items()]
 
     def list_catalogs(self):
         """Get list of public catalog IDs:
@@ -514,7 +515,7 @@ class AMDA:
             sharedcatalog_16
 
         """
-        return [k for k in self.catalog]
+        return [CatalogIndex(uid=uid, name=c['name']) for uid, c in self.catalog.items()]
 
     def list_user_timetables(self):
         """Get a list of user timetables. User timetable are represented as dictionary objects.
