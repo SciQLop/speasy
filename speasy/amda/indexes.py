@@ -16,6 +16,24 @@ class DatasetIndex:
         return f'<DatasetIndex: {self.name}, id: {self.uid}>'
 
 
+class CatalogIndex:
+    def __init__(self, uid, name):
+        self.uid = uid
+        self.name = name
+
+    def __repr__(self):
+        return f'<CatalogIndex: {self.name}, id: {self.uid}>'
+
+
+class ParameterIndex:
+    def __init__(self, uid, name):
+        self.uid = uid
+        self.name = name
+
+    def __repr__(self):
+        return f'<ParameterIndex: {self.name}, id: {self.uid}>'
+
+
 def xmlid(index_or_str):
     if type(index_or_str) is str:
         return index_or_str
