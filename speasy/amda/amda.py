@@ -22,31 +22,25 @@ import speasy as spz
 # AMDA, provider specific modules
 from .rest import AmdaRest
 from .soap import AmdaSoap
-# from .obstree import ObsDataTreeParser REMOVED
-# from .tttree import TimeTableTree REMOVED
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .parameter import Parameter
-from .timetable import TimeTable, Catalog, TimetableIndex
+from .timetable import TimeTable, Catalog
+from .indexes import DatasetIndex, TimetableIndex, xmlid
 from .dataset import Dataset
 
 import io
 import xmltodict
-from datetime import datetime, timezone
-import pandas as pds
-import numpy as np
+from datetime import datetime
 import requests
 from typing import Optional
 
 # General modules
 from ..config import ConfigEntry
-from ..common import listify
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpeasyVariable
 from ..proxy import Proxyfiable, GetProduct
-from urllib.request import urlopen
-import os
 import logging
 from enum import Enum
 from lxml import etree
@@ -353,7 +347,7 @@ class AMDA:
 
         return self.get_data(product=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
 
-    def get_dataset(self, dataset_id: str, start: datetime, stop: datetime, **kwargs):
+    def get_dataset(self, dataset_id: str or DatasetIndex, start: datetime, stop: datetime, **kwargs):
         """Get dataset contents. Returns list of SpeasyVariable objects, one for each
         parameter in the dataset.
 
@@ -391,9 +385,7 @@ class AMDA:
            <speasy.common.variable.SpeasyVariable object at 0x7efce01b3f90>
 
         """
-        if type(timetable_id) is TimetableIndex:
-            timetable_id = timetable_id.uid
-        return self._dl_timetable(timetable_id)
+        return self._dl_timetable(xmlid(timetable_id))
 
     def get_catalog(self, catalog_id: str):
         """Get catalog data by ID.
@@ -484,7 +476,8 @@ class AMDA:
                 datetime.strptime(dataset["dataStop"], '%Y-%m-%dT%H:%M:%SZ')
             )
 
-    def list_parameters(self, dataset_id=None):
+    def list_parameters(self, dataset_id: Optional[str or DatasetIndex] = None):
+
         """Get list of parameter id available in AMDA
 
         :param dataset_id: optional parent dataset id
@@ -501,7 +494,8 @@ class AMDA:
            wnd_swe_pdyn
 
         """
-        if not dataset_id is None:
+        if dataset_id is not None:
+            dataset_id = xmlid(dataset_id)
             return [k for k in self.parameter if self.parameter[k]["dataset"] == dataset_id]
         return [k for k in self.parameter]
 
@@ -642,7 +636,7 @@ class AMDA:
             sharedtimeTable_139
 
         """
-        return [TimetableIndex(uid=uid, name=t['name']) for uid,t in self.timeTable.items()]
+        return [TimetableIndex(uid=uid, name=t['name']) for uid, t in self.timeTable.items()]
 
     def list_datasets(self):
         """Get list of dataset id available in AMDA
@@ -659,7 +653,7 @@ class AMDA:
             wnd-swe-kp
 
         """
-        return [k for k in self.dataset]
+        return [DatasetIndex(uid=uid, name=d['name']) for uid, d in self.dataset.items()]
 
     def get_product_type(self, product_id):
         """Get product type.
