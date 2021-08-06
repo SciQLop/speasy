@@ -41,7 +41,7 @@ class ConfigEntry:
         if self.key1 in _config and self.key2 in _config[self.key1]:
             return _config[self.key1][self.key2]
         return self.default
-            
+
 
     def set(self, value):
         if self.key1 not in _config:
@@ -56,3 +56,6 @@ proxy_url = ConfigEntry("PROXY", "url", "")
 
 cache_size = ConfigEntry("CACHE", "size", "20e9")
 cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")))
+
+amda_username = ConfigEntry("AMDA", "username").get()
+amda_password = ConfigEntry("AMDA", "password").get()
