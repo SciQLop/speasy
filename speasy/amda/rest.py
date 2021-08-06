@@ -1,6 +1,7 @@
-import requests
 import logging
 from enum import Enum
+
+from ..common import http
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class AmdaRest:
         """
         # url = "{0}/php/rest/auth.php?".format(self.server_url)
         url = self.request_url(Endpoint.AUTH)
-        r = requests.get(url)
+        r = http.get(url)
         return r.text.strip()
 
     def request_url(self, endpoint, **kwargs):
@@ -89,7 +90,7 @@ class AmdaRest:
         for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
-            r = requests.get(url)
+            r = http.get(url)
             if r is None:
                 # try again
                 continue
@@ -112,8 +113,8 @@ class AmdaRest:
         for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
-            r = requests.get(url)
-            r = requests.get(r.text.strip())
+            r = http.get(url)
+            r = http.get(r.text.strip())
             return r.text.strip()
         return None
 
@@ -131,7 +132,7 @@ class AmdaRest:
         for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
-            r = requests.get(url)
+            r = http.get(url)
             js = r.json()
             if 'success' in js and \
                 js['success'] is True and \
@@ -249,5 +250,5 @@ class AmdaRest:
         :return: observatory data tree
         :rtype: str
         """
-        r = requests.get(self.request_url(Endpoint.OBSTREE))
+        r = http.get(self.request_url(Endpoint.OBSTREE))
         return r.text.split(">")[1].split("<")[0]
