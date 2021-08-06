@@ -17,11 +17,9 @@ and parameters.
 
 
 """
-import speasy as spz
 
 # AMDA, provider specific modules
 from .rest import AmdaRest
-from .soap import AmdaSoap
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .parameter import Parameter
@@ -32,15 +30,15 @@ from .dataset import Dataset
 import io
 import xmltodict
 from datetime import datetime
-import requests
 from typing import Optional
 
 # General modules
-from ..config import ConfigEntry
+from ..config import amda_password, amda_username
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpeasyVariable
 from ..proxy import Proxyfiable, GetProduct
+from ..common import http
 import logging
 from enum import Enum
 from lxml import etree
@@ -71,11 +69,8 @@ class AMDA:
 
     """
 
-    def __init__(self, wsdl: str = 'AMDA/public/wsdl/Methods_AMDA.wsdl', server_url: str = "http://amda.irap.omp.eu"):
-        self.METHODS = {
-            "REST": AmdaRest(server_url=server_url),
-            "SOAP": AmdaSoap(server_url=server_url, wsdl=wsdl)
-        }
+    def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
+        self._rest_client = AmdaRest(server_url=server_url)
         self.parameter = {}
         self.mission = {}
         self.observatory = {}
@@ -122,11 +117,8 @@ class AMDA:
     def _unpack_inventory(self, inventory):
         self.__dict__.update(inventory)
 
-    def update_inventory(self, method="SOAP"):
+    def update_inventory(self):
         """Load AMDA invertory and save to cache.
-
-        :param method: update method (default: SOAP)
-        :type method: str
         """
         tree = self.get_obs_data_tree()
         storage = self._pack_inventory()
@@ -147,13 +139,13 @@ class AMDA:
         :return: authentication token
         :rtype: str
         """
-        return self.METHODS["REST"].get_token
+        return self._rest_client.get_token
 
     def _dl_user_parameter(self, parameter_id: str, username: str, password: str, start_time: datetime,
                            stop_time: datetime):
-        url = self.METHODS["REST"].get_parameter(parameterID=parameter_id, userID=username, password=password,
-                                                 startTime=start_time.strftime(self.__datetime_format__),
-                                                 stopTime=stop_time.strftime(self.__datetime_format__))
+        url = self._rest_client.get_parameter(parameterID=parameter_id, userID=username, password=password,
+                                              startTime=start_time.strftime(self.__datetime_format__),
+                                              stopTime=stop_time.strftime(self.__datetime_format__))
 
         if url is not None:
             # get a SpeasyVariable object
@@ -165,12 +157,12 @@ class AMDA:
                 log.debug("Loaded user parameter : empty var")
             return var
 
-    def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
+    def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
+        SpeasyVariable]:
 
         start_time = start_time.timestamp()
         stop_time = stop_time.timestamp()
-        url = self.METHODS[method.upper()].get_parameter(
+        url = self._rest_client.get_parameter(
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
             var = load_csv(url, datatype_constructor=Parameter)
@@ -185,8 +177,8 @@ class AMDA:
             return var
         return None
 
-    def _dl_timetable(self, timetable_id: str, method: str = "REST", **kwargs):
-        url = self.METHODS[method.upper()].get_timetable(ttID=timetable_id, **kwargs)
+    def _dl_timetable(self, timetable_id: str, **kwargs):
+        url = self._rest_client.get_timetable(ttID=timetable_id, **kwargs)
         if not url is None:
             var = load_timetable(url, datatype_constructor=TimeTable)
             if var:
@@ -197,8 +189,8 @@ class AMDA:
             return var
         return None
 
-    def _dl_catalog(self, catalog_id: str, method: str = "REST", **kwargs):
-        url = self.METHODS[method.upper()].get_catalog(catID=catalog_id, **kwargs)
+    def _dl_catalog(self, catalog_id: str, **kwargs):
+        url = self._rest_client.get_catalog(catID=catalog_id, **kwargs)
         if not url is None:
             var = load_catalog(url, datatype_constructor=Catalog)
             if var:
@@ -269,10 +261,8 @@ class AMDA:
             exception being raised.
 
         """
-        username = ConfigEntry("AMDA", "username").get()
-        password = ConfigEntry("AMDA", "password").get()
-        return self._dl_user_parameter(parameter_id=parameter_id, username=username, password=password,
-                                       start_time=start_time, stop_time=stop_time)
+        return self._dl_user_parameter(parameter_id=parameter_id, username=amda_username.get(),
+                                       password=amda_password.get(), start_time=start_time, stop_time=stop_time)
 
     def get_user_timetable(self, timetable_id: str):
         """Get user timetable. Raises an exception if user is not authenticated.
@@ -294,9 +284,7 @@ class AMDA:
             exception being raised.
 
         """
-        username = ConfigEntry("AMDA", "username").get()
-        password = ConfigEntry("AMDA", "password").get()
-        return self._dl_timetable(timetable_id=timetable_id, userID=username, password=password)
+        return self._dl_timetable(timetable_id=timetable_id, userID=amda_username.get(), password=amda_password.get())
 
     def get_user_catalog(self, catalog_id: str):
         """Get user catalog. Raises an exception if user is not authenticated.
@@ -318,12 +306,10 @@ class AMDA:
             exception being raised.
 
         """
-        username = ConfigEntry("AMDA", "username").get()
-        password = ConfigEntry("AMDA", "password").get()
-        return self._dl_catalog(catalog_id=catalog_id, userID=username, password=password)
+        return self._dl_catalog(catalog_id=catalog_id, userID=amda_username.get(), password=amda_password.get())
 
-    def get_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime, stop_time: datetime,
-                      method: str = "REST", **kwargs) -> Optional[SpeasyVariable]:
+    def get_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime, stop_time: datetime, **kwargs) -> \
+    Optional[SpeasyVariable]:
         """Get parameter data.
 
         :param parameter_id: parameter id
@@ -332,8 +318,6 @@ class AMDA:
         :type start_time: datetime.datetime
         :param stop_time: desired data stop time
         :type stop_time: datetime.datetime
-        :param method: retrieval method (default: REST)
-        :type method: str
         :param kwargs: optional arguments
         :type kwargs: dict
         :return: product data if available
@@ -403,40 +387,32 @@ class AMDA:
         """
         return self._dl_catalog(catalog_id)
 
-    def get_obs_data_tree(self, method="SOAP") -> dict:
+    def get_obs_data_tree(self) -> dict:
         """Get observatory data tree, a XML file containing information about available products.
 
-        :param method: retrieval method (default: SOAP)
-        :type method: str
         :return: observatory data tree
         :rtype: dict
         """
-        ttt = requests.get(
-            self.METHODS[method.upper()].get_obs_data_tree()).text
+        ttt = http.get(self._rest_client.get_obs_data_tree()).text
         datatree = xmltodict.parse(ttt)
         return datatree
 
-    def get_timetable_tree(self, method="REST"):
+    def get_timetable_tree(self):
         """Get timetable tree, XML file containing information about all timetables in AMDA.
-
-        :param method: retrieval method (default: REST)
-        :type method: str
         :return: timetable inventory tree
         :rtype: dict
         """
-        ttt = self.METHODS[method.upper()].get_timetable_list()
+        ttt = self._rest_client.get_timetable_list()
         content = xmltodict.parse(ttt)
         return content
 
-    def get_catalog_tree(self, method="REST"):
+    def get_catalog_tree(self):
         """Get catalog tree, XML file containing information about public catalogs in AMDA.
 
-        :param method: retrieval method (default: REST)
-        :type method: str
         :return: catalog inventory tree
         :rtype: dict
         """
-        ttt = self.METHODS[method.upper()].get_catalog_list()
+        ttt = self._rest_client.get_catalog_list()
         content = xmltodict.parse(ttt)
         return content
 
@@ -535,10 +511,9 @@ class AMDA:
 
 
         """
-        # check for authentication
-        username, password = ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA", "password").get()
         # get list of private parameters
-        l = self.METHODS["REST"].list_user_timetables(username, password).strip()
+        l = self._rest_client.list_user_timetables(username=amda_username.get(),
+                                                   password=amda_password.get()).strip()
         d = xmltodict.parse(l)
         tree = etree.parse(io.StringIO(l), parser=etree.XMLParser(recover=True))
 
@@ -569,10 +544,8 @@ class AMDA:
 
 
         """
-        # check for authentication
-        username, password = ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA", "password").get()
         # get list of private parameters
-        l = self.METHODS["REST"].list_user_catalogs(username, password).strip()
+        l = self._rest_client.list_user_catalogs(username=amda_username.get(), password=amda_password.get()).strip()
         tree = etree.parse(io.StringIO(l), parser=etree.XMLParser(recover=True))
 
         pp = [e.attrib for e in tree.iter(tag="catalog")]
@@ -606,12 +579,10 @@ class AMDA:
 
 
         """
-        # check for authentication
-        username, password = ConfigEntry("AMDA", "username").get(), ConfigEntry("AMDA", "password").get()
         # get list of private parameters
-        l = self.METHODS["REST"].get_user_parameters(username, password).strip()
+        l = self._rest_client.get_user_parameters(username=amda_username.get(), password=amda_password.get()).strip()
         d = xmltodict.parse("<root>{}</root>".format(l), attr_prefix="")
-        t = requests.get(d["root"]["UserDefinedParameters"]).text
+        t = http.get(d["root"]["UserDefinedParameters"]).text
         tree = etree.parse(io.StringIO(t), parser=etree.XMLParser(recover=True))
         pp = [e.attrib for e in tree.iter(tag="param")]
         for p in pp:
