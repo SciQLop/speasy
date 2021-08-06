@@ -15,9 +15,6 @@ from ..common.variable import SpeasyVariable
 from ..common import http
 from ..proxy import Proxyfiable, GetProduct
 import numpy as np
-import tempfile
-from urllib.request import urlopen
-from time import sleep
 import logging
 
 log = logging.getLogger(__name__)
@@ -25,7 +22,7 @@ log = logging.getLogger(__name__)
 
 class CdaWebException(BaseException):
     def __init__(self, text):
-        super(CdaWebException,self).__init__(text)
+        super(CdaWebException, self).__init__(text)
 
 
 def _read_csv(url: str, *args, **kwargs) -> SpeasyVariable:
@@ -64,7 +61,7 @@ class cdaweb:
         if instrumentType is not None:
             args.append(f'instrumentType={instrumentType}')
         resp = http.get(self.__url + f'/dataviews/{dataview}/instruments?' + "&".join(args),
-                            headers={"Accept": "application/json"})
+                        headers={"Accept": "application/json"})
         if not resp.ok:
             return None
         instruments = [instrument for instrument in resp.json()['InstrumentDescription'] if
@@ -95,7 +92,7 @@ class cdaweb:
             args.append(f'notesPattern={notesPattern}')
 
         resp = http.get(self.__url + f'/dataviews/{dataview}/datasets?' + "&".join(args),
-                            headers={"Accept": "application/json"})
+                        headers={"Accept": "application/json"})
         if not resp.ok:
             return None
         datasets = [dataset for dataset in resp.json()['DatasetDescription']]
@@ -103,7 +100,7 @@ class cdaweb:
 
     def get_variables(self, dataset, dataview='sp_phys'):
         resp = http.get(self.__url + f'/dataviews/{dataview}/datasets/{dataset}/variables',
-                            headers={"Accept": "application/json"})
+                        headers={"Accept": "application/json"})
 
         if not resp.ok:
             return None
@@ -121,14 +118,6 @@ class cdaweb:
         headers = {"Accept": "application/json"}
         log.debug(url)
         resp = http.get(url, headers=headers)
-        while resp.status_code in [429, 523]:
-            try:
-                delay = float(resp.headers['Retry-After'])
-            except ValueError:
-                delay = 5
-            log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
-            sleep(delay)
-            resp = http.get(url, headers=headers)
         if resp.status_code != 200:
             raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
         if not resp.ok or 'FileDescription' not in resp.json():
