@@ -8,7 +8,7 @@ from speasy.amda import AMDA
 import numpy as np
 
 
-class ATimeTable(unittest.TestCase):
+class TimetableRequests(unittest.TestCase):
     def setUp(self):
         self.ws = AMDA()
         self.tt = self.ws.get_timetable("sharedtimeTable_0")

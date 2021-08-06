@@ -4,19 +4,14 @@
 """Tests for `amda` package parameter getting functions."""
 
 import unittest
-import os
 from datetime import datetime, timedelta
-from speasy.amda import AMDA, load_csv
+from speasy.amda import AMDA
 from speasy.common.variable import SpeasyVariable
-from ddt import ddt, data
-import numpy as np
 
 from speasy.amda.dataset import Dataset
-from speasy.amda.parameter import Parameter
 
 
-@ddt
-class SimpleRequest(unittest.TestCase):
+class ParameterRequests(unittest.TestCase):
     def setUp(self):
         self.ws = AMDA()
         self.start = datetime(2000, 1, 1, 1, 1)
