@@ -7,7 +7,6 @@ import unittest
 import os
 from datetime import datetime, timezone
 from speasy.amda import AMDA, load_csv
-from ddt import ddt, data
 
 
 class AMDAModule(unittest.TestCase):
@@ -25,7 +24,6 @@ class AMDAModule(unittest.TestCase):
         self.assertTrue('MISSION_ID' in var.meta)
 
 
-@ddt
 class SimpleRequest(unittest.TestCase):
     def setUp(self):
         self.ws = AMDA()
