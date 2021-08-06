@@ -22,8 +22,6 @@ and parameters.
 from .rest import AmdaRest
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
-from .parameter import Parameter
-from .timetable import TimeTable, Catalog
 from .indexes import DatasetIndex, TimetableIndex, CatalogIndex, ParameterIndex, xmlid
 from .dataset import Dataset
 
@@ -149,7 +147,7 @@ class AMDA:
 
         if url is not None:
             # get a SpeasyVariable object
-            var = load_csv(url, datatype_constructor=Parameter)
+            var = load_csv(url)
             if len(var):
                 log.debug("Loaded user parameter : data shape {shape}, username {username}".format(
                     shape=var.values.shape, username=username))
@@ -165,7 +163,7 @@ class AMDA:
         url = self._rest_client.get_parameter(
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME', **kwargs)
         if url is not None:
-            var = load_csv(url, datatype_constructor=Parameter)
+            var = load_csv(url)
             if len(var):
                 log.debug(
                     'Loaded var: data shape = {shape}, data start time = {start_time}, data stop time = {stop_time}'.format(
@@ -180,7 +178,7 @@ class AMDA:
     def _dl_timetable(self, timetable_id: str, **kwargs):
         url = self._rest_client.get_timetable(ttID=timetable_id, **kwargs)
         if not url is None:
-            var = load_timetable(url, datatype_constructor=TimeTable)
+            var = load_timetable(url)
             if var:
                 log.debug(
                     'Loaded timetable: id = {}'.format(timetable_id))
@@ -192,7 +190,7 @@ class AMDA:
     def _dl_catalog(self, catalog_id: str, **kwargs):
         url = self._rest_client.get_catalog(catID=catalog_id, **kwargs)
         if not url is None:
-            var = load_catalog(url, datatype_constructor=Catalog)
+            var = load_catalog(url)
             if var:
                 log.debug(
                     'Loaded catalog: id = {}'.format(catalog_id))

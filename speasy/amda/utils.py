@@ -5,21 +5,18 @@ conversion procedures for parsing CSV and VOTable data.
 import os
 import datetime
 from urllib.request import urlopen
-from lxml import etree
 from speasy.common.variable import SpeasyVariable
 import pandas as pds
 import numpy as np
 
 from .timetable import TimeTable, Catalog
-from .parameter import Parameter
 
-def load_csv(filename, datatype_constructor=SpeasyVariable):
+
+def load_csv(filename):
     """Load a CSV file
 
     :param filename: CSV filename
     :type filename: str
-    :param datatype_constructor: constructor function of the desired output, must be a subclass of :class:`~speasy.common.variable.SpeasyVariable`
-    :type datatype_constructor: func
     :return: CSV contents
     :rtype: SpeasyVariable
     """
@@ -46,9 +43,10 @@ def load_csv(filename, datatype_constructor=SpeasyVariable):
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
-        return datatype_constructor(time=time, data=data, meta=meta, columns=columns[1:], y=y)
+        return SpeasyVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
 
-def load_timetable(filename, datatype_constructor=TimeTable):
+
+def load_timetable(filename):
     """Load a timetable file
 
     :param filename: filename
@@ -64,17 +62,19 @@ def load_timetable(filename, datatype_constructor=TimeTable):
         # get header data first
         from astropy.io.votable import parse as parse_votable
         import io
-        votable=parse_votable(io.BytesIO(votable.read()))
+        votable = parse_votable(io.BytesIO(votable.read()))
         # convert astropy votable structure to SpeasyVariable
-        tab=votable.resources[0].tables[0]
+        tab = votable.resources[0].tables[0]
         import numpy as np
         # prepare data
-        data=np.array([[datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f").timestamp(),\
-                datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f").timestamp()] for (t0,t1) in tab.array], dtype=float)
-        var = datatype_constructor(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
+        data = np.array([[datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f").timestamp(), \
+                          datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f").timestamp()] for (t0, t1) in
+                         tab.array], dtype=float)
+        var = TimeTable(columns=[f.name for f in tab.fields], data=data, time=data[:, 0])
         return var
 
-def load_catalog(filename, datatype_constructor=Catalog):
+
+def load_catalog(filename):
     """Load a timetable file
 
     :param filename: filename
@@ -90,16 +90,16 @@ def load_catalog(filename, datatype_constructor=Catalog):
         # get header data first
         from astropy.io.votable import parse as parse_votable
         import io
-        votable=parse_votable(io.BytesIO(votable.read()))
+        votable = parse_votable(io.BytesIO(votable.read()))
         # convert astropy votable structure to SpeasyVariable
-        tab=votable.resources[0].tables[0]
+        tab = votable.resources[0].tables[0]
         import numpy as np
         # prepare data
-        data=np.array([list(row) for row in tab.array])
+        data = np.array([list(row) for row in tab.array])
         # convert first and second rows to datetime
-        data[:,0]=np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:,0]])
-        data[:,1]=np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:,1]])
-        var = datatype_constructor(columns = [f.name for f in tab.fields], data=data, time=data[:,0])
+        data[:, 0] = np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:, 0]])
+        data[:, 1] = np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:, 1]])
+        var = Catalog(columns=[f.name for f in tab.fields], data=data, time=data[:, 0])
         return var
 
 
@@ -115,5 +115,3 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
     """
     return {'path': f"amda/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}'}
-
-
