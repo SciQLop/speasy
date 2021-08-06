@@ -33,27 +33,25 @@ class SimpleRequest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @data("REST", "SOAP")
-    def test_get_variable(self, method):
+    def test_get_variable(self):
         start_date = datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = self.ws.get_parameter(parameter_id, start_date, stop_date, method=method, disable_proxy=True,
+        result = self.ws.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                        disable_cache=True)
         self.assertIsNotNone(result)
         start_date = datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_hia_prest"
-        result = self.ws.get_parameter(parameter_id, start_date, stop_date, method=method, disable_proxy=True,
+        result = self.ws.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                        disable_cache=True)
         self.assertIsNotNone(result)
 
-    @data("REST", "SOAP")
-    def test_get_variable_over_midnight(self, method):
+    def test_get_variable_over_midnight(self):
         start_date = datetime(2006, 1, 8, 23, 30, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 9, 0, 30, 0, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = self.ws.get_parameter(parameter_id, start_date, stop_date, method=method, disable_proxy=True,
+        result = self.ws.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                        disable_cache=True)
         self.assertIsNotNone(result)
 
