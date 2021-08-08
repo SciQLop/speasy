@@ -35,6 +35,7 @@ from ..config import amda_password, amda_username
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpeasyVariable
+from ..common.timetable import TimeTable
 from ..proxy import Proxyfiable, GetProduct
 from ..common import http
 import logging
@@ -177,8 +178,8 @@ class AMDA:
 
     def _dl_timetable(self, timetable_id: str, **kwargs):
         url = self._rest_client.get_timetable(ttID=timetable_id, **kwargs)
-        if not url is None:
-            var = load_timetable(url)
+        if url is not None:
+            var = load_timetable(filename=url)
             if var:
                 log.debug(
                     'Loaded timetable: id = {}'.format(timetable_id))
@@ -262,7 +263,7 @@ class AMDA:
         return self._dl_user_parameter(parameter_id=parameter_id, username=amda_username.get(),
                                        password=amda_password.get(), start_time=start_time, stop_time=stop_time)
 
-    def get_user_timetable(self, timetable_id: str):
+    def get_user_timetable(self, timetable_id: str) -> TimeTable:
         """Get user timetable. Raises an exception if user is not authenticated.
 
 
@@ -307,7 +308,7 @@ class AMDA:
         return self._dl_catalog(catalog_id=catalog_id, userID=amda_username.get(), password=amda_password.get())
 
     def get_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime, stop_time: datetime, **kwargs) -> \
-    Optional[SpeasyVariable]:
+        Optional[SpeasyVariable]:
         """Get parameter data.
 
         :param parameter_id: parameter id
@@ -353,7 +354,7 @@ class AMDA:
         parameters = self.list_parameters(dataset_id)
         return Dataset({p: self.get_parameter(p, start, stop, **kwargs) for p in parameters})
 
-    def get_timetable(self, timetable_id: str or TimetableIndex):
+    def get_timetable(self, timetable_id: str or TimetableIndex) -> TimeTable:
         """Get timetable data by ID.
 
         :param timetable_id: time table id

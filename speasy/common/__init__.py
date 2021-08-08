@@ -3,6 +3,7 @@ from dateutil.parser import parse
 import os
 import warnings
 
+
 def listify(obj: list or tuple or object) -> list:
     obj_t = type(obj)
     if obj_t is list:

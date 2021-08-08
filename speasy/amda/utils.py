@@ -9,7 +9,9 @@ from speasy.common.variable import SpeasyVariable
 import pandas as pds
 import numpy as np
 
-from .timetable import TimeTable, Catalog
+from .timetable import Catalog
+from ..common.timetable import TimeTable
+from ..common.datetime_range import DateTimeRange
 
 
 def load_csv(filename):
@@ -48,11 +50,10 @@ def load_csv(filename):
 
 def load_timetable(filename):
     """Load a timetable file
-
     :param filename: filename
     :type filename: str
     :return: AMDA timetable
-    :rtype: speasy.amda.timetable.TimeTable
+    :rtype: speasy.common.timetable.TimeTable
 
     """
     if '://' not in filename:
@@ -63,14 +64,14 @@ def load_timetable(filename):
         from astropy.io.votable import parse as parse_votable
         import io
         votable = parse_votable(io.BytesIO(votable.read()))
+        name = next(filter(lambda e: 'Name' in e, votable.description.split(';\n'))).split(':')[-1]
         # convert astropy votable structure to SpeasyVariable
-        tab = votable.resources[0].tables[0]
-        import numpy as np
+        tab = votable.get_first_table()
         # prepare data
-        data = np.array([[datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f").timestamp(), \
-                          datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f").timestamp()] for (t0, t1) in
-                         tab.array], dtype=float)
-        var = TimeTable(columns=[f.name for f in tab.fields], data=data, time=data[:, 0])
+        dt_ranges = [DateTimeRange(datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f"),
+                                   datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f")) for (t0, t1) in
+                     tab.array]
+        var = TimeTable(name=name, meta={}, dt_ranges=dt_ranges)
         return var
 
 

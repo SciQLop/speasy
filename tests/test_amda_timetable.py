@@ -5,7 +5,6 @@
 
 import unittest
 from speasy.amda import AMDA
-import numpy as np
 
 
 class TimetableRequests(unittest.TestCase):
@@ -17,19 +16,10 @@ class TimetableRequests(unittest.TestCase):
         pass
 
     def test_timetable_shape(self):
-        self.assertTrue(self.tt.time.shape[0] == self.tt.values.shape[0])
+        self.assertTrue(len(self.tt) > 0)
 
-    def test_tt_time_array(self):
-        self.assertTrue(isinstance(self.tt.time, np.ndarray))
-
-    def test_tt_data_array(self):
-        self.assertTrue(isinstance(self.tt.values, np.ndarray))
-
-    def test_tt_time_type(self):
-        self.assertTrue(self.tt.time.dtype == np.float64)
-
-    def test_tt_data_type(self):
-        self.assertTrue(self.tt.values.dtype == np.float64)
+    def test_timetable_has_a_name(self):
+        self.assertIsNot(self.tt.name, "")
 
 
 if __name__ == '__main__':

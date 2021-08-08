@@ -57,5 +57,5 @@ proxy_url = ConfigEntry("PROXY", "url", "")
 cache_size = ConfigEntry("CACHE", "size", "20e9")
 cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")))
 
-amda_username = ConfigEntry("AMDA", "username").get()
-amda_password = ConfigEntry("AMDA", "password").get()
+amda_username = ConfigEntry("AMDA", "username")
+amda_password = ConfigEntry("AMDA", "password")
