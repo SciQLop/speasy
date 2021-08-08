@@ -1,4 +1,4 @@
-"""AMDA Timetable definition. Serves a cosmetic need for now, functionality to be added in the future.
+"""AMDA TimeTable definition. Serves a cosmetic need for now, functionality to be added in the future.
 """
 
 from speasy.common.variable import SpeasyVariable
