@@ -12,7 +12,7 @@ USER_AGENT = f'Speasy/{__version__} {platform.uname()} (SciQLop project)'
 def get(url, headers: dict = None, params: dict = None):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
-    resp = requests.get(url, headers=headers)
+    resp = requests.get(url, headers=headers, params=params)
     while resp.status_code in [429, 523]:
         try:
             delay = float(resp.headers['Retry-After'])

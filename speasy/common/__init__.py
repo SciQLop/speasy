@@ -27,3 +27,7 @@ def mkdir(directory):
 
 def deprecation(message):
     warnings.warn(message, DeprecationWarning, stacklevel=2)
+
+
+def all_kwargs(**kwargs):
+    return kwargs
