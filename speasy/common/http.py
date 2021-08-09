@@ -9,7 +9,8 @@ log = logging.getLogger(__name__)
 USER_AGENT = f'Speasy/{__version__} {platform.uname()} (SciQLop project)'
 
 
-def get(url, headers={}):
+def get(url, headers: dict = None, params: dict = None):
+    headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
     resp = requests.get(url, headers=headers)
     while resp.status_code in [429, 523]:
@@ -19,5 +20,5 @@ def get(url, headers={}):
             delay = 5
         log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
         sleep(delay)
-        resp = requests.get(url, headers=headers)
+        resp = requests.get(url, headers=headers, params=params)
     return resp

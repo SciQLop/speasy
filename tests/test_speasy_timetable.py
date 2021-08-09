@@ -13,7 +13,7 @@ class SpeasyTimetable(unittest.TestCase):
         pass
 
     def test_len_equals_number_of_ranges_inserted(self):
-        tt = TimeTable("Empty tt")
+        tt = TimeTable("Empty TimeTable")
         self.assertEqual(len(tt), 0)
         tt.append(DateTimeRange(start_time=datetime.now(), stop_time=datetime.now()))
         self.assertEqual(len(tt), 1)
@@ -22,13 +22,13 @@ class SpeasyTimetable(unittest.TestCase):
         self.assertEqual(len(tt), 10)
 
     def test_raises_if_non_ranges_types_are_appended(self):
-        tt = TimeTable("Empty tt")
+        tt = TimeTable("Empty TimeTable")
         with self.assertRaises(TypeError):
             tt.append("this is not a DateTimeRange")
 
     def test_raises_if_built_with_non_ranges_types(self):
         with self.assertRaises(TypeError):
-            tt = TimeTable("Empty tt", dt_ranges="this is not a DateTimeRange")
+            tt = TimeTable("Failing TimeTable", dt_ranges="this is not a DateTimeRange")
 
     def test_holds_given_metadata(self):
         meta = {'key': 10}

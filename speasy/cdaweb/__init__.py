@@ -69,8 +69,8 @@ class cdaweb:
         return instruments
 
     def get_datasets(self, dataview='sp_phys', observatoryGroup=None, instrumentType=None, observatory=None,
-                     instrument=None,
-                     startDate=None, stopDate=None, idPattern=None, labelPattern=None, notesPattern=None):
+                     instrument=None, startDate=None, stopDate=None, idPattern=None, labelPattern=None,
+                     notesPattern=None):
         args = []
         if observatory is not None:
             args.append(f'observatory={observatory}')

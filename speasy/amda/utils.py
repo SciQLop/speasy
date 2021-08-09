@@ -9,8 +9,8 @@ from speasy.common.variable import SpeasyVariable
 import pandas as pds
 import numpy as np
 
-from .timetable import Catalog
 from ..common.timetable import TimeTable
+from ..common.catalog import Catalog, Event
 from ..common.datetime_range import DateTimeRange
 
 
@@ -48,6 +48,12 @@ def load_csv(filename):
         return SpeasyVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
 
 
+def _build_event(data, colnames):
+    return Event(datetime.datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%S.%f"),
+                 datetime.datetime.strptime(data[1], "%Y-%m-%dT%H:%M:%S.%f"),
+                 {name: value for name, value in zip(colnames[2:], data[2:])})
+
+
 def load_timetable(filename):
     """Load a timetable file
     :param filename: filename
@@ -68,9 +74,10 @@ def load_timetable(filename):
         # convert astropy votable structure to SpeasyVariable
         tab = votable.get_first_table()
         # prepare data
+        data = tab.array.tolist()
         dt_ranges = [DateTimeRange(datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f"),
                                    datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f")) for (t0, t1) in
-                     tab.array]
+                     data]
         var = TimeTable(name=name, meta={}, dt_ranges=dt_ranges)
         return var
 
@@ -93,14 +100,12 @@ def load_catalog(filename):
         import io
         votable = parse_votable(io.BytesIO(votable.read()))
         # convert astropy votable structure to SpeasyVariable
-        tab = votable.resources[0].tables[0]
-        import numpy as np
-        # prepare data
-        data = np.array([list(row) for row in tab.array])
-        # convert first and second rows to datetime
-        data[:, 0] = np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:, 0]])
-        data[:, 1] = np.array([datetime.datetime.strptime(i, "%Y-%m-%dT%H:%M:%S.%f") for i in data[:, 1]])
-        var = Catalog(columns=[f.name for f in tab.fields], data=data, time=data[:, 0])
+        tab = votable.get_first_table()
+        name = next(filter(lambda e: 'Name' in e, votable.description.split(';\n'))).split(':')[-1]
+        colnames = list(map(lambda f: f.name, tab.fields))
+        data = tab.array.tolist()
+        events = [_build_event(line, colnames) for line in data]
+        var = Catalog(name=name, meta={}, events=events)
         return var
 
 

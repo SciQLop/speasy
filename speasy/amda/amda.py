@@ -37,7 +37,7 @@ from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpeasyVariable
 from ..common.timetable import TimeTable
 from ..proxy import Proxyfiable, GetProduct
-from ..common import http
+from ..common import http, listify
 import logging
 from enum import Enum
 from lxml import etree
@@ -179,18 +179,19 @@ class AMDA:
     def _dl_timetable(self, timetable_id: str, **kwargs):
         url = self._rest_client.get_timetable(ttID=timetable_id, **kwargs)
         if url is not None:
-            var = load_timetable(filename=url)
-            if var:
+            timetable = load_timetable(filename=url)
+            if timetable:
+                timetable.meta.update(self.timeTable.get(timetable_id, {}))
                 log.debug(
                     'Loaded timetable: id = {}'.format(timetable_id))
             else:
-                log.debug('Loaded timetable: Empty tt')
-            return var
+                log.debug('Loaded timetable: Empty cat')
+            return timetable
         return None
 
     def _dl_catalog(self, catalog_id: str, **kwargs):
         url = self._rest_client.get_catalog(catID=catalog_id, **kwargs)
-        if not url is None:
+        if url is not None:
             var = load_catalog(url)
             if var:
                 log.debug(
@@ -511,19 +512,11 @@ class AMDA:
 
         """
         # get list of private parameters
-        l = self._rest_client.list_user_timetables(username=amda_username.get(),
-                                                   password=amda_password.get()).strip()
-        d = xmltodict.parse(l)
-        tree = etree.parse(io.StringIO(l), parser=etree.XMLParser(recover=True))
-
-        pp = [e.attrib for e in tree.iter(tag="timetab")]
-        for p in pp:
-            for k in p:
-                if k.endswith("}id"):
-                    v = p[k]
-                    del p[k]
-                    p["id"] = v
-        return [dict(d) for d in pp]
+        xml_tt_list = self._rest_client.list_user_timetables(username=amda_username.get(),
+                                                             password=amda_password.get()).strip()
+        d = xmltodict.parse(xml_tt_list)
+        return [InventoryTree.node_to_dict(node) for node in listify(d['timetabList']['timetab'])] if 'timetab' in d[
+            'timetabList'] else []
 
     def list_user_catalogs(self):
         """Get a list of user catalogs. User catalogs are represented as dictionary objects.
@@ -544,17 +537,11 @@ class AMDA:
 
         """
         # get list of private parameters
-        l = self._rest_client.list_user_catalogs(username=amda_username.get(), password=amda_password.get()).strip()
-        tree = etree.parse(io.StringIO(l), parser=etree.XMLParser(recover=True))
-
-        pp = [e.attrib for e in tree.iter(tag="catalog")]
-        for p in pp:
-            for k in p:
-                if k.endswith("}id"):
-                    v = p[k]
-                    del p[k]
-                    p["id"] = v
-        return [dict(d) for d in pp]
+        xml_cat_list = self._rest_client.list_user_catalogs(username=amda_username.get(),
+                                                            password=amda_password.get()).strip()
+        d = xmltodict.parse(xml_cat_list)
+        return [InventoryTree.node_to_dict(node) for node in listify(d['catalogList']['catalog'])] if 'catalog' in d[
+            'catalogList'] else []
 
     def list_user_parameters(self):
         """Get a list of user parameters. User parameters are represented as dictionary objects.
@@ -639,8 +626,6 @@ class AMDA:
             <ProductType.PARAMETER: 2>
             >>> amda.get_product_type("ace-imf-all")
             <ProductType.DATASET: 1>
-
-
         """
         if product_id in self.dataset:
             return ProductType.DATASET
