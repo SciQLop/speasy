@@ -35,7 +35,7 @@ class AmdaRest:
         self.server_url = server_url
 
     @property
-    def get_token(self) -> str:
+    def token(self) -> str:
         """Get authentication token.
 
         :return: authentication token
@@ -87,7 +87,7 @@ class AmdaRest:
         :return: request result text, stripped of spaces and newlines
         :rtype: str
         """
-        url += "token={}".format(self.get_token)
+        url += "token={}".format(self.token)
         for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
@@ -110,7 +110,7 @@ class AmdaRest:
         :return: request result, stripped of spaces and newlines
         :rtype: str
         """
-        url += "token={}".format(self.get_token)
+        url += "token={}".format(self.token)
         for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
@@ -129,7 +129,7 @@ class AmdaRest:
         :return: request result
         :rtype: str
         """
-        url += "token={}".format(self.get_token)
+        url += "token={}".format(self.token)
         for _ in [None] * n_try:  # in case of failure
             # add token now ? does it change
             log.debug(f"Send request on AMDA server {url}")
