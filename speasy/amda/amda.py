@@ -138,7 +138,7 @@ class AMDA:
         :return: authentication token
         :rtype: str
         """
-        return self._rest_client.get_token
+        return self._rest_client.token
 
     def _dl_user_parameter(self, parameter_id: str, username: str, password: str, start_time: datetime,
                            stop_time: datetime):
