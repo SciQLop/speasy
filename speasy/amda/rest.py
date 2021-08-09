@@ -40,7 +40,7 @@ class AmdaRest:
         """
         # url = "{0}/php/rest/auth.php?".format(self.server_url)
         r = http.get(self.request_url(Endpoint.AUTH))
-        if r.status_code is 200 and r.ok:
+        if r.status_code == 200 and r.ok:
             return r.text.strip()
         else:
             raise RuntimeError("Failed to get auth token")
