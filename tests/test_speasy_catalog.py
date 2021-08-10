@@ -1,7 +1,29 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from speasy.common.catalog import Catalog, Event
+
+
+class SpeasyEvent(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_are_equal_if_all_members_are_equal(self):
+        start = datetime.now()
+        stop = datetime.now()
+        meta = {"test": 10, 'key2': 'value2'}
+        self.assertEqual(Event(start, stop, meta), Event(start, stop, meta))
+
+    def test_are_not_equal_if_any_members_is_different(self):
+        start = datetime.now()
+        stop = datetime.now() + timedelta(seconds=100)
+        meta = {"test": 10, 'key2': 'value2'}
+        self.assertNotEqual(Event(start, stop, meta), Event(start, stop, {}))
+        self.assertNotEqual(Event(start, start, meta), Event(start, stop, meta))
+        self.assertNotEqual(Event(stop, stop, meta), Event(start, stop, meta))
 
 
 class SpeasyCatalog(unittest.TestCase):
