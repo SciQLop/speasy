@@ -40,7 +40,7 @@ class AmdaRest:
         """
         # url = "{0}/php/rest/auth.php?".format(self.server_url)
         r = http.get(self.request_url(Endpoint.AUTH))
-        if r.status_code == 200 and r.ok:
+        if r.status_code == 200:
             return r.text.strip()
         else:
             raise RuntimeError("Failed to get auth token")
@@ -97,14 +97,9 @@ class AmdaRest:
         :return: request result, stripped of spaces and newlines
         :rtype: str
         """
-        url = self.request_url(endpoint)
-        params = params or {}
-        params['token'] = self.token
-        for _ in [None] * n_try:  # in case of failure
-            # add token now ? does it change
-            log.debug(f"Send request on AMDA server {url}")
-            r = http.get(url, params=params)
-            r = http.get(r.text.strip())
+        next_url = self.send_request(endpoint=endpoint, params=params, n_try=n_try)
+        r = http.get(next_url)
+        if r.status_code == 200:
             return r.text.strip()
         return None
 
