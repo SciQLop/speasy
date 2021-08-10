@@ -15,6 +15,9 @@ class Event(DateTimeRange):
         self.meta = meta or {}
         super().__init__(start_time, stop_time)
 
+    def __eq__(self, other):
+        return (self.meta == other.meta) and super().__eq__(other)
+    
     def __repr__(self):
         return f"<Event: {self.start_time.isoformat()} -> {self.stop_time.isoformat()} | {self.meta}>"
 
