@@ -5,7 +5,7 @@
 
 import unittest
 from datetime import datetime, timedelta
-from speasy.amda import AMDA
+import speasy as spz
 from speasy.common.variable import SpeasyVariable
 
 from speasy.amda.dataset import Dataset
@@ -13,11 +13,10 @@ from speasy.amda.dataset import Dataset
 
 class ParameterRequests(unittest.TestCase):
     def setUp(self):
-        self.ws = AMDA()
         self.start = datetime(2000, 1, 1, 1, 1)
         self.stop = datetime(2000, 1, 1, 1, 2)
-        self.data = self.ws.get_parameter("imf", self.start, self.stop)
-        self.dataset = self.ws.get_dataset("ace-imf-all", self.start, self.stop)
+        self.data = spz.amda.get_parameter("imf", self.start, self.stop)
+        self.dataset = spz.amda.get_dataset("ace-imf-all", self.start, self.stop)
 
     def tearDown(self):
         pass

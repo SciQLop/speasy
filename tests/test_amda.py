@@ -6,7 +6,8 @@
 import unittest
 import os
 from datetime import datetime, timezone
-from speasy.amda import AMDA, load_csv
+import speasy as spz
+from speasy.amda import load_csv
 
 
 class AMDAModule(unittest.TestCase):
@@ -26,7 +27,7 @@ class AMDAModule(unittest.TestCase):
 
 class SimpleRequest(unittest.TestCase):
     def setUp(self):
-        self.ws = AMDA()
+        pass
 
     def tearDown(self):
         pass
@@ -35,13 +36,13 @@ class SimpleRequest(unittest.TestCase):
         start_date = datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = self.ws.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                        disable_cache=True)
         self.assertIsNotNone(result)
         start_date = datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_hia_prest"
-        result = self.ws.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                        disable_cache=True)
         self.assertIsNotNone(result)
 
@@ -49,38 +50,42 @@ class SimpleRequest(unittest.TestCase):
         start_date = datetime(2006, 1, 8, 23, 30, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 9, 0, 30, 0, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = self.ws.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                        disable_cache=True)
         self.assertIsNotNone(result)
 
     def test_list_parameters(self):
-        result = self.ws.list_parameters()
+        result = spz.amda.list_parameters()
         self.assertTrue(len(result) != 0)
 
     def test_get_parameter(self):
         start, stop = datetime(2000, 1, 1), datetime(2000, 1, 2)
-        r = self.ws.get_parameter("imf", start, stop, disable_cache=True)
+        r = spz.amda.get_parameter("imf", start, stop, disable_cache=True)
         self.assertIsNotNone(r)
 
     def test_list_datasets(self):
-        result = self.ws.list_datasets()
+        result = spz.amda.list_datasets()
         self.assertTrue(len(result) != 0)
 
     def test_get_dataset(self):
         start, stop = datetime(2000, 1, 1), datetime(2000, 1, 2)
-        r = self.ws.get_dataset("tao-ura-sw", start, stop, disable_cache=True)
+        r = spz.amda.get_dataset("tao-ura-sw", start, stop, disable_cache=True)
         self.assertTrue(len(r) != 0)
 
     def test_list_timetables(self):
-        result = self.ws.list_timetables()
+        result = spz.amda.list_timetables()
+        self.assertTrue(len(result) != 0)
+
+    def test_list_user_timetables(self):
+        result = spz.amda.list_user_timetables()
         self.assertTrue(len(result) != 0)
 
     def test_get_sharedtimeTable_0(self):
-        r = self.ws.get_timetable("sharedtimeTable_0")
+        r = spz.amda.get_timetable("sharedtimeTable_0")
         self.assertIsNotNone(r)
 
     def test_get_timetable_from_TimetableIndex(self):
-        r = self.ws.get_timetable(self.ws.list_timetables()[-1])
+        r = spz.amda.get_timetable(spz.amda.list_timetables()[-1])
         self.assertIsNotNone(r)
 
 

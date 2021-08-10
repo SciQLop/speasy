@@ -4,13 +4,12 @@
 """Tests for `amda` package timetable implementation."""
 
 import unittest
-from speasy.amda import AMDA
+import speasy as spz
 
 
 class TimetableRequests(unittest.TestCase):
     def setUp(self):
-        self.ws = AMDA()
-        self.tt = self.ws.get_timetable("sharedtimeTable_0")
+        self.tt = spz.amda.get_timetable("sharedtimeTable_0")
 
     def tearDown(self):
         pass
