@@ -36,7 +36,7 @@ jobs:
       run: |
         pip install pytest
         pip install pytest-cov
-        SPEASY_AMDA_PASSWORD=${{ secrets.SPEASY_AMDA_PASSWORD }} SPEASY_AMDA_USERNAME=${{ secrets.SPEASY_AMDA_USERNAME }} pytest --cov=./ --cov-report=xml
+        SPEASY_AMDA_PASSWORD="${{ secrets.SPEASY_AMDA_PASSWORD }}" SPEASY_AMDA_USERNAME="${{ secrets.SPEASY_AMDA_USERNAME }}" pytest --cov=./ --cov-report=xml
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.8'
       uses: codecov/codecov-action@v1

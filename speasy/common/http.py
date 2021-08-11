@@ -13,7 +13,7 @@ def get(url, headers: dict = None, params: dict = None):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
     resp = requests.get(url, headers=headers, params=params)
-    while resp.status_code in [429, 523]:
+    while resp.status_code in [429, 503]:
         try:
             delay = float(resp.headers['Retry-After'])
         except ValueError:
