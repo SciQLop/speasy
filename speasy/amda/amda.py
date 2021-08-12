@@ -372,7 +372,7 @@ class AMDA:
         """
         return self._dl_timetable(xmlid(timetable_id))
 
-    def get_catalog(self, catalog_id: str):
+    def get_catalog(self, catalog_id: str or CatalogIndex):
         """Get catalog data by ID.
 
         :param catalog_id: catalog id
@@ -386,7 +386,7 @@ class AMDA:
            <speasy.common.variable.SpeasyVariable object at 0x7f829cc644a0>
 
         """
-        return self._dl_catalog(catalog_id)
+        return self._dl_catalog(xmlid(catalog_id))
 
     def get_obs_data_tree(self) -> dict:
         """Get observatory data tree, a XML file containing information about available products.
