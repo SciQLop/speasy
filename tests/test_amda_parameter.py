@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import speasy as spz
 from speasy.common.variable import SpeasyVariable
 
-from speasy.amda.dataset import Dataset
+from speasy.common.dataset import Dataset
 
 
 class ParameterRequests(unittest.TestCase):
@@ -53,8 +53,8 @@ class ParameterRequests(unittest.TestCase):
         self.assertTrue(len(self.dataset) > 0)
 
     def test_dataset_items_datatype(self):
-        for item in self.dataset.parameters:
-            self.assertTrue(isinstance(self.dataset.parameters[item], SpeasyVariable))
+        for item in self.dataset:
+            self.assertTrue(isinstance(self.dataset[item], SpeasyVariable))
 
 
 if __name__ == '__main__':

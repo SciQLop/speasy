@@ -23,12 +23,12 @@ from .rest import AmdaRest
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .indexes import DatasetIndex, TimetableIndex, CatalogIndex, ParameterIndex, xmlid
-from .dataset import Dataset
+from ..common.dataset import Dataset
 
 import io
 import xmltodict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 # General modules
 from ..config import amda_password, amda_username
@@ -54,6 +54,19 @@ class ProductType(Enum):
     COMPONENT = 3
     TIMETABLE = 4
     CATALOG = 5
+
+
+class MissingCredentials(Exception):
+    pass
+
+
+def _get_credentials():
+    login = amda_username.get()
+    password = amda_password.get()
+    if login == "" or password == "":
+        raise MissingCredentials()
+
+    return login, password
 
 
 class AMDA:
@@ -261,8 +274,9 @@ class AMDA:
             exception being raised.
 
         """
-        return self._dl_user_parameter(parameter_id=parameter_id, username=amda_username.get(),
-                                       password=amda_password.get(), start_time=start_time, stop_time=stop_time)
+        username, password = _get_credentials()
+        return self._dl_user_parameter(parameter_id=parameter_id, username=username,
+                                       password=password, start_time=start_time, stop_time=stop_time)
 
     def get_user_timetable(self, timetable_id: str) -> TimeTable:
         """Get user timetable. Raises an exception if user is not authenticated.
@@ -284,7 +298,8 @@ class AMDA:
             exception being raised.
 
         """
-        return self._dl_timetable(timetable_id=timetable_id, userID=amda_username.get(), password=amda_password.get())
+        username, password = _get_credentials()
+        return self._dl_timetable(timetable_id=timetable_id, userID=username, password=password)
 
     def get_user_catalog(self, catalog_id: str):
         """Get user catalog. Raises an exception if user is not authenticated.
@@ -306,7 +321,8 @@ class AMDA:
             exception being raised.
 
         """
-        return self._dl_catalog(catalog_id=catalog_id, userID=amda_username.get(), password=amda_password.get())
+        username, password = _get_credentials()
+        return self._dl_catalog(catalog_id=catalog_id, userID=username, password=password)
 
     def get_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime, stop_time: datetime, **kwargs) -> \
         Optional[SpeasyVariable]:
@@ -352,8 +368,11 @@ class AMDA:
 
         """
         # get list of parameters for this dataset
+        name = self.dataset[dataset_id]['name']
+        meta = self.dataset[dataset_id]
         parameters = self.list_parameters(dataset_id)
-        return Dataset({p: self.get_parameter(p, start, stop, **kwargs) for p in parameters})
+        return Dataset(name=name, variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
+                       meta=meta)
 
     def get_timetable(self, timetable_id: str or TimetableIndex) -> TimeTable:
         """Get timetable data by ID.
@@ -452,7 +471,7 @@ class AMDA:
                 datetime.strptime(dataset["dataStop"], '%Y-%m-%dT%H:%M:%SZ')
             )
 
-    def list_parameters(self, dataset_id: Optional[str or DatasetIndex] = None):
+    def list_parameters(self, dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:
 
         """Get list of parameter id available in AMDA
 
@@ -512,8 +531,9 @@ class AMDA:
 
         """
         # get list of private parameters
-        xml_tt_list = self._rest_client.list_user_timetables(username=amda_username.get(),
-                                                             password=amda_password.get()).strip()
+        username, password = _get_credentials()
+        xml_tt_list = self._rest_client.list_user_timetables(username=username,
+                                                             password=password).strip()
         d = xmltodict.parse(xml_tt_list)
         return [InventoryTree.node_to_dict(node) for node in listify(d['timetabList']['timetab'])] if 'timetab' in d[
             'timetabList'] else []
@@ -537,8 +557,9 @@ class AMDA:
 
         """
         # get list of private parameters
-        xml_cat_list = self._rest_client.list_user_catalogs(username=amda_username.get(),
-                                                            password=amda_password.get()).strip()
+        username, password = _get_credentials()
+        xml_cat_list = self._rest_client.list_user_catalogs(username=username,
+                                                            password=password).strip()
         d = xmltodict.parse(xml_cat_list)
         return [InventoryTree.node_to_dict(node) for node in listify(d['catalogList']['catalog'])] if 'catalog' in d[
             'catalogList'] else []
@@ -566,7 +587,8 @@ class AMDA:
 
         """
         # get list of private parameters
-        l = self._rest_client.get_user_parameters(username=amda_username.get(), password=amda_password.get()).strip()
+        username, password = _get_credentials()
+        l = self._rest_client.get_user_parameters(username=username, password=password).strip()
         d = xmltodict.parse("<root>{}</root>".format(l), attr_prefix="")
         t = http.get(d["root"]["UserDefinedParameters"]).text
         tree = etree.parse(io.StringIO(t), parser=etree.XMLParser(recover=True))

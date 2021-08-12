@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from . import span_utils
+from . import span_utils, make_utc_datetime
+import numpy as np
 
 
 class DateTimeRange:
@@ -8,9 +9,10 @@ class DateTimeRange:
 
     __slots__ = ['start_time', 'stop_time']
 
-    def __init__(self, start_time: datetime, stop_time: datetime):
-        self.start_time = start_time
-        self.stop_time = stop_time
+    def __init__(self, start_time: datetime or str or np.float64 or float,
+                 stop_time: datetime or str or np.float64 or float):
+        self.start_time = make_utc_datetime(start_time)
+        self.stop_time = make_utc_datetime(stop_time)
 
     def __eq__(self, other):
         return span_utils.equals(self, other)

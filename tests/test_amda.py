@@ -37,13 +37,13 @@ class SimpleRequest(unittest.TestCase):
         stop_date = datetime(2006, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
         result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                       disable_cache=True)
+                                        disable_cache=True)
         self.assertIsNotNone(result)
         start_date = datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_hia_prest"
         result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                       disable_cache=True)
+                                        disable_cache=True)
         self.assertIsNotNone(result)
 
     def test_get_variable_over_midnight(self):
@@ -51,7 +51,7 @@ class SimpleRequest(unittest.TestCase):
         stop_date = datetime(2006, 1, 9, 0, 30, 0, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
         result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                       disable_cache=True)
+                                        disable_cache=True)
         self.assertIsNotNone(result)
 
     def test_list_parameters(self):
@@ -77,8 +77,11 @@ class SimpleRequest(unittest.TestCase):
         self.assertTrue(len(result) != 0)
 
     def test_list_user_timetables(self):
-        result = spz.amda.list_user_timetables()
-        self.assertTrue(len(result) != 0)
+        if spz.config.amda_username.get() == "" or spz.config.amda_password.get() == "":
+            self.skipTest("Missing AMDA credentials")
+        else:
+            result = spz.amda.list_user_timetables()
+            self.assertTrue(len(result) != 0)
 
     def test_get_sharedtimeTable_0(self):
         r = spz.amda.get_timetable("sharedtimeTable_0")

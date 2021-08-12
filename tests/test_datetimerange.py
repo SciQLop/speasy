@@ -31,8 +31,9 @@ class SpanTransComparaisons(unittest.TestCase):
         ([1., 10.], [0., 10.], False),
         ([1., 10.], [1., 15.], False),
         (DateTimeRange(datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)),
-         [datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)], True),
-        ([datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 2, 0, 0)],
+         [datetime(2001, 1, 8, 1, 0, 0, tzinfo=timezone.utc), datetime(2001, 1, 8, 2, 0, 0, tzinfo=timezone.utc)],
+         True),
+        ([datetime(2001, 1, 8, 1, 0, 0, tzinfo=timezone.utc), datetime(2001, 1, 8, 2, 0, 0, tzinfo=timezone.utc)],
          DateTimeRange(datetime(2001, 1, 8, 1, 0, 0), datetime(2001, 1, 8, 3, 0, 0)), False),
     )
     @unpack
