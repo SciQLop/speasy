@@ -23,7 +23,6 @@ from .rest import AmdaRest, auth_args
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .indexes import DatasetIndex, TimetableIndex, CatalogIndex, ParameterIndex, xmlid
-from ..common.dataset import Dataset
 
 import xmltodict
 from datetime import datetime
@@ -34,6 +33,7 @@ from ..config import amda_password, amda_username
 from ..cache import _cache, Cacheable
 from ..common.datetime_range import DateTimeRange
 from ..common.variable import SpeasyVariable
+from ..common.dataset import Dataset
 from ..common.timetable import TimeTable
 from ..proxy import Proxyfiable, GetProduct
 from ..common import http, listify
@@ -178,7 +178,7 @@ class AMDA:
             if timetable:
                 timetable.meta.update(self.timeTable.get(timetable_id, {}))
                 log.debug(
-                    'Loaded timetable: id = {}'.format(timetable_id))
+                    'Loaded timetable: id = {}'.format(timetable_id))  # lgtm[py/clear-text-logging-sensitive-data]
             else:
                 log.debug('Loaded timetable: Empty cat')
             return timetable
@@ -190,7 +190,7 @@ class AMDA:
             var = load_catalog(url)
             if var:
                 log.debug(
-                    'Loaded catalog: id = {}'.format(catalog_id))
+                    'Loaded catalog: id = {}'.format(catalog_id))  # lgtm[py/clear-text-logging-sensitive-data]
             else:
                 log.debug('Loaded catalog: Empty catalog')
             return var
