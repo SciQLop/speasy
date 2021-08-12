@@ -10,19 +10,8 @@ import speasy as spz
 from speasy.amda import load_csv
 
 
-class AMDAModule(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_loads_csv(self):
-        var = load_csv(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt')
-        self.assertEqual(var.values.shape[0], len(var.time))
-        self.assertEqual(var.values.shape[1], len(var.columns))
-        self.assertGreater(len(var.time), 0)
-        self.assertTrue('MISSION_ID' in var.meta)
+def has_amda_creds() -> bool:
+    return spz.config.amda_username.get() != "" and spz.config.amda_password.get() != ""
 
 
 class SimpleRequest(unittest.TestCase):
@@ -58,6 +47,13 @@ class SimpleRequest(unittest.TestCase):
         result = spz.amda.list_parameters()
         self.assertTrue(len(result) != 0)
 
+    def test_list_user_parameters(self):
+        if has_amda_creds():
+            result = spz.amda.list_user_parameters()
+            self.assertTrue(len(result) != 0)
+        else:
+            self.skipTest("Missing AMDA credentials")
+
     def test_get_parameter(self):
         start, stop = datetime(2000, 1, 1), datetime(2000, 1, 2)
         r = spz.amda.get_parameter("imf", start, stop, disable_cache=True)
@@ -77,11 +73,26 @@ class SimpleRequest(unittest.TestCase):
         self.assertTrue(len(result) != 0)
 
     def test_list_user_timetables(self):
-        if spz.config.amda_username.get() == "" or spz.config.amda_password.get() == "":
-            self.skipTest("Missing AMDA credentials")
-        else:
+        if has_amda_creds():
             result = spz.amda.list_user_timetables()
             self.assertTrue(len(result) != 0)
+        else:
+            self.skipTest("Missing AMDA credentials")
+
+
+class AMDAModule(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_loads_csv(self):
+        var = load_csv(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt')
+        self.assertEqual(var.values.shape[0], len(var.time))
+        self.assertEqual(var.values.shape[1], len(var.columns))
+        self.assertGreater(len(var.time), 0)
+        self.assertTrue('MISSION_ID' in var.meta)
 
     def test_get_sharedtimeTable_0(self):
         r = spz.amda.get_timetable("sharedtimeTable_0")

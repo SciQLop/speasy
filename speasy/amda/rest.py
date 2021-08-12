@@ -21,6 +21,10 @@ class Endpoint(Enum):
     GETPARAM = "getParameter.php"
 
 
+def auth_args(username: str, password: str) -> dict:
+    return {'userID': username, 'password': password}
+
+
 class AmdaRest:
     """AMDA REST client.
 
@@ -132,7 +136,7 @@ class AmdaRest:
                 log.debug(f"Failed: {r.text}")
         return None
 
-    def get_timetable_list(self, **kwargs: dict):
+    def list_timetables(self, **kwargs: str):
         """Get list of timetables.
 
         :param kwargs: keyword arguments, username and password for private timetables
@@ -142,7 +146,7 @@ class AmdaRest:
         """
         return self.send_indirect_request(Endpoint.LISTTT, params=kwargs)
 
-    def get_catalog_list(self, **kwargs: dict):
+    def list_catalogs(self, **kwargs: str):
         """Get list of catalogs.
 
         :param kwargs: keyword arguments, username and password for private catalogs
@@ -152,7 +156,7 @@ class AmdaRest:
         """
         return self.send_indirect_request(Endpoint.LISTCAT, params=kwargs)
 
-    def list_user_timetables(self, username, password, **kwargs: dict):
+    def list_user_timetables(self, username, password, **kwargs: str):
         """Get private timetables.
 
         :param username: username
@@ -164,9 +168,9 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
-        return self.get_timetable_list(userID=username, password=password, **kwargs)
+        return self.list_timetables(userID=username, password=password, **kwargs)
 
-    def list_user_catalogs(self, username, password, **kwargs: dict):
+    def list_user_catalogs(self, username: str, password: str, **kwargs: str):
         """Get private catalogs.
 
         :param username: username
@@ -178,9 +182,9 @@ class AmdaRest:
         :return: request result, XML formatted text
         :rtype: str
         """
-        return self.get_catalog_list(userID=username, password=password, **kwargs)
+        return self.list_catalogs(userID=username, password=password, **kwargs)
 
-    def get_user_parameters(self, username, password, **kwargs: dict):
+    def list_user_parameters(self, username, password, **kwargs: str):
         """Get private parameters.
 
         :param username: username
@@ -194,7 +198,7 @@ class AmdaRest:
         """
         return self.send_request(Endpoint.LISTPARAM, params=all_kwargs(**kwargs, userID=username, password=password))
 
-    def get_timetable(self, **kwargs: dict):
+    def get_timetable(self, **kwargs: str):
         """Get timetable request.
 
         :param kwargs: keyword arguments
@@ -204,7 +208,7 @@ class AmdaRest:
         """
         return self.send_request(Endpoint.GETTT, params=kwargs)
 
-    def get_catalog(self, **kwargs: dict):
+    def get_catalog(self, **kwargs: str):
         """Get catalog request.
 
         :param kwargs: keyword arguments
@@ -215,7 +219,7 @@ class AmdaRest:
 
         return self.send_request(Endpoint.GETCAT, params=kwargs)
 
-    def get_parameter(self, **kwargs: dict):
+    def get_parameter(self, **kwargs: str):
         """Get parameter request.
 
         :param kwargs: keyword arguments

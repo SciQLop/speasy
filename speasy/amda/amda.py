@@ -19,13 +19,12 @@ and parameters.
 """
 
 # AMDA, provider specific modules
-from .rest import AmdaRest
+from .rest import AmdaRest, auth_args
 from .utils import load_csv, load_timetable, get_parameter_args, load_catalog
 from .inventory import InventoryTree
 from .indexes import DatasetIndex, TimetableIndex, CatalogIndex, ParameterIndex, xmlid
 from ..common.dataset import Dataset
 
-import io
 import xmltodict
 from datetime import datetime
 from typing import Optional, List
@@ -40,7 +39,6 @@ from ..proxy import Proxyfiable, GetProduct
 from ..common import http, listify
 import logging
 from enum import Enum
-from lxml import etree
 
 log = logging.getLogger(__name__)
 
@@ -153,22 +151,6 @@ class AMDA:
         """
         return self._rest_client.token
 
-    def _dl_user_parameter(self, parameter_id: str, username: str, password: str, start_time: datetime,
-                           stop_time: datetime):
-        url = self._rest_client.get_parameter(parameterID=parameter_id, userID=username, password=password,
-                                              startTime=start_time.strftime(self.__datetime_format__),
-                                              stopTime=stop_time.strftime(self.__datetime_format__))
-
-        if url is not None:
-            # get a SpeasyVariable object
-            var = load_csv(url)
-            if len(var):
-                log.debug("Loaded user parameter : data shape {shape}, username {username}".format(
-                    shape=var.values.shape, username=username))
-            else:
-                log.debug("Loaded user parameter : empty var")
-            return var
-
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
 
@@ -275,8 +257,8 @@ class AMDA:
 
         """
         username, password = _get_credentials()
-        return self._dl_user_parameter(parameter_id=parameter_id, username=username,
-                                       password=password, start_time=start_time, stop_time=stop_time)
+        return self._dl_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time,
+                                  **auth_args(username=username, password=password))
 
     def get_user_timetable(self, timetable_id: str) -> TimeTable:
         """Get user timetable. Raises an exception if user is not authenticated.
@@ -299,7 +281,7 @@ class AMDA:
 
         """
         username, password = _get_credentials()
-        return self._dl_timetable(timetable_id=timetable_id, userID=username, password=password)
+        return self._dl_timetable(timetable_id=timetable_id, **auth_args(username=username, password=password))
 
     def get_user_catalog(self, catalog_id: str):
         """Get user catalog. Raises an exception if user is not authenticated.
@@ -322,7 +304,7 @@ class AMDA:
 
         """
         username, password = _get_credentials()
-        return self._dl_catalog(catalog_id=catalog_id, userID=username, password=password)
+        return self._dl_catalog(catalog_id=catalog_id, **auth_args(username=username, password=password))
 
     def get_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime, stop_time: datetime, **kwargs) -> \
         Optional[SpeasyVariable]:
@@ -421,7 +403,7 @@ class AMDA:
         :return: timetable inventory tree
         :rtype: dict
         """
-        ttt = self._rest_client.get_timetable_list()
+        ttt = self._rest_client.list_timetables()
         content = xmltodict.parse(ttt)
         return content
 
@@ -431,7 +413,7 @@ class AMDA:
         :return: catalog inventory tree
         :rtype: dict
         """
-        ttt = self._rest_client.get_catalog_list()
+        ttt = self._rest_client.list_catalogs()
         content = xmltodict.parse(ttt)
         return content
 
@@ -588,18 +570,14 @@ class AMDA:
         """
         # get list of private parameters
         username, password = _get_credentials()
-        l = self._rest_client.get_user_parameters(username=username, password=password).strip()
-        d = xmltodict.parse("<root>{}</root>".format(l), attr_prefix="")
-        t = http.get(d["root"]["UserDefinedParameters"]).text
-        tree = etree.parse(io.StringIO(t), parser=etree.XMLParser(recover=True))
-        pp = [e.attrib for e in tree.iter(tag="param")]
-        for p in pp:
-            for k in p:
-                if k.endswith("}id"):
-                    v = p[k]
-                    del p[k]
-                    p["id"] = v
-        return [dict(d) for d in pp]
+        l = self._rest_client.list_user_parameters(username=username, password=password).strip()
+        d = xmltodict.parse("<root>{}</root>".format(l))
+        if "UserDefinedParameters" in d["root"]:
+            xml_param_list = http.get(d["root"]["UserDefinedParameters"]).text
+            d = xmltodict.parse(xml_param_list)['ws']
+            return [InventoryTree.node_to_dict(node) for node in
+                    listify(d['paramList']['param'])] if 'param' in d['paramList'] else []
+        return []
 
     def list_timetables(self):
         """Get list of public timetables.
