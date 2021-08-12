@@ -99,6 +99,15 @@ class ASpwcVariable(unittest.TestCase):
         self.assertListEqual(var1.time.tolist(), var3.time.tolist())
         self.assertListEqual(var1.values.tolist(), var3.values.tolist())
 
+    def test_is_plotable(self):
+        try:
+            import matplotlib.pyplot as plt
+            var = make_simple_var(1., 10., 1., 10.)
+            ax = var.plot()
+            self.assertIsNotNone(ax)
+        except ImportError:
+            self.skipTest("Can't import matplotlib")
+
 
 class SpwcVariableCompare(unittest.TestCase):
     def setUp(self):

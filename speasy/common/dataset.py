@@ -1,0 +1,45 @@
+from typing import Optional
+from . import all_of_type, make_utc_datetime
+from .variable import SpeasyVariable
+from .datetime_range import DateTimeRange
+
+
+class Dataset:
+    __slots__ = ['name', 'variables', 'meta']
+
+    def __init__(self, name: str, variables: dict, meta: dict):
+        if not all_of_type(variables.values(), SpeasyVariable):
+            raise TypeError(f"variables must be a {dict} with {SpeasyVariable} as values")
+        self.name = name
+        self.variables = variables
+        self.meta = meta
+
+    def time_range(self) -> Optional[DateTimeRange]:
+        start = min(map(lambda v: v.time[0], filter(len, self.variables.values())), default=None)
+        stop = max(map(lambda v: v.time[-1], filter(len, self.variables.values())), default=None)
+        if start and stop:
+            return DateTimeRange(start, stop)
+        return None
+
+    def __len__(self):
+        return len(self.variables)
+
+    def __getitem__(self, variable_name):
+        return self.variables[variable_name]
+
+    def __repr__(self):
+        return f"""<Dataset: {self.name}
+        variables: {list(self.variables.keys())}
+        time range: {self.time_range()}"""
+
+    def __iter__(self):
+        return self.variables.__iter__()
+
+    def __contains__(self, item):
+        return self.variables.__contains__(item)
+
+    def plot(self, ax=None, **kwargs):
+        for var in self.variables.values():
+            if len(var):
+                ax = var.plot(ax=ax)
+        return ax
