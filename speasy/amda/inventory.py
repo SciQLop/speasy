@@ -2,6 +2,7 @@
 """
 from ..common import listify
 
+
 class InventoryTree:
     @staticmethod
     def node_to_dict(node, **kwargs):
@@ -29,5 +30,3 @@ class InventoryTree:
     @staticmethod
     def extrac_all(tree, storage):
         InventoryTree.enter_nodes(tree, storage)
-
-
