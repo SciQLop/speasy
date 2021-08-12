@@ -1,0 +1,10 @@
+path_classifiers:
+  test:
+    - "tests/*.py"
+  examples:
+    - 'examples/*.py'
+    - exclude: examples
+extraction:
+  python:
+    python_setup:
+      version: 3

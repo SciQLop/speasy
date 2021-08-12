@@ -1,5 +1,5 @@
 from typing import Optional
-from . import all_of_type, make_utc_datetime
+from . import all_of_type
 from .variable import SpeasyVariable
 from .datetime_range import DateTimeRange
 
