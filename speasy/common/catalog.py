@@ -1,11 +1,11 @@
 from .datetime_range import DateTimeRange
 from datetime import datetime
 from typing import List
-from ..common import listify
+from ..common import listify, all_of_type
 
 
 def _all_are_events(event_list):
-    return all(map(lambda e: type(e) == Event, event_list))
+    return all_of_type(event_list, Event)
 
 
 class Event(DateTimeRange):
@@ -17,7 +17,7 @@ class Event(DateTimeRange):
 
     def __eq__(self, other):
         return (self.meta == other.meta) and super().__eq__(other)
-    
+
     def __repr__(self):
         return f"<Event: {self.start_time.isoformat()} -> {self.stop_time.isoformat()} | {self.meta}>"
 
@@ -51,3 +51,6 @@ class Catalog:
 
     def pop(self, index=-1):
         return self._events.pop(index)
+
+    def __repr__(self):
+        return f"""<Catalog: {self.name}>"""
