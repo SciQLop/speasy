@@ -1,10 +1,10 @@
 from .datetime_range import DateTimeRange
 from typing import List
-from ..common import listify
+from ..common import listify, all_of_type
 
 
 def _all_are_datetime_ranges(dt_list):
-    return all(map(lambda e: type(e) == DateTimeRange, dt_list))
+    return all_of_type(dt_list, DateTimeRange)
 
 
 class TimeTable:
@@ -36,3 +36,6 @@ class TimeTable:
 
     def pop(self, index=-1):
         return self._storage.pop(index)
+
+    def __repr__(self):
+        return f"""<TimeTable: {self.name}>"""

@@ -16,26 +16,23 @@ class SpeasyVariable(object):
     :type meta: dict
     :param columns: column names
     :type columns: list[str]
-    :param y: 
-    :type y: 
+    :param y:
+    :type y:
 
     """
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 
-    def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta=None, columns=None, y=None):
+    def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta: Optional[dict] = None,
+                 columns: Optional[list[str]] = None, y: Optional[np.ndarray] = None):
         """Constructor
         """
-        if meta is None:
-            meta = dict()
-        if columns is None:
-            columns = []
-        self.meta = meta
+        self.meta = meta or {}
+        self.columns = columns or []
         if len(data.shape) == 1:
             self.values = data.reshape((data.shape[0], 1))  # to be consistent with pandas
         else:
             self.values = data
         self.time = time
-        self.columns = columns
         self.y = y
 
     def view(self, time_range):
@@ -71,7 +68,7 @@ class SpeasyVariable(object):
         """Item getter
 
         :param key: key
-        :type key: slice 
+        :type key: slice
         :return: data slice
         :rtype: speasy.common.variable.SpeasyVariable
         """
@@ -135,7 +132,7 @@ class SpeasyVariable(object):
             time = np.array([d.timestamp() for d in df.index])
         else:
             time = df.index.values
-        return SpeasyVariable(time, df.values, {}, [c for c in df.columns])
+        return SpeasyVariable(time=time, data=df.values, meta={}, columns=list(df.columns))
 
 
 def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
@@ -143,7 +140,7 @@ def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
 
     :param df: input dataframe
     :type df: pandas.DataFrame
-    :return: speasy variable 
+    :return: speasy variable
     :rtype: speasy.common.variable.SpeasyVariable
     """
     return SpeasyVariable.from_dataframe(df)
@@ -199,8 +196,8 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
         sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
 
-    units = [var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')]
-    if len(units):
+    units = set([var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')])
+    if len(units) == 1:
         data *= units[0]
 
     pos = 0
