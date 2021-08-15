@@ -198,7 +198,7 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
 
     units = set([var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')])
     if len(units) == 1:
-        data *= units[0]
+        data *= units.pop()
 
     pos = 0
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
