@@ -1,4 +1,4 @@
-AMDA Example 11: getting user catalogs
+AMDA_Webservice Example 11: getting user catalogs
 --------------------------------------
 
 Downloading private catalogs.
@@ -7,7 +7,7 @@ Downloading private catalogs.
 
 Output ::
 
-   $ python amda_get_user_catalog.py 
+   $ python amda_get_user_catalog.py
    <speasy.common.variable.SpeasyVariable object at 0x7f76472b76d0>
 
 

@@ -1,8 +1,8 @@
 import unittest
 from datetime import datetime
 
-from speasy.common.timetable import TimeTable
-from speasy.common.datetime_range import DateTimeRange
+from speasy.products.timetable import TimeTable
+from speasy.core.datetime_range import DateTimeRange
 
 
 class SpeasyTimetable(unittest.TestCase):

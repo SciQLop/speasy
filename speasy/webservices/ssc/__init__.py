@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-"""cdaweb package for Space Physics WebServices Client."""
+"""cda package for Space Physics WebServices Client."""
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-import os
 from typing import Optional
 from datetime import datetime, timedelta
-from ..cache import _cache, Cacheable
-from ..common.variable import SpeasyVariable
-from ..common import http
-from ..proxy import Proxyfiable, GetProduct
+from speasy.core.cache import Cacheable, CacheCall
+from speasy.products.variable import SpeasyVariable
+from ...core import http
+from speasy.core.proxy import Proxyfiable, GetProduct
+from .indexes import SscwebParameterIndex
+from speasy.inventory import data_tree
 import numpy as np
 from astropy import units
 
@@ -44,10 +45,16 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_system', 'gse')}
 
 
-class SscWeb:
+class SSC_Webservice:
     def __init__(self):
         self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
+        self.update_inventory()
 
+    def update_inventory(self):
+        inv = list(map(SscwebParameterIndex, self.get_observatories()))
+        data_tree.ssc.Trajectories.__dict__.update({item.Id: item for item in inv})
+
+    @CacheCall(cache_retention=7 * 24 * 60 * 60, is_pure=True)
     def get_observatories(self):
         res = http.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
         if not res.ok:
@@ -57,7 +64,7 @@ class SscWeb:
     def version(self, product):
         return 2
 
-# Wrapper to ensure that whatever the source (Proxy, Cache, SSCWeb) the returned variable is in km
+    # Wrapper to ensure that whatever the source (Proxy, Cache, SSCWeb) the returned variable is in km
     def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                   debug=False, **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,

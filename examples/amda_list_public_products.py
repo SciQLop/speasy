@@ -1,20 +1,15 @@
-import sys
-sys.path.insert(0,"..")
-from speasy.amda import AMDA
-from datetime import datetime
-
-amda = AMDA()
+import speasy as spz
 
 # get list of datasets
-datasets = amda.list_datasets()
+datasets = spz.amda.list_datasets()
 
 # get parameter list
-parameters = amda.list_parameters()
+parameters = spz.amda.list_parameters()
 
 # get time-table list
-timetables = amda.list_timetables()
+timetables = spz.amda.list_timetables()
 
-print("AMDA products")
+print("AMDA_Webservice products")
 print("\tDatasets   : {}".format(len(datasets)))
 print("\tParameters : {}".format(len(parameters)))
 print("\tTimetables : {}".format(len(timetables)))

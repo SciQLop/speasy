@@ -1,11 +1,4 @@
-import sys
-sys.path.insert(0,"..")
+import speasy as spz
 
-from speasy.amda import AMDA
-import datetime
-
-amda = AMDA()
-ttlist = amda.list_catalogs()
-for catalog in amda.list_catalogs():
+for catalog in spz.amda.list_catalogs():
     print(catalog)
-    print(amda.catalog[catalog])

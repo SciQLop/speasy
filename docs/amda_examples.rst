@@ -1,9 +1,9 @@
-AMDA Examples
+AMDA_Webservice Examples
 -------------
 
 .. toctree::
    :maxdepth: 1
-   
+
    amda_example_1
    amda_example_2
    amda_example_3

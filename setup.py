@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', 'requests', 'xmltodict', 'pandas', 'diskcache', 'appdirs', 'numpy',
+requirements = ['Click>=6.0', 'requests', 'pandas', 'diskcache', 'appdirs', 'numpy',
                 'packaging', 'python-dateutil', 'astropy', 'spwc']
 
 setup_requirements = []
@@ -33,21 +33,20 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9'
     ],
-    description="A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..) mainly written to ease development of SciQLop.",
+    description="A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA_Webservice,..) mainly written to ease development of SciQLop.",
     entry_points={
         'console_scripts': [
             'speasy=speasy.cli:main',
         ],
     },
     install_requires=requirements,
-    extras_require={'CDF':  ["spacepy"]},
+    extras_require={'CDF': ["spacepy"]},
     license="GNU General Public License v3",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='speasy',
     name='speasy',
-    packages=find_packages(include=['speasy','speasy.amda','speasy.cache','speasy.cdaweb','speasy.common','speasy.config',
-                                    'speasy.sscweb','speasy.proxy']),
+    packages=find_packages(exclude=['tests', 'examples', 'doc']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,

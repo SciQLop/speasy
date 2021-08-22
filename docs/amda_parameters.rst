@@ -1,4 +1,4 @@
-AMDA Parameter
+AMDA_Webservice Parameter
 --------------
 
 Description of AMDAs parameter objects and their representation in :mod:`speasy`. In :mod:`speasy`

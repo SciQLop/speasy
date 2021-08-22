@@ -1,4 +1,4 @@
-AMDA Example 4: getting timetables
+AMDA_Webservice Example 4: getting timetables
 ----------------------------------
 
 Download a public timetable.
@@ -7,8 +7,8 @@ Download a public timetable.
 
 Output ::
 
-   $ python amda_get_public_timetable.py 
+   $ python amda_get_public_timetable.py
    <speasy.common.variable.SpeasyVariable object at 0x7f23cde66f90>
    timetable id : sharedtimeTable_0
    time.shape   : (782,)
-   values.shape : (782, 2) 
+   values.shape : (782, 2)

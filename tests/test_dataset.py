@@ -1,8 +1,8 @@
 import unittest
 
-from speasy.common.dataset import Dataset
-from speasy.common.variable import SpeasyVariable
-from speasy.common.datetime_range import DateTimeRange
+from speasy.products.dataset import Dataset
+from speasy.products.variable import SpeasyVariable
+from speasy.core.datetime_range import DateTimeRange
 import numpy as np
 
 

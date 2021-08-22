@@ -1,10 +1,5 @@
-import sys
-sys.path.insert(0,"..")
-from speasy.amda import AMDA
-import datetime
+import speasy as spz
 
-amda = AMDA()
-ttlist = amda.list_timetables()
-for timetable in amda.list_timetables():
+for timetable in spz.amda.list_timetables():
     print(timetable)
-    print(amda.get_timetable(timetable).data)
+    print(spz.amda.get_timetable(timetable))

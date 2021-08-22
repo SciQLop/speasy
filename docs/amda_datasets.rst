@@ -1,4 +1,4 @@
-AMDA Datasets
+AMDA_Webservice Datasets
 -------------
 
 Description of AMDAs dataset objects and their representation in :mod:`speasy`. In :mod:`speasy`

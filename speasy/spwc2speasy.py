@@ -2,9 +2,9 @@ from spwc.common.variable import SpwcVariable
 from spwc import cache as spwc_cache
 import spwc.cache
 
-import speasy.cache
-from speasy.common.variable import SpeasyVariable
-from speasy import cache as spz_cache
+import speasy.core.cache
+from speasy.products.variable import SpeasyVariable
+from speasy.core import cache as spz_cache
 
 
 def spwc_2_speasy_variable(v: SpwcVariable) -> SpeasyVariable:

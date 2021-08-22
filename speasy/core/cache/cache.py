@@ -2,7 +2,7 @@ from typing import Union
 
 import diskcache as dc
 from .version import str_to_version, version_to_str, Version
-from ..config import cache_size
+from speasy.config import cache_size
 
 cache_version = str_to_version("1.1")
 

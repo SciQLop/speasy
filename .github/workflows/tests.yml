@@ -34,9 +34,9 @@ jobs:
           SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
           SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
       run: |
-        pip install pytest
-        pip install pytest-cov
+        pip install pytest pytest-cov sphinx doctest sphinx-rtd-theme
         SPEASY_AMDA_PASSWORD="${{ secrets.SPEASY_AMDA_PASSWORD }}" SPEASY_AMDA_USERNAME="${{ secrets.SPEASY_AMDA_USERNAME }}" pytest --cov=./ --cov-report=xml
+        make doctest
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.8'
       uses: codecov/codecov-action@v1

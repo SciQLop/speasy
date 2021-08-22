@@ -1,8 +1,4 @@
-import sys
-sys.path.insert(0,"..")
+import speasy as spz
 
-from speasy.amda import AMDA
-
-amda=AMDA()
-for cid in amda.list_datasets():
-    print(amda.dataset[cid])
+for cid in spz.amda.list_datasets():
+    print(spz.amda.dataset[cid])

@@ -3,8 +3,8 @@
 
 """Tests for `speasy` package."""
 import unittest
-from datetime import datetime, timezone, timedelta
-from speasy import sscweb
+from datetime import datetime, timezone
+from speasy.webservices import ssc
 from astropy import units
 from ddt import ddt, data
 
@@ -12,7 +12,7 @@ from ddt import ddt, data
 @ddt
 class SscWeb(unittest.TestCase):
     def setUp(self):
-        self.ssc = sscweb.SscWeb()
+        self.ssc = ssc.SSC_Webservice()
 
     def tearDown(self):
         pass

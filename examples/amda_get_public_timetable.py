@@ -1,13 +1,8 @@
-import sys
-sys.path.insert(0,"..")
-
-from speasy.amda import AMDA
-
-amda = AMDA()
+import speasy as spz
 
 ttid = "sharedtimeTable_0"
 
-timetable = amda.get_timetable(ttid)
+timetable = spz.amda.get_timetable(ttid)
 
 print(timetable)
 print("timetable id : {}".format(ttid))

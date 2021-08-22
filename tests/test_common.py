@@ -3,8 +3,9 @@
 
 """Tests for `speasy.common` package."""
 import unittest
-import speasy.common as com
 from ddt import ddt, data, unpack
+
+import speasy.core
 
 
 @ddt
@@ -22,4 +23,4 @@ class Listify(unittest.TestCase):
     )
     @unpack
     def test_listify(self, input, expected):
-        self.assertEqual(com.listify(input), expected)
+        self.assertEqual(speasy.core.listify(input), expected)

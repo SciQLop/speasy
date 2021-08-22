@@ -1,13 +1,16 @@
 from speasy import SpeasyVariable
 from .cache import Cache, CacheItem
-from ..config import cache_path
-from typing import List, Callable, Optional, Union
-from ..common.datetime_range import DateTimeRange
-from ..common import make_utc_datetime
-from ..common.variable import merge as merge_variables
+from speasy.config import cache_path
+from typing import Union, Callable
+from speasy.core.datetime_range import DateTimeRange
+from .. import make_utc_datetime
+from speasy.products.variable import merge as merge_variables
+from speasy.inventory.indexes import ParameterIndex
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+import inspect
 import logging
+import base64
 
 log = logging.getLogger(__name__)
 _cache = Cache(cache_path.get())
@@ -78,6 +81,15 @@ def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwarg
     return f"{prefix}/{product}/{start_time}"
 
 
+def product_name(product: str or ParameterIndex):
+    if type(product) is str:
+        return product
+    elif isinstance(product, ParameterIndex):
+        return product.product()
+    else:
+        raise TypeError(f'Product must either be str or ParameterIndex got {type(product)}')
+
+
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,
@@ -115,6 +127,7 @@ class Cacheable(object):
     def __call__(self, get_data):
         @wraps(get_data)
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
+            product = product_name(product)
             version = self.version(wrapped_self, product) if self.version else 0
             dt_range = _make_range(start_time, stop_time)
             if kwargs.pop("disable_cache", False):
@@ -151,4 +164,49 @@ class Cacheable(object):
 
         if self.leak_cache:
             wrapped.cache = self.cache
+        return wrapped
+
+
+def make_key_from_args(*args, **kwargs):
+    key = list(map(str, args))
+    key += list(map(lambda k: str(k) + "=" + str(kwargs[k]), sorted(kwargs.keys())))
+    result = ','.join(key)
+    return base64.b64encode(result.encode()).decode()
+
+
+class CacheCall(object):
+    def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache):
+        self.cache_retention = cache_retention
+        self.cache = cache_instance
+        self.is_methode = False
+        self.is_pure = is_pure
+
+    def add_to_cache(self, cache_entry, value):
+        if value is not None:
+            self.cache.set(cache_entry, value, expire=self.cache_retention)
+        return value
+
+    def get_from_cache(self, cache_entry):
+        return self.cache.get(cache_entry, None)
+
+    def __call__(self, function: Callable):
+        spec = inspect.getfullargspec(function)
+        if len(spec.args) and 'self' == spec.args[0]:
+            self.is_methode = True
+        if self.is_pure:
+            cache_entry_prefix = f"__internal__/CacheCall/{function.__module__}/{function.__qualname__}"
+        else:
+            cache_entry_prefix = f"__internal__/CacheCall/{hash(function)}"
+
+        @wraps(function)
+        def wrapped(*args, disable_cache=False, force_refresh=False, **kwargs):
+            args_to_hash = args[1:] if self.is_methode and self.is_pure else args
+            cache_entry = cache_entry_prefix + "/" + make_key_from_args(*args_to_hash, **kwargs)
+            if disable_cache:
+                return function(*args, **kwargs)
+            if force_refresh:
+                return self.add_to_cache(cache_entry, function(*args, **kwargs))
+            else:
+                return self.get_from_cache(cache_entry) or self.add_to_cache(cache_entry, function(*args, **kwargs))
+
         return wrapped
