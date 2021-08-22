@@ -1,6 +1,6 @@
 .. _amda-timetables-label:
 
-AMDA Timetables
+AMDA_Webservice Timetables
 ---------------
 
 
@@ -10,7 +10,7 @@ timetable metadata are stored as dictionary objects. The timetable's attributes 
 
 * :data:`id`
 * :data:`name`
-* :data:`buildchain` : the parameters formula as defined in AMDA
+* :data:`buildchain` : the parameters formula as defined in AMDA_Webservice
 * :data:`timestep` : sampling rate in seconds
 * :data:`dim_1`
 * :data:`dim_2`

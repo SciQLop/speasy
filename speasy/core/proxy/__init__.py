@@ -1,4 +1,4 @@
-from ..config import proxy_enabled, proxy_url
+from speasy.config import proxy_enabled, proxy_url
 from functools import wraps
 import requests
 import pickle

@@ -1,17 +1,17 @@
-"""AMDA utility functions. This module defines some conversion functions specific to AMDA, mainly
+"""AMDA_Webservice utility functions. This module defines some conversion functions specific to AMDA_Webservice, mainly
 conversion procedures for parsing CSV and VOTable data.
 
 """
 import os
 import datetime
 from urllib.request import urlopen
-from speasy.common.variable import SpeasyVariable
+from speasy.products.variable import SpeasyVariable
 import pandas as pds
 import numpy as np
 
-from ..common.timetable import TimeTable
-from ..common.catalog import Catalog, Event
-from ..common.datetime_range import DateTimeRange
+from speasy.products.timetable import TimeTable
+from speasy.products.catalog import Catalog, Event
+from speasy.core.datetime_range import DateTimeRange
 
 
 def load_csv(filename):
@@ -54,11 +54,11 @@ def _build_event(data, colnames):
                  {name: value for name, value in zip(colnames[2:], data[2:])})
 
 
-def load_timetable(filename):
+def load_timetable(filename) -> TimeTable:
     """Load a timetable file
     :param filename: filename
     :type filename: str
-    :return: AMDA timetable
+    :return: AMDA_Webservice timetable
     :rtype: speasy.common.timetable.TimeTable
 
     """
@@ -82,7 +82,7 @@ def load_timetable(filename):
         return var
 
 
-def load_catalog(filename):
+def load_catalog(filename) -> Catalog:
     """Load a timetable file
 
     :param filename: filename

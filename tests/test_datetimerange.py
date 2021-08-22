@@ -1,9 +1,9 @@
 import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
-from speasy.common.datetime_range import DateTimeRange
-from speasy.common import span_utils
-from speasy.cache import _round_for_cache
+from speasy.core.datetime_range import DateTimeRange
+from speasy.core import span_utils
+from speasy.core.cache import _round_for_cache
 import operator
 
 

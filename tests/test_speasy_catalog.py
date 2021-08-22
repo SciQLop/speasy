@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 
-from speasy.common.catalog import Catalog, Event
+from speasy.products.catalog import Catalog, Event
 
 
 class SpeasyEvent(unittest.TestCase):

@@ -1,11 +1,10 @@
 import unittest
 from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
-from speasy.cache.cache import Cache
-from speasy.cache import Cacheable, _round_for_cache
-from speasy.cache.version import str_to_version, version_to_str
-from speasy.common.datetime_range import DateTimeRange
-from speasy.common.variable import SpeasyVariable
+from speasy.core.cache import Cache
+from speasy.core.cache import Cacheable
+from speasy.core.cache.version import str_to_version, version_to_str
+from speasy.products.variable import SpeasyVariable
 import packaging.version as Version
 import dateutil.parser as dt_parser
 import operator

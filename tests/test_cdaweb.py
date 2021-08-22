@@ -2,9 +2,9 @@ import unittest
 from ddt import ddt, data
 from datetime import datetime, timezone
 from multiprocessing import dummy
-import speasy.cdaweb as cd
-from speasy.cdaweb import cdaweb, CdaWebException
-from speasy.cache import Cache
+import speasy.webservices.cda as cd
+from speasy.webservices.cda import CDA_Webservice
+from speasy.core.cache import Cache
 import tempfile
 import shutil
 
@@ -15,7 +15,7 @@ class SimpleRequest(unittest.TestCase):
         self.default_cache_path = cd._cache._data.directory
         self.cache_path = tempfile.mkdtemp()
         cd._cache = Cache(self.cache_path)
-        self.cd = cdaweb()
+        self.cd = CDA_Webservice()
 
     def tearDown(self):
         cd._cache = Cache(self.default_cache_path)
@@ -43,7 +43,7 @@ class SimpleRequest(unittest.TestCase):
 
 class ConcurrentRequests(unittest.TestCase):
     def setUp(self):
-        self.cd = cdaweb()
+        self.cd = CDA_Webservice()
 
     def tearDown(self):
         pass

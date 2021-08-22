@@ -1,4 +1,4 @@
-AMDA Example 8: listing user timetables
+AMDA_Webservice Example 8: listing user timetables
 ---------------------------------------
 
 Listing private timetables.
@@ -7,7 +7,7 @@ Listing private timetables.
 
 Output ::
 
-   $ python amda_list_user_timetables.py 
+   $ python amda_list_user_timetables.py
    {'name': 'output-1', 'intervals': '389', 'id': 'tt_0'}
    {'name': 'output-12', 'intervals': '389', 'id': 'tt_1'}
    {'name': 'output-newell', 'intervals': '55446', 'id': 'tt_2'}

@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 
-"""cdaweb package for Space Physics WebServices Client."""
+"""CDA_Webservice package for Space Physics WebServices Client."""
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-import os
 from typing import Optional
 from datetime import datetime
 import pandas as pds
-from ..cache import Cacheable, _cache  # _cache is used for tests (hack...)
-from ..common.variable import SpeasyVariable
-from ..common import http
-from ..proxy import Proxyfiable, GetProduct
+from speasy.core.cache import Cacheable, _cache  # _cache is used for tests (hack...)
+from speasy.products.variable import SpeasyVariable
+from speasy.core import http
+from speasy.core.proxy import Proxyfiable, GetProduct
 import numpy as np
 import logging
 
@@ -43,7 +42,7 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}'}
 
 
-class cdaweb:
+class CDA_Webservice:
     def __init__(self):
         self.__url = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1"
 

@@ -5,7 +5,7 @@
 
 import unittest
 
-from speasy.common.variable import SpeasyVariable, merge, to_dataframe, from_dataframe
+from speasy.products.variable import SpeasyVariable, merge, to_dataframe, from_dataframe
 import numpy as np
 import pandas as pds
 

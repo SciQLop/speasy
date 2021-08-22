@@ -1,12 +1,6 @@
-import sys
-sys.path.insert(0,"..")
-
-from speasy.amda import AMDA
-
-# connect to AMDA
-amda = AMDA()
+import speasy as spz
 
 # loop over catalogs and download
-catalog_id = amda.list_catalogs()[0]
-catalog = amda.get_catalog(catalog_id)
+catalog_id = spz.amda.list_catalogs()[0]
+catalog = spz.amda.get_catalog(catalog_id)
 print(catalog.values)

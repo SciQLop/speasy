@@ -1,11 +1,5 @@
-import sys
-sys.path.insert(0,"..")
-
-from speasy.amda import AMDA
-
-# connect to AMDA
-amda=AMDA()
+import speasy as spz
 
 # loop over user timetables
-for utt in amda.list_user_timetables():
+for utt in spz.amda.list_user_timetables():
     print(utt)

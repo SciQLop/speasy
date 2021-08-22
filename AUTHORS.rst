@@ -10,7 +10,7 @@ Development Lead
 Contributors
 ------------
 
-AMDA
+AMDA_Webservice
 ^^^^
 
 * Alexandre Schulz <alexandre.schulz@irap.omp.eu>

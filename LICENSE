@@ -1,7 +1,7 @@
 GNU GENERAL PUBLIC LICENSE
                       Version 3, 29 June 2007
 
-    A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA,..) mainly written to ease development of SciQLop.
+    A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA_Webservice,..) mainly written to ease development of SciQLop.
     Copyright (C) 2018  Alexis Jeandet
 
     This program is free software: you can redistribute it and/or modify

@@ -6,9 +6,9 @@
 import unittest
 from datetime import datetime, timedelta
 import speasy as spz
-from speasy.common.variable import SpeasyVariable
+from speasy.products.variable import SpeasyVariable
 
-from speasy.common.dataset import Dataset
+from speasy.products.dataset import Dataset
 
 
 class ParameterRequests(unittest.TestCase):

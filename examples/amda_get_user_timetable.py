@@ -1,11 +1,6 @@
-import sys
-sys.path.insert(0,"..")
+import speasy as spz
 
-from speasy.amda import AMDA
-
-# connect to AMDA
-amda = AMDA()
 
 # get list of user timetables
-for tt in amda.list_user_timetables():
-    print(amda.get_user_timetable(tt["id"]))
+for tt in spz.amda.list_user_timetables():
+    print(spz.amda.get_user_timetable(tt["id"]))

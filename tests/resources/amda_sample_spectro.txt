@@ -1,9 +1,9 @@
 # -----------
-# AMDA INFO :
+# AMDA_Webservice INFO :
 # -----------
-# AMDA_ABOUT : Created by AMDA(c)
+# AMDA_ABOUT : Created by AMDA_Webservice(c)
 # AMDA_VERSION : 3.6.0
-# AMDA_ACKNOWLEDGEMENT : CDPP/AMDA Team
+# AMDA_ACKNOWLEDGEMENT : CDPP/AMDA_Webservice Team
 #
 # --------------
 # REQUEST INFO :

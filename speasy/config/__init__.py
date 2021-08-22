@@ -8,7 +8,7 @@ Configuration module for SPEASY, it reads or sets config entries first from ENV 
 import configparser
 import os
 import appdirs
-from ..common import mkdir
+from ..core import mkdir
 
 _CONFIG_FNAME = str(appdirs.user_config_dir(appname="speasy", appauthor="LPP")) + "/config.ini"
 mkdir(os.path.dirname(_CONFIG_FNAME))
@@ -82,3 +82,4 @@ cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "
 
 amda_username = ConfigEntry("AMDA", "username")
 amda_password = ConfigEntry("AMDA", "password")
+amda_user_cache_retention = ConfigEntry("AMDA_Webservice", "user_cache_retention", "900")  # 60 * 15 seconds

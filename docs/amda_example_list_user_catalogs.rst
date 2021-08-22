@@ -1,4 +1,4 @@
-AMDA Example 9: listing user catalogs
+AMDA_Webservice Example 9: listing user catalogs
 -------------------------------------
 
 Listing private catalogs.
@@ -7,7 +7,7 @@ Listing private catalogs.
 
 Output ::
 
-   $ python amda_list_user_catalogs.py 
+   $ python amda_list_user_catalogs.py
    {'name': 'mycata', 'intervals': '1457', 'id': 'cat_0'}
 
 

@@ -1,10 +1,4 @@
-import sys
-sys.path.insert(0,"..")
+import speasy as spz
 
-from speasy.amda import AMDA
-
-amda=AMDA()
-
-for paramid in amda.list_parameters():
-    print(amda.parameter[paramid])
-    print([k for k in amda.parameter[paramid]])
+for paramid in spz.amda.list_parameters():
+    print(paramid)
