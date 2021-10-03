@@ -4,17 +4,17 @@ from . import rest_client
 from .utils import load_csv, load_timetable, load_catalog
 from .inventory import AmdaXMLParser
 from .rest_client import auth_args
+from .exceptions import MissingCredentials
 
 from datetime import datetime
 from typing import Optional
 
 # General modules
-from speasy.config import amda_password, amda_username, amda_user_cache_retention
-from speasy.products.variable import SpeasyVariable
-from speasy.inventory import data_tree, flat_inventories
-from speasy.inventory import reset_amda_inventory as reset_amda_flat_inventory
-from .exceptions import MissingCredentials
-from speasy.core.cache import CacheCall
+from ...config import amda_password, amda_username, amda_user_cache_retention
+from ...products.variable import SpeasyVariable
+from ...inventory import data_tree, flat_inventories
+from ...inventory import reset_amda_inventory as reset_amda_flat_inventory
+from ...core.cache import CacheCall
 import logging
 
 log = logging.getLogger(__name__)

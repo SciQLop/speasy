@@ -1,4 +1,4 @@
-AMDA_Webservice
+AMDA
 ====
 
 .. toctree::
@@ -10,14 +10,13 @@ AMDA_Webservice
 
 
 Getting AMDA_Webservice dataset and parameters
------------------------------------
+----------------------------------------------
 
-First create a connexion to AMDA_Webservice::
+First import AMDA connection object::
 
-    >>> from speasy.amda import AMDA_Webservice
-    >>> amda = AMDA_Webservice()
+    >>> from speasy import amda
 
-Downloading the data is done by using the :meth:`speasy.amda.amda.AMDA_Webservice.get_data()` or :meth:`speasy.amda.amda.AMDA_Webservice.get_parameter()` methods. For example
+Downloading the data is done by using the :meth:`speasy.webservices.amda._amda.AMDA_Webservice.get_data()` or :meth:`speasy.amda.amda.AMDA_Webservice.get_parameter()` methods. For example
 getting `imf` data between 2000-01-01 and 2000-02-01::
 
     >>> parameter = amda.get_data("imf", datetime.datetime(2000,1,1), datetime.datetime(2000,2,1))
