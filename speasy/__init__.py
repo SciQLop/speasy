@@ -13,7 +13,7 @@ __all__ = ['amda', 'cda', 'ssc', 'get_data', 'get_orbit', 'SpeasyVariable', 'Cat
 __docformat__ = "numpy"
 
 from .inventory.indexes import SpeasyIndex
-from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable
+from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
 from . import webservices
 from typing import List, Union, Optional
 
@@ -34,8 +34,7 @@ def find_product(name: str) -> List[str]:
     pass
 
 
-def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwargs) -> Optional[
-    Union[Dataset, SpeasyVariable, TimeTable, Catalog]]:
+def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwargs) -> MaybeAnyProduct:
     """Download given product, this function accepts string paths like "sscweb/moon" or index objects
     from inventory trees.
 
@@ -51,7 +50,7 @@ def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwa
 
     Returns
     -------
-    Optional[Union[Dataset, SpeasyVariable, TimeTable, Catalog]]
+    MaybeAnyProduct
         The requested product if available or None
 
     Examples

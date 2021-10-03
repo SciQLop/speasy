@@ -37,31 +37,65 @@ Space Physics made EASY
     :target: https://mybinder.org/v2/gh/SciQLop/spwc/HEAD?filepath=examples%2Fdemo.ipynb
     :alt: Discover on MyBinder
 
-A simple Python package to deal with main Space Physics WebServices (CDA,CSA,AMDA_Webservice,..).
-This package was initially written to ease development of `SciQLop <https://github.com/SciQLop/SciQLop>`_ , but
-now offers an intuitive and efficient access to any scientist or student who just want get spacecraft data.
+Speasy is an open source Python client for Space Physics web services such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`_
+or `AMDA <http://amda.irap.omp.eu/>`_.
+Most space physics data analysis starts with finding which server provides which dataset then figuring out how to download them.
+This can be difficult specially for students or newcomers, Speasy try to remove all difficulties by providing an unique and
+simple API to access them all.
+Speasy aims to support as much as possible web services and also cover a maximum of features they propose.
 
-As simple as:
+Quickstart
+----------
+
+Installing Speasy with pip (:doc:`more details here <installation>`):
+
+.. code-block:: console
+
+    $ pip install speasy
+    # or
+    $ pip install --user speasy
+
+Getting data is as simple as:
 
 .. code-block:: python
 
     import speasy as spz
     ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
 
-* Free software: GNU General Public License v3
+Where amda is the webservice and imf is the product id you will get with this request.
+
+Using the dynamic inventory this can be even simpler:
+
+.. code-block:: python
+
+    import speasy as spz
+    amda_tree = spz.inventory.data_tree.amda
+    ace_mag = spz.get_data(amda_tree.Parameters.ACE.MFI.ace_imf_all.imf, "2016-6-2", "2016-6-5")
+
+Will produce the exact same result than previous example but has the advantage to be easier to manipulate since you can
+discover available data from your favourite Python environment completion such as IPython or notebooks (might not work from IDEs).
+
+This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`_, you can easily download trajectories:
+
+.. code-block:: python
+
+    import speasy as spz
+    sscweb_tree = spz.inventory.data_tree.ssc
+    solo = spz.get_data(sscweb_tree.Trajectories.solarorbiter, "2021-01-01", "2021-02-01")
 
 Documentation
 =============
 
-Check out the documentation and examples at `speasy documentation <https://spwc.readthedocs.io/en/latest/?badge=latest>`_.
+Check out the documentation and examples at `speasy documentation <https://speasy.readthedocs.io/en/latest/?badge=latest>`_.
 
 Features
-========
-
-- Simple and intuitive API
+--------
+- Simple and intuitive API (spz.get_data to get them all)
 - Pandas DataFrame like interface for variables
 - Quick functions to convert a variable to a Pandas DataFrame
 - Local cache to avoid repeating twice the same request
+- Can take advantage of SciQLop dedicated poxy as a community backed ultra fast cache
+- Full support of `AMDA <http://amda.irap.omp.eu/>`_ API.
 
 Examples
 ========

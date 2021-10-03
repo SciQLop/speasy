@@ -69,7 +69,6 @@ class AMDA_Webservice:
     def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
         from ._impl import AmdaImpl
         self._impl = AmdaImpl(server_url=server_url)
-        self._impl.update_inventory()
 
     def __del__(self):
         pass

@@ -17,6 +17,10 @@ from speasy.inventory import data_tree
 import numpy as np
 from astropy import units
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 def _variable(orbit: dict) -> Optional[SpeasyVariable]:
     data = orbit['Result']['Data'][1][0]['Coordinates'][1][0]
