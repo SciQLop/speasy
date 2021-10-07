@@ -7,7 +7,8 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from typing import Optional
-from datetime import datetime, timedelta
+import time
+from datetime import datetime, timedelta, timezone
 from speasy.core.cache import Cacheable, CacheCall
 from speasy.products.variable import SpeasyVariable
 from ...core import http
@@ -22,15 +23,23 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def _make_datetime(dt: str) -> datetime:
+    '''
+        Hack to support python 3.6, once 3.6 support removed then go back to:
+        datetime.strptime(v[1], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp()
+    '''
+    return datetime(*time.strptime(dt[:-6], '%Y-%m-%dT%H:%M:%S.%f')[:6], tzinfo=timezone.utc).timestamp()
+
+
 def _variable(orbit: dict) -> Optional[SpeasyVariable]:
     data = orbit['Result']['Data'][1][0]['Coordinates'][1][0]
     keys = list(data.keys())
     keys.remove('CoordinateSystem')
     values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose() * units.km
     # this is damn slow!
-    time = np.array([datetime.strptime(v[1], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() for v in
-                     orbit['Result']['Data'][1][0]['Time'][1]])
-    return SpeasyVariable(time=time,
+    time_axis = np.array([_make_datetime(v[1]) for v in
+                          orbit['Result']['Data'][1][0]['Time'][1]])
+    return SpeasyVariable(time=time_axis,
                           data=values,
                           meta={'CoordinateSystem': data['CoordinateSystem']},
                           columns=['X', 'Y', 'Z'])
