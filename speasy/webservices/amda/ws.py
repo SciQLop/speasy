@@ -126,7 +126,7 @@ class AMDA_Webservice:
             return self.get_dataset(dataset_id=product, start=start_time, stop=stop_time, **kwargs)
         if product_t == ProductType.PARAMETER and start_time and stop_time:
             if is_user_parameter(product):
-                return self.get_user_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
+                return self.get_user_parameter(parameter_id=product, start_time=start_time, stop_time=stop_time)
             else:
                 return self.get_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
         if product_t == ProductType.CATALOG:
