@@ -24,7 +24,7 @@ class AMDAIndex:
         return {'xmlid': self.xmlid}
 
 
-class AMDATimetableIndex(AMDAIndex, TimetableIndex):
+class AMDATimetableIndex(AMDAIndex, TimetableIndex):  # lgtm [py/conflicting-attributes]
     def __init__(self, meta: Dict, is_public=True):
         xmlid = meta.pop('xmlid')
         name = meta.pop('name')
@@ -33,7 +33,7 @@ class AMDATimetableIndex(AMDAIndex, TimetableIndex):
         flat_inventories.amda.timetables[xmlid] = self
 
 
-class AMDACatalogIndex(AMDAIndex, CatalogIndex):
+class AMDACatalogIndex(AMDAIndex, CatalogIndex):  # lgtm [py/conflicting-attributes]
     def __init__(self, meta: Dict, is_public=True):
         xmlid = meta.pop('xmlid')
         name = meta.pop('name')
@@ -42,7 +42,7 @@ class AMDACatalogIndex(AMDAIndex, CatalogIndex):
         flat_inventories.amda.catalogs[self.xmlid] = self
 
 
-class AMDAComponentIndex(AMDAIndex, ComponentIndex):
+class AMDAComponentIndex(AMDAIndex, ComponentIndex):  # lgtm [py/conflicting-attributes]
     def __init__(self, meta: Dict, is_public=True):
         xmlid = meta.pop('xmlid')
         name = meta.pop('name')
@@ -51,7 +51,7 @@ class AMDAComponentIndex(AMDAIndex, ComponentIndex):
         flat_inventories.amda.components[xmlid] = self
 
 
-class AMDAParameterIndex(AMDAIndex, ParameterIndex):
+class AMDAParameterIndex(AMDAIndex, ParameterIndex):  # lgtm [py/conflicting-attributes]
     def __init__(self, meta: Dict, is_public=True):
         xmlid = meta.pop('xmlid')
         name = meta.pop('name')
@@ -73,7 +73,7 @@ class AMDAParameterIndex(AMDAIndex, ParameterIndex):
         return False
 
 
-class AMDADatasetIndex(AMDAIndex, DatasetIndex):
+class AMDADatasetIndex(AMDAIndex, DatasetIndex):  # lgtm [py/conflicting-attributes]
     parameters: SimpleNamespace
 
     def __init__(self, meta: Dict, is_public=True):
