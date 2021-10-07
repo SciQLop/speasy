@@ -86,7 +86,7 @@ This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`_, you can easily d
 Documentation
 =============
 
-Check out the documentation and examples at `speasy documentation <https://speasy.readthedocs.io/en/latest/?badge=latest>`_.
+Check out the documentation and examples at `speasy documentation <https://speasy.readthedocs.io/en/stable/>`_.
 
 Features
 --------
