@@ -1,5 +1,5 @@
 AMDA_Webservice Parameter
---------------
+-------------------------
 
 Description of AMDAs parameter objects and their representation in :mod:`speasy`. In :mod:`speasy`
 parameter metadata is stored as dictionary objects. The parameter's attributes are :

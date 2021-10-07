@@ -1,5 +1,5 @@
 AMDA_Webservice Example 5: listing timetables
-----------------------------------
+---------------------------------------------
 
 Listing public timetables.
 

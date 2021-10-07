@@ -24,12 +24,23 @@ def _save_changes():
 class ConfigEntry:
     """Configuration entry class. Used to set and get configuration values.
 
-    :param key1: key 1
-    :type key1: str
-    :param key2: key 2
-    :type key2: str
-    :param default: default value
-    :type default: str
+    Attributes
+    ----------
+    key1: str
+        Module or category name
+    key2: str
+        Entry name
+    default: str
+        Default value given by ctor
+    env_var_name: str
+        Environment variable name to use to set this entry
+
+    Methods
+    -------
+    get:
+        Get entry current value
+    set:
+        Set entry value (could be env or file)
     """
 
     def __init__(self, key1: str, key2: str, default: str = ""):
@@ -41,8 +52,10 @@ class ConfigEntry:
     def get(self):
         """Get configuration entry value. If a default is not provided then raise :class:`~speasy.config.exceptions.UndefinedConfigEntry`.
 
-        :return: configuration value
-        :rtype: str
+        Returns
+        -------
+        str:
+            configuration value
         """
         if self.env_var_name in os.environ:
             return os.environ[self.env_var_name]

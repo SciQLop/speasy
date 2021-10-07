@@ -1,5 +1,5 @@
 AMDA_Webservice Example 8: listing user timetables
----------------------------------------
+--------------------------------------------------
 
 Listing private timetables.
 

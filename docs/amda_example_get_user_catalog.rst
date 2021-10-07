@@ -1,5 +1,5 @@
 AMDA_Webservice Example 11: getting user catalogs
---------------------------------------
+-------------------------------------------------
 
 Downloading private catalogs.
 

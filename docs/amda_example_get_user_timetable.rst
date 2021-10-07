@@ -1,5 +1,5 @@
 AMDA_Webservice Example 10: getting user timetables
----------------------------------------
+---------------------------------------------------
 
 Downloading private timetables.
 

@@ -1,5 +1,5 @@
 AMDA_Webservice Example 3: listing available parameters
---------------------------------------------
+-------------------------------------------------------
 
 Simple example illustrating how to list available parameters, datasets and timetables.
 

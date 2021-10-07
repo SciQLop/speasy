@@ -1,5 +1,5 @@
 AMDA_Webservice Examples
--------------
+------------------------
 
 .. toctree::
    :maxdepth: 1

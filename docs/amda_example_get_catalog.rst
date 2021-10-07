@@ -1,5 +1,5 @@
 AMDA_Webservice Example 7: getting catalogs
---------------------------------
+-------------------------------------------
 
 Download a public catalogs.
 

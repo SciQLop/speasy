@@ -1,7 +1,7 @@
 .. _amda-timetables-label:
 
 AMDA_Webservice Timetables
----------------
+--------------------------
 
 
 

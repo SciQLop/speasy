@@ -1,7 +1,7 @@
 .. _amda-catalogs-label:
 
 AMDA_Webservice Catalogs
--------------
+------------------------
 
 Description of AMDAs catalog objects and their representation in :mod:`speasy`. In :mod:`speasy`
 catalog metadata is stored as dictionary objects. The catalog's attributes are :

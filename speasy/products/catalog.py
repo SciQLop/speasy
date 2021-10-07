@@ -23,6 +23,9 @@ class Event(DateTimeRange):
     meta : dict
             Additional event data
 
+    Methods
+    -------
+
     Notes
     -----
     This class support the same operations as a speasy.common.datetime_range.DateTimeRange.
@@ -54,6 +57,14 @@ class Catalog:
         Catalog name
     meta : dict
         All additional Catalog meta data
+
+    Methods
+    -------
+    append:
+        Append an Event or a list of Event to the end of the Catalog
+    pop:
+        Remove and return Event at index (default last)
+
     Examples
     --------
     >>> my_catalog=Catalog(name='MyCatalog', meta={'tags':['demo', 'docstrings']}, events=[])
