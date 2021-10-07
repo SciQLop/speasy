@@ -1,8 +1,6 @@
 """Base inventory tree management
 """
-from typing import Dict, Sequence
 from types import SimpleNamespace
-from ...core import listify
 from .indexes import AMDATimetableIndex, AMDAComponentIndex, AMDAParameterIndex, AMDADatasetIndex, AMDACatalogIndex
 import xml.etree.ElementTree as Et
 

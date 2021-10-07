@@ -18,4 +18,5 @@ ssc = empty_ssc_inventory()
 
 
 def reset_amda_inventory():
+    global amda
     amda = empty_amda_inventory()
