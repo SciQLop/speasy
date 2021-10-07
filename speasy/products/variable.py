@@ -4,19 +4,31 @@ from datetime import datetime
 from typing import List, Optional
 from speasy.core import deprecation
 
+
 class SpeasyVariable(object):
     """SpeasyVariable object. Base class for storing variable data.
 
-    :param time: time data
-    :type time: numpy.ndarray
-    :param data: data
-    :type data: numpy.ndarray
-    :param meta: metadata
-    :type meta: dict
-    :param columns: column names
-    :type columns: list[str]
-    :param y:
-    :type y:
+    Attributes
+    ----------
+    time: numpy.ndarray
+        time data
+    data: numpy.ndarray
+        data
+    meta: Optional[dict]
+        metadata
+    columns: Optional[List[str]]
+        column names
+    y: Optional[np.ndarray]
+        y axis for 2D data
+
+    Methods
+    -------
+    view:
+        Return view of the current variable within the desired :data:`time_range`
+    to_dataframe:
+        Convert the variable to a pandas.DataFrame object
+    plot:
+        Plot the data with matplotlib
 
     """
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
@@ -37,20 +49,30 @@ class SpeasyVariable(object):
     def view(self, time_range):
         """Return view of the current variable within the desired :data:`time_range`.
 
-        :param time_range: time range
-        :type time_range: speasy.common.datetime_range.DateTimeRange
-        :return: view of the variable
-        :rtype: speasy.common.variable.SpeasyVariable
+        Parameters
+        ----------
+        time_range: speasy.common.datetime_range.DateTimeRange
+            time range
+
+        Returns
+        -------
+        speasy.common.variable.SpeasyVariable
+            view of the variable on the given range
         """
         return SpeasyVariable(self.time[time_range], self.values[time_range], self.meta, self.columns, self.y)
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
 
-        :param other: another SpeasyVariable object
-        :type other: speasy.common.variable.SpeasyVariable
-        :return: condition result
-        :rtype: bool
+        Parameters
+        ----------
+        other: speasy.common.variable.SpeasyVariable
+            another SpeasyVariable object to compare with
+
+        Returns
+        -------
+        bool:
+            True if all attributes are equal
         """
         return self.meta == other.meta and \
                self.columns == other.columns and \
@@ -59,7 +81,12 @@ class SpeasyVariable(object):
                np.all(self.values == other.values)
 
     def __len__(self):
-        """Get lenght of the timeseries
+        """Get length of the timeserie
+
+        Returns
+        -------
+        int:
+            Timeserie length
         """
         return len(self.time)
 
@@ -86,10 +113,15 @@ class SpeasyVariable(object):
     def to_dataframe(self, datetime_index=False) -> pds.DataFrame:
         """Convert the variable to a pandas.DataFrame object.
 
-        :param datetime_index: boolean indicating that the index is datetime
-        :type datetime_index: bool
-        :return: dataframe
-        :rtype: pandas.DataFrame
+        Parameters
+        ----------
+        datetime_index: bool
+            boolean indicating that the index is datetime
+
+        Returns
+        -------
+        pandas.DataFrame:
+            Variable converted to Pandas DataFrame
         """
         if datetime_index:
             time = pds.to_datetime(self.time, unit='s')
@@ -100,11 +132,8 @@ class SpeasyVariable(object):
     def plot(self, *args, **kwargs):
         """Plot the variable.
 
-        :param args: args
-        :type args: tuple
-        :param kwargs: kwargs
-        :type kwargs: dict
-        :return: plot
+        See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+
         """
         return self.to_dataframe(datetime_index=True).plot(*args, **kwargs)
 
@@ -122,10 +151,15 @@ class SpeasyVariable(object):
     def from_dataframe(df: pds.DataFrame) -> 'SpeasyVariable':
         """Load from pandas.DataFrame object.
 
-        :param df: dataframe
-        :type df: pandas.DataFrame
-        :return: speasy variable object
-        :rtype: speasy.common.variable.SpeasyVariable
+        Parameters
+        ----------
+        dr: pandas.DataFrame
+            Input DataFrame to convert
+
+        Returns
+        -------
+        SpeasyVariable:
+            Variable created from DataFrame
         """
         if hasattr(df.index[0], 'timestamp'):
             time = np.array([d.timestamp() for d in df.index])
@@ -137,10 +171,9 @@ class SpeasyVariable(object):
 def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
     """Convert a dataframe to SpeasyVariable.
 
-    :param df: input dataframe
-    :type df: pandas.DataFrame
-    :return: speasy variable
-    :rtype: speasy.common.variable.SpeasyVariable
+    See Also
+    --------
+    SpeasyVariable.from_dataframe
     """
     return SpeasyVariable.from_dataframe(df)
 
@@ -148,12 +181,9 @@ def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
 def to_dataframe(var: SpeasyVariable, datetime_index=False) -> pds.DataFrame:
     """Convert a :class:`~speasy.common.variable.SpeasyVariable` to pandas.DataFrame.
 
-    :param var: variable to convert
-    :type var: speasy.common.variable.SpeasyVariable
-    :param datetime_index: index is datetime
-    :type datetime_index: bool
-    :return: pandas dataframe
-    :rtype: pandas.DataFrame
+    See Also
+    --------
+    SpeasyVariable.to_dataframe
     """
     return SpeasyVariable.to_dataframe(var, datetime_index)
 
@@ -161,8 +191,15 @@ def to_dataframe(var: SpeasyVariable, datetime_index=False) -> pds.DataFrame:
 def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     """Merge a list of :class:`~speasy.common.variable.SpeasyVariable` objects.
 
-    :param variables: list of variables
-    :type variable: List[speasy.common.variable.SpeasyVariable]
+    Parameters
+    ----------
+    variables: List[SpeasyVariable]
+        Variables to merge together
+
+    Returns
+    -------
+    SpeasyVariable:
+        Resulting variable from merge operation
     """
     if len(variables) == 0:
         return None

@@ -59,10 +59,27 @@ class AMDA_Webservice:
     """AMDA_Webservice connexion class. This class manages the connexion to AMDA_Webservice. Use the :meth:`get_data` or
     :meth:`get_parameter` methods for retrieving data.
 
-    Initialize the connexion::
+    Methods
+    -------
+    product_version:
+    get_data:
+    get_user_parameter:
+    get_user_timetable:
+    get_user_catalog:
+    get_parameter:
+    get_dataset:
+    get_timetable:
+    get_catalog:
+        Retrieve catalog from given ID
+    parameter_range:
+    list_parameters:
+    list_catalogs:
+    list_user_timetables:
+    list_user_catalogs:
+    list_user_parameters:
+    list_timetables:
+    list_datasets:
 
-        >>> from speasy.amda import AMDA_Webservice
-        >>> amda = AMDA_Webservice()
 
     """
 

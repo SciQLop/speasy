@@ -1,5 +1,5 @@
 AMDA_Webservice Datasets
--------------
+------------------------
 
 Description of AMDAs dataset objects and their representation in :mod:`speasy`. In :mod:`speasy`
 dataset metadata is stored as dictionary objects. The dataset's attributes are :

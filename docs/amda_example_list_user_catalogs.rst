@@ -1,5 +1,5 @@
 AMDA_Webservice Example 9: listing user catalogs
--------------------------------------
+------------------------------------------------
 
 Listing private catalogs.
 
