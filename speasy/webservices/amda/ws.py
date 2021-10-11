@@ -10,14 +10,14 @@ from typing import Optional, List, Dict, Union
 
 # General modules
 from speasy.config import amda_user_cache_retention
-from speasy.core.cache import Cacheable, CacheCall
+from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
-from ...core import make_utc_datetime
+from ...core import make_utc_datetime, AllowedKwargs
 from speasy.products.variable import SpeasyVariable
 from speasy.products.dataset import Dataset
 from speasy.products.timetable import TimeTable
 from speasy.products.catalog import Catalog
-from speasy.core.proxy import Proxyfiable, GetProduct
+from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.inventory import flat_inventories
 import logging
 
@@ -126,7 +126,8 @@ class AMDA_Webservice:
             return self.get_dataset(dataset_id=product, start=start_time, stop=stop_time, **kwargs)
         if product_t == ProductType.PARAMETER and start_time and stop_time:
             if is_user_parameter(product):
-                return self.get_user_parameter(parameter_id=product, start_time=start_time, stop_time=stop_time)
+                return self.get_user_parameter(parameter_id=product, start_time=start_time, stop_time=stop_time,
+                                               **kwargs)
             else:
                 return self.get_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
         if product_t == ProductType.CATALOG:
@@ -217,6 +218,7 @@ class AMDA_Webservice:
         catalog_id = to_xmlid(catalog_id)
         return self._impl.dl_user_catalog(catalog_id=catalog_id)
 
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS+CACHE_ALLOWED_KWARGS+['product', 'start_time', 'stop_time'])
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time) -> Optional[SpeasyVariable]:

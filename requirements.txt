@@ -2,9 +2,7 @@ pandas
 Click
 appdirs
 diskcache
-zeep
 requests
-xmltodict
 packaging
 numpy
 python_dateutil

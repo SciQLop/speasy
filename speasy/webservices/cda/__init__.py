@@ -9,10 +9,10 @@ __version__ = '0.1.0'
 from typing import Optional
 from datetime import datetime
 import pandas as pds
-from speasy.core.cache import Cacheable, _cache  # _cache is used for tests (hack...)
+from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS, _cache  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
-from speasy.core import http
-from speasy.core.proxy import Proxyfiable, GetProduct
+from speasy.core import http, AllowedKwargs
+from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 import numpy as np
 import logging
 
@@ -123,6 +123,7 @@ class CDA_Webservice:
             return None
         return loader(resp.json()['FileDescription'][0]['Name'], variable)
 
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'fmt'])
     @Cacheable(prefix="cda", fragment_hours=lambda x: 1)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime, **kwargs):
@@ -130,6 +131,7 @@ class CDA_Webservice:
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=components[0],
                                  variable=components[1], **kwargs)
 
-    def get_variable(self, dataset: str, variable: str, start_time: datetime, stop_time: datetime, **kwargs) -> \
+    def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
+                     **kwargs) -> \
         Optional[SpeasyVariable]:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)

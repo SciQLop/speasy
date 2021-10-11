@@ -8,6 +8,7 @@ import os
 import warnings
 from datetime import datetime, timezone
 from typing import Any, Dict, Sequence, Type, List
+from functools import wraps
 
 import numpy as np
 from dateutil.parser import parse
@@ -115,3 +116,19 @@ def make_utc_datetime(input_dt: str or datetime or np.float64 or float) -> datet
     if type(input_dt) is str:
         input_dt = parse(input_dt)
     return input_dt.replace(tzinfo=timezone.utc)
+
+
+class AllowedKwargs(object):
+    def __init__(self, allowed_list):
+        self.allowed_list = allowed_list
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            unexpected_args = list(filter(lambda arg_name: arg_name not in self.allowed_list, kwargs.keys()))
+            if not unexpected_args:
+                return func(*args, **kwargs)
+            raise TypeError(
+                f"Unexpected keyword argument {unexpected_args}, allowed keyword arguments are {self.allowed_list}")
+
+        return wrapped

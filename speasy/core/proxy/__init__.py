@@ -5,6 +5,7 @@ import pickle
 import logging
 
 log = logging.getLogger(__name__)
+PROXY_ALLOWED_KWARGS = ['disable_proxy']
 
 
 class GetProduct:
@@ -14,7 +15,7 @@ class GetProduct:
     @staticmethod
     def get(path: str, start_time: str, stop_time: str, **kwargs):
         url = proxy_url.get()
-        kwargs['path']=path
+        kwargs['path'] = path
         kwargs['start_time'] = start_time
         kwargs['stop_time'] = stop_time
         resp = requests.get(f"{url}/get_data?", params=kwargs)

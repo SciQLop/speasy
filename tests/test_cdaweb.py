@@ -40,6 +40,13 @@ class SimpleRequest(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
+    @data({'sampling': '1'},
+          {'unknown_arg': 10})
+    def test_raises_if_user_passes_unexpected_kwargs_to_get_variable(self, kwargs):
+        with self.assertRaises(TypeError):
+            self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fgl_gsm", start_time="2018-01-01",
+                                 stop_time="2018-01-02", **kwargs)
+
 
 class ConcurrentRequests(unittest.TestCase):
     def setUp(self):
