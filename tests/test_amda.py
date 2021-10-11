@@ -195,6 +195,14 @@ class AMDAModule(unittest.TestCase):
         result_type = spz.amda.product_type(index)
         self.assertEqual(result_type, expexted_type)
 
+    @data({'sampling': '1'},
+          {'unknown_arg': 10})
+    def test_raises_if_user_passes_unexpected_kwargs_to_get_data(self, kwargs):
+        with self.assertRaises(TypeError):
+            spz.get_data('amda/c1_b_gsm', "2018-01-01", "2018-01-02", **kwargs)
+        with self.assertRaises(TypeError):
+            spz.amda.get_data('c1_b_gsm', "2018-01-01", "2018-01-02", **kwargs)
+
 
 if __name__ == '__main__':
     unittest.main()

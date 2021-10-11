@@ -77,3 +77,9 @@ class SscWeb(unittest.TestCase):
         obs_list = self.ssc.get_observatories()
         self.assertIsNotNone(obs_list)
         self.assertGreater(len(obs_list), 10)  # it has to return few elements
+
+    @data({'sampling': '1'},
+          {'unknown_arg': 10})
+    def test_raises_if_user_passes_unexpected_kwargs_to_get_orbit(self, kwargs):
+        with self.assertRaises(TypeError):
+            self.ssc.get_orbit('moon', "2018-01-01", "2018-01-02", **kwargs)

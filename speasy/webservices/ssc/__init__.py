@@ -9,10 +9,10 @@ __version__ = '0.1.0'
 from typing import Optional
 import time
 from datetime import datetime, timedelta, timezone
-from speasy.core.cache import Cacheable, CacheCall
+from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.products.variable import SpeasyVariable
-from ...core import http
-from speasy.core.proxy import Proxyfiable, GetProduct
+from ...core import http, AllowedKwargs
+from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from .indexes import SscwebParameterIndex
 from speasy.inventory import data_tree
 import numpy as np
@@ -87,6 +87,9 @@ class SSC_Webservice:
                 var.values *= units.km
         return var
 
+    @AllowedKwargs(
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'coordinate_system',
+                                                       'debug'])
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',

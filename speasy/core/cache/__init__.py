@@ -14,6 +14,7 @@ import base64
 
 log = logging.getLogger(__name__)
 _cache = Cache(cache_path.get())
+CACHE_ALLOWED_KWARGS = ['disable_proxy', 'disable_cache']
 
 
 def _change_tz(dt: Union[DateTimeRange, datetime], tz):
