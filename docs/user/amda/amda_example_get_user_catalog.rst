@@ -3,7 +3,7 @@ AMDA_Webservice Example 11: getting user catalogs
 
 Downloading private catalogs.
 
-.. literalinclude:: ../examples/amda_get_user_catalog.py
+.. literalinclude:: ../../examples/amda_get_user_catalog.py
 
 Output ::
 

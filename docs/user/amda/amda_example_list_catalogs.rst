@@ -3,7 +3,7 @@ AMDA_Webservice Example 6: listing catalogs
 
 Listing public catalogs.
 
-.. literalinclude:: ../examples/amda_list_catalogs.py
+.. literalinclude:: ../../examples/amda_list_catalogs.py
 
 Output ::
 

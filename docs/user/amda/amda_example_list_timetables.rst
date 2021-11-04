@@ -3,7 +3,7 @@ AMDA_Webservice Example 5: listing timetables
 
 Listing public timetables.
 
-.. literalinclude:: ../examples/amda_list_public_timetables.py
+.. literalinclude:: ../../examples/amda_list_public_timetables.py
 
 Output ::
 

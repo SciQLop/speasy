@@ -3,7 +3,7 @@ AMDA_Webservice Example 9: listing user catalogs
 
 Listing private catalogs.
 
-.. literalinclude:: ../examples/amda_list_user_catalogs.py
+.. literalinclude:: ../../examples/amda_list_user_catalogs.py
 
 Output ::
 

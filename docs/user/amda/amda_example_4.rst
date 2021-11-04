@@ -3,7 +3,7 @@ AMDA_Webservice Example 4: getting timetables
 
 Download a public timetable.
 
-.. literalinclude:: ../examples/amda_get_public_timetable.py
+.. literalinclude:: ../../examples/amda_get_public_timetable.py
 
 Output ::
 
