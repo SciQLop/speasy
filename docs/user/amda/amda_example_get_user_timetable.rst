@@ -3,7 +3,7 @@ AMDA_Webservice Example 10: getting user timetables
 
 Downloading private timetables.
 
-.. literalinclude:: ../examples/amda_get_user_timetable.py
+.. literalinclude:: ../../examples/amda_get_user_timetable.py
 
 Output ::
 

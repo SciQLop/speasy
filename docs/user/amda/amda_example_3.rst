@@ -3,7 +3,7 @@ AMDA_Webservice Example 3: listing available parameters
 
 Simple example illustrating how to list available parameters, datasets and timetables.
 
-.. literalinclude:: ../examples/amda_list_public_products.py
+.. literalinclude:: ../../examples/amda_list_public_products.py
 
 Output ::
 

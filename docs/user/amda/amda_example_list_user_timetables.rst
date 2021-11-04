@@ -3,7 +3,7 @@ AMDA_Webservice Example 8: listing user timetables
 
 Listing private timetables.
 
-.. literalinclude:: ../examples/amda_list_user_timetables.py
+.. literalinclude:: ../../examples/amda_list_user_timetables.py
 
 Output ::
 
