@@ -111,6 +111,11 @@ class PublicProductsRequests(unittest.TestCase):
     def test_get_catalog_from_Index(self):
         r = spz.amda.get_catalog(spz.amda.list_catalogs()[-1])
         self.assertIsNotNone(r)
+    def test_get_multidimensional_data(self):
+        r = spz.amda.get_data("psp_spe_EvsEvspa", "2021-07-30T00:00:00", "2021-07-30T00:05:00")
+        self.assertIsNotNone(r)
+        self.assertIsNotNone(r.data)
+        
 
 
 class PrivateProductsRequests(unittest.TestCase):
