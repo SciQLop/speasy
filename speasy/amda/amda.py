@@ -30,7 +30,7 @@ def load_csv(filename: str):
                 key, value = line[1:].split(':', 1)
                 meta[key.strip()] = value.strip()
             line = csv.readline().decode()
-        columns = [col.strip() for col in meta['DATA_COLUMNS'].split(',')[:]]
+        columns = [col.strip() for col in meta['DATA_COLUMNS'].split(', ')[:]]
         with urlopen(filename) as f:
             data = pds.read_csv(f, comment='#', delim_whitespace=True, header=None, names=columns).values.transpose()
         time, data = data[0], data[1:].transpose()
