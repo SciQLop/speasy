@@ -4,7 +4,7 @@
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 
 from .common.variable import SpeasyVariable
 from .amda import AMDA
