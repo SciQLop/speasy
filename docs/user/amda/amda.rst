@@ -5,7 +5,6 @@ AMDA
    :maxdepth: 1
 
    amda_products
-   amda_examples
    amda_notebooks
 
 AMDA is one of the main data providers that speasy handles. Most products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
@@ -15,8 +14,11 @@ All examples assumes that you imported AMDA module like this:
 
     >>> from speasy import amda
 
+Basics
+------
+
 Getting data from AMDA
-----------------------
+^^^^^^^^^^^^^^^^^^^^^^
 
 `AMDA <http://amda.irap.omp.eu/>`_ distributes several products such as Parameters, user Parameters, Datasets, Timetables, user Timetables, Catalogs
 and user Catalogs. Speasy makes them accessible thanks to this module with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()`
@@ -24,18 +26,19 @@ or their dedicated methods such as :meth:`~speasy.webservices.amda.ws.AMDA_Webse
 Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`_ Workspace:
 
 .. image:: images/AMDA_workspace_collapsed.png
-   :width: 30%
+   :width: 32%
    :alt: AMDA workspace collapsed
 .. image:: images/AMDA_workspace_params.png
-   :width: 30%
-   :alt: AMDA workspace collapsed
+   :width: 32%
+   :alt: AMDA workspace parameters
 .. image:: images/AMDA_workspace_timetables.png
-   :width: 30%
-   :alt: AMDA workspace collapsed
+   :width: 32%
+   :alt: AMDA workspace timetables
 
-This module provides two kinds of operations, `list` or `get` and so user methods are prefixed with one of them.
-- `get` methods retrieve the given product from AMDA server, they takes at least the product identifier and time range for time series
-- `list` methods list available products of a given type on AMDA, they return a list of indexes that can be passed to a `get` method
+This module provides two kinds of operations, **list** or **get** and so user methods are prefixed with one of them.
+
+    - **get** methods retrieve the given product from AMDA server, they takes at least the product identifier and time range for time series
+    - **list** methods list available products of a given type on AMDA, they return a list of indexes that can be passed to a **get** method
 
 Let's start with a simple example, we want to download the first parameter available on AMDA:
 
@@ -46,10 +49,42 @@ Let's start with a simple example, we want to download the first parameter avail
     >>> len(first_param.time)
     5400
 
+Usually you already know which product you want to download, two scenarios are available:
+
+1. You are an AMDA web interface user, so you want some specific product from AMDA Workspace. You need first to get your product id,
+you will find the id from the tooltip while hovering any product (Dataset, Parameter, Timetable or Catalog):
+
+.. image:: images/AMDA_param_id.png
+   :height: 400px
+   :alt: AMDA workspace id
+
+Then simply:
+
+    >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot', "2018-01-01", "2018-01-02")
+    >>> mms4_fgm_btot.columns
+    ['mms4_b_tot']
+    >>> len(mms4_fgm_btot.time)
+    986745
+
+2. Second scenario, your are not much familiar with AMDA, then you can simply browse speasy dynamic inventory. In
+the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
+AMDA products directly from your Python terminal or notebook:
+
+    >>> from speasy.inventory.data_tree import amda as amdatree
+    >>> mms4_fgm_btot=amda.get_parameter(amdatree.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-02")
+    >>> mms4_fgm_btot.columns
+    ['mms4_b_tot']
+    >>> len(mms4_fgm_btot.time)
+    986745
 
 
-Getting AMDA_Webservice dataset and parameters
-----------------------------------------------
+
+List of available products types
+--------------------------------
+
+Parameters
+^^^^^^^^^^
+
 
 First import AMDA connection object::
 

@@ -1,3 +1,9 @@
+"""
+.. testsetup:: *
+
+   import speasy
+"""
+
 from enum import Enum
 from .utils import get_parameter_args
 from .indexes import to_xmlid, AMDADatasetIndex, AMDAParameterIndex, AMDATimetableIndex, AMDACatalogIndex, \
@@ -93,10 +99,15 @@ class AMDA_Webservice:
     def product_version(self, parameter_id: str or AMDAParameterIndex):
         """Get date of last modification of dataset or parameter.
 
-        :param parameter_id: parameter id
-        :type parameter_id: str
-        :return: product version
-        :rtype: str
+        Parameters
+        ----------
+        parameter_id: str or AMDAParameterIndex
+            parameter id
+
+        Returns
+        -------
+        str
+            product version
         """
         dataset = self._find_parent_dataset(parameter_id)
         return flat_inventories.amda.datasets[dataset].lastUpdate
@@ -105,20 +116,30 @@ class AMDA_Webservice:
         SpeasyVariable, TimeTable, Catalog, Dataset]]:
         """Get product data by id.
 
-        :param product: product id
-        :type product: str
-        :param start_time: desired data start time
-        :type start_time: datetime.datetime
-        :param stop_time: desired data stop time
-        :type stop_time: datetime.datetime
-        :return: product data if available
-        :rtype: SpeasyVariable
+        Parameters
+        ----------
+        product: str or AMDAIndex
+            product id
+        start_time: str or datetime.datetime
+            desired data start time
+        stop_time: str datetime.datetime
+            desired data stop time
 
-        Example::
+        Returns
+        -------
+        Optional[Union[SpeasyVariable, TimeTable, Catalog, Dataset]]
+            product data if available
 
-            >>> imf_data = speasy.amda.AMDA_Webservice().get_data("imf", start, stop)
-            >>> # same as
-            >>> imf_data = speasy.get_data("amda/imf", start, stop)
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> imf_data = spz.amda.get_data("imf", "2019-02-24T19:20:05", "2019-02-25")
+        >>> print(imf_data.columns)
+        ['imf[0]', 'imf[1]', 'imf[2]']
+        >>> print(imf_data.data.shape)
+        (1050, 3)
+
 
         """
         product_t = self.product_type(product)
@@ -142,25 +163,36 @@ class AMDA_Webservice:
                 return self.get_timetable(timetable_id=product, **kwargs)
 
     def get_user_parameter(self, parameter_id: str or AMDAParameterIndex, start_time: datetime or str,
-                           stop_time: datetime or str):
+                           stop_time: datetime or str) -> Optional[SpeasyVariable]:
         """Get user parameter. Raises an exception if user is not authenticated.
 
+        Parameters
+        ----------
+        parameter_id: str or AMDAParameterIndex
+            parameter id
+        start_time: datetime or str
+            begining of data time
+        stop_time: datetime or str
+            end of data time
 
-        :param parameter_id: parameter id
-        :type parameter_id: str
-        :param start_time: begining of data time
-        :type start_time: datetime.datetime or str
-        :param stop_time: end of data time
-        :type stop_time: datetime.datetime or str
-        :return: user parameter
-        :rtype: speasy.common.variable.SpeasyVariable
+        Returns
+        -------
+        Optional[SpeasyVariable]
+            user parameter
 
-        Example::
+        Examples
+        --------
 
-           >>> amda.get_user_parameter("ws_0")
-           <speasy.common.variable.SpeasyVariable object at 0x7f078a0eb6d0>
+        >>> import speasy as spz
+        >>> user_param = spz.amda.get_user_parameter("ws_0", "2019-02-24T19:20:05", "2019-02-25")
+        >>> print(user_param.columns)
+        ['ws_test_param']
+        >>> print(user_param.data.shape)
+        (2, 1)
 
-        .. warning::
+
+        Warnings
+        --------
             Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_parameter` without having defined AMDA_Webservice
             login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
             exception being raised.
@@ -174,18 +206,24 @@ class AMDA_Webservice:
     def get_user_timetable(self, timetable_id: str or AMDATimetableIndex) -> Optional[TimeTable]:
         """Get user timetable. Raises an exception if user is not authenticated.
 
+        Parameters
+        ----------
+        timetable_id: str
+            timetable id
 
-        :param timetable_id: timetable id
-        :type timetable: str
-        :return: user timetable
-        :rtype: speasy.common.variable.SpeasyVariable
+        Returns
+        -------
+        Optional[TimeTable]
+            user timetable
 
-        Example::
+        Examples
+        --------
+        >>> import speasy as spz
+        >>> spz.amda.get_user_timetable("tt_0")
+        <TimeTable: test_alexis>
 
-           >>> amda.get_user_timetable("tt_0")
-           <speasy.common.variable.SpeasyVariable object at 0x7f078a0eb6d0>
-
-        .. warning::
+        Warnings
+        --------
             Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_timetable` without having defined AMDA_Webservice
             login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
             exception being raised.
@@ -199,17 +237,25 @@ class AMDA_Webservice:
         """Get user catalog. Raises an exception if user is not authenticated.
 
 
-        :param catalog_id: catalog id
-        :type catalog_id: str
-        :return: user catalog
-        :rtype: speasy.common.variable.SpeasyVariable
+        Parameters
+        ----------
+        catalog_id: str or AMDACatalogIndex
+            catalog id
 
-        Example::
+        Returns
+        -------
+        Optional[Catalog]
+            user catalog
 
-           >>> amda.get_user_catalog("tt_0")
-           <speasy.common.variable.SpeasyVariable object at 0x7f078a0eb6d0>
+        Examples
+        --------
 
-        .. warning::
+        >>> import speasy as spz
+        >>> spz.amda.get_user_catalog("tt_0")
+        <Catalog: test_alexis>
+
+        Warnings
+        --------
             Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_catalog` without having defined AMDA_Webservice
             login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
             exception being raised.
@@ -218,50 +264,74 @@ class AMDA_Webservice:
         catalog_id = to_xmlid(catalog_id)
         return self._impl.dl_user_catalog(catalog_id=catalog_id)
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS+CACHE_ALLOWED_KWARGS+['product', 'start_time', 'stop_time'])
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time) -> Optional[SpeasyVariable]:
         """Get parameter data.
 
-        :param parameter_id: parameter id
-        :type parameter_id: str
-        :param start_time: desired data start time
-        :type start_time: datetime.datetime
-        :param stop_time: desired data stop time
-        :type stop_time: datetime.datetime
-        :param kwargs: optional arguments
-        :type kwargs: dict
-        :return: product data if available
-        :rtype: SpeasyVariable
+        Parameters
+        ----------
+        product: str or AMDAParameterIndex
+            parameter id
+        start_time:
+            desired data start time
+        stop_time:
+            desired data stop time
+        kwargs: dict
+            optional arguments
 
-        Example::
+        Returns
+        -------
+        Optional[SpeasyVariable]
+            product data if available
 
-            >>> imf_data = amda.get_parameter("imf", datetime.datetime(2000,1,1), datetime.datetime(2000,2,1))
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> import datetime
+        >>> imf_data = spz.amda.get_parameter("imf", datetime.datetime(2000,1,1), datetime.datetime(2000,1,2))
+        >>> print(imf_data.columns)
+        ['imf[0]', 'imf[1]', 'imf[2]']
+        >>> print(imf_data.data.shape)
+        (5400, 3)
 
         """
 
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
-    def get_dataset(self, dataset_id: str or AMDADatasetIndex, start: datetime, stop: datetime, **kwargs) -> Dataset:
+    def get_dataset(self, dataset_id: str or AMDADatasetIndex, start: str or datetime, stop: str or datetime,
+                    **kwargs) -> Dataset:
         """Get dataset contents. Returns list of SpeasyVariable objects, one for each
         parameter in the dataset.
 
-        :param dataset_id: dataset id
-        :type dataset_id: str
-        :param start: desired data start
-        :type start: datetime
-        :param stop: desired data end
-        :type stop: datetime
-        :return: dataset content
-        :rtype: list[SpeasyVariable]
+        Parameters
+        ----------
+        dataset_id: str or AMDADatasetIndex
+            dataset id
+        start: str or datetime
+            desired data start
+        stop: str or datetime
+            desired data end
 
-        Example::
+        Returns
+        -------
+        Dataset
+            dataset content as a collection of SpeasyVariable
 
-            >>> dataset = amda.get_dataset("ace-imf-all", datetime.datetime(2000,1,1), datetime.datetime(2000,2,1))
-            >>> dataset
-            [<speasy.common.variable.SpeasyVariable object at 0x7f01f17487c0>, <speasy.common.variable.SpeasyVariable object at 0x7f01f174f5e0>, <speasy.common.variable.SpeasyVariable object at 0x7f01f16ad090>]
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> import datetime
+        >>> dataset = spz.amda.get_dataset("ace-imf-all", datetime.datetime(2000,1,1), datetime.datetime(2000,1,2))
+        >>> dataset
+        <Dataset: final / prelim
+                variables: ['|b|', 'b_gse', 'b_gsm']
+                time range: <DateTimeRange: 2000-01-01T00:00:11 -> 2000-01-01T23:59:55>
+
 
         """
         # get list of parameters for this dataset
@@ -274,18 +344,25 @@ class AMDA_Webservice:
                        meta=meta)
 
     @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
-    def get_timetable(self, timetable_id: str or AMDATimetableIndex, **kwargs) -> TimeTable:
+    def get_timetable(self, timetable_id: str or AMDATimetableIndex, **kwargs) -> Optional[TimeTable]:
         """Get timetable data by ID.
 
-        :param timetable_id: time table id
-        :type timetable_id: str or TimetableIndex
-        :return: timetable data
-        :rtype: speasy.common.variable.SpeasyVariable
+        Parameters
+        ----------
+        timetable_id: str or TimetableIndex
+            time table id
 
-        Example::
+        Returns
+        -------
+        Optional[TimeTable]
+            timetable data
 
-           >>> amda.get_timetable("sharedtimeTable_0")
-           <speasy.common.variable.SpeasyVariable object at 0x7efce01b3f90>
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.amda.get_timetable("sharedtimeTable_0")
+        <TimeTable: FTE_c1>
 
         """
         return self._impl.dl_timetable(to_xmlid(timetable_id), **kwargs)
@@ -294,15 +371,22 @@ class AMDA_Webservice:
     def get_catalog(self, catalog_id: str or AMDACatalogIndex, **kwargs) -> Optional[Catalog]:
         """Get catalog data by ID.
 
-        :param catalog_id: catalog id
-        :type catalog_id: str
-        :return: catalog data
-        :rtype: speasy.common.variable.SpeasyVariable
+        Parameters
+        ----------
+        catalog_id: str or AMDACatalogIndex
+            catalog id
 
-        Example::
+        Returns
+        -------
+        Optional[Catalog]
+            catalog data
 
-           >>> amda.get_catalog("sharedcatalog_0")
-           <speasy.common.variable.SpeasyVariable object at 0x7f829cc644a0>
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.amda.get_catalog("sharedcatalog_0")
+        <Catalog: choc_MPB_catalogue_MEX>
 
         """
         return self._impl.dl_catalog(to_xmlid(catalog_id), **kwargs)
@@ -310,15 +394,22 @@ class AMDA_Webservice:
     def parameter_range(self, parameter_id: str or AMDAParameterIndex or AMDADatasetIndex) -> Optional[DateTimeRange]:
         """Get product time range.
 
-        :param parameter_id: product id
-        :type parameter_id: str
-        :return: Data time range
-        :rtype: DateTimeRange
+        Parameters
+        ----------
+        parameter_id: str or AMDAParameterIndex or AMDADatasetIndex
+            parameter id
 
-        Example::
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
 
-           >>> amda.parameter_range("imf")
-           1997-09-02T00:00:12->2021-07-24T23:59:53
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.amda.parameter_range("imf")
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> 2022-01-08T23:59:56+00:00>
 
         """
         if not len(flat_inventories.amda.parameters):
@@ -335,20 +426,35 @@ class AMDA_Webservice:
 
     def list_parameters(self, dataset_id: Optional[str or AMDADatasetIndex] = None) -> List[AMDAParameterIndex]:
 
-        """Get list of parameter id available in AMDA_Webservice
+        """Get the list of parameter indexes available in AMDA or a given dataset
 
-        :param dataset_id: optional parent dataset id
-        :type dataset_id: str
-        :return: list of parameter ids
-        :rtype: list[str]
+        Parameters
+        ----------
+        dataset_id: Optional[str or AMDADatasetIndex]
+            optional parent dataset id
 
-        Example::
+        Returns
+        -------
+        List[AMDAParameterIndex]
+            the list of parameter indexes
 
-           >>> for parameter_id in amda.list_parameters():
-           >>>     print(parameter_id)
-           imf_mag
-           ...
-           wnd_swe_pdyn
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> for parameter_id in spz.amda.list_parameters()[::500]:
+        ...     print(parameter_id)
+        <ParameterIndex: |b|>
+        <ParameterIndex: h+ temperature>
+        <ParameterIndex: e- : F[0-3] : flux>
+        <ParameterIndex: distance helios1-sun>
+        <ParameterIndex: proton_flux>
+        <ParameterIndex: h+ eflux : sum on elevations>
+        <ParameterIndex: flux_int>
+        <ParameterIndex: Si counts>
+        <ParameterIndex: b tangential>
+        <ParameterIndex: el temperature>
+
 
         """
         if dataset_id is not None:
@@ -356,35 +462,53 @@ class AMDA_Webservice:
         return list(filter(is_public, flat_inventories.amda.parameters.values()))
 
     def list_catalogs(self) -> List[AMDACatalogIndex]:
-        """Get list of public catalog IDs:
+        """Get the list of public catalog IDs:
 
-        :return: list of catalog IDs
-        :rtype: list[str]
+        Returns
+        -------
+        List[AMDACatalogIndex]
+            list of catalog IDs
 
-        Example::
+        Examples
+        --------
 
-            >>> for catalog_id in amda.get_catalogs_xml_tree():
-            >>>     print(catalog_id)
-            sharedcatalog_0
-            ...
-            sharedcatalog_16
+        >>> import speasy as spz
+        >>> for catalog_id in spz.amda.list_catalogs():
+        ...     print(catalog_id)
+        <CatalogIndex: model_regions_plasmas_mms_2019>
+        <CatalogIndex: model_regions_plasmas_cluster_2005>
+        <CatalogIndex: choc_MPB_catalogue_MEX>
+        <CatalogIndex: BepiCoordObs_Windows_of_Opportunities>
+        <CatalogIndex: cassini>
+        <CatalogIndex: juno>
+        <CatalogIndex: maven>
+        <CatalogIndex: messenger>
+        <CatalogIndex: mex>
+        <CatalogIndex: psp>
+        <CatalogIndex: solo>
+        <CatalogIndex: vex>
 
         """
         return list(filter(is_public, flat_inventories.amda.catalogs.values()))
 
     @CacheCall(cache_retention=60 * 15)
     def list_user_timetables(self) -> List[AMDATimetableIndex]:
-        """Get a list of user timetables. User timetable are represented as dictionary objects.
+        """Get the list of user timetables. User timetable are represented as dictionary objects.
 
-        :return: list of user timetables.
-        :rtype: list[dict]
+        Returns
+        -------
+        List[AMDATimetableIndex]
+            list of user timetables.
 
-        Example::
+        Examples
+        --------
 
-           >>> amda.get_user_timetables_xml_tree(,
-           [{'name': 'der', 'buildchain': '(ace_xyz_gse(0) - shiftT_(ace_xyz_gse(0),10)) / shiftT_(ace_xyz_gse(0),10)', 'timestep': '1', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_0'}, {'name': 'zaaaa', 'buildchain': 'imf(0)*2', 'timestep': '16', 'dim_1': '1', 'dim_2': '1', 'id': 'ws_1'}]
+        >>> import speasy as spz
+        >>> spz.amda.list_user_timetables()
+        [<TimetableIndex: test_alexis>, <TimetableIndex: test_alexis2>, <TimetableIndex: tt3>]
 
-        .. warning::
+        Warnings
+        --------
            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_timetables` without having defined AMDA_Webservice
            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
            exception being raised.
@@ -396,17 +520,22 @@ class AMDA_Webservice:
 
     @CacheCall(cache_retention=60 * 15)
     def list_user_catalogs(self) -> List[AMDACatalogIndex]:
-        """Get a list of user catalogs. User catalogs are represented as dictionary objects.
+        """Get the list of user catalogs. User catalogs are represented as dictionary objects.
 
-        :return: list of user catalogs.
-        :rtype: list[dict]
+        Returns
+        -------
+        List[AMDACatalogIndex]
+            list of user catalogs.
 
-        Example::
+        Examples
+        --------
 
-           >>> amda.get_user_catalogs_xml_tree(,
-           {'name': 'mycata', 'intervals': '1457', 'id': 'cat_0'}
+        >>> import speasy as spz
+        >>> spz.amda.list_user_catalogs()
+        [<CatalogIndex: MyCatalog>]
 
-        .. warning::
+        Warnings
+        --------
            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_catalogs` without having defined AMDA_Webservice
            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
            exception being raised.
@@ -418,21 +547,22 @@ class AMDA_Webservice:
 
     @CacheCall(cache_retention=60 * 15)
     def list_user_parameters(self) -> List[AMDAParameterIndex]:
-        """Get a list of user parameters. User parameters are represented as dictionary objects.
+        """Get the list of user parameters. User parameters are represented as dictionary objects.
 
-        :return: list of user parameters
-        :rtype: list[dict]
+        Returns
+        -------
+        List[AMDAParameterIndex]
+            list of user parameters
 
-        Example::
+        Examples
+        --------
 
-            >>> for utt in amda.get_user_parameters_xml_tree(,:
-            >>>     print(utt)
-            {'name': 'output-1', 'intervals': '389', 'id': 'tt_0'}
-            {'name': 'output-12', 'intervals': '389', 'id': 'tt_1'}
-            {'name': 'output-newell', 'intervals': '55446', 'id': 'tt_2'}
-            {'name': 'output-newell-ext', 'intervals': '55446', 'id': 'tt_3'}
+        >>> import speasy as spz
+        >>> spz.amda.list_user_parameters()
+        [<ParameterIndex: test_param>]
 
-        .. warning::
+        Warnings
+        --------
            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_parameter` without having defined AMDA_Webservice
            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
            exception being raised.
@@ -446,34 +576,36 @@ class AMDA_Webservice:
     def list_timetables() -> List[AMDATimetableIndex]:
         """Get list of public timetables.
 
-        :return: list of timetable IDs.
-        :rtype: list[str]
+        Returns
+        -------
+        List[AMDATimetableIndex]
+            list of timetable IDs.
 
-        Example::
+        Examples
+        --------
 
-            >>> for timetable_id in amda.get_timetables_xml_tree():
-            >>>     print(timetable_id)
-            sharedtimeTable_0
-            ...
-            sharedtimeTable_139
+        >>> import speasy as spz
+        >>> spz.amda.list_timetables()[::50]
+        [<TimetableIndex: FTE_c1>, <TimetableIndex: Jian_SIR_list>, <TimetableIndex: MMS_Burst_Mode_2019January>]
 
         """
         return list(filter(is_public, flat_inventories.amda.timetables.values()))
 
     @staticmethod
     def list_datasets() -> List[AMDADatasetIndex]:
-        """Get list of dataset id available in AMDA_Webservice
+        """Get the list of dataset id available in AMDA_Webservice
 
-        :return: list if dataset ids
-        :rtype: list[str]
+        Returns
+        -------
+        List[AMDADatasetIndex]
+            list if dataset ids
 
-        Example::
+        Examples
+        --------
 
-            >>> for dataset_id in amda.list_datasets():
-            >>>     print(dataset_id)
-            ace-imf-all
-            ...
-            wnd-swe-kp
+        >>> import speasy as spz
+        >>> spz.amda.list_datasets()[::300]
+        [<DatasetIndex: final / prelim>, <DatasetIndex: orbit>, <DatasetIndex: flyby earth 2>, <DatasetIndex: orbit venus>]
 
         """
         return list(filter(is_public, flat_inventories.amda.datasets.values()))
@@ -493,18 +625,26 @@ class AMDA_Webservice:
 
     @staticmethod
     def product_type(product_id: str or AMDAIndex) -> ProductType:
-        """Get product type.
+        """Returns product type for any known ADMA product from its index or ID.
 
-        :param product_id: product id
-        :type product_id: str
-        :return: Type of product
-        :rtype: speasy.amda.amda.ProductType
+        Parameters
+        ----------
+        product_id: str or AMDAIndex
+            product id
 
-        Example::
-            >>> amda.product_type("imf")
-            <ProductType.PARAMETER: 2>
-            >>> amda.product_type("ace-imf-all")
-            <ProductType.DATASET: 1>
+        Returns
+        -------
+        ProductType
+            Type of product IE ProductType.DATASET, ProductType.TIMETABLE, ...
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.amda.product_type("imf")
+        <ProductType.PARAMETER: 2>
+        >>> spz.amda.product_type("ace-imf-all")
+        <ProductType.DATASET: 1>
         """
         product_id = to_xmlid(product_id)
         if product_id in flat_inventories.amda.datasets:
