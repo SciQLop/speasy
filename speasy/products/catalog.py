@@ -1,6 +1,8 @@
-"""
+""" catalog module
 .. testsetup:: *
-   from speasy.products import *
+
+   import speasy
+   from speasy.products import Catalog, Event
 """
 
 from speasy.core.datetime_range import DateTimeRange
@@ -32,8 +34,8 @@ class Event(DateTimeRange):
 
     See Also
     --------
-    speasy.common.catalog.Catalog
-    speasy.common.datetime_range.DateTimeRange
+    speasy.products.catalog.Catalog
+    speasy.core.datetime_range.DateTimeRange
     """
     __slots__ = ['meta']
 
@@ -67,7 +69,10 @@ class Catalog:
 
     Examples
     --------
-    >>> my_catalog=Catalog(name='MyCatalog', meta={'tags':['demo', 'docstrings']}, events=[])
+
+    >>> import speasy
+    >>> from speasy.products import Catalog, Event
+    >>> my_catalog = Catalog(name='MyCatalog', meta={'tags':['demo', 'docstrings']}, events=[])
     >>> my_catalog.append(Event('2018-01-01', '2018-01-02', meta={'name':'My first event!'}))
     >>> my_catalog += Event('2019-01-01', '2019-01-02', meta={'name':'My second event!'})
     >>> for e in my_catalog:
@@ -78,8 +83,8 @@ class Catalog:
 
     See Also
     --------
-    speasy.common.catalog.Event
-    speasy.common.timetable.TimeTable
+    speasy.products.catalog.Event
+    speasy.products.timetable.TimeTable
     """
     __slots__ = ['_events', 'name', 'meta']
 

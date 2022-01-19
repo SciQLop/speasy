@@ -1,6 +1,10 @@
 Welcome to Speasy's user documentation!
 =======================================
 
+.. testsetup:: *
+
+   import speasy as spz
+
 .. toctree::
    :maxdepth: 4
 

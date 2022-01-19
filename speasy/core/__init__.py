@@ -16,7 +16,11 @@ from dateutil.parser import parse
 
 def deprecation(message: str) -> None:
     """Shows a deprecation warning.
-    :param message: Custom message to show
+
+    Parameters
+    ----------
+    message: str
+        Custom message to show
     """
 
     warnings.warn(message, DeprecationWarning, stacklevel=2)
@@ -24,10 +28,19 @@ def deprecation(message: str) -> None:
 
 def pack_kwargs(**kwargs: Any) -> Dict:
     """Packs given keyword arguments into a dictionary
-    :param kwargs: Any keyword argument is accepted
-    :return: A dict with all kwargs packed
 
-    Examples::
+    Parameters
+    ----------
+    kwargs: Any
+        Any keyword argument is accepted
+
+    Returns
+    -------
+    dict
+        A dict with all kwargs packed
+
+    Examples
+    --------
     >>> pack_kwargs(a=1, b="2")
     {'a': 1, 'b': '2'}
     """
@@ -36,11 +49,21 @@ def pack_kwargs(**kwargs: Any) -> Dict:
 
 def all_of_type(collection: Sequence, expected_type: Type) -> bool:
     """Returns true only if the type of all elements in given collection is expected_type
-    :param collection: Any iterable object
-    :param expected_type: the type you expect to match
-    :return: true only if the type of all elements in given collection is expected_type
 
-    Examples::
+    Parameters
+    ----------
+    collection: Sequence
+        Any iterable object
+    expected_type: Type
+        the type you expect to match
+
+    Returns
+    -------
+    bool
+        True only if the type of all elements in given collection is expected_type
+
+    Examples
+    --------
     >>> all_of_type([1,2,3], int)
     True
 
@@ -52,7 +75,11 @@ def all_of_type(collection: Sequence, expected_type: Type) -> bool:
 
 def mkdir(directory: str) -> None:
     """Creates directory and parents if they do not exist
-    :param directory: Path to create
+
+    Parameters
+    ----------
+    directory: str
+        Path to create
     """
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -97,10 +124,19 @@ def listify(obj: Any) -> List:
 
 def make_utc_datetime(input_dt: str or datetime or np.float64 or float) -> datetime:
     """Makes UTC datetime from given input.
-    :param input_dt: Datetime to convert, can be either en Epoch, a datetime or a string
-    :return: A datetime.datetime object forced to UTC time zone
 
-    Examples::
+    Parameters
+    ----------
+    input_dt: str or datetime or np.float64 or float
+        Datetime to convert, can be either en Epoch, a datetime or a string
+
+    Returns
+    -------
+    datetime
+        A datetime.datetime object forced to UTC time zone
+
+    Examples
+    --------
     >>> make_utc_datetime('2018-01-02')
     datetime.datetime(2018, 1, 2, 0, 0, tzinfo=datetime.timezone.utc)
 
@@ -119,6 +155,12 @@ def make_utc_datetime(input_dt: str or datetime or np.float64 or float) -> datet
 
 
 class AllowedKwargs(object):
+    """A decorator that prevent from passing unexpected kwargs to a function
+
+    Methods
+    -------
+    """
+
     def __init__(self, allowed_list):
         self.allowed_list = allowed_list
 
