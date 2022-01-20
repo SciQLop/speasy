@@ -6,7 +6,7 @@ This module contains the definition of the :class:`~speasy.amda.amda.AMDA_Webser
 manages the connexion to AMDA_Webservice and allows users to list available products, get informations about
 that product and downloading the corresponding data.
 
-AMDA_Webservice provides the following products :
+AMDA provides the following products :
     - parameters (:meth:`~speasy.amda.amda.AMDA_Webservice.get_parameter()`) : time-series
     - datasets (:meth:`~speasy.amda.amda.AMDA_Webservice.get_dataset()`) : collection of parameters with same time base
     - timetables (:meth:`~speasy.amda.amda.AMDA_Webservice.get_timetable()`)
