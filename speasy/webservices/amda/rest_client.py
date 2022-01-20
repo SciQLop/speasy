@@ -1,11 +1,15 @@
 import logging
 from enum import Enum
 
+from theano.graph.utils import D
+
 from speasy.core import http, pack_kwargs
 from speasy.core.cache import CacheCall
 from speasy.config import amda_user_cache_retention
 
 import xml.etree.ElementTree as Et
+
+from typing import Dict, Optional
 
 log = logging.getLogger(__name__)
 
@@ -29,13 +33,20 @@ def auth_args(username: str, password: str) -> dict:
     return {'userID': username, 'password': password}
 
 
-def request_url(endpoint, server_url):
+def request_url(endpoint: Endpoint, server_url: str) -> str:
     """Generates full URL for the given endpoint.
 
-    :param endpoint: request endpoint
-    :type endpoint: Endpoint
-    :return: request URL
-    :rtype: str
+    Parameters
+    ----------
+    endpoint: Endpoint
+        target API endpoint
+    server_url: str
+        server base url
+
+    Returns
+    -------
+    str
+        full URL to perform a request on the given API endpoint
     """
     if isinstance(endpoint, Endpoint):
         return f"{server_url}/php/rest/{endpoint.value}"
@@ -43,11 +54,18 @@ def request_url(endpoint, server_url):
         raise TypeError(f"You must provide an {Endpoint} instead of {type(endpoint)}")
 
 
-def token(server_url="http://amda.irap.omp.eu") -> str:
+def token(server_url: str = "http://amda.irap.omp.eu") -> str:
     """Returns authentication token.
 
-    :return: authentication token
-    :rtype: str
+    Parameters
+    ----------
+    server_url:str
+        server base URL on which the API token will be generated
+
+    Returns
+    -------
+    str
+        the generated token
     """
     # url = "{0}/php/rest/auth.php?".format(self.server_url)
     r = http.get(request_url(Endpoint.AUTH, server_url=server_url))
@@ -57,17 +75,26 @@ def token(server_url="http://amda.irap.omp.eu") -> str:
         raise RuntimeError("Failed to get auth token")
 
 
-def send_request(endpoint: Endpoint, params: dict = None, n_try=3, server_url="http://amda.irap.omp.eu"):
+def send_request(endpoint: Endpoint, params: dict = None, n_try: int = 3,
+                 server_url: str = "http://amda.irap.omp.eu") -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. Retry up to :data:`n_try` times upon failure.
 
-    :param endpoint: request endpoint
-    :type endpoint: Endpoint
-    :param params: request parameters
-    :type params: dict
-    :param n_try: maximum number of tries
-    :type n_try: int
-    :return: request result text, stripped of spaces and newlines
-    :rtype: str
+    Parameters
+    ----------
+    endpoint: Endpoint
+        target API endpoint on which the request will be performed
+    params: dict
+        request parameters
+    n_try: int
+        the number of retry in case of failure
+    server_url: str
+        the base server URL
+
+    Returns
+    -------
+    str or None
+        request result text, stripped of spaces and newlines
+
     """
     url = request_url(endpoint, server_url=server_url)
     params = params or {}
@@ -83,20 +110,28 @@ def send_request(endpoint: Endpoint, params: dict = None, n_try=3, server_url="h
     return None
 
 
-def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try=3,
-                          server_url="http://amda.irap.omp.eu"):
+def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try: int = 3,
+                          server_url: str = "http://amda.irap.omp.eu") -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. The request is special in that the result
     is the URL to an XML file containing the actual data we are interested in. That is why
     we call :data:`requests.get()` twice in a row.
 
-    :param endpoint: request endpoint
-    :type endpoint: Endpoint
-    :param params: request parameters
-    :type params: dict
-    :param n_try: maximum number of tries
-    :type n_try: int
-    :return: request result, stripped of spaces and newlines
-    :rtype: str
+    Parameters
+    ----------
+    endpoint: Endpoint
+        target API endpoint on which the request will be performed
+    params: dict
+        request parameters
+    n_try: int
+        the number of retry in case of failure
+    server_url: str
+        the base server URL
+
+    Returns
+    -------
+    str or None
+        request result text, stripped of spaces and newlines
+
     """
     next_url = send_request(endpoint=endpoint, params=params, n_try=n_try, server_url=server_url)
     if '<' in next_url and '>' in next_url:
@@ -107,18 +142,27 @@ def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try=3,
     return None
 
 
-def send_request_json(endpoint: Endpoint, params=None, n_try=3, server_url="http://amda.irap.omp.eu"):
+def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
+                      server_url: str = "http://amda.irap.omp.eu") -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. We expect the result to be JSON data.
 
-    :param endpoint: request endpoint
-    :type endpoint: Endpoint
-    :param params: request parameters
-    :type params: dict
-    :param n_try: maximum number of tries
-    :type n_try: int
-    :return: request result
-    :rtype: str
+    Parameters
+    ----------
+    endpoint: Endpoint
+        target API endpoint on which the request will be performed
+    params: dict
+        request parameters
+    n_try: int
+        the number of retry in case of failure
+    server_url: str
+        the base server URL
+
+    Returns
+    -------
+    str or None
+        request result parsed as json object
     """
+
     url = request_url(endpoint, server_url=server_url)
     params = params or {}
     params['token'] = token(server_url=server_url)
@@ -138,74 +182,112 @@ def send_request_json(endpoint: Endpoint, params=None, n_try=3, server_url="http
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_timetables_xml_tree(server_url="http://amda.irap.omp.eu", **kwargs: str):
+def get_timetables_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get list of timetables.
 
-    :param kwargs: keyword arguments, username and password for private timetables
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments such as username and password for private timetables
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
+
     """
     return send_indirect_request(Endpoint.LISTTT, params=kwargs, server_url=server_url)
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_catalogs_xml_tree(server_url="http://amda.irap.omp.eu", **kwargs: str):
+def get_catalogs_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get list of catalogs.
 
-    :param kwargs: keyword arguments, username and password for private catalogs
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments such as username and password for private catalogs
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     return send_indirect_request(Endpoint.LISTCAT, params=kwargs, server_url=server_url)
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_user_timetables_xml_tree(username, password, server_url="http://amda.irap.omp.eu", **kwargs: str):
-    """Get private timetables.
+def get_user_timetables_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
+                                 **kwargs: Dict) -> str or None:
+    """Get private list of timetables.
 
-    :param username: username
-    :type username: str
-    :param password: password
-    :type password: str
-    :param kwargs: keyword arguments for the request
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    username: str
+        AMDA username
+    password:
+        AMDA password
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     return get_timetables_xml_tree(**auth_args(username, password), **kwargs, server_url=server_url)
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_user_catalogs_xml_tree(username: str, password: str, server_url="http://amda.irap.omp.eu",
-                               **kwargs: str):
-    """Get private catalogs.
+def get_user_catalogs_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
+                               **kwargs: Dict) -> str or None:
+    """Get private list of catalogs.
 
-    :param username: username
-    :type username: str
-    :param password: password
-    :type password: str
-    :param kwargs: keyword arguments for the request
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    username: str
+        AMDA username
+    password:
+        AMDA password
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     return get_catalogs_xml_tree(**auth_args(username, password), **kwargs, server_url=server_url)
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_user_parameters_xml_tree(username, password, server_url="http://amda.irap.omp.eu", **kwargs: str):
-    """Get private parameters.
+def get_user_parameters_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
+                                 **kwargs: Dict) -> str or None:
+    """Get private list of parameters.
 
-    :param username: username
-    :type username: str
-    :param password: password
-    :type password: str
-    :param kwargs: keyword arguments for the request
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    username: str
+        AMDA username
+    password:
+        AMDA password
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     xml_resp = send_request(Endpoint.LISTPARAM, params=pack_kwargs(**kwargs, **auth_args(username, password)),
                             server_url=server_url).strip()
@@ -216,46 +298,74 @@ def get_user_parameters_xml_tree(username, password, server_url="http://amda.ira
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_timetable(server_url="http://amda.irap.omp.eu", **kwargs: str):
+def get_timetable(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get timetable request.
 
-    :param kwargs: keyword arguments
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments such as username and password for private timetables
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     return send_request(Endpoint.GETTT, params=kwargs, server_url=server_url)
 
 
 @CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
-def get_catalog(server_url="http://amda.irap.omp.eu", **kwargs: str):
+def get_catalog(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get catalog request.
 
-    :param kwargs: keyword arguments
-    :type kwargs: dict
-    :return: request result, XML formatted text
-    :rtype: str
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments such as username and password for private catalogs
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
 
     return send_request(Endpoint.GETCAT, params=kwargs, server_url=server_url)
 
 
-def get_parameter(server_url="http://amda.irap.omp.eu", **kwargs: str):
+def get_parameter(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get parameter request.
 
-    :param kwargs: keyword arguments
-    :type kwargs: dict
-    :return: request result, JSON
-    :rtype: dict
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+    kwargs: dict
+        extra request arguments such as username and password for private parameters
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url)
 
 
 @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
-def get_obs_data_tree(server_url="http://amda.irap.omp.eu"):
+def get_obs_data_tree(server_url: str = "http://amda.irap.omp.eu") -> str or None:
     """Get observatory data tree.
 
-    :return: observatory data tree
-    :rtype: str
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+
+    Returns
+    -------
+    str or None
+        request result, XML formatted text
     """
     return send_indirect_request(Endpoint.OBSTREE, server_url=server_url)

@@ -13,14 +13,21 @@ from speasy.products.timetable import TimeTable
 from speasy.products.catalog import Catalog, Event
 from speasy.core.datetime_range import DateTimeRange
 
+from typing import List, Dict
 
-def load_csv(filename):
+
+def load_csv(filename: str) -> SpeasyVariable:
     """Load a CSV file
 
-    :param filename: CSV filename
-    :type filename: str
-    :return: CSV contents
-    :rtype: SpeasyVariable
+    Parameters
+    ----------
+    filename: str
+        CSV filename
+
+    Returns
+    -------
+    SpeasyVariable
+        CSV contents
     """
     if '://' not in filename:
         filename = f"file://{os.path.abspath(filename)}"
@@ -48,19 +55,24 @@ def load_csv(filename):
         return SpeasyVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
 
 
-def _build_event(data, colnames):
+def _build_event(data, colnames: List[str]) -> Event:
     return Event(datetime.datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%S.%f"),
                  datetime.datetime.strptime(data[1], "%Y-%m-%dT%H:%M:%S.%f"),
                  {name: value for name, value in zip(colnames[2:], data[2:])})
 
 
-def load_timetable(filename) -> TimeTable:
+def load_timetable(filename: str) -> TimeTable:
     """Load a timetable file
-    :param filename: filename
-    :type filename: str
-    :return: AMDA_Webservice timetable
-    :rtype: speasy.common.timetable.TimeTable
 
+    Parameters
+    ----------
+    filename: str
+        filename
+
+    Returns
+    -------
+    TimeTable
+        File content loaded as TimeTable
     """
     if '://' not in filename:
         filename = f"file://{os.path.abspath(filename)}"
@@ -82,13 +94,18 @@ def load_timetable(filename) -> TimeTable:
         return var
 
 
-def load_catalog(filename) -> Catalog:
+def load_catalog(filename:str) -> Catalog:
     """Load a timetable file
 
-    :param filename: filename
-    :type filename: str
-    :return: speasy.amda.timetable.Catalog
-    :rtype: speasy.amda.timetable.Catalog
+    Parameters
+    ----------
+    filename: str
+        filename
+
+    Returns
+    -------
+    Catalog
+        File content loaded as Catalog
 
     """
     if '://' not in filename:
@@ -109,15 +126,22 @@ def load_catalog(filename) -> Catalog:
         return var
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> Dict:
     """Get parameter arguments
 
-    :param start_time: parameter start time
-    :type start_time: datetime.datetime
-    :param stop_time: parameter stop time
-    :type stop_time: datetime.datetime
-    :return: parameter arguments in dictionary
-    :rtype: dict
+    Parameters
+    ----------
+    start_time: datetime
+        parameter start time
+    stop_time: datetime
+        parameter stop time
+    product: str
+        product ID (xmlid)
+
+    Returns
+    -------
+    dict
+        parameter arguments in dictionary
     """
     return {'path': f"amda/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}'}
