@@ -151,7 +151,8 @@ def make_utc_datetime(input_dt: str or datetime or np.float64 or float) -> datet
         return datetime.utcfromtimestamp(input_dt)
     if type(input_dt) is str:
         input_dt = parse(input_dt)
-    return input_dt.replace(tzinfo=timezone.utc)
+    return datetime(input_dt.year, input_dt.month, input_dt.day, input_dt.hour, input_dt.minute, input_dt.second,
+                    input_dt.microsecond, tzinfo=timezone.utc)
 
 
 class AllowedKwargs(object):
