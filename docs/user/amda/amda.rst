@@ -4,21 +4,14 @@ AMDA
 .. toctree::
    :maxdepth: 1
 
-   amda_products
    amda_notebooks
 
-AMDA is one of the main data providers that speasy handles. Most products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
+`AMDA <http://amda.irap.omp.eu/>`_ is one of the main data providers handled by speasy. Most products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
 The following documentation will focus on AMDA module specific usage.
 
-All examples assumes that you imported AMDA module like this:
 
-    >>> from speasy import amda
-
-Basics
-------
-
-Getting data from AMDA
-^^^^^^^^^^^^^^^^^^^^^^
+Basics: Getting data from AMDA
+------------------------------
 
 `AMDA <http://amda.irap.omp.eu/>`_ distributes several products such as Parameters, user Parameters, Datasets, Timetables, user Timetables, Catalogs
 and user Catalogs. Speasy makes them accessible thanks to this module with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()`
@@ -40,9 +33,15 @@ This module provides two kinds of operations, **list** or **get** and so user me
     - **get** methods retrieve the given product from AMDA server, they takes at least the product identifier and time range for time series
     - **list** methods list available products of a given type on AMDA, they return a list of indexes that can be passed to a **get** method
 
+Parameters
+^^^^^^^^^^
+
 Let's start with a simple example, we want to download the first parameter available on AMDA:
 
+    >>> from speasy import amda
     >>> first_param_index=amda.list_parameters()[0]
+    >>> print(first_param_index)
+    <ParameterIndex: |b|>
     >>> first_param=amda.get_parameter(first_param_index, "2018-01-01", "2018-01-02")
     >>> first_param.columns
     ['imf_mag']
@@ -51,7 +50,7 @@ Let's start with a simple example, we want to download the first parameter avail
 
 Usually you already know which product you want to download, two scenarios are available:
 
-1. You are an AMDA web interface user, so you want some specific product from AMDA Workspace. You need first to get your product id,
+1. You are an `AMDA <http://amda.irap.omp.eu/>`_ web interface user, so you want some specific product from AMDA Workspace. You need first to get your product id,
 you will find the id from the tooltip while hovering any product (Dataset, Parameter, Timetable or Catalog):
 
 .. image:: images/AMDA_param_id.png
@@ -60,6 +59,7 @@ you will find the id from the tooltip while hovering any product (Dataset, Param
 
 Then simply:
 
+    >>> from speasy import amda
     >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot', "2018-01-01", "2018-01-02")
     >>> mms4_fgm_btot.columns
     ['mms4_b_tot']
@@ -70,6 +70,7 @@ Then simply:
 the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
 AMDA products directly from your Python terminal or notebook:
 
+    >>> from speasy import amda
     >>> from speasy.inventory.data_tree import amda as amdatree
     >>> mms4_fgm_btot=amda.get_parameter(amdatree.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-02")
     >>> mms4_fgm_btot.columns
@@ -77,146 +78,118 @@ AMDA products directly from your Python terminal or notebook:
     >>> len(mms4_fgm_btot.time)
     986745
 
+See :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()` or :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()` for more details.
 
 
-List of available products types
---------------------------------
+Catalogs and TimeTables
+^^^^^^^^^^^^^^^^^^^^^^^
 
-Parameters
-^^^^^^^^^^
-
-
-First import AMDA connection object::
+Downloading Catalogs and TimeTables from `AMDA <http://amda.irap.omp.eu/>`_ is similar to Parameters. For example let's
+assume you want to download the first available catalog:
 
     >>> from speasy import amda
+    >>> first_catalog_index=amda.list_catalogs()[0]
+    >>> print(first_catalog_index)
+    <CatalogIndex: model_regions_plasmas_mms_2019>
+    >>> first_catalog=amda.get_catalog(first_catalog_index)
+    >>> first_catalog
+    <Catalog: model_regions_plasmas_mms_2019>
+    >>> len(first_catalog)
+    12691
+    >>> print(first_catalog[1])
+    <Event: 2019-01-01T00:24:04+00:00 -> 2019-01-01T00:24:04+00:00 | {'classes': '1'}>
 
-Downloading the data is done by using the :meth:`speasy.webservices.amda.ws.AMDA_Webservice.get_data()` or :meth:`speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()` methods. For example
-getting `imf` data between 2000-01-01 and 2000-02-01::
+Exactly the same with a TimeTable:
 
-    >>> parameter = amda.get_data("imf", datetime.datetime(2000,1,1), datetime.datetime(2000,2,1))
-    >>> parameter
-    <speasy.common.variable.SpeasyVariable object at 0x7f6c3b847bd0>
-
-The resulting data is stored in a :class:`speasy.common.variable.SpeasyVariable` object.
-
-The parameters data is stored as a `numpy.ndarray` object::
-
-    >>> type(parameter.data)
-    <class 'numpy.ndarray'>
-    >>> parameter.data
-    array([[-3.432, -3.174,  5.714],
-           [-3.407, -2.763,  5.72 ],
-           [-4.38 , -1.437,  5.2  ],
-           ...,
-           [-4.435,  0.31 , -0.27 ],
-           [-4.413,  0.141, -0.247],
-           [-4.335,  0.087, -0.323]])
-
-It is also possible to get all the parameters contained in a given dataset using the :meth:`speasy.amda.amda.AMDA_Webservice.get_dataset()` method which returns a list of :class:`speasy.common.variable.SpeasyVariable` objects::
-
-    >>> amda.get_dataset("ace-imf-all", datetime.datetime(2000,1,1), datetime.datetime(2000,2,1))
-    [<speasy.common.variable.SpeasyVariable object at 0x7f79fa8f3720>, <speasy.common.variable.SpeasyVariable object at 0x7f79fa8fb950>, <speasy.common.variable.SpeasyVariable object at 0x7f79fa859540>]
+    >>> from speasy import amda
+    >>> first_timetable_index=amda.list_timetables()[0]
+    >>> print(first_timetable_index)
+    <TimetableIndex: FTE_c1>
+    >>> first_timetable=amda.get_timetable(first_timetable_index)
+    >>> first_timetable
+    <TimeTable: FTE_c1>
+    >>> len(first_timetable)
+    782
+    >>> print(first_timetable[1])
+    <DateTimeRange: 2001-02-02T17:29:29+00:00 -> 2001-02-02T17:29:30+00:00>
 
 
-Parameter time range
---------------------
+As with Parameters you can also use the ID found on `AMDA <http://amda.irap.omp.eu/>`_ web user interface:
 
-Downloading data requires the user to know the desired start and end date of the data. The start and
-end dates for all available datasets and parameters are available through use of the
-:meth:`speasy.amda.amda.AMDA_Webservice.parameter_range()` method::
+.. image:: images/AMDA_catalog_id.png
+   :height: 400px
+   :alt: AMDA workspace id
 
-    >>> t_range = amda.parameter_range("imf")
-    >>> type(t_range)
-    <class 'speasy.common.datetime_range.DateTimeRange'>
-    >>> t_range
-    1997-09-02T00:00:12->2021-07-17T23:59:55
+Then simply:
 
+    >>> from speasy import amda
+    >>> catalog_mms_2019=amda.get_catalog("sharedcatalog_22")
+    >>> catalog_mms_2019
+    <Catalog: model_regions_plasmas_mms_2019>
+    >>> len(catalog_mms_2019)
+    12691
+    >>> print(catalog_mms_2019[1])
+    <Event: 2019-01-01T00:24:04+00:00 -> 2019-01-01T00:24:04+00:00 | {'classes': '1'}>
 
-Listing available products
---------------------------
+And also alternatively you can use the dynamic inventory:
 
-Users can access the list of available parameters::
-
-   >>> parameter_list = amda.list_parameters()
-   >>> dataset_list = amda.list_datasets()
-
-You can get the list of parameters contained in a dataset with::
-
-   >>> amda.get_dataset_parameters("ace-imf-all")
-   ['imf_mag', 'imf', 'imf_gsm']
-
-
-User parameters
----------------
-
-Users with an account on AMDA_Webservice can access their private parameters. First store the users credentials
-using the :class:`~speasy.config.ConfigEntry` class::
-
-   >>> from speasy.config import ConfigEntry
-   >>> ConfigEntry("AMDA_Webservice", "username").set("your_username")
-   >>> ConfigEntry("AMDA_Webservice", "password").set("your_password")
-
-The login credentials are stored locally, you only need to execute the previous lines of code once
-to save the credentials. The configuration file can be found at :data:`/<user_config_dir>/speasy/config.ini`.
-
-Parameters defined on your account can now be listed like follows::
-
-   >>> params = amda.list_user_parameters()
-   >>> for param in params:
-   >>>     print(param["id"], param["name"])
-   ws_0 your_first_parameter
-   ws_1 your_second_parameter
-   ...
-   ws_n your_nth_parameter
-
-Getting the parameter is then done with :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_parameter()`::
-
-   >>> from datetime import datetime
-   >>> start, stop = datetime(2000,1,1), datetime(2000,1,2)
-   >>> param = amda.get_user_parameter("ws_0", start, stop)
-   >>> param
-   <speasy.common.variable.SpeasyVariable object at 0x7f8e6f31c220>
-   >>> param.data
-   array([[-6.156],
-          [-6.15],
-          [-6.088],
-          ...,
-          [-3.088],
-          [-2.816],
-          [-3.568]], dtype=object)
-   >>> p.time
-   array(['2001-01-01T00:00:00.000', '2001-01-01T00:00:16.000',
-          '2001-01-01T00:00:32.000', ..., '2001-01-31T23:59:28.000',
-          '2001-01-31T23:59:44.000', '2001-02-01T00:00:00.000'], dtype=object)
-
-See :meth:`~speasy.amda.amda.AMDA_Webservice.list_user_parameters()` for a list of user parameter attributes.
-
-Calling :meth:`~speasy.amda.amda.AMDA_Webservice.list_user_parameters()` or :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_parameter()` will raise an :class:`~speasy.config.exception.UndefinedConfigEntry` exception if the
-credentials could not be found::
-
-   raise UndefinedConfigEntry(key1=self.key1, key2=self.key2, default=self.default)
-
-Timetables and catalogs
------------------------
-
-The methods :meth:`~speasy.amda.amda.AMDA_Webservice.get_timetable` and :meth:`~speasy.amda.amda.AMDA_Webservice.get_catalog` allow you to download one of many timetables and catalogs available on AMDA_Webservice. Listing the publicly
-available products is achieved through using the :meth:`~speasy.amda.amda.AMDA_Webservice.list_timetables` and :meth:`~speasy.amda.amda.AMDA_Webservice.list_catalogs` to list products by ID::
-
-   >>> for ttid in amda.list_timetables():
-   >>>     print(ttid)
-   sharedtimeTable_0
-   ...
-   sharedtimeTable_130
-
-You can get more information about the timetables and catalogs through the :data:`amda.timetable` and :data:`amda.catalog` attributes. These attributes are dictionaries indexed by the ID of their
-respective products::
-
-    >>> for ttid in amda.timetable:
-    >>>     print(amda.timetable[ttid])
-    {'xml:id': 'sharedtimeTable_139', 'id': 'sharedtimeTable_139', 'name': 'MMS_Burst_Mode_2021July', 'created': '2020-08-26T00:00:55', 'modified': '1970-01-01T00:00:00', 'surveyStart': '2021-07-01T00:03:43', 'surveyStop': '2021-07-25T13:51:53', 'contact': 'MMS_Burst_Mode_2021July', 'description': 'Time intervals for which MMS burst mode data are available. source: http://mmsburst.sr.unh.edu/', 'history': '', 'nbIntervals': '441', 'sharedBy': 'AMDA_Webservice', 'sharedDate': '2021-08-02T03:25:05+00:00', 'folder': 'MMS_BURST_MODE_timeTable', 'timeTable': 'sharedtimeTable_139'}
-    ...
-
-For a description of the :data:`timetable` and :data:`catalog` attributes see the :class:`~speasy.amda.amda.AMDA_Webservice` class documentation.
+    >>> from speasy import amda
+    >>> from speasy.inventory.data_tree import amda as amdatree
+    >>> catalog_mms_2019=amda.get_catalog(amdatree.Catalogs.SharedCatalogs.EARTH.model_regions_plasmas_mms_2019)
+    >>> catalog_mms_2019
+    <Catalog: model_regions_plasmas_mms_2019>
+    >>> len(catalog_mms_2019)
+    12691
+    >>> print(catalog_mms_2019[1])
+    <Event: 2019-01-01T00:24:04+00:00 -> 2019-01-01T00:24:04+00:00 | {'classes': '1'}>
 
 
+Advanced: AMDA module configuration options
+-------------------------------------------
 
+AMDA user login
+^^^^^^^^^^^^^^^
+
+Most AMDA features are available without login except user created product from web user interface. You can configure
+speasy to store your AMDA login, from your favourite python terminal:
+
+    >>> from speasy import config
+    >>> config.amda_username.set('my_username') # doctest: +SKIP
+    >>> config.amda_password.set('my_password') # doctest: +SKIP
+    >>> # check that your login/password are correctly set
+    >>> config.amda_username.get(), config.amda_password.get() # doctest: +SKIP
+    ('my_username', 'my_password')
+
+
+Then if you correctly typed your login you should be able to list and get user products:
+
+    >>> from speasy import amda
+    >>> # list user products
+    >>> amda.list_user_parameters()
+    [<ParameterIndex: test_param>]
+    >>> amda.list_user_catalogs()
+    [<CatalogIndex: MyCatalog>]
+    >>> amda.list_user_timetables()
+    [<TimetableIndex: test_alexis>, <TimetableIndex: test_alexis2>, <TimetableIndex: tt3>]
+    >>> # get my first user catalog
+    >>> amda.get_user_catalog(amda.list_user_catalogs()[0])
+    <Catalog: MyCatalog>
+
+
+AMDA cache retention
+^^^^^^^^^^^^^^^^^^^^
+
+While parameter download cache is not configurable and relies on product version to decide if local data is up to date
+compared to remote data. Requests like catalogs or time-tables download have a different dedicated cache
+based on duration, by default they will be cached for 15 minutes. As a consequence if a time-table has changed on AMDA servers
+it might take up to the configured duration to see it.
+This cache has been designed with interactive usage of speasy in mind where we want to minimize penalty of running
+multiple times the same command/line.
+
+To change this cache duration value:
+
+    >>> from speasy import config
+    >>> # set cache duration to 900 seconds
+    >>> config.amda_user_cache_retention.set('900')
+    >>> config.amda_user_cache_retention.get()
+    '900'

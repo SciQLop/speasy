@@ -16,6 +16,7 @@ _config = configparser.ConfigParser()
 _config.read(_CONFIG_FNAME)
 
 
+
 def _save_changes():
     with open(_CONFIG_FNAME, 'w') as f:
         _config.write(f)
@@ -73,6 +74,18 @@ class ConfigEntry:
 
 
 def remove_entry(entry: ConfigEntry):
+    """Deletes entry from config file and its section if it was the last entry
+
+    Parameters
+    ----------
+    entry: ConfigEntry
+        the entry to delete
+
+    Returns
+    -------
+    None
+
+    """
     if entry.key1 in _config:
         section = _config[entry.key1]
         if entry.key2 in section:

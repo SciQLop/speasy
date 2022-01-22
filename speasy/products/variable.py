@@ -11,7 +11,7 @@ class SpeasyVariable(object):
     Attributes
     ----------
     time: numpy.ndarray
-        time data
+        time vector (x-axis data)
     data: numpy.ndarray
         data
     meta: Optional[dict]
@@ -19,7 +19,7 @@ class SpeasyVariable(object):
     columns: Optional[List[str]]
         column names
     y: Optional[np.ndarray]
-        y axis for 2D data
+        y-axis for 2D data
 
     Methods
     -------
@@ -81,23 +81,9 @@ class SpeasyVariable(object):
                np.all(self.values == other.values)
 
     def __len__(self):
-        """Get length of the timeserie
-
-        Returns
-        -------
-        int:
-            Timeserie length
-        """
         return len(self.time)
 
     def __getitem__(self, key):
-        """Item getter
-
-        :param key: key
-        :type key: slice
-        :return: data slice
-        :rtype: speasy.common.variable.SpeasyVariable
-        """
         if isinstance(key, slice):
             if isinstance(key.start, int) or isinstance(key.stop, int) or (key.start is None and key.stop is None):
                 return self.view(key)

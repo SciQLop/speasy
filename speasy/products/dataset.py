@@ -5,6 +5,9 @@ from speasy.core.datetime_range import DateTimeRange
 
 
 class Dataset:
+    """A Dataset is basically a collection of SpeasyVariables
+
+    """
     __slots__ = ['name', 'variables', 'meta']
 
     def __init__(self, name: str, variables: dict, meta: dict):

@@ -1,7 +1,6 @@
 import logging
 from enum import Enum
 
-from theano.graph.utils import D
 
 from speasy.core import http, pack_kwargs
 from speasy.core.cache import CacheCall
@@ -9,7 +8,7 @@ from speasy.config import amda_user_cache_retention
 
 import xml.etree.ElementTree as Et
 
-from typing import Dict, Optional
+from typing import Dict
 
 log = logging.getLogger(__name__)
 
