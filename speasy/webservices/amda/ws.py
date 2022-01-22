@@ -424,7 +424,8 @@ class AMDA_Webservice:
                 datetime.strptime(dataset.dataStop, '%Y-%m-%dT%H:%M:%SZ')
             )
 
-    def list_parameters(self, dataset_id: Optional[str or AMDADatasetIndex] = None) -> List[AMDAParameterIndex]:
+    @staticmethod
+    def list_parameters(dataset_id: Optional[str or AMDADatasetIndex] = None) -> List[AMDAParameterIndex]:
 
         """Get the list of parameter indexes available in AMDA or a given dataset
 
@@ -461,7 +462,8 @@ class AMDA_Webservice:
             return list(flat_inventories.amda.datasets[to_xmlid(dataset_id)])
         return list(filter(is_public, flat_inventories.amda.parameters.values()))
 
-    def list_catalogs(self) -> List[AMDACatalogIndex]:
+    @staticmethod
+    def list_catalogs() -> List[AMDACatalogIndex]:
         """Get the list of public catalog IDs:
 
         Returns
@@ -491,8 +493,8 @@ class AMDA_Webservice:
         """
         return list(filter(is_public, flat_inventories.amda.catalogs.values()))
 
-    @CacheCall(cache_retention=60 * 15)
-    def list_user_timetables(self) -> List[AMDATimetableIndex]:
+    @staticmethod
+    def list_user_timetables() -> List[AMDATimetableIndex]:
         """Get the list of user timetables. User timetable are represented as dictionary objects.
 
         Returns
@@ -518,8 +520,8 @@ class AMDA_Webservice:
         # get list of private parameters
         return list(filter(is_private, flat_inventories.amda.timetables.values()))
 
-    @CacheCall(cache_retention=60 * 15)
-    def list_user_catalogs(self) -> List[AMDACatalogIndex]:
+    @staticmethod
+    def list_user_catalogs() -> List[AMDACatalogIndex]:
         """Get the list of user catalogs. User catalogs are represented as dictionary objects.
 
         Returns
@@ -545,8 +547,8 @@ class AMDA_Webservice:
         # get list of private parameters
         return list(filter(is_private, flat_inventories.amda.catalogs.values()))
 
-    @CacheCall(cache_retention=60 * 15)
-    def list_user_parameters(self) -> List[AMDAParameterIndex]:
+    @staticmethod
+    def list_user_parameters() -> List[AMDAParameterIndex]:
         """Get the list of user parameters. User parameters are represented as dictionary objects.
 
         Returns

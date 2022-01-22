@@ -8,6 +8,9 @@ def _all_are_datetime_ranges(dt_list):
 
 
 class TimeTable:
+    """A TimeTable is basically a collection of DateTimeRange
+
+    """
     __slots__ = ['name', 'meta', '_storage']
 
     def __init__(self, name: str, meta: dict = None, dt_ranges: List[DateTimeRange] = None):

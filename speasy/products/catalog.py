@@ -1,8 +1,4 @@
 """ catalog module
-.. testsetup:: *
-
-   import speasy
-   from speasy.products import Catalog, Event
 """
 
 from speasy.core.datetime_range import DateTimeRange
