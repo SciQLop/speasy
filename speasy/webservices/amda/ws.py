@@ -184,10 +184,10 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> user_param = spz.amda.get_user_parameter("ws_0", "2019-02-24T19:20:05", "2019-02-25")
-        >>> print(user_param.columns)
+        >>> user_param = spz.amda.get_user_parameter("ws_0", "2019-02-24T19:20:05", "2019-02-25") # doctest: +SKIP
+        >>> print(user_param.columns) # doctest: +SKIP
         ['ws_test_param']
-        >>> print(user_param.data.shape)
+        >>> print(user_param.data.shape) # doctest: +SKIP
         (2, 1)
 
 
@@ -219,7 +219,7 @@ class AMDA_Webservice:
         Examples
         --------
         >>> import speasy as spz
-        >>> spz.amda.get_user_timetable("tt_0")
+        >>> spz.amda.get_user_timetable("tt_0") # doctest: +SKIP
         <TimeTable: test_alexis>
 
         Warnings
@@ -251,7 +251,7 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> spz.amda.get_user_catalog("tt_0")
+        >>> spz.amda.get_user_catalog("tt_0") # doctest: +SKIP
         <Catalog: test_alexis>
 
         Warnings
@@ -506,7 +506,7 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> spz.amda.list_user_timetables()
+        >>> spz.amda.list_user_timetables() # doctest: +SKIP
         [<TimetableIndex: test_alexis>, <TimetableIndex: test_alexis2>, <TimetableIndex: tt3>]
 
         Warnings
@@ -533,7 +533,7 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> spz.amda.list_user_catalogs()
+        >>> spz.amda.list_user_catalogs() # doctest: +SKIP
         [<CatalogIndex: MyCatalog>]
 
         Warnings
@@ -560,7 +560,7 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> spz.amda.list_user_parameters()
+        >>> spz.amda.list_user_parameters() # doctest: +SKIP
         [<ParameterIndex: test_param>]
 
         Warnings

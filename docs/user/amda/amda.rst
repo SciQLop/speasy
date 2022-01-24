@@ -165,14 +165,14 @@ Then if you correctly typed your login you should be able to list and get user p
 
     >>> from speasy import amda
     >>> # list user products
-    >>> amda.list_user_parameters()
+    >>> amda.list_user_parameters() # doctest: +SKIP
     [<ParameterIndex: test_param>]
-    >>> amda.list_user_catalogs()
+    >>> amda.list_user_catalogs() # doctest: +SKIP
     [<CatalogIndex: MyCatalog>]
-    >>> amda.list_user_timetables()
+    >>> amda.list_user_timetables() # doctest: +SKIP
     [<TimetableIndex: test_alexis>, <TimetableIndex: test_alexis2>, <TimetableIndex: tt3>]
     >>> # get my first user catalog
-    >>> amda.get_user_catalog(amda.list_user_catalogs()[0])
+    >>> amda.get_user_catalog(amda.list_user_catalogs()[0]) # doctest: +SKIP
     <Catalog: MyCatalog>
 
 
