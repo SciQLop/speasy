@@ -24,7 +24,7 @@ ssc = webservices.SSC_Webservice()
 __PROVIDERS__ = {
     'amda': amda.get_data,
     'cdaweb': cda.get_data,
-    'sscweb': ssc.get_orbit
+    'sscweb': ssc.get_trajectory
 }
 
 
@@ -84,7 +84,7 @@ def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwa
 
 
 def get_orbit(body: str, start_time, stop_time, coordinate_system: str = 'gse', **kwargs) -> SpeasyVariable:
-    return ssc.get_orbit(body, start_time, stop_time, coordinate_system=coordinate_system, **kwargs)
+    return ssc.get_trajectory(body, start_time, stop_time, coordinate_system=coordinate_system, **kwargs)
 
 
 def list_providers() -> List[str]:

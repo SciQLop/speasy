@@ -57,10 +57,10 @@ class SscWeb(unittest.TestCase):
         }
     )
     def test_get_orbit(self, kw):
-        result = self.ssc.get_orbit(**kw,
-                                    debug=True,
-                                    disable_cache=True,
-                                    disable_proxy=True)
+        result = self.ssc.get_trajectory(**kw,
+                                         debug=True,
+                                         disable_cache=True,
+                                         disable_proxy=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
         self.assertGreater(60., kw["start_time"].timestamp() - result.time[0])
@@ -69,8 +69,8 @@ class SscWeb(unittest.TestCase):
     def test_get_data_from_cache_preserve_unit(self):
         # https://github.com/SciQLop/speasy/issues/7
         for _ in range(3):
-            result = self.ssc.get_orbit('moon', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-                                        datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))
+            result = self.ssc.get_trajectory('moon', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+                                             datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))
             self.assertIs(type(result.values), units.quantity.Quantity)
 
     def test_get_observatories(self):
@@ -82,4 +82,4 @@ class SscWeb(unittest.TestCase):
           {'unknown_arg': 10})
     def test_raises_if_user_passes_unexpected_kwargs_to_get_orbit(self, kwargs):
         with self.assertRaises(TypeError):
-            self.ssc.get_orbit('moon', "2018-01-01", "2018-01-02", **kwargs)
+            self.ssc.get_trajectory('moon', "2018-01-01", "2018-01-02", **kwargs)

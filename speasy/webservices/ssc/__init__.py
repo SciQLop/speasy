@@ -78,8 +78,8 @@ class SSC_Webservice:
         return 2
 
     # Wrapper to ensure that whatever the source (Proxy, Cache, SSCWeb) the returned variable is in km
-    def get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                  debug=False, **kwargs) -> Optional[SpeasyVariable]:
+    def get_trajectory(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
+                       debug=False, **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
                               coordinate_system=coordinate_system, debug=debug, **kwargs)
         if var:
