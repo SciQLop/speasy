@@ -409,7 +409,7 @@ class AMDA_Webservice:
 
         >>> import speasy as spz
         >>> spz.amda.parameter_range("imf")
-        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> 2022-01-08T23:59:56+00:00>
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
 
         """
         if not len(flat_inventories.amda.parameters):
