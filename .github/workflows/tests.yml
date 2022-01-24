@@ -4,6 +4,9 @@ on: [push]
 
 jobs:
   build:
+    env:
+      SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
+      SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
 
     runs-on: ubuntu-latest
     strategy:
@@ -30,12 +33,9 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
-      env:
-          SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
-          SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
       run: |
         pip install pytest pytest-cov sphinx numpydoc sphinx-rtd-theme
-        SPEASY_AMDA_PASSWORD="${{ secrets.SPEASY_AMDA_PASSWORD }}" SPEASY_AMDA_USERNAME="${{ secrets.SPEASY_AMDA_USERNAME }}" pytest --cov=./ --cov-report=xml
+        pytest --cov=./ --cov-report=xml
         make doctest
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.8'
