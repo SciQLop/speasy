@@ -1,7 +1,4 @@
 """
-.. testsetup:: *
-
-   import speasy
 """
 
 from enum import Enum
@@ -85,6 +82,10 @@ class AMDA_Webservice:
     list_user_parameters:
     list_timetables:
     list_datasets:
+
+    Notes
+    -----
+    Do not create an instance of this class unless you really know what you are doing, use `speasy.amda` instance instead.
 
 
     """

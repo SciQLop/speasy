@@ -1,5 +1,5 @@
-Welcome to Speasy's developer documentation!
-============================================
+Speasy developer documentation
+==============================
 
 .. toctree::
    :maxdepth: 2
