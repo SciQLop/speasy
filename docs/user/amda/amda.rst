@@ -186,7 +186,6 @@ inside each cloud, we will as an example plot the average distribution.
     Magnetic Clouds from WIND/MFI 1995-2007 -- Estimated start and end times from a magnetic field model [Lepping et al., 1990] which assumes that the field within the magnetic cloud is force free, i.e., so that the electrical current and the magnetic field are parallel and proportional in strength everywhere within its volume -- see http://lepmfi.gsfc.nasa.gov/mfi/mag_cloud_pub1.html ;
             Historic: From old AMDA;
             Creation Date :  2013-11-22T13:52:50;
-
     >>> # Check that the timetable has at least some events (as expected)
     >>> len(Magnetic_Clouds)
     106
