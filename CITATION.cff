@@ -1,0 +1,11 @@
+@software{alexis_jeandet_2021_5727877,
+  author       = {Alexis Jeandet and
+                  Alexandre Schulz},
+  title        = {{SciQLop/speasy: 0.9.1)}},
+  month        = nov,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v0.9.1},
+  doi          = {10.5281/zenodo.5727877},
+  url          = {https://doi.org/10.5281/zenodo.5727877}
+}
