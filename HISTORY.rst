@@ -2,6 +2,23 @@
 History
 =======
 
+0.9.1 (2021-11-25)
+==================
+
+* Fix AMDA module bug `#24 downloading multidimensional data fails <https://github.com/SciQLop/speasy/issues/24>`_
+
+0.9.0 (2021-07-29)
+==================
+
+* Adds SPWC migration tool
+* Rename SpwcVariable to SpeasyVariable
+
+0.8.3 (2021-07-28)
+==================
+
+* Package renamed from SPWC to SPEASY
+* Some doc and CI improvements
+
 0.8.2 (2021-04-20)
 ==================
 
