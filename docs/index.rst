@@ -12,5 +12,8 @@ Welcome to Speasy's user documentation!
    installation
    user/modules
    dev/index
+   history
+   contributing
+   authors
 
 :doc:`Go to developers doc <dev/index>`

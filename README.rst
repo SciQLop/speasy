@@ -47,7 +47,7 @@ Speasy aims to support as much as possible web services and also cover a maximum
 Quickstart
 ----------
 
-Installing Speasy with pip (:doc:`more details here <installation>`):
+Installing Speasy with pip (`more details here <https://speasy.readthedocs.io/en/stable/installation.html>`_):
 
 .. code-block:: console
 

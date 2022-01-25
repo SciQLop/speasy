@@ -2,19 +2,30 @@
 speasy.amda.amda
 ----------------
 
-This module contains the definition of the :class:`~speasy.amda.amda.AMDA_Webservice` class, the object that
-manages the connexion to AMDA_Webservice and allows users to list available products, get informations about
-that product and downloading the corresponding data.
+This package contains the definition of the :class:`~speasy.webservices.amda.ws.AMDA_Webservice` class, the object that
+manages the connexion to `AMDA <http://amda.irap.omp.eu/>`_ and allows users to list available products, get their
+description and downloading the corresponding data.
 
-AMDA provides the following products :
-    - parameters (:meth:`~speasy.amda.amda.AMDA_Webservice.get_parameter()`) : time-series
-    - datasets (:meth:`~speasy.amda.amda.AMDA_Webservice.get_dataset()`) : collection of parameters with same time base
-    - timetables (:meth:`~speasy.amda.amda.AMDA_Webservice.get_timetable()`)
-    - catalogs (:meth:`~speasy.amda.amda.AMDA_Webservice.get_catalog()`)
+AMDA provides the following kinds products :
+    - parameters, measurements as timeseries
+        - list them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()`
+        - download them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.list_parameters()`
+    - datasets, collections of parameters with the same time axis
+        - list them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_dataset()`
+        - download them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.list_datasets()`
+    - timetables, lists of time ranges
+        - list them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_timetable()`
+        - download them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.list_timetables()`
+    - catalogs, timetables with metadata for each time range
+        - list them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_catalog()`
+        - download them with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.list_catalogs()`
 
-Every product has a unique identifier, users can use the :meth:`~speasy.amda.amda.AMDA_Webservice.list_parameters()` and :meth:`~speasy.amda.amda.AMDA_Webservice.list_datasets()` methods to retrieve the list of available datasets
-and parameters.
+See :doc:`user documentation </user/amda/amda>` for a more accessible documentation.
 
+Notes
+-----
+You should not create an instance of  :class:`~speasy.webservices.amda.ws.AMDA_Webservice` but use the `speasy.amda`
+instance instead.
 
 """
 
