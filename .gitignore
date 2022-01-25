@@ -103,3 +103,19 @@ ENV/
 
 # IDE
 .idea/
+
+#auto generated doc files
+/docs/dev/modules.rst
+/docs/dev/speasy.common.rst
+/docs/dev/speasy.config.rst
+/docs/dev/speasy.core.cache.rst
+/docs/dev/speasy.core.proxy.rst
+/docs/dev/speasy.core.rst
+/docs/dev/speasy.inventory.rst
+/docs/dev/speasy.products.rst
+/docs/dev/speasy.rst
+/docs/dev/speasy.webservices.amda.rst
+/docs/dev/speasy.webservices.cda.rst
+/docs/dev/speasy.webservices.csa.rst
+/docs/dev/speasy.webservices.rst
+/docs/dev/speasy.webservices.ssc.rst
