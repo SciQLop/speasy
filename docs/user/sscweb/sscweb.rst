@@ -22,7 +22,8 @@ speasy dynamic inventory so you will always get an up to date inventory:
 Note that you can also use your python terminal completion and browse `spz.inventory.data_tree.ssc.Trajectories` to find
 your trajectory.
 Once you have found your trajectory, you may also want to chose in which coordinates system your data will be downloaded.
-The following coordinates systems are available: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**. By default gse is used.
+The following coordinates systems are available: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**.
+By default **gse** is used.
 Now you can get your trajectory:
 
     >>> import speasy as spz
