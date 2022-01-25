@@ -443,21 +443,15 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> for parameter_id in spz.amda.list_parameters()[::500]:
-        ...     print(parameter_id)
+        >>> amda_parameters = spz.amda.list_parameters()
+        >>> len(amda_parameters) > 0
+        True
+        >>> amda_parameters[0]
         <ParameterIndex: |b|>
-        <ParameterIndex: h+ temperature>
-        <ParameterIndex: e- : F[0-3] : flux>
-        <ParameterIndex: distance helios1-sun>
-        <ParameterIndex: proton_flux>
-        <ParameterIndex: h+ eflux : sum on elevations>
-        <ParameterIndex: flux_int>
-        <ParameterIndex: Si counts>
-        <ParameterIndex: b tangential>
-        <ParameterIndex: el temperature>
 
 
         """
+
         if dataset_id is not None:
             return list(flat_inventories.amda.datasets[to_xmlid(dataset_id)])
         return list(filter(is_public, flat_inventories.amda.parameters.values()))
@@ -475,20 +469,11 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> for catalog_id in spz.amda.list_catalogs():
-        ...     print(catalog_id)
+        >>> amda_catalogs = spz.amda.list_catalogs()
+        >>> len(amda_catalogs) > 0
+        True
+        >>> amda_catalogs[0]
         <CatalogIndex: model_regions_plasmas_mms_2019>
-        <CatalogIndex: model_regions_plasmas_cluster_2005>
-        <CatalogIndex: choc_MPB_catalogue_MEX>
-        <CatalogIndex: BepiCoordObs_Windows_of_Opportunities>
-        <CatalogIndex: cassini>
-        <CatalogIndex: juno>
-        <CatalogIndex: maven>
-        <CatalogIndex: messenger>
-        <CatalogIndex: mex>
-        <CatalogIndex: psp>
-        <CatalogIndex: solo>
-        <CatalogIndex: vex>
 
         """
         return list(filter(is_public, flat_inventories.amda.catalogs.values()))
@@ -606,8 +591,13 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> spz.amda.list_datasets()[::300]
-        [<DatasetIndex: final / prelim>, <DatasetIndex: orbit>, <DatasetIndex: flyby earth 2>, <DatasetIndex: orbit venus>]
+        >>> amda_datasets = spz.amda.list_datasets()
+        >>> len(amda_datasets) > 0
+        True
+        >>> amda_datasets[0]
+        <DatasetIndex: final / prelim>
+        >>> amda_datasets[0].desc
+        'Interplanetary Magnetic Field 16-sec Level2/PRELIM Data<br/> Sampling: 16S<br/> Provider: CDAWeb'
 
         """
         return list(filter(is_public, flat_inventories.amda.datasets.values()))
