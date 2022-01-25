@@ -4,8 +4,6 @@ AMDA
 .. toctree::
    :maxdepth: 1
 
-   amda_notebooks
-
 `AMDA <http://amda.irap.omp.eu/>`_ is one of the main data providers handled by speasy. Most products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
 The following documentation will focus on AMDA module specific usage.
 
@@ -142,6 +140,80 @@ And also alternatively you can use the dynamic inventory:
     12691
     >>> print(catalog_mms_2019[1])
     <Event: 2019-01-01T00:24:04+00:00 -> 2019-01-01T00:24:04+00:00 | {'classes': '1'}>
+
+Some examples using AMDA products
+---------------------------------
+
+My first plot from AMDA
+^^^^^^^^^^^^^^^^^^^^^^^
+
+In this example we will use AMDA module to retrieve and plot MMS2 FGM data, feel free to change the code and experiment!
+
+    >>> import matplotlib.pyplot as plt # doctest: +SKIP
+    >>> import speasy as spz
+    >>> from speasy.inventory.data_tree import amda as amda_tree
+    >>> mms2_b_gse = spz.amda.get_parameter(amda_tree.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse, "2020-02-01", "2020-02-02")
+    >>> # Check that mms2_b_gse isn't empty
+    >>> len(mms2_b_gse)
+    1382895
+    >>> # Then you can use the SpeasyVariable plot method for quick plots
+    >>> mms2_b_gse.plot() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+
+Then you should get something like this:
+
+.. image:: images/AMDA_mms2_b_gse_plot.png
+   :height: 400px
+   :alt: mms2_b_gse plot
+
+Note: Depending on your matplotlib backend and if you are using Jupyter Notebooks or a simple python terminal you may
+need to adapt this example.
+
+Using timetables to download data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this example we will use AMDA to first retrieve a public timetable containing time intervals where Magnetic Clouds
+were detected with `Wind <https://wind.nasa.gov/>`_. Then download the magnetic field magnitude measured with
+`MFI <https://wind.nasa.gov/mfi/instrumentation.html>`_ for each interval. Once we have magnetic field measurements
+inside each cloud, we will as an example plot the average distribution.
+
+    >>> import matplotlib.pyplot as plt # doctest: +SKIP
+    >>> import numpy as np
+    >>> import speasy as spz
+    >>> from speasy.inventory.data_tree import amda as amda_tree
+    >>> Magnetic_Clouds = spz.amda.get_timetable(amda_tree.TimeTables.SharedTimeTables.SOLAR_WIND.Magnetic_Clouds)
+    >>> print(Magnetic_Clouds.meta['description'])  # doctest: +NORMALIZE_WHITESPACE
+    Magnetic Clouds from WIND/MFI 1995-2007 -- Estimated start and end times from a magnetic field model [Lepping et al., 1990] which assumes that the field within the magnetic cloud is force free, i.e., so that the electrical current and the magnetic field are parallel and proportional in strength everywhere within its volume -- see http://lepmfi.gsfc.nasa.gov/mfi/mag_cloud_pub1.html ;
+            Historic: From old AMDA;
+            Creation Date :  2013-11-22T13:52:50;
+
+    >>> # Check that the timetable has at least some events (as expected)
+    >>> len(Magnetic_Clouds)
+    106
+    >>> # Then we can plot their duration distribution
+    >>> def duration(event):
+    ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+    ...
+    >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+    >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+    >>> plt.legend() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+    >>> # Now let's get MFI data for each cloud
+    >>> b_mfi_coulds = [ spz.amda.get_parameter(amda_tree.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag, cloud.start_time, cloud.stop_time) for cloud in Magnetic_Clouds ]
+    >>> # compute mean of B for each cloud and ignore NaNs
+    >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+    >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+    >>> plt.legend() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+
+Then you should get something these plots:
+
+.. image:: images/AMDA_clouds_duration_hist.png
+   :width: 49%
+   :alt: Cloud duration histogram
+.. image:: images/AMDA_b_mean_mfi_clouds.png
+   :width: 49%
+   :alt: Cloud's B mean histogram
 
 
 Advanced: AMDA module configuration options
