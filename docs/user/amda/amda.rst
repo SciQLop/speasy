@@ -173,9 +173,9 @@ Using timetables to download data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In this example we will use AMDA to first retrieve a public timetable containing time intervals where Magnetic Clouds
-were detected with `Wind <https://wind.nasa.gov/>`_. Then download the magnetic field magnitude measured with
-`MFI <https://wind.nasa.gov/mfi/instrumentation.html>`_ for each interval. Once we have magnetic field measurements
-inside each cloud, we will as an example plot the average distribution.
+were detected with `Wind <https://wind.nasa.gov/>`_ spacecraft. Then download the magnetic field magnitude measured with
+`MFI <https://wind.nasa.gov/mfi/instrumentation.html>`_ instrument for each interval where a Magnetic cloud was found.
+Once we have magnetic field measurements inside each cloud, we will as an example plot the average distribution.
 
     >>> import matplotlib.pyplot as plt # doctest: +SKIP
     >>> import numpy as np
@@ -205,7 +205,7 @@ inside each cloud, we will as an example plot the average distribution.
     >>> plt.legend() # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
 
-Then you should get something these plots:
+Then you should get something like these plots:
 
 .. image:: images/AMDA_clouds_duration_hist.png
    :width: 49%
