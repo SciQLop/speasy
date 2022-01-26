@@ -1,3 +1,5 @@
 sphinx-rtd-theme
 argh
 numpydoc
+sphinx-gallery
+nbsphinx
