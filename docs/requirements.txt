@@ -3,3 +3,5 @@ argh
 numpydoc
 sphinx-gallery
 nbsphinx
+ipympl
+ipywidgets
