@@ -101,6 +101,11 @@ Examples
 ========
 See `here <https://nbviewer.jupyter.org/github/SciQLop/speasy/blob/main/examples/demo.ipynb>`_ for a complete list of examples.
 
+Caveats
+=======
+- installing speasy on both python 3.7 or less and python 3.8 or plus at the same time doesn't work since entries stored
+in cache by python 3.8+ are not readable by python 3.7-.
+
 Credits
 ========
 
@@ -108,3 +113,5 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+The development of speasy is supported by the `CDPP <http://www.cdpp.eu/>`_.
