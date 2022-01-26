@@ -8,10 +8,12 @@ Space Physics made EASY
 
    installation
    user/modules
+   examples/index
    dev/index
    history
    contributing
    authors
+
 
 
 .. image:: https://matrix.to/img/matrix-badge.svg
