@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.products.variable import SpeasyVariable
-from ...core import http, AllowedKwargs
+from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from .indexes import SscwebParameterIndex
 from speasy.inventory import data_tree
@@ -86,6 +86,10 @@ class SSC_Webservice:
             if not hasattr(var.values, 'unit'):
                 var.values *= units.km
         return var
+
+    def get_orbit(self, *args, **kwargs) -> SpeasyVariable or None:
+        deprecation("Use get_trajectory instead, get_orbit will be removed in speasy 1.0")
+        return self.get_trajectory(*args, **kwargs)
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'coordinate_system',
