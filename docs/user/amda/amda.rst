@@ -166,8 +166,9 @@ Then you should get something like this:
    :height: 400px
    :alt: mms2_b_gse plot
 
-Note: Depending on your matplotlib backend and if you are using Jupyter Notebooks or a simple python terminal you may
-need to adapt this example.
+.. note::
+    * Depending on your matplotlib backend and if you are using Jupyter Notebooks or a simple python terminal you may need to adapt this example.
+    * Speasy is not a plotting package, to produce publication ready figures, use something like matplotlib or seaborn directly.
 
 Using timetables to download data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -214,6 +215,9 @@ Then you should get something like these plots:
    :width: 49%
    :alt: Cloud's B mean histogram
 
+.. note::
+    * Depending on your matplotlib backend and if you are using Jupyter Notebooks or a simple python terminal you may need to adapt this example.
+    * Speasy is not a plotting package, to produce publication ready figures, use something like matplotlib or seaborn directly.
 
 Advanced: AMDA module configuration options
 -------------------------------------------
