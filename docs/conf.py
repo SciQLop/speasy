@@ -38,9 +38,13 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
     'sphinx_gallery.load_style',
+    'sphinx_codeautolink',
     'nbsphinx',
     'numpydoc']
+
+autosectionlabel_prefix_document = True
 
 nbsphinx_execute_arguments = [
     "--InlineBackend.figure_formats={'svg', 'pdf'}",
@@ -203,9 +207,10 @@ texinfo_documents = [
 ]
 
 
-intersphinx_mapping = {'python3': ('http://docs.python.org/3', None),
-                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-                       'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-                       'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-                       'astropy': ('http://astropy.readthedocs.org/en/stable/', None),
+intersphinx_mapping = {'python3': ('https://docs.python.org/3', None),
+                       'numpy': ('https://numpy.org/doc/stable/', None),
+                       'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+                       'matplotlib': ('https://matplotlib.org/stable/', None),
+                       'seaborn': ('https://seaborn.pydata.org/', None),
+                       'astropy': ('https://docs.astropy.org/en/stable/', None),
                        }
