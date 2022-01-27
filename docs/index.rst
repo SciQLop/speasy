@@ -107,7 +107,7 @@ Features
 
 Examples
 ========
-See `here <https://nbviewer.jupyter.org/github/SciQLop/speasy/blob/main/examples/demo.ipynb>`_ for a complete list of examples.
+See :doc:`here <examples/index>` for a complete list of examples.
 
 
 :doc:`Go to developers doc <dev/index>`

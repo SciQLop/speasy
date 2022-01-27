@@ -99,7 +99,7 @@ Features
 
 Examples
 ========
-See `here <https://nbviewer.jupyter.org/github/SciQLop/speasy/blob/main/examples/demo.ipynb>`_ for a complete list of examples.
+See `here <https://speasy.readthedocs.io/en/stable/examples/index.html`_ for a complete list of examples.
 
 Caveats
 =======
