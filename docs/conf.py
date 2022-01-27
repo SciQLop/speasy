@@ -45,6 +45,10 @@ extensions = [
     'numpydoc']
 
 autosectionlabel_prefix_document = True
+codeautolink_custom_blocks = {
+    "python3": None,
+    "pycon3": "sphinx_codeautolink.clean_pycon",
+}
 
 nbsphinx_execute_arguments = [
     "--InlineBackend.figure_formats={'svg', 'pdf'}",

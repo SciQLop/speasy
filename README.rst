@@ -105,6 +105,7 @@ Caveats
 =======
 - installing speasy on both python 3.7 or less and python 3.8 or plus at the same time doesn't work since entries stored
 in cache by python 3.8+ are not readable by python 3.7-.
+- Speasy is not a plotting package, while it provides basic plot features, it is not meant to produce publication ready figures.
 
 Credits
 ========
