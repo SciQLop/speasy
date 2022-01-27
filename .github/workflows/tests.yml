@@ -36,7 +36,7 @@ jobs:
       run: sudo apt update && sudo apt install -y texlive pandoc && pip install wheel
     - name: Test with pytest
       run: |
-        pip install pytest pytest-cov sphinx numpydoc sphinx-rtd-theme sphinx_gallery nbsphinx pandoc
+        pip install pytest pytest-cov sphinx numpydoc sphinx-rtd-theme sphinx_gallery nbsphinx pandoc sphinx-codeautolink
         pytest --cov=./ --cov-report=xml
         make doctest
     - name: Upload coverage to Codecov
