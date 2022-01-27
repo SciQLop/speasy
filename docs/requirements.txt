@@ -6,3 +6,4 @@ nbsphinx
 ipympl
 ipywidgets
 sphinx-codeautolink
+astropy
