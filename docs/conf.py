@@ -41,8 +41,14 @@ extensions = [
     'sphinx.ext.autosectionlabel',
     'sphinx_gallery.load_style',
     'sphinx_codeautolink',
+    'sphinxcontrib.apidoc',
     'nbsphinx',
     'numpydoc']
+
+apidoc_module_dir = '../speasy'
+apidoc_output_dir = 'dev'
+apidoc_separate_modules = True
+apidoc_module_first = True
 
 autosectionlabel_prefix_document = True
 codeautolink_custom_blocks = {

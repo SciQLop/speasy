@@ -8,3 +8,4 @@ ipywidgets
 sphinx-codeautolink
 astropy
 pandas
+sphinxcontrib-apidoc
