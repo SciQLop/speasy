@@ -7,3 +7,4 @@ ipympl
 ipywidgets
 sphinx-codeautolink
 astropy
+pandas
