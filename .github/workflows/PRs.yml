@@ -37,7 +37,7 @@ jobs:
     - name: Test with pytest
       run: |
         pip install pytest pytest-cov sphinx pandoc
-        pip install -r dev/requirements.txt
+        pip install -r docs/requirements.txt
         pytest --cov=./ --cov-report=xml
         make doctest
     - name: Upload coverage to Codecov
