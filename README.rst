@@ -34,7 +34,7 @@ Space Physics made EASY
    :alt: Zendoo DOI
 
 .. image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/SciQLop/spwc/HEAD?filepath=examples%2Fdemo.ipynb
+    :target: https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples
     :alt: Discover on MyBinder
 
 Speasy is an open source Python client for Space Physics web services such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`_
