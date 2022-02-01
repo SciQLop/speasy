@@ -15,7 +15,7 @@ class AmdaXMLParser:
     def fix_name(name: str):
         return name.strip().replace('-', '_').replace(':', '').replace('.', '_').replace('(', '').replace(')',
                                                                                                           '').replace(
-            '/', '').replace(' ', '')
+            '/', '').replace(' ', '').replace('⊙','o')
 
     @staticmethod
     def fix_names(**kwargs):
