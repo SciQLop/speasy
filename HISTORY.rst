@@ -2,6 +2,19 @@
 History
 =======
 
+0.10.0 (2022-02-03)
+===================
+
+* Adds support for all AMDA products, even private ones
+* Adds support for AMDA credentials
+* Adds dynamic inventory for AMDA and SSC
+* Adds possibility to set config values from ENV
+* Drops Python 3.6 support and adds 3.10
+* New API documentation using numpydoc 
+* New user documentation using numpydoc
+* Most code examples are tested with doctest
+* Renames SSCWeb module get_orbit to get_trajectory 
+
 0.9.1 (2021-11-25)
 ==================
 
