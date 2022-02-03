@@ -40,6 +40,12 @@ jobs:
         pip install -r docs/requirements.txt
         pytest --cov=./ --cov-report=xml
         make doctest
+    - name: Check that release process is not broken
+      if: matrix.python-version == '3.7'
+      run: |
+        pip install setuptools wheel twine
+        python setup.py sdist bdist_wheel
+        twine check dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.8'
       uses: codecov/codecov-action@v2
