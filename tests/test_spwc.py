@@ -67,7 +67,7 @@ class GetSpwc(unittest.TestCase):
             "disable_proxy": True
         },
         {
-            "product": spz.inventory.data_tree.amda.Catalogs.SharedCatalogs.MARS.choc_MPB_catalogue_MEX
+            "product": spz.inventory.data_tree.amda.Catalogs.SharedCatalogs.MARS.MEXShockCrossings
         },
         {
             "product": spz.inventory.data_tree.amda.TimeTables.SharedTimeTables.EARTH.Event_list_tail_hall_reconnection_SC1
