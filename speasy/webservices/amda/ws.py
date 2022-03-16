@@ -386,8 +386,8 @@ class AMDA_Webservice:
         --------
 
         >>> import speasy as spz
-        >>> spz.amda.get_catalog("sharedcatalog_0")
-        <Catalog: choc_MPB_catalogue_MEX>
+        >>> spz.amda.get_catalog("sharedcatalog_22")
+        <Catalog: model_regions_plasmas_mms_2019>
 
         """
         return self._impl.dl_catalog(to_xmlid(catalog_id), **kwargs)
