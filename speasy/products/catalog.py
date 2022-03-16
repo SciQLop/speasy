@@ -5,6 +5,7 @@ from speasy.core.datetime_range import DateTimeRange
 from datetime import datetime
 from typing import List
 from speasy.core import all_of_type, listify
+import pandas as pds
 
 
 def _all_are_events(event_list):
@@ -91,10 +92,10 @@ class Catalog:
         if events:
             self.append(events)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Event:
         return self._events[index]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._events)
 
     def append(self, events: Event or List[Event]) -> None:
@@ -143,5 +144,17 @@ class Catalog:
         """
         return self._events.pop(index)
 
-    def __repr__(self):
+    def to_dataframe(self) -> pds.DataFrame:
+        columns = set()
+        data = []
+        for e in self:
+            columns.update(e.meta.keys())
+        columns = list(columns)
+        for e in self:
+            row = [e.start_time, e.stop_time] + [e.meta.get(column, None) for column in columns]
+            data.append(row)
+        columns = ['start_time', 'stop_time'] + columns
+        return pds.DataFrame(columns=columns, data=data)
+
+    def __repr__(self) -> str:
         return f"""<Catalog: {self.name}>"""

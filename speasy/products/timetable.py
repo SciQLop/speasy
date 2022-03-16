@@ -1,6 +1,7 @@
 from speasy.core.datetime_range import DateTimeRange
 from typing import List
 from speasy.core import all_of_type, listify
+import pandas as pds
 
 
 def _all_are_datetime_ranges(dt_list):
@@ -39,6 +40,9 @@ class TimeTable:
 
     def pop(self, index=-1):
         return self._storage.pop(index)
+
+    def to_dataframe(self) -> pds.DataFrame:
+        return pds.DataFrame(columns=['start_time', 'stop_time'], data=[(*r,) for r in self])
 
     def __repr__(self):
         return f"""<TimeTable: {self.name}>"""
