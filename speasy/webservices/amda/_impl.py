@@ -6,7 +6,8 @@ from .inventory import AmdaXMLParser
 from .rest_client import auth_args
 from .exceptions import MissingCredentials
 
-from datetime import datetime
+import numpy as np
+from datetime import datetime, timedelta
 from typing import Optional
 
 # General modules
@@ -84,15 +85,46 @@ class AmdaImpl:
         data_tree.amda.Parameters.__dict__.update(data.dataRoot.AMDA.__dict__)
 
         self._update_lists()
+    def parameter_concat(self, param1, param2):
+        """Concatenate parameters
+        """
+        if param1 is None and param2 is None:
+            return None
+        if param1 is None:
+            return param2
+        if param2 is None:
+            return param1
+        param1.time = np.hstack((param1.time, param2.time))
+        if len(param1.data.shape) == 1:
+            param1.data = np.hstack((param1.data, param2.data))
+        else:
+            param1.data = np.vstack((param1.data, param2.data))
+        return param1
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
+        if isinstance(start_time, datetime):
+            start_time = start_time.timestamp()
+        if isinstance(stop_time, datetime):
+            stop_time = stop_time.timestamp()
 
-        start_time = start_time.timestamp()
-        stop_time = stop_time.timestamp()
+        dt = timedelta(days=1).total_seconds()
+
+        if stop_time - start_time > dt:
+            var = None
+            curr_t = start_time
+            while curr_t < stop_time:
+                #print(f"Getting block {datetime.utcfromtimestamp(curr_t)} -> {datetime.utcfromtimestamp(curr_t + dt)}")
+                if curr_t + dt < stop_time:
+                    var = self.parameter_concat(var , self.dl_parameter(curr_t, curr_t + dt, parameter_id, **kwargs))
+                else:
+                    var = self.parameter_concat(var, self.dl_parameter(curr_t, stop_time, parameter_id, **kwargs))
+                curr_t += dt
+            return var
         url = rest_client.get_parameter(
             startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME',
             server_url=self.server_url, **kwargs)
+        # check status until done
         if url is not None:
             var = load_csv(url)
             if len(var):
