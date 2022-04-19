@@ -1,4 +1,5 @@
 import logging
+import time
 from enum import Enum
 
 
@@ -26,6 +27,8 @@ class Endpoint(Enum):
     GETTT = "getTimeTable.php"
     GETCAT = "getCatalog.php"
     GETPARAM = "getParameter.php"
+
+    GETSTATUS = "getStatus.php"
 
 
 def auth_args(username: str, password: str) -> dict:
@@ -175,6 +178,22 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
             'dataFileURLs' in js:
             log.debug(f"success: {js['dataFileURLs']}")
             return js['dataFileURLs']
+        elif "success" in js and \
+                js["success"] is True and \
+                "status" in js and \
+                js["status"]=="in progress":
+            print("Warning: request duration is too long, consider reducing time range")
+            while True:
+                default_sleep_time = 10.
+                time.sleep(default_sleep_time)
+                url = request_url(Endpoint.GETSTATUS, server_url=server_url)
+
+                #status = send_request_json(Endpoint.GETSTATUS, js)
+                status = http.get(url, params=js).json()
+                if status is not None and status["status"] == "done":
+                    return status["dataFileURLs"]
+
+
         else:
             log.debug(f"Failed: {r.text}")
     return None
