@@ -101,7 +101,7 @@ class AmdaImpl:
                 curr_t += dt
             return var
         url = rest_client.get_parameter(
-            startTime=start_time, stopTime=stop_time, parameterID=parameter_id, timeFormat='UNIXTIME',
+            startTime=start_time.timestamp(), stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
             server_url=self.server_url, **kwargs)
         # check status until done
         if url is not None:
