@@ -12,7 +12,7 @@ from typing import Optional
 
 # General modules
 from ...config import amda_password, amda_username, amda_user_cache_retention
-from ...products.variable import SpeasyVariable
+from ...products.variable import SpeasyVariable, merge
 from ...inventory import data_tree, flat_inventories
 from ...inventory import reset_amda_inventory as reset_amda_flat_inventory
 from ...core.cache import CacheCall
@@ -85,21 +85,6 @@ class AmdaImpl:
         data_tree.amda.Parameters.__dict__.update(data.dataRoot.AMDA.__dict__)
 
         self._update_lists()
-    def parameter_concat(self, param1, param2):
-        """Concatenate parameters
-        """
-        if param1 is None and param2 is None:
-            return None
-        if param1 is None:
-            return param2
-        if param2 is None:
-            return param1
-        param1.time = np.hstack((param1.time, param2.time))
-        if len(param1.data.shape) == 1:
-            param1.data = np.hstack((param1.data, param2.data))
-        else:
-            param1.data = np.vstack((param1.data, param2.data))
-        return param1
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
@@ -116,9 +101,9 @@ class AmdaImpl:
             while curr_t < stop_time:
                 #print(f"Getting block {datetime.utcfromtimestamp(curr_t)} -> {datetime.utcfromtimestamp(curr_t + dt)}")
                 if curr_t + dt < stop_time:
-                    var = self.parameter_concat(var , self.dl_parameter(curr_t, curr_t + dt, parameter_id, **kwargs))
+                    var = merge([var, self.dl_parameter(curr_t, curr_t+dt, parameter_id, **kwargs)])
                 else:
-                    var = self.parameter_concat(var, self.dl_parameter(curr_t, stop_time, parameter_id, **kwargs))
+                    var = merge([var, self.dl_parameter(curr_t, stop_time, parameter_id, **kwargs)])
                 curr_t += dt
             return var
         url = rest_client.get_parameter(
