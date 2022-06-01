@@ -4,6 +4,9 @@ from datetime import datetime
 from typing import List, Optional
 from speasy.core import deprecation
 
+import astropy.units
+import astropy.table
+
 
 class SpeasyVariable(object):
     """SpeasyVariable object. Base class for storing variable data.
@@ -114,6 +117,29 @@ class SpeasyVariable(object):
         else:
             time = self.time
         return pds.DataFrame(index=time, data=self.values, columns=self.columns, copy=True)
+
+    def to_astropy_table(self, datetime_index=False) -> pds.DataFrame:
+        """Convert the variable to a astropy.Table object.
+
+        Parameters
+        ----------
+        datetime_index: bool
+            boolean indicating that the index is datetime
+
+        Returns
+        -------
+        astropy.Table:
+            Variable converted to astropy.Table
+        """
+        # try to get the units
+        try:
+            units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
+        except:
+            units = None
+        df = self.to_dataframe(datetime_index=datetime_index)
+        umap = {c:units for c in df.columns}
+        return astropy.table.Table.from_pandas(df, units=umap, index=True)
+
 
     def plot(self, *args, **kwargs):
         """Plot the variable.
