@@ -88,18 +88,12 @@ class AmdaImpl:
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
-        if isinstance(start_time, datetime):
-            start_time = start_time.timestamp()
-        if isinstance(stop_time, datetime):
-            stop_time = stop_time.timestamp()
-
-        dt = timedelta(days=1).total_seconds()
+        dt = timedelta(days=1)
 
         if stop_time - start_time > dt:
             var = None
             curr_t = start_time
             while curr_t < stop_time:
-                #print(f"Getting block {datetime.utcfromtimestamp(curr_t)} -> {datetime.utcfromtimestamp(curr_t + dt)}")
                 if curr_t + dt < stop_time:
                     var = merge([var, self.dl_parameter(curr_t, curr_t+dt, parameter_id, **kwargs)])
                 else:
