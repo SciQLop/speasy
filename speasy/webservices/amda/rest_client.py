@@ -182,7 +182,7 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
                 js["success"] is True and \
                 "status" in js and \
                 js["status"]=="in progress":
-            print("Warning: request duration is too long, consider reducing time range")
+            log.debug("Warning: request duration is too long, consider reducing time range")
             while True:
                 default_sleep_time = 10.
                 time.sleep(default_sleep_time)
