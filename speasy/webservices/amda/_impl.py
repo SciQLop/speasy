@@ -85,21 +85,7 @@ class AmdaImpl:
         data_tree.amda.Parameters.__dict__.update(data.dataRoot.AMDA.__dict__)
 
         self._update_lists()
-
-    def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
-        SpeasyVariable]:
-        dt = timedelta(days=1)
-
-        if stop_time - start_time > dt:
-            var = None
-            curr_t = start_time
-            while curr_t < stop_time:
-                if curr_t + dt < stop_time:
-                    var = merge([var, self.dl_parameter(curr_t, curr_t+dt, parameter_id, **kwargs)])
-                else:
-                    var = merge([var, self.dl_parameter(curr_t, stop_time, parameter_id, **kwargs)])
-                curr_t += dt
-            return var
+    def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[SpeasyVariable]:
         url = rest_client.get_parameter(
             startTime=start_time.timestamp(), stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
             server_url=self.server_url, **kwargs)
@@ -113,6 +99,24 @@ class AmdaImpl:
                 log.debug('Loaded var: Empty var')
             return var
         return None
+
+
+    def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
+        SpeasyVariable]:
+        dt = timedelta(days=1)
+
+        if stop_time - start_time > dt:
+            var = None
+            curr_t = start_time
+            while curr_t < stop_time:
+                if curr_t + dt < stop_time:
+                    var = merge([var, self.dl_parameter_chunk(curr_t, curr_t+dt, parameter_id, **kwargs)])
+                else:
+                    var = merge([var, self.dl_parameter_chunk(curr_t, stop_time, parameter_id, **kwargs)])
+                curr_t += dt
+            return var
+        else:
+            return self.dl_parameter_chunk(start_time, stop_time, parameter_id, **kwargs)
 
     def dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
