@@ -118,7 +118,7 @@ class SpeasyVariable(object):
             time = self.time
         return pds.DataFrame(index=time, data=self.values, columns=self.columns, copy=True)
 
-    def to_astropy_table(self, datetime_index=False) -> pds.DataFrame:
+    def to_astropy_table(self, datetime_index=False) -> astropy.table.Table:
         """Convert the variable to a astropy.Table object.
 
         Parameters
