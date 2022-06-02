@@ -134,7 +134,7 @@ class SpeasyVariable(object):
         # try to get the units
         try:
             units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
-        except:
+        except ValueError:
             units = None
         df = self.to_dataframe(datetime_index=datetime_index)
         umap = {c:units for c in df.columns}
