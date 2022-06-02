@@ -131,6 +131,7 @@ class SpwcVariableUnits(unittest.TestCase):
         # invalid astropy unit
         var.meta["PARAMETER_UNITS"] = "not a unit"
         at = var.to_astropy_table()
+        self.assertTrue(isinstance(at, astropy.table.Table))
         self.assertTrue(at["Values"].unit is None)
 
 if __name__ == '__main__':
