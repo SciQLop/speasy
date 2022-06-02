@@ -131,7 +131,6 @@ class SpeasyVariable(object):
         astropy.Table:
             Variable converted to astropy.Table
         """
-        # try to get the units
         try:
             units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
         except ValueError:
