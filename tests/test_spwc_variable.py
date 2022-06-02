@@ -9,6 +9,9 @@ from speasy.products.variable import SpeasyVariable, merge, to_dataframe, from_d
 import numpy as np
 import pandas as pds
 
+import astropy.table
+import astropy.units
+
 
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
     time = np.arange(start, stop, step)
@@ -116,6 +119,19 @@ class SpwcVariableCompare(unittest.TestCase):
     def tearDown(self):
         pass
 
+class SpwcVariableUnits(unittest.TestCase):
+    def test_astropy_table(self):
+        var = make_simple_var(1.,10.,1.,10.)
+        # valid astropy unit
+        var.meta = {"PARAMETER_UNITS": "nT"}
+        at = var.to_astropy_table()
+        self.assertTrue(isinstance(at, astropy.table.Table))
+        self.assertTrue(at["Values"].unit == astropy.units.nT)
+
+        # invalid astropy unit
+        var.meta["PARAMETER_UNITS"] = "not a unit"
+        at = var.to_astropy_table()
+        self.assertTrue(at["Values"].unit is None)
 
 if __name__ == '__main__':
     unittest.main()
