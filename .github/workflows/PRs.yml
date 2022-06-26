@@ -35,10 +35,18 @@ jobs:
     - name: install texlive for Pandoc
       run: sudo apt update && sudo apt install -y texlive pandoc && pip install wheel
     - name: Test with pytest
+      if: matrix.python-version != '3.8'
       run: |
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
-        pytest --cov=./ --cov-report=xml
+        pytest
+        make doctest
+    - name: Test with pytest (coverage + long tests)
+      if: matrix.python-version == '3.8'
+      run: |
+        pip install pytest pytest-cov sphinx pandoc
+        pip install -r docs/requirements.txt
+        SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS=30 SPEASY_LONG_TESTS pytest --cov=./ --cov-report=xml
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.7'
