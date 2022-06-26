@@ -182,13 +182,12 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
                 js["success"] is True and \
                 "status" in js and \
                 js["status"]=="in progress":
-            log.debug("Warning: request duration is too long, consider reducing time range")
+            log.warning("This request duration is too long, consider reducing time range")
             while True:
                 default_sleep_time = 10.
                 time.sleep(default_sleep_time)
                 url = request_url(Endpoint.GETSTATUS, server_url=server_url)
 
-                #status = send_request_json(Endpoint.GETSTATUS, js)
                 status = http.get(url, params=js).json()
                 if status is not None and status["status"] == "done":
                     return status["dataFileURLs"]
