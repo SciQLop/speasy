@@ -46,7 +46,7 @@ jobs:
       run: |
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
-        SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS=30 SPEASY_LONG_TESTS pytest --cov=./ --cov-report=xml
+        SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS=30 SPEASY_LONG_TESTS="" pytest --cov=./ --cov-report=xml
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.7'

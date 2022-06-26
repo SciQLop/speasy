@@ -6,7 +6,6 @@ from .inventory import AmdaXMLParser
 from .rest_client import auth_args
 from .exceptions import MissingCredentials
 
-import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional
 
