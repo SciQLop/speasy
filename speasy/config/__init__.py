@@ -109,3 +109,4 @@ cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "
 amda_username = ConfigEntry("AMDA", "username")
 amda_password = ConfigEntry("AMDA", "password")
 amda_user_cache_retention = ConfigEntry("AMDA", "user_cache_retention", "900")  # 60 * 15 seconds
+amda_max_chunk_size_days = ConfigEntry("AMDA", "max_chunk_size_days", "10")  # 60 * 15 seconds

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 # General modules
-from ...config import amda_password, amda_username, amda_user_cache_retention
+from ...config import amda_password, amda_username, amda_user_cache_retention, amda_max_chunk_size_days
 from ...products.variable import SpeasyVariable, merge
 from ...inventory import data_tree, flat_inventories
 from ...inventory import reset_amda_inventory as reset_amda_flat_inventory
@@ -85,9 +85,12 @@ class AmdaImpl:
         data_tree.amda.Parameters.__dict__.update(data.dataRoot.AMDA.__dict__)
 
         self._update_lists()
-    def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[SpeasyVariable]:
+
+    def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
+        SpeasyVariable]:
         url = rest_client.get_parameter(
-            startTime=start_time.timestamp(), stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
+            startTime=start_time.timestamp(), stopTime=stop_time.timestamp(), parameterID=parameter_id,
+            timeFormat='UNIXTIME',
             server_url=self.server_url, **kwargs)
         # check status until done
         if url is not None:
@@ -100,17 +103,16 @@ class AmdaImpl:
             return var
         return None
 
-
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
-        dt = timedelta(days=1)
+        dt = timedelta(days=int(amda_max_chunk_size_days))
 
         if stop_time - start_time > dt:
             var = None
             curr_t = start_time
             while curr_t < stop_time:
                 if curr_t + dt < stop_time:
-                    var = merge([var, self.dl_parameter_chunk(curr_t, curr_t+dt, parameter_id, **kwargs)])
+                    var = merge([var, self.dl_parameter_chunk(curr_t, curr_t + dt, parameter_id, **kwargs)])
                 else:
                     var = merge([var, self.dl_parameter_chunk(curr_t, stop_time, parameter_id, **kwargs)])
                 curr_t += dt
