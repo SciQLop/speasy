@@ -105,7 +105,7 @@ class AmdaImpl:
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
-        dt = timedelta(days=int(amda_max_chunk_size_days))
+        dt = timedelta(days=int(amda_max_chunk_size_days.get()))
 
         if stop_time - start_time > dt:
             var = None
