@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `amda` package."""
-
+import logging
 import unittest
 from ddt import ddt, data, unpack
 import os
@@ -72,6 +72,19 @@ class PublicProductsRequests(unittest.TestCase):
                                         disable_cache=True)
         self.assertIsNotNone(result)
 
+    def test_get_variable_long_request(self):
+        if "SPEASY_LONG_TESTS" not in os.environ:
+            self.skipTest("Long tests disabled")
+        with self.assertLogs('speasy.webservices.amda.rest_client', level='WARNING') as cm:
+            start_date = datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            stop_date = datetime(2021, 1, 25, 0, 0, 0, tzinfo=timezone.utc)
+            parameter_id = "mms1_b_gse"
+            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
+                                            disable_cache=True)
+            self.assertIsNotNone(result)
+            self.assertTrue(
+                any(["This request duration is too long, consider reducing time range" in line for line in cm.output]))
+
     def test_get_product_range(self):
         param_range = spz.amda.parameter_range(spz.amda.list_parameters()[0])
         self.assertIsNotNone(param_range)
@@ -111,11 +124,11 @@ class PublicProductsRequests(unittest.TestCase):
     def test_get_catalog_from_Index(self):
         r = spz.amda.get_catalog(spz.amda.list_catalogs()[-1])
         self.assertIsNotNone(r)
+
     def test_get_multidimensional_data(self):
         r = spz.amda.get_data("psp_spe_EvsEvspa", "2021-07-30T00:00:00", "2021-07-30T00:05:00")
         self.assertIsNotNone(r)
         self.assertIsNotNone(r.data)
-        
 
 
 class PrivateProductsRequests(unittest.TestCase):
