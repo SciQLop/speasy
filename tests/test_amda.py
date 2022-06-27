@@ -77,7 +77,7 @@ class PublicProductsRequests(unittest.TestCase):
             self.skipTest("Long tests disabled")
         with self.assertLogs('speasy.webservices.amda.rest_client', level='WARNING') as cm:
             start_date = datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-            stop_date = datetime(2021, 1, 25, 0, 0, 0, tzinfo=timezone.utc)
+            stop_date = datetime(2021, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
             parameter_id = "mms1_b_gse"
             result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
                                             disable_cache=True)
