@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 import os
 from speasy import config
+from io import StringIO
 
 
 class ConfigModule(unittest.TestCase):
@@ -10,7 +12,15 @@ class ConfigModule(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_reads_firt_from_env(self):
+    def test_config_entry_has_repr(self):
+        self.assertIn("ConfigEntry: AMDA/username", str(config.amda_username))
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_config_module_shows_entries(self, mock_stdout):
+        config.show()
+        self.assertIn("ConfigEntry: AMDA/username", mock_stdout.getvalue())
+
+    def test_reads_first_from_env(self):
         my_test_entry = config.ConfigEntry("unit-tests", "from-env", "DEFAULT")
         os.environ[my_test_entry.env_var_name] = "VALUE FROM ENV"
         self.assertIn('ENV', my_test_entry.get())

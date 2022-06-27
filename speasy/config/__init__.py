@@ -15,6 +15,24 @@ mkdir(os.path.dirname(_CONFIG_FNAME))
 _config = configparser.ConfigParser()
 _config.read(_CONFIG_FNAME)
 
+_entries = {}
+
+
+def _register_entry(entry):
+    if entry.key1 not in _entries:
+        _entries[entry.key1] = {}
+    _entries[entry.key1][entry.key2] = entry
+
+
+def show():
+    for section_name, section in _entries.items():
+        print(f"""
+============================================
+\t\t{section_name}
+============================================""")
+        for _, entry in section.items():
+            print(f"\n  {entry}")
+            print('-------------------------------------------')
 
 
 def _save_changes():
@@ -44,11 +62,19 @@ class ConfigEntry:
         Set entry value (could be env or file)
     """
 
-    def __init__(self, key1: str, key2: str, default: str = ""):
+    def __init__(self, key1: str, key2: str, default: str = "", description: str = ""):
         self.key1 = key1
         self.key2 = key2
         self.default = default
+        self.description = description
+        _register_entry(self)
         self.env_var_name = f"SPEASY_{self.key1}_{self.key2}".upper().replace('-', '_')
+
+    def __repr__(self):
+        return f"""ConfigEntry: {self.key1}/{self.key2}
+    environment variable name: {self.env_var_name}
+    value:                     {self.get()}
+    description:               {self.description}"""
 
     def get(self):
         """Get configuration entry value. If a default is not provided then raise :class:`~speasy.config.exceptions.UndefinedConfigEntry`.
@@ -100,13 +126,22 @@ def remove_entry(entry: ConfigEntry):
 # user can easily discover them with speasy.config.<completion>
 # ==========================================================================================
 
-proxy_enabled = ConfigEntry("PROXY", "enabled", "False")
-proxy_url = ConfigEntry("PROXY", "url", "")
+proxy_enabled = ConfigEntry("PROXY", "enabled", "False",
+                            description="""Enables or disables speasy proxy usage.
+Speasy proxy is an intermediary server which helps by caching requests among several users.""")
+proxy_url = ConfigEntry("PROXY", "url", "",
+                        description="""Speasy proxy server URL, you can use http://sciqlop.lpp.polytechnique.fr/cache.
+Speasy proxy is an intermediary server which helps by caching requests among several users.""")
 
-cache_size = ConfigEntry("CACHE", "size", "20e9")
-cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")))
+cache_size = ConfigEntry("CACHE", "size", "20e9", description="""Sets the maximum cache capacity.""")
+cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")),
+                         description="""Sets Speasy cache path.""")
 
-amda_username = ConfigEntry("AMDA", "username")
-amda_password = ConfigEntry("AMDA", "password")
-amda_user_cache_retention = ConfigEntry("AMDA", "user_cache_retention", "900")  # 60 * 15 seconds
-amda_max_chunk_size_days = ConfigEntry("AMDA", "max_chunk_size_days", "10")  # 60 * 15 seconds
+amda_username = ConfigEntry("AMDA", "username",
+                            description="""Your AMDA username, once set, you will be able to get your private products.""")
+amda_password = ConfigEntry("AMDA", "password",
+                            description="""Your AMDA password, once set, you will be able to get your private products.""")
+amda_user_cache_retention = ConfigEntry("AMDA", "user_cache_retention", "900",
+                                        description="AMDA specific cache retention for requests such as list_catalogs.")  # 60 * 15 seconds
+amda_max_chunk_size_days = ConfigEntry("AMDA", "max_chunk_size_days", "10",
+                                       description="Maximum request duration in days, any request over a longer period will be split in smaller ones.")
