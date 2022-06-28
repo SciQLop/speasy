@@ -13,3 +13,4 @@ astropy
 ddt
 spwc
 pytest
+pytest-cov
