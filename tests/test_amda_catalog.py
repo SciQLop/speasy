@@ -21,6 +21,12 @@ class CatalogRequests(unittest.TestCase):
     def test_catalog_has_a_name(self):
         self.assertIsNot(self.cat.name, "listOfICMEs_Nguyen")
 
+    def test_catalog_has_metadata(self):
+        self.assertIn('description', self.cat.meta)
+        self.assertIn('provider', self.cat.meta)
+        self.assertIn('nbIntervals', self.cat.meta)
+        self.assertIn('sharedBy', self.cat.meta)
+
     def test_is_convertible_to_dataframe(self):
         df = self.cat.to_dataframe()
         self.assertTrue(len(df) > 0)

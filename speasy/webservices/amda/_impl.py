@@ -149,6 +149,7 @@ class AmdaImpl:
             catalog = load_catalog(url)
             if catalog:
                 log.debug(f'Loaded catalog: id = {catalog_id}')  # lgtm[py/clear-text-logging-sensitive-data]
+                catalog.meta.update(flat_inventories.amda.catalogs.get(catalog_id, SimpleNamespace()).__dict__)
             else:
                 log.debug('Got None')
             return catalog
