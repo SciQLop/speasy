@@ -21,6 +21,7 @@ class ProviderInventory:
 class FlatInventories:
     amda = ProviderInventory()
     ssc = ProviderInventory()
+    cda = ProviderInventory()
 
 
 flat_inventories = FlatInventories()
