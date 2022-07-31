@@ -122,7 +122,7 @@ def listify(obj: Any) -> List:
         return [obj]
 
 
-def make_utc_datetime(input_dt: str or datetime or np.float64 or float) -> datetime:
+def make_utc_datetime(input_dt: str or datetime or np.float64 or float or np.datetime64) -> datetime:
     """Makes UTC datetime from given input.
 
     Parameters
@@ -151,6 +151,10 @@ def make_utc_datetime(input_dt: str or datetime or np.float64 or float) -> datet
         return datetime.utcfromtimestamp(input_dt)
     if type(input_dt) is str:
         input_dt = parse(input_dt)
+    if type(input_dt) is np.datetime64:
+        if input_dt.dtype == np.dtype('datetime64[ns]'):
+            return datetime.utcfromtimestamp(input_dt.astype(int) * 1e-9)
+
     return datetime(input_dt.year, input_dt.month, input_dt.day, input_dt.hour, input_dt.minute, input_dt.second,
                     input_dt.microsecond, tzinfo=timezone.utc)
 

@@ -9,7 +9,8 @@ import numpy as np
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpeasyVariable(time=time, data=values, meta=None, columns=["Values"], y=None)
+    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), data=values, meta=None, columns=["Values"],
+                          y=None)
 
 
 class SpeasyDataset(unittest.TestCase):

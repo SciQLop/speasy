@@ -43,7 +43,8 @@ def load_csv(filename: str) -> SpeasyVariable:
         columns = [col.strip() for col in meta['DATA_COLUMNS'].split(', ')[:]]
         with urlopen(filename) as f:
             data = pds.read_csv(f, comment='#', delim_whitespace=True, header=None, names=columns).values.transpose()
-        time, data = data[0], data[1:].transpose()
+        time, data = SpeasyVariable.epoch_to_datetime64(data[0]), data[1:].transpose()
+
         if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[1]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[1]"].split(',')])
@@ -94,7 +95,7 @@ def load_timetable(filename: str) -> TimeTable:
         return var
 
 
-def load_catalog(filename:str) -> Catalog:
+def load_catalog(filename: str) -> Catalog:
     """Load a timetable file
 
     Parameters

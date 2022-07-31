@@ -24,6 +24,7 @@ ssc = webservices.SSC_Webservice()
 __PROVIDERS__ = {
     'amda': amda.get_data,
     'cdaweb': cda.get_data,
+    'cda': cda.get_data,
     'sscweb': ssc.get_trajectory
 }
 
@@ -80,10 +81,11 @@ def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwa
             return __PROVIDERS__[provider]('/'.join(components[1:]), start_time=start_time, stop_time=stop_time,
                                            **kwargs)
     raise ValueError(
-        f'{components[0]} not found in data provider list\nSupported providers are:\n{list(__PROVIDERS__.keys())}')
+        f"Can't find a provider for {product}")
 
 
-def get_orbit(body: str, start_time, stop_time, coordinate_system: str = 'gse', **kwargs) -> SpeasyVariable:
+def get_orbit(body: str or SpeasyIndex, start_time, stop_time, coordinate_system: str = 'gse',
+              **kwargs) -> SpeasyVariable:
     return ssc.get_trajectory(body, start_time, stop_time, coordinate_system=coordinate_system, **kwargs)
 
 

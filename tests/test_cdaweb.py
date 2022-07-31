@@ -60,7 +60,7 @@ class ConcurrentRequests(unittest.TestCase):
             return self.cd.get_variable(dataset="MMS2_SCM_SRVY_L2_SCSRVY", variable="mms2_scm_acb_gse_scsrvy_srvy_l2",
                                         start_time=datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc),
                                         stop_time=datetime(2016, 6, 1, 0, 20, tzinfo=timezone.utc), disable_proxy=True,
-                                        disable_cache=True, fmt="csv")
+                                        disable_cache=True)
 
         with dummy.Pool(6) as pool:
             results = pool.map(func, [1] * 10)
