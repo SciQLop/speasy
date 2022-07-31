@@ -2,6 +2,7 @@
 """
 from types import SimpleNamespace
 from .indexes import AMDATimetableIndex, AMDAComponentIndex, AMDAParameterIndex, AMDADatasetIndex, AMDACatalogIndex
+from ...core import fix_name
 import xml.etree.ElementTree as Et
 
 
@@ -11,15 +12,10 @@ class AMDAPathIndex(SimpleNamespace):
 
 
 class AmdaXMLParser:
-    @staticmethod
-    def fix_name(name: str):
-        return name.strip().replace('-', '_').replace(':', '').replace('.', '_').replace('(', '').replace(')',
-                                                                                                          '').replace(
-            '/', '').replace(' ', '').replace('⊙','o')
 
     @staticmethod
     def fix_names(**kwargs):
-        return {AmdaXMLParser.fix_name(key): value for key, value in kwargs.items()}
+        return {fix_name(key): value for key, value in kwargs.items()}
 
     @staticmethod
     def fix_xmlid(**kwargs):
@@ -33,7 +29,7 @@ class AmdaXMLParser:
     @staticmethod
     def make_any_node(parent, node, ctor, name_key='xmlid', is_public=True):
         new = ctor(AmdaXMLParser.fix_names(**AmdaXMLParser.fix_xmlid(**node.attrib)), is_public=is_public)
-        name = AmdaXMLParser.fix_name(new.__dict__.get(name_key, node.tag))
+        name = fix_name(new.__dict__.get(name_key, node.tag))
         parent.__dict__[name] = new
         return new
 

@@ -179,3 +179,49 @@ class AllowedKwargs(object):
                 f"Unexpected keyword argument {unexpected_args}, allowed keyword arguments are {self.allowed_list}")
 
         return wrapped
+
+
+def fix_name(name: str):
+    """Makes given input compatible with python charset https://docs.python.org/3/reference/lexical_analysis.html#identifiers
+
+    Parameters
+    ----------
+    name: str
+        input string to sanitize
+
+    Returns
+    -------
+    str
+        a string compatible with python naming rules
+
+
+    Examples
+    --------
+    >>> fix_name('Parker Solar Probe (PSP)')
+    'ParkerSolarProbePSP'
+
+    >>> fix_name('IS⊙ISEPI_Lo')
+    'ISoISEPI_Lo'
+
+    >>> fix_name('all_Legal_strings_123')
+    'all_Legal_strings_123'
+
+    """
+    rules = (
+        ('-', '_'),
+        (':', ''),
+        ('.', '_'),
+        ('(', ''),
+        (')', ''),
+        ('/', ''),
+        (' ', ''),
+        ('{', ''),
+        ('}', ''),
+        ('(', ''),
+        ('⊙', 'o')
+    )
+
+    for bad, replacement in rules:
+        if bad in name:
+            name = name.replace(bad, replacement)
+    return name
