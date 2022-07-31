@@ -36,10 +36,15 @@ class SpeasyVariable(object):
     """
     __slots__ = ['meta', 'time', 'values', 'columns', 'y']
 
-    def __init__(self, time=np.empty(0), data=np.empty((0, 1)), meta: Optional[dict] = None,
+    def __init__(self, time=np.empty(0, dtype=np.dtype('datetime64[ns]')), data=np.empty((0, 1)),
+                 meta: Optional[dict] = None,
                  columns: Optional[List[str]] = None, y: Optional[np.ndarray] = None):
         """Constructor
         """
+
+        if time.dtype != np.dtype('datetime64[ns]'):
+            raise ValueError(f"Please provide datetime64[ns] for time axis, got {time.dtype}")
+
         self.meta = meta or {}
         self.columns = columns or []
         if len(data.shape) == 1:
@@ -49,20 +54,20 @@ class SpeasyVariable(object):
         self.time = time
         self.y = y
 
-    def view(self, time_range):
+    def view(self, index_range: slice):
         """Return view of the current variable within the desired :data:`time_range`.
 
         Parameters
         ----------
-        time_range: speasy.common.datetime_range.DateTimeRange
-            time range
+        index_range: slice
+            index range
 
         Returns
         -------
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
-        return SpeasyVariable(self.time[time_range], self.values[time_range], self.meta, self.columns, self.y)
+        return SpeasyVariable(self.time[index_range], self.values[index_range], self.meta, self.columns, self.y)
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
@@ -91,34 +96,31 @@ class SpeasyVariable(object):
             if isinstance(key.start, int) or isinstance(key.stop, int) or (key.start is None and key.stop is None):
                 return self.view(key)
             if isinstance(key.start, float) or isinstance(key.stop, float):
-                start = self.time[0] - 1. if key.start is None else key.start
-                stop = self.time[-1] + 1. if key.stop is None else key.stop
-                return self.view(np.logical_and(self.time >= start, self.time < stop))
+                start = self.time[0] - 1 if key.start is None else np.datetime64(int(key.start * 1e9), 'ns')
+                stop = self.time[-1] + 1 if key.stop is None else np.datetime64(int(key.stop * 1e9), 'ns')
+                start = np.searchsorted(self.time, start, side='left')
+                stop = np.searchsorted(self.time, stop, side='left')
+                return self.view(slice(start, stop))
             if isinstance(key.start, datetime):
-                start = self.time[0] - 1. if key.start is None else key.start.timestamp()
-                stop = self.time[-1] + 1. if key.stop is None else key.stop.timestamp()
-                return self.view(np.logical_and(self.time >= start, self.time < stop))
+                start = self.time[0] - 1 if key.start is None else np.datetime64(key.start, 'ns')
+                stop = self.time[-1] + 1 if key.stop is None else np.datetime64(key.stop, 'ns')
+                start = np.searchsorted(self.time, start, side='left')
+                stop = np.searchsorted(self.time, stop, side='left')
+                return self.view(slice(start, stop))
 
-    def to_dataframe(self, datetime_index=False) -> pds.DataFrame:
+    def to_dataframe(self) -> pds.DataFrame:
         """Convert the variable to a pandas.DataFrame object.
 
         Parameters
         ----------
-        datetime_index: bool
-            boolean indicating that the index is datetime
-
         Returns
         -------
         pandas.DataFrame:
             Variable converted to Pandas DataFrame
         """
-        if datetime_index:
-            time = pds.to_datetime(self.time, unit='s')
-        else:
-            time = self.time
-        return pds.DataFrame(index=time, data=self.values, columns=self.columns, copy=True)
+        return pds.DataFrame(index=self.time, data=self.values, columns=self.columns, copy=True)
 
-    def to_astropy_table(self, datetime_index=False) -> astropy.table.Table:
+    def to_astropy_table(self) -> astropy.table.Table:
         """Convert the variable to a astropy.Table object.
 
         Parameters
@@ -135,7 +137,7 @@ class SpeasyVariable(object):
             units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
         except ValueError:
             units = None
-        df = self.to_dataframe(datetime_index=datetime_index)
+        df = self.to_dataframe()
         umap = {c:units for c in df.columns}
         return astropy.table.Table.from_pandas(df, units=umap, index=True)
 
@@ -146,7 +148,7 @@ class SpeasyVariable(object):
         See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
 
         """
-        return self.to_dataframe(datetime_index=True).plot(*args, **kwargs)
+        return self.to_dataframe().plot(*args, **kwargs)
 
     @property
     def data(self):
@@ -172,11 +174,17 @@ class SpeasyVariable(object):
         SpeasyVariable:
             Variable created from DataFrame
         """
-        if hasattr(df.index[0], 'timestamp'):
-            time = np.array([d.timestamp() for d in df.index])
+        if df.index.dtype == np.dtype('datetime64[ns]'):
+            time = np.array(df.index)
+        elif hasattr(df.index[0], 'timestamp'):
+            time = np.array([np.datetime64(d.timestamp() * 1e9, 'ns') for d in df.index])
         else:
-            time = df.index.values
+            raise ValueError("Can't convert DataFrame index to datetime64[ns] array")
         return SpeasyVariable(time=time, data=df.values, meta={}, columns=list(df.columns))
+
+    @staticmethod
+    def epoch_to_datetime64(epoch_array: np.array):
+        return (epoch_array * 1e9).astype('datetime64[ns]')
 
 
 def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
@@ -189,14 +197,14 @@ def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
     return SpeasyVariable.from_dataframe(df)
 
 
-def to_dataframe(var: SpeasyVariable, datetime_index=False) -> pds.DataFrame:
+def to_dataframe(var: SpeasyVariable) -> pds.DataFrame:
     """Convert a :class:`~speasy.common.variable.SpeasyVariable` to pandas.DataFrame.
 
     See Also
     --------
     SpeasyVariable.to_dataframe
     """
-    return SpeasyVariable.to_dataframe(var, datetime_index)
+    return SpeasyVariable.to_dataframe(var)
 
 
 def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
@@ -239,7 +247,7 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
         [overlap if overlap != -1 else len(r.time) for overlap, r in zip(overlaps, sorted_var_list[:-1])]))
     dest_len += len(sorted_var_list[-1].time)
 
-    time = np.zeros(dest_len)
+    time = np.zeros(dest_len, dtype=np.dtype('datetime64[ns]'))
     data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
         sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
 

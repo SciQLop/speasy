@@ -16,7 +16,8 @@ import astropy.units
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpeasyVariable(time=time, data=values, meta=None, columns=["Values"], y=None)
+    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), data=values, meta=None, columns=["Values"],
+                          y=None)
 
 
 class SpwcVariableSlice(unittest.TestCase):
@@ -62,19 +63,21 @@ class SpwcVariableMerge(unittest.TestCase):
         var1 = make_simple_var(1., 4., 1., 10.)
         var2 = make_simple_var(1., 4., 1., 10.)
         var = merge([var1, var2])
-        self.assertListEqual(var.time.tolist(), np.arange(1., 4., 1.).tolist())
+        self.assertListEqual(var.time.tolist(), var1.time.tolist())
+        self.assertListEqual(var.time.tolist(), var2.time.tolist())
 
     def test_two_with_partial_overlap(self):
         var1 = make_simple_var(1., 10., 1., 10.)
         var2 = make_simple_var(5., 15., 1., 10.)
+        ref = make_simple_var(1., 15., 1., 10.)
         var = merge([var1, var2])
-        self.assertListEqual(var.time.tolist(), np.arange(1., 15., 1.).tolist())
+        self.assertListEqual(var.time.tolist(), ref.time.tolist())
 
     def test_two_without_overlap(self):
         var1 = make_simple_var(1., 10., 1., 10.)
         var2 = make_simple_var(10., 20., 1., 10.)
         var = merge([var1, var2])
-        self.assertListEqual(var.time.tolist(), np.arange(1., 20., 1.).tolist())
+        self.assertListEqual(var.time.tolist(), var1.time.tolist() + var2.time.tolist())
 
 
 class ASpwcVariable(unittest.TestCase):
@@ -88,19 +91,14 @@ class ASpwcVariable(unittest.TestCase):
         var = make_simple_var(1., 10., 1., 10.)
         df = to_dataframe(var)
         self.assertIs(type(df), pds.DataFrame)
-        self.assertIs(type(df.index[0]), np.float64)
-        self.assertEqual(var.values.shape, df.values.shape)
-        df = to_dataframe(var, datetime_index=True)
         self.assertIs(type(df.index[0]), pds.Timestamp)
+        self.assertEqual(var.values.shape, df.values.shape)
 
     def test_from_dataframe(self):
         var1 = make_simple_var(1., 10., 1., 10.)
         var2 = from_dataframe(to_dataframe(var1))
         self.assertListEqual(var1.time.tolist(), var2.time.tolist())
         self.assertListEqual(var1.values.tolist(), var2.values.tolist())
-        var3 = from_dataframe(to_dataframe(var1, datetime_index=True))
-        self.assertListEqual(var1.time.tolist(), var3.time.tolist())
-        self.assertListEqual(var1.values.tolist(), var3.values.tolist())
 
     def test_is_plotable(self):
         try:

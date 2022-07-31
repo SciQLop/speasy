@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from speasy.webservices import ssc
 from astropy import units
 from ddt import ddt, data
+import numpy as np
 
 
 @ddt
@@ -63,8 +64,8 @@ class SscWeb(unittest.TestCase):
                                          disable_proxy=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
-        self.assertGreater(60., kw["start_time"].timestamp() - result.time[0])
-        self.assertGreater(60., kw["stop_time"].timestamp() - result.time[-1])
+        self.assertGreater(np.timedelta64(60, 's'), np.datetime64(kw["start_time"], 'ns') - result.time[0])
+        self.assertGreater(np.timedelta64(60, 's'), np.datetime64(kw["stop_time"], 'ns') - result.time[-1])
 
     def test_get_data_from_cache_preserve_unit(self):
         # https://github.com/SciQLop/speasy/issues/7

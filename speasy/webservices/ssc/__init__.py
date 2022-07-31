@@ -23,12 +23,12 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def _make_datetime(dt: str) -> datetime:
+def _make_datetime(dt: str) -> np.datetime64:
     '''
         Hack to support python 3.6, once 3.6 support removed then go back to:
         datetime.strptime(v[1], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp()
     '''
-    return datetime(*time.strptime(dt[:-6], '%Y-%m-%dT%H:%M:%S.%f')[:6], tzinfo=timezone.utc).timestamp()
+    return np.datetime64(dt[:-6], 'ns')
 
 
 def _variable(orbit: dict) -> Optional[SpeasyVariable]:

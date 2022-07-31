@@ -5,6 +5,9 @@
 
 import unittest
 from datetime import datetime, timedelta
+
+import numpy as np
+
 import speasy as spz
 from speasy.products.variable import SpeasyVariable
 
@@ -34,14 +37,16 @@ class ParameterRequests(unittest.TestCase):
         self.assertTrue(self.data.values.shape[0] == self.data.time.shape[0])
 
     def test_time_datatype(self):
-        self.assertTrue(self.data.time.dtype == float)
+        self.assertTrue(self.data.time.dtype == np.dtype('datetime64[ns]'))
 
     def test_time_range(self):
         min_dt = min(self.data.time[1:] - self.data.time[:-1])
+        start = np.datetime64(self.start, 'ns')
+        stop = np.datetime64(self.stop, 'ns')
         self.assertTrue(
-            self.start <= datetime.utcfromtimestamp(self.data.time[0]) < self.start + timedelta(seconds=min_dt))
+            start <= self.data.time[0] < (start + min_dt))
         self.assertTrue(
-            self.stop > datetime.utcfromtimestamp(self.data.time[-1]) >= self.stop - timedelta(seconds=min_dt))
+            stop > self.data.time[-1] >= (stop - min_dt))
 
     def test_dataset_not_none(self):
         self.assertIsNotNone(self.dataset)

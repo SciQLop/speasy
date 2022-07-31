@@ -35,13 +35,13 @@ class _CacheTest(unittest.TestCase):
              range(int((stop_time - start_time).seconds / 60))])
         data = index / 3600.
         self._make_data_cntr += 1
-        return SpeasyVariable(time=index, data=data)
+        return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(index), data=data)
 
     def _get_and_check(self, start, stop):
         var = self._make_data("...", start, stop)
         self.assertIsNotNone(var)
-        self.assertEqual(var.time[0], start.timestamp())
-        self.assertEqual(var.time[-1], (stop - timedelta(minutes=1)).timestamp())
+        self.assertEqual(var.time[0], np.datetime64(start, 'ns'))
+        self.assertEqual(var.time[-1], np.datetime64(stop - timedelta(minutes=1), 'ns'))
         self.assertEqual(len(var), (stop - start).seconds / 60)
 
     @data(

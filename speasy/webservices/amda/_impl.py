@@ -96,7 +96,7 @@ class AmdaImpl:
             var = load_csv(url)
             if len(var):
                 log.debug(
-                    f'Loaded var: data shape = {var.values.shape}, data start time = {datetime.utcfromtimestamp(var.time[0])}, data stop time = {datetime.utcfromtimestamp(var.time[-1])}')
+                    f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, data stop time = {var.time[-1]}')
             else:
                 log.debug('Loaded var: Empty var')
             return var

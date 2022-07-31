@@ -11,11 +11,12 @@ from ddt import ddt, data
 @ddt
 class GetSpwc(unittest.TestCase):
     def setUp(self):
+        self.proxy_state = spz.config.proxy_enabled.get()
         spz.config.proxy_enabled.set("true")
         spz.config.proxy_url.set("http://sciqlop.lpp.polytechnique.fr/cache")
 
     def tearDown(self):
-        pass
+        spz.config.proxy_enabled.set(self.proxy_state)
 
     @data(
         {
