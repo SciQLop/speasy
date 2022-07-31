@@ -1,7 +1,7 @@
 from speasy import SpeasyVariable
 from .cache import Cache, CacheItem
 from speasy.config import cache_path
-from typing import Union, Callable
+from typing import Union, Callable, List
 from speasy.core.datetime_range import DateTimeRange
 from .. import make_utc_datetime
 from speasy.products.variable import merge as merge_variables
@@ -125,6 +125,13 @@ class Cacheable(object):
             log.debug(f"{key} not found inside cache")
         return None
 
+    def get_fragments_from_cache(self, fragments: List[str], product: str, version, **kwargs):
+        data_fragments = []
+        with self.cache.transact():
+            for fragment in fragments:
+                data_fragments.append(self.get_from_cache(fragment, product, version, **kwargs))
+        return data_fragments
+
     def __call__(self, get_data):
         @wraps(get_data)
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
@@ -141,26 +148,30 @@ class Cacheable(object):
             while tend < cache_dt_range.stop_time:
                 fragments.append(tend)
                 tend += timedelta(hours=fragment_hours)
-            result = None
+            result = []
             contiguous_fragments = []
-            for fragment in fragments:
-                data = self.get_from_cache(fragment=fragment, product=product, version=version, **kwargs)
+            fragments_from_cache = self.get_fragments_from_cache(fragments=fragments, product=product, version=version,
+                                                                 **kwargs)
+            for data, fragment in zip(fragments_from_cache, fragments):
                 if data is None:
                     contiguous_fragments.append(fragment)
                 else:
+                    result.append(data)
                     if len(contiguous_fragments):
-                        result = get_data(wrapped_self, product=product, start_time=fragments[0],
-                                          stop_time=fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
-                        self.add_to_cache(variable=result, fragments=contiguous_fragments, product=product,
+                        data = get_data(wrapped_self, product=product, start_time=contiguous_fragments[0],
+                                        stop_time=contiguous_fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
+                        self.add_to_cache(variable=data, fragments=contiguous_fragments, product=product,
                                           fragment_duration_hours=fragment_hours, version=version, **kwargs)
                         contiguous_fragments = []
-                    result = merge_variables([result, data])
+                        result.append(data)
+
             if len(contiguous_fragments):
-                result = get_data(wrapped_self, product=product, start_time=fragments[0],
-                                  stop_time=fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
-                self.add_to_cache(result, contiguous_fragments, product, fragment_hours, version, **kwargs)
-            if result is not None:
-                return result[dt_range.start_time:dt_range.stop_time]
+                data = get_data(wrapped_self, product=product, start_time=contiguous_fragments[0],
+                                stop_time=contiguous_fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
+                self.add_to_cache(data, contiguous_fragments, product, fragment_hours, version, **kwargs)
+                result.append(data)
+            if len(result):
+                return merge_variables(result)[dt_range.start_time:dt_range.stop_time]
             return None
 
         if self.leak_cache:
