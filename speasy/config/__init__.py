@@ -137,6 +137,9 @@ cache_size = ConfigEntry("CACHE", "size", "20e9", description="""Sets the maximu
 cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")),
                          description="""Sets Speasy cache path.""")
 
+index_path = ConfigEntry("INDEX", "path", f'{appdirs.user_data_dir("speasy", "LPP")}/index')
+cdaweb_inventory_data_path = ConfigEntry("INDEX", "path", f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory')
+
 amda_username = ConfigEntry("AMDA", "username",
                             description="""Your AMDA username, once set, you will be able to get your private products.""")
 amda_password = ConfigEntry("AMDA", "password",
