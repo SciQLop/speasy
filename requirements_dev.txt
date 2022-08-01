@@ -11,7 +11,7 @@ typing
 python-dateutil
 astropy
 ddt
-spwc
 pytest
 pytest-cov
 pyistp
+astroquery
