@@ -44,11 +44,11 @@ class CDAParameterIndex(CDAIndex, ParameterIndex):  # lgtm [py/conflicting-attri
 class CDADatasetIndex(CDAIndex, DatasetIndex):  # lgtm [py/conflicting-attributes]
 
     def __init__(self, **meta):
-        id = meta.pop('serviceprovider_ID')
+        _id = meta.pop('serviceprovider_ID')
         name = meta.pop('name')
         DatasetIndex.__init__(self=self, name=name, provider="cdaweb", meta=meta)
-        CDAIndex.__init__(self=self, id=id)
-        flat_inventories.cda.datasets[id] = self
+        CDAIndex.__init__(self=self, id=_id)
+        flat_inventories.cda.datasets[_id] = self
 
 
 def to_dataset_and_variable(index_or_str: CDAParameterIndex or str) -> Tuple[str, str]:
