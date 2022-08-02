@@ -2,7 +2,7 @@ import os.path
 import logging
 import pyistp
 from speasy.inventory import flat_inventories
-from speasy.webservices.cda.indexes import CDAParameterIndex
+from ....inventory.indexes import ParameterIndex
 
 log = logging.getLogger(__name__)
 
@@ -28,8 +28,10 @@ def load_master_cdf(path, dataset):
             try:
                 datavar = cdf.data_variable(name)
                 if datavar is not None:
-                    dataset.__dict__[name] = CDAParameterIndex(name=name, dataset=dataset.cda_id(),
-                                                               **datavar.attributes)
+                    index = ParameterIndex(name=name, provider="cdaweb", meta=datavar.attributes)
+                    index.product = f"{dataset.serviceprovider_ID}/{name}"
+                    dataset.__dict__[name] = index
+                    flat_inventories.cda.parameters[name] = index
             except IndexError or RuntimeError:
                 print(f"Issue loading {name} from {path}")
                 skip_count += 1

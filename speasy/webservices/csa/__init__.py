@@ -1,7 +1,6 @@
 import requests
 from astroquery.utils.tap.core import TapPlus
-from .indexes import CSADatasetIndex, CSAParameterIndex, to_dataset_and_variable
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS, _cache  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
@@ -9,6 +8,7 @@ from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from ...inventory import flat_inventories
+from ...inventory.indexes import ParameterIndex, DatasetIndex
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 import tarfile
@@ -17,18 +17,36 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
+    if type(index_or_str) is str:
+        parts = index_or_str.split('/')
+    elif type(index_or_str) is ParameterIndex:
+        parts = index_or_str.product.split('/')
+    else:
+        raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
+    assert len(parts) == 2
+    return parts[0], parts[1]
+
+
 def build_inventory(tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
     CSA = TapPlus(url=tapurl)
     datasets = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true'").get_results()
     colnames = datasets.colnames
     for d in datasets:
-        CSADatasetIndex(**{cname: d[cname] for cname in colnames})
+        meta = {cname: d[cname] for cname in colnames}
+        name = meta['dataset_id']
+        index = DatasetIndex(name=name, provider="csa", meta=meta)
+        flat_inventories.csa.datasets[name] = index
 
     parameters = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'").get_results()
     colnames = parameters.colnames
-    for c in parameters:
-        if c["dataset_id"] in flat_inventories.csa.datasets:
-            CSAParameterIndex(**{cname: c[cname] for cname in colnames})
+    for p in parameters:
+        if p["dataset_id"] in flat_inventories.csa.datasets:
+            meta = {cname: p[cname] for cname in colnames}
+            name = meta['parameter_id']
+            meta["product"] = f"{['dataset_id']}/{name}"
+            index = ParameterIndex(name=name, provider="csa", meta=meta)
+            flat_inventories.csa.parameters[name] = index
 
 
 def _read_cdf(req: requests.Response, variable: str) -> SpeasyVariable:
