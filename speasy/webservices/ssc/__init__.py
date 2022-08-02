@@ -6,15 +6,14 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-from typing import Optional
-import time
-from datetime import datetime, timedelta, timezone
+from typing import Optional, Dict
+from datetime import datetime, timedelta
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.products.variable import SpeasyVariable
 from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-from .indexes import SscwebParameterIndex
-from speasy.inventory import data_tree
+from ...inventory.indexes import ParameterIndex
+from speasy.inventory import data_tree, flat_inventories
 import numpy as np
 from astropy import units
 
@@ -58,13 +57,23 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_system', 'gse')}
 
 
+def make_index(meta: Dict):
+    name = meta.pop('Name')
+    node = ParameterIndex(name=name, provider="sscweb", meta=meta)
+    node.StartTime = node.StartTime[1]
+    node.EndTime = node.EndTime[1]
+    flat_inventories.ssc.parameters[node.Id] = node
+    node.product = node.Id
+    return node
+
+
 class SSC_Webservice:
     def __init__(self):
         self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
         self.update_inventory()
 
     def update_inventory(self):
-        inv = list(map(SscwebParameterIndex, self.get_observatories()))
+        inv = list(map(make_index, self.get_observatories()))
         data_tree.ssc.Trajectories.__dict__.update({item.Id: item for item in inv})
 
     @CacheCall(cache_retention=7 * 24 * 60 * 60, is_pure=True)
