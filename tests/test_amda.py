@@ -10,8 +10,7 @@ from datetime import datetime, timezone
 import speasy as spz
 from speasy.webservices.amda.utils import load_csv
 from speasy.webservices.amda import ProductType
-from speasy.webservices.amda.indexes import to_xmlid
-from speasy.webservices.amda.inventory import AmdaXMLParser
+from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
 from speasy.webservices.amda.exceptions import MissingCredentials
 
 

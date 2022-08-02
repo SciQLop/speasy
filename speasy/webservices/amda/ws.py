@@ -3,8 +3,8 @@
 
 from enum import Enum
 from .utils import get_parameter_args
-from .indexes import to_xmlid, AMDADatasetIndex, AMDAParameterIndex, AMDATimetableIndex, AMDACatalogIndex, \
-    AMDAComponentIndex, AMDAIndex
+from .inventory import to_xmlid
+from ...inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, ComponentIndex
 
 from ._impl import is_public, is_private
 
@@ -38,22 +38,22 @@ class ProductType(Enum):
     CATALOG = 5
 
 
-def _is_user_prod(product_id: str or AMDAIndex, collection: Dict):
+def _is_user_prod(product_id: str or SpeasyIndex, collection: Dict):
     xmlid = to_xmlid(product_id)
     if xmlid in collection:
         return not collection[xmlid].is_public
     return False
 
 
-def is_user_catalog(catalog_id: str or AMDACatalogIndex):
+def is_user_catalog(catalog_id: str or CatalogIndex):
     return _is_user_prod(catalog_id, flat_inventories.amda.catalogs)
 
 
-def is_user_timetable(timetable_id: str or AMDATimetableIndex):
+def is_user_timetable(timetable_id: str or TimetableIndex):
     return _is_user_prod(timetable_id, flat_inventories.amda.timetables)
 
 
-def is_user_parameter(parameter_id: str or AMDAParameterIndex):
+def is_user_parameter(parameter_id: str or ParameterIndex):
     return _is_user_prod(parameter_id, flat_inventories.amda.parameters)
 
 
@@ -163,7 +163,7 @@ class AMDA_Webservice:
             else:
                 return self.get_timetable(timetable_id=product, **kwargs)
 
-    def get_user_parameter(self, parameter_id: str or AMDAParameterIndex, start_time: datetime or str,
+    def get_user_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime or str,
                            stop_time: datetime or str) -> Optional[SpeasyVariable]:
         """Get user parameter. Raises an exception if user is not authenticated.
 
@@ -204,7 +204,7 @@ class AMDA_Webservice:
         return self._impl.dl_user_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time)
 
     @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
-    def get_user_timetable(self, timetable_id: str or AMDATimetableIndex) -> Optional[TimeTable]:
+    def get_user_timetable(self, timetable_id: str or TimetableIndex) -> Optional[TimeTable]:
         """Get user timetable. Raises an exception if user is not authenticated.
 
         Parameters
@@ -234,7 +234,7 @@ class AMDA_Webservice:
         return self._impl.dl_user_timetable(timetable_id=timetable_id)
 
     @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
-    def get_user_catalog(self, catalog_id: str or AMDACatalogIndex) -> Optional[Catalog]:
+    def get_user_catalog(self, catalog_id: str or CatalogIndex) -> Optional[Catalog]:
         """Get user catalog. Raises an exception if user is not authenticated.
 
 
@@ -339,13 +339,13 @@ class AMDA_Webservice:
         dataset_id = to_xmlid(dataset_id)
         name = flat_inventories.amda.datasets[dataset_id].name
         meta = {k: v for k, v in flat_inventories.amda.datasets[dataset_id].__dict__.items() if
-                not isinstance(v, AMDAIndex)}
+                not isinstance(v, SpeasyIndex)}
         parameters = self.list_parameters(dataset_id)
         return Dataset(name=name, variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
                        meta=meta)
 
     @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
-    def get_timetable(self, timetable_id: str or AMDATimetableIndex, **kwargs) -> Optional[TimeTable]:
+    def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
         """Get timetable data by ID.
 
         Parameters
@@ -369,7 +369,7 @@ class AMDA_Webservice:
         return self._impl.dl_timetable(to_xmlid(timetable_id), **kwargs)
 
     @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
-    def get_catalog(self, catalog_id: str or AMDACatalogIndex, **kwargs) -> Optional[Catalog]:
+    def get_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
         """Get catalog data by ID.
 
         Parameters
@@ -392,7 +392,7 @@ class AMDA_Webservice:
         """
         return self._impl.dl_catalog(to_xmlid(catalog_id), **kwargs)
 
-    def parameter_range(self, parameter_id: str or AMDAParameterIndex or AMDADatasetIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str or ParameterIndex or DatasetIndex) -> Optional[DateTimeRange]:
         """Get product time range.
 
         Parameters
@@ -426,7 +426,7 @@ class AMDA_Webservice:
             )
 
     @staticmethod
-    def list_parameters(dataset_id: Optional[str or AMDADatasetIndex] = None) -> List[AMDAParameterIndex]:
+    def list_parameters(dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:
 
         """Get the list of parameter indexes available in AMDA or a given dataset
 
@@ -458,7 +458,7 @@ class AMDA_Webservice:
         return list(filter(is_public, flat_inventories.amda.parameters.values()))
 
     @staticmethod
-    def list_catalogs() -> List[AMDACatalogIndex]:
+    def list_catalogs() -> List[CatalogIndex]:
         """Get the list of public catalog IDs:
 
         Returns
@@ -480,7 +480,7 @@ class AMDA_Webservice:
         return list(filter(is_public, flat_inventories.amda.catalogs.values()))
 
     @staticmethod
-    def list_user_timetables() -> List[AMDATimetableIndex]:
+    def list_user_timetables() -> List[TimetableIndex]:
         """Get the list of user timetables. User timetable are represented as dictionary objects.
 
         Returns
@@ -507,7 +507,7 @@ class AMDA_Webservice:
         return list(filter(is_private, flat_inventories.amda.timetables.values()))
 
     @staticmethod
-    def list_user_catalogs() -> List[AMDACatalogIndex]:
+    def list_user_catalogs() -> List[CatalogIndex]:
         """Get the list of user catalogs. User catalogs are represented as dictionary objects.
 
         Returns
@@ -534,7 +534,7 @@ class AMDA_Webservice:
         return list(filter(is_private, flat_inventories.amda.catalogs.values()))
 
     @staticmethod
-    def list_user_parameters() -> List[AMDAParameterIndex]:
+    def list_user_parameters() -> List[ParameterIndex]:
         """Get the list of user parameters. User parameters are represented as dictionary objects.
 
         Returns
@@ -561,7 +561,7 @@ class AMDA_Webservice:
         return list(filter(is_private, flat_inventories.amda.parameters.values()))
 
     @staticmethod
-    def list_timetables() -> List[AMDATimetableIndex]:
+    def list_timetables() -> List[TimetableIndex]:
         """Get list of public timetables.
 
         Returns
@@ -580,7 +580,7 @@ class AMDA_Webservice:
         return list(filter(is_public, flat_inventories.amda.timetables.values()))
 
     @staticmethod
-    def list_datasets() -> List[AMDADatasetIndex]:
+    def list_datasets() -> List[DatasetIndex]:
         """Get the list of dataset id available in AMDA_Webservice
 
         Returns
@@ -604,7 +604,7 @@ class AMDA_Webservice:
         return list(filter(is_public, flat_inventories.amda.datasets.values()))
 
     @staticmethod
-    def _find_parent_dataset(product_id: str or AMDADatasetIndex or AMDAParameterIndex or AMDAComponentIndex) -> \
+    def _find_parent_dataset(product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> \
         Optional[str]:
 
         product_id = to_xmlid(product_id)
@@ -617,7 +617,7 @@ class AMDA_Webservice:
                     return to_xmlid(dataset)
 
     @staticmethod
-    def product_type(product_id: str or AMDAIndex) -> ProductType:
+    def product_type(product_id: str or SpeasyIndex) -> ProductType:
         """Returns product type for any known ADMA product from its index or ID.
 
         Parameters
