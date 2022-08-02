@@ -9,7 +9,6 @@ from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from ...inventory import flat_inventories
-from urllib.request import urlopen
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 import tarfile
