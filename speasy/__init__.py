@@ -20,12 +20,14 @@ from typing import List, Union, Optional
 amda = webservices.AMDA_Webservice()
 cda = webservices.CDA_Webservice()
 ssc = webservices.SSC_Webservice()
+csa = webservices.CSA_Webservice()
 
 __PROVIDERS__ = {
     'amda': amda.get_data,
     'cdaweb': cda.get_data,
     'cda': cda.get_data,
-    'sscweb': ssc.get_trajectory
+    'sscweb': ssc.get_trajectory,
+    'csa': csa.get_data
 }
 
 

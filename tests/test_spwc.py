@@ -26,7 +26,7 @@ class GetSpwc(unittest.TestCase):
             "disable_proxy": True
         },
         {
-            "product": "cdaweb/THA_L2_FGM/tha_fgl_gsm",
+            "product": "cda/THA_L2_FGM/tha_fgl_gsm",
             "start_time": datetime(2014, 6, 1, tzinfo=timezone.utc),
             "stop_time": datetime(2014, 6, 1, 0, 10, tzinfo=timezone.utc),
             "disable_proxy": True
@@ -59,6 +59,12 @@ class GetSpwc(unittest.TestCase):
             "product": "sscweb/moon",
             "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "disable_proxy": True
+        },
+        {
+            "product": "csa/C1_PP_PEA/T_e_par__C1_PP_PEA",
+            "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc),
             "disable_proxy": True
         },
         {
