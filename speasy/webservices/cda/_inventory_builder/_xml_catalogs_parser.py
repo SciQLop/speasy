@@ -1,7 +1,6 @@
-from types import SimpleNamespace
-from speasy.webservices.cda.indexes import CDAComponentIndex, CDADatasetIndex, CDAParameterIndex, CDAPathIndex
-from ._cdf_masters_parser import load_master_cdf
 from speasy.core import fix_name
+from ....inventory.indexes import DatasetIndex, SpeasyIndex
+from ....inventory import flat_inventories
 import xml.etree.ElementTree as Et
 
 
@@ -25,10 +24,10 @@ def description(node) -> str:
     return ""
 
 
-def make_inventory_node(inventory_node, ctor, name, *args, **kwargs):
-    if name not in inventory_node.__dict__:
-        inventory_node.__dict__[name] = ctor(name=name, *args, **kwargs)
-    return inventory_node.__dict__[name]
+def make_inventory_node(parent, ctor, name, **meta):
+    if name not in parent.__dict__:
+        parent.__dict__[name] = ctor(name=name, provider="cdaweb", meta=meta)
+    return parent.__dict__[name]
 
 
 def extract_node(node, is_dataset=False):
@@ -49,10 +48,11 @@ def register_dataset(inventory_tree, mission_group_node, observatory_node, instr
     observatory = extract_node(observatory_node)
     mission_group = extract_node(mission_group_node)
     if mission_group['name'] != observatory['name']:
-        inventory_tree = make_inventory_node(inventory_tree, CDAPathIndex, **mission_group)
-    inventory_tree = make_inventory_node(inventory_tree, CDAPathIndex, **observatory)
-    inventory_tree = make_inventory_node(inventory_tree, CDAPathIndex, **extract_node(instrument_node))
-    inventory_tree = make_inventory_node(inventory_tree, CDADatasetIndex, **extract_node(dataset_node, is_dataset=True))
+        inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **mission_group)
+    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **observatory)
+    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **extract_node(instrument_node))
+    inventory_tree = make_inventory_node(inventory_tree, DatasetIndex, **extract_node(dataset_node, is_dataset=True))
+    flat_inventories.cda.datasets[inventory_tree.name] = inventory_tree
     return inventory_tree
 
 
@@ -76,10 +76,9 @@ def parse_dataset(inventory_tree, dataset_node):
 def load_xml_catalog(xml_file_path: str):
     with open(xml_file_path) as xml_file:
         tree = Et.fromstring(xml_file.read())
-        inventory_tree = SimpleNamespace()
+        inventory_tree = SpeasyIndex(name='root', provider='cdaweb')
         for site in tree.iter('{cdas}datasite'):
             if site.attrib['ID'] == 'CDAWeb_HTTPS':
                 for node in site.iter('{cdas}dataset'):
                     parse_dataset(inventory_tree, node)
                 return inventory_tree
-

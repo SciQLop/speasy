@@ -6,16 +6,16 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS, _cache  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
 from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
+from ...inventory.indexes import ParameterIndex
 from urllib.request import urlopen
 import logging
-from .indexes import to_dataset_and_variable
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +33,17 @@ def _read_cdf(url: str, variable: str) -> SpeasyVariable:
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"cdaweb/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}'}
+
+
+def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
+    if type(index_or_str) is str:
+        parts = index_or_str.split('/')
+    elif type(index_or_str) is ParameterIndex:
+        parts = index_or_str.product.split('/')
+    else:
+        raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
+    assert len(parts) == 2
+    return parts[0], parts[1]
 
 
 class CDA_Webservice:
