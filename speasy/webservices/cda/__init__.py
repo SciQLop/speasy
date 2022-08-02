@@ -56,7 +56,7 @@ class CDA_Webservice:
         return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
-    @Cacheable(prefix="cda", fragment_hours=lambda x: 1)
+    @Cacheable(prefix="cda", fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime):
         dataset, variable = to_dataset_and_variable(product)

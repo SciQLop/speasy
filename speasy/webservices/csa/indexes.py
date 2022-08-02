@@ -41,3 +41,15 @@ class CSADatasetIndex(CSAIndex, DatasetIndex):  # lgtm [py/conflicting-attribute
         DatasetIndex.__init__(self=self, name=name, provider="csa", meta=meta)
         CSAIndex.__init__(self=self, id=_id)
         flat_inventories.csa.datasets[_id] = self
+
+def to_dataset_and_variable(index_or_str: CSAParameterIndex or str) -> Tuple[str, str]:
+    if type(index_or_str) is str:
+        parts = index_or_str.split('/')
+        assert len(parts) == 2
+        return parts[0], parts[1]
+    if type(index_or_str) is CSAParameterIndex:
+        parts = index_or_str.product().split('/')
+        assert len(parts) == 2
+        return parts[0], parts[1]
+    else:
+        raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
