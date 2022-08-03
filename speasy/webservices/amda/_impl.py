@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from . import rest_client
+from ..dataprovider import DataProvider
 from .utils import load_csv, load_timetable, load_catalog
 from .inventory import AmdaXMLParser
 from .rest_client import auth_args
@@ -41,8 +42,9 @@ def is_private(node):
     return not is_public(node)
 
 
-class AmdaImpl:
+class AmdaImpl(DataProvider):
     def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
+        DataProvider.__init__(self, provider_name='amda')
         self.server_url = server_url
         self.update_inventory()
 

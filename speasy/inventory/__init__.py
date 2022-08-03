@@ -19,10 +19,8 @@ class ProviderInventory:
 
 
 class FlatInventories:
-    amda = ProviderInventory()
-    ssc = ProviderInventory()
-    cda = ProviderInventory()
-    csa = ProviderInventory()
+    def __init__(self):
+        pass
 
 
 flat_inventories = FlatInventories()

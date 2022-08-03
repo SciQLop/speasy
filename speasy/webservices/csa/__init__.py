@@ -9,6 +9,7 @@ from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from ...inventory import flat_inventories
 from ...inventory.indexes import ParameterIndex, DatasetIndex
+from ..dataprovider import DataProvider
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 import tarfile
@@ -35,7 +36,7 @@ def build_inventory(tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
     for d in datasets:
         meta = {cname: d[cname] for cname in colnames}
         name = meta['dataset_id']
-        index = DatasetIndex(name=name, provider="csa", meta=meta)
+        index = DatasetIndex(name=name, provider="csa", uid=name, meta=meta)
         flat_inventories.csa.datasets[name] = index
 
     parameters = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'").get_results()
@@ -44,8 +45,7 @@ def build_inventory(tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
         if p["dataset_id"] in flat_inventories.csa.datasets:
             meta = {cname: p[cname] for cname in colnames}
             name = meta['parameter_id']
-            meta["product"] = f"{['dataset_id']}/{name}"
-            index = ParameterIndex(name=name, provider="csa", meta=meta)
+            index = ParameterIndex(name=name, provider="csa", uid=f"{['dataset_id']}/{name}", meta=meta)
             flat_inventories.csa.parameters[name] = index
 
 
@@ -65,8 +65,9 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}'}
 
 
-class CSA_Webservice:
+class CSA_Webservice(DataProvider):
     def __init__(self):
+        DataProvider.__init__(self, provider_name='csa')
         self.__url = "https://csa.esac.esa.int/csa-sl-tap/data"
 
     def _dl_variable(self,
