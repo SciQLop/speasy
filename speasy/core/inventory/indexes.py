@@ -1,6 +1,6 @@
 from typing import Optional
 import json
-from . import flat_inventories
+from speasy.inventories import flat_inventories
 
 __INDEXES_TYPES__ = {}
 
@@ -17,6 +17,11 @@ class SpeasyIndex:
         self.name = name
         self.uid = uid
         self.type = self.__class__.__name__
+
+    def clear(self):
+        for key in self.__dict__:
+            if key not in ('provider', 'name', 'uid', 'type'):
+                self.__dict__.pop(key)
 
     def __repr__(self):
         return f'<SpeasyIndex: {self.name}>'
@@ -84,10 +89,11 @@ class DatasetIndex(SpeasyIndex):
 
 
 def to_dict(inventory_tree: SpeasyIndex or str):
-    if type(inventory_tree) is str:
-        return inventory_tree
-    root = {key: to_dict(value) for key, value in inventory_tree.__dict__.items()}
-    return root
+    if isinstance(inventory_tree, SpeasyIndex):
+        return {key: to_dict(value) for key, value in inventory_tree.__dict__.items()}
+    elif type(inventory_tree) is not str:
+        return str(inventory_tree)
+    return inventory_tree
 
 
 def from_dict(inventory_tree: dict or str):
@@ -96,8 +102,10 @@ def from_dict(inventory_tree: dict or str):
     idx_type = inventory_tree.pop("type")
     idx_name = inventory_tree.pop("name")
     idx_provider = inventory_tree.pop("provider")
+    idx_uid = inventory_tree.pop("uid")
     idx_meta = {key: from_dict(value) for key, value in inventory_tree.items()}
-    root = __INDEXES_TYPES__.get(idx_type, SpeasyIndex)(name=idx_name, provider=idx_provider, meta=idx_meta)
+    root = __INDEXES_TYPES__.get(idx_type, SpeasyIndex)(name=idx_name, provider=idx_provider, uid=idx_uid,
+                                                        meta=idx_meta)
     return root
 
 

@@ -4,7 +4,7 @@
 from enum import Enum
 from .utils import get_parameter_args
 from .inventory import to_xmlid
-from ...inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, ComponentIndex
+from speasy.core.inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, ComponentIndex
 
 from ._impl import is_public, is_private
 
@@ -21,7 +21,7 @@ from speasy.products.dataset import Dataset
 from speasy.products.timetable import TimeTable
 from speasy.products.catalog import Catalog
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-from speasy.inventory import flat_inventories
+from speasy.inventories import flat_inventories
 import logging
 
 log = logging.getLogger(__name__)

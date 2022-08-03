@@ -1,6 +1,5 @@
 from speasy.core import fix_name
-from ....inventory.indexes import DatasetIndex, SpeasyIndex
-from ....inventory import flat_inventories
+from speasy.core.inventory.indexes import DatasetIndex, SpeasyIndex
 import xml.etree.ElementTree as Et
 
 
@@ -26,7 +25,7 @@ def description(node) -> str:
 
 def make_inventory_node(parent, ctor, name, **meta):
     if name not in parent.__dict__:
-        parent.__dict__[name] = ctor(name=name, provider="cdaweb", uid=meta.get('serviceprovider_ID'), meta=meta)
+        parent.__dict__[name] = ctor(name=name, provider="cda", uid=meta.get('serviceprovider_ID'), meta=meta)
     return parent.__dict__[name]
 
 
@@ -72,10 +71,10 @@ def parse_dataset(inventory_tree, dataset_node):
         print(f'Missing master CDF for {dataset_node.attrib["serviceprovider_ID"]}')
 
 
-def load_xml_catalog(xml_file_path: str):
+def load_xml_catalog(xml_file_path: str, root: SpeasyIndex or None = None):
     with open(xml_file_path) as xml_file:
         tree = Et.fromstring(xml_file.read())
-        inventory_tree = SpeasyIndex(name='root', provider='cdaweb')
+        inventory_tree = root or SpeasyIndex(name='root', provider='cda')
         for site in tree.iter('{cdas}datasite'):
             if site.attrib['ID'] == 'CDAWeb_HTTPS':
                 for node in site.iter('{cdas}dataset'):

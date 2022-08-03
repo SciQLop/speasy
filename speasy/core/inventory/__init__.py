@@ -21,10 +21,3 @@ class ProviderInventory:
 class FlatInventories:
     def __init__(self):
         pass
-
-
-flat_inventories = FlatInventories()
-
-
-def reset_amda_inventory():
-    flat_inventories.amda = ProviderInventory()

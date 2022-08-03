@@ -2,9 +2,8 @@
 """
 from ...core import fix_name
 import xml.etree.ElementTree as Et
-from speasy.inventory.indexes import CatalogIndex, ParameterIndex, TimetableIndex, DatasetIndex, ComponentIndex, \
+from speasy.core.inventory.indexes import CatalogIndex, ParameterIndex, TimetableIndex, DatasetIndex, ComponentIndex, \
     SpeasyIndex
-from speasy.inventory import flat_inventories
 
 
 def to_xmlid(index_or_str) -> str:

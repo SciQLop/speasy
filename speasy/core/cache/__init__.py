@@ -5,7 +5,7 @@ from typing import Union, Callable, List
 from speasy.core.datetime_range import DateTimeRange
 from .. import make_utc_datetime
 from speasy.products.variable import merge as merge_variables
-from speasy.inventory.indexes import ParameterIndex
+from speasy.core.inventory.indexes import ParameterIndex
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import inspect

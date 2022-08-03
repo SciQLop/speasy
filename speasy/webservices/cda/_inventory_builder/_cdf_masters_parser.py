@@ -1,8 +1,8 @@
 import os.path
 import logging
 import pyistp
-from speasy.inventory import flat_inventories
-from ....inventory.indexes import ParameterIndex
+from speasy.inventories import flat_inventories
+from speasy.core.inventory.indexes import ParameterIndex
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def load_master_cdf(path, dataset):
             try:
                 datavar = cdf.data_variable(name)
                 if datavar is not None:
-                    index = ParameterIndex(name=name, provider="cdaweb", uid=f"{dataset.serviceprovider_ID}/{name}",
+                    index = ParameterIndex(name=name, provider="cda", uid=f"{dataset.serviceprovider_ID}/{name}",
                                            meta=datavar.attributes)
                     dataset.__dict__[name] = index
             except IndexError or RuntimeError:

@@ -1,15 +1,16 @@
 import requests
 from astroquery.utils.tap.core import TapPlus
 from typing import Optional, Tuple
+from types import SimpleNamespace
 from datetime import datetime
-from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS, _cache  # _cache is used for tests (hack...)
+from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
 from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
-from ...inventory import flat_inventories
-from ...inventory.indexes import ParameterIndex, DatasetIndex
-from ..dataprovider import DataProvider
+from ...inventories import flat_inventories
+from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex
+from speasy.core.dataprovider import DataProvider
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 import tarfile
@@ -29,7 +30,7 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
     return parts[0], parts[1]
 
 
-def build_inventory(tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
+def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
     CSA = TapPlus(url=tapurl)
     datasets = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true'").get_results()
     colnames = datasets.colnames
@@ -37,7 +38,6 @@ def build_inventory(tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
         meta = {cname: d[cname] for cname in colnames}
         name = meta['dataset_id']
         index = DatasetIndex(name=name, provider="csa", uid=name, meta=meta)
-        flat_inventories.csa.datasets[name] = index
 
     parameters = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'").get_results()
     colnames = parameters.colnames
@@ -46,7 +46,8 @@ def build_inventory(tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
             meta = {cname: p[cname] for cname in colnames}
             name = meta['parameter_id']
             index = ParameterIndex(name=name, provider="csa", uid=f"{['dataset_id']}/{name}", meta=meta)
-            flat_inventories.csa.parameters[name] = index
+
+    return root
 
 
 def _read_cdf(req: requests.Response, variable: str) -> SpeasyVariable:
@@ -89,6 +90,10 @@ class CSA_Webservice(DataProvider):
         if not resp.ok:
             return None
         return _read_cdf(resp, variable)
+
+    @staticmethod
+    def build_inventory(root: SpeasyIndex):
+        return build_inventory(root)
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12)

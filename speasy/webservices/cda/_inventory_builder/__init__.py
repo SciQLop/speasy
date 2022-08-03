@@ -1,6 +1,7 @@
 from ._xml_catalogs_parser import load_xml_catalog
 from ._cdf_masters_parser import update_tree
 from ....core.index import index
+from ....core.inventory.indexes import SpeasyIndex, to_dict, from_dict
 from ....config import cdaweb_inventory_data_path
 import requests
 from tempfile import NamedTemporaryFile
@@ -39,6 +40,8 @@ def update_master_cdf(masters_url: str = "https://spdf.gsfc.nasa.gov/pub/softwar
         _clean_master_cdf_folder()
         _download_and_extract_master_cdf(masters_url)
         index.set("cdaweb-inventory", "masters-last-modified", last_modified)
+        return True
+    return False
 
 
 def update_xml_catalog(xml_catalog_url: str = "https://spdf.gsfc.nasa.gov/pub/catalogs/all.xml"):
@@ -47,13 +50,20 @@ def update_xml_catalog(xml_catalog_url: str = "https://spdf.gsfc.nasa.gov/pub/ca
         _ensure_path_exists(_XML_CATALOG_PATH)
         with open(_XML_CATALOG_PATH, 'w') as f:
             f.write(requests.get(xml_catalog_url).text)
-        index.set("cdaweb-inventory", "xml_catalog-last-modified", last_modified)
+            index.set("cdaweb-inventory", "xml_catalog-last-modified", last_modified)
+            return True
+    return False
 
 
-def build_inventory(xml_catalog_url: str = "https://spdf.gsfc.nasa.gov/pub/catalogs/all.xml",
+def build_inventory(root: SpeasyIndex = None, xml_catalog_url: str = "https://spdf.gsfc.nasa.gov/pub/catalogs/all.xml",
                     masters_url: str = "https://spdf.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/master.tar"):
-    update_xml_catalog(xml_catalog_url)
-    t = load_xml_catalog(_XML_CATALOG_PATH)
-    update_master_cdf(masters_url)
-    update_tree(master_cdf_dir=_MASTERS_CDF_PATH)
-    return t
+    needs_rebuild = update_xml_catalog(xml_catalog_url)
+    needs_rebuild |= update_master_cdf(masters_url)
+    if needs_rebuild or not index.contains("cdaweb-inventory", "tree"):
+        root = load_xml_catalog(xml_file_path=_XML_CATALOG_PATH, root=root)
+        update_tree(master_cdf_dir=_MASTERS_CDF_PATH)
+        index.set("cdaweb-inventory", "tree", to_dict(root))
+    else:
+        t = from_dict(index.get("cdaweb-inventory", "tree"))
+        root.__dict__ = t.__dict__
+    return root

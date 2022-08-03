@@ -68,19 +68,19 @@ class GetSpwc(unittest.TestCase):
             "disable_proxy": True
         },
         {
-            "product": spz.inventory.data_tree.amda.Parameters.THEMIS.THEMIS_A.FGM.tha_fgm_s.tha_bs_gsm,
+            "product": spz.inventories.data_tree.amda.Parameters.THEMIS.THEMIS_A.FGM.tha_fgm_s.tha_bs_gsm,
             "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
             "disable_proxy": True
         },
         {
-            "product": spz.inventory.data_tree.amda.Catalogs.SharedCatalogs.MARS.MEXShockCrossings
+            "product": spz.inventories.data_tree.amda.Catalogs.SharedCatalogs.MARS.MEXShockCrossings
         },
         {
-            "product": spz.inventory.data_tree.amda.TimeTables.SharedTimeTables.EARTH.Event_list_tail_hall_reconnection_SC1
+            "product": spz.inventories.data_tree.amda.TimeTables.SharedTimeTables.EARTH.Event_list_tail_hall_reconnection_SC1
         },
         {
-            "product": spz.inventory.data_tree.ssc.Trajectories.ace,
+            "product": spz.inventories.data_tree.ssc.Trajectories.ace,
             "start_time": '2018-06-01',
             "stop_time": '2018-06-02'
         }
