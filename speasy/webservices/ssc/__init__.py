@@ -13,6 +13,7 @@ from speasy.products.variable import SpeasyVariable
 from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from ...inventory.indexes import ParameterIndex
+from ..dataprovider import DataProvider
 from speasy.inventory import data_tree, flat_inventories
 import numpy as np
 from astropy import units
@@ -59,16 +60,15 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 def make_index(meta: Dict):
     name = meta.pop('Name')
-    node = ParameterIndex(name=name, provider="sscweb", meta=meta)
+    node = ParameterIndex(name=name, provider="ssc", uid=meta['Id'], meta=meta)
     node.StartTime = node.StartTime[1]
     node.EndTime = node.EndTime[1]
-    flat_inventories.ssc.parameters[node.Id] = node
-    node.product = node.Id
     return node
 
 
-class SSC_Webservice:
+class SSC_Webservice(DataProvider):
     def __init__(self):
+        DataProvider.__init__(self, provider_name='ssc', provider_alt_names=['sscweb'])
         self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
         self.update_inventory()
 

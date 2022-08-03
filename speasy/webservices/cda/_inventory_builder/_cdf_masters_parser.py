@@ -28,10 +28,9 @@ def load_master_cdf(path, dataset):
             try:
                 datavar = cdf.data_variable(name)
                 if datavar is not None:
-                    index = ParameterIndex(name=name, provider="cdaweb", meta=datavar.attributes)
-                    index.product = f"{dataset.serviceprovider_ID}/{name}"
+                    index = ParameterIndex(name=name, provider="cdaweb", uid=f"{dataset.serviceprovider_ID}/{name}",
+                                           meta=datavar.attributes)
                     dataset.__dict__[name] = index
-                    flat_inventories.cda.parameters[name] = index
             except IndexError or RuntimeError:
                 print(f"Issue loading {name} from {path}")
                 skip_count += 1

@@ -14,6 +14,7 @@ from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from ...inventory.indexes import ParameterIndex
+from ..dataprovider import DataProvider
 from urllib.request import urlopen
 import logging
 
@@ -46,8 +47,9 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
     return parts[0], parts[1]
 
 
-class CDA_Webservice:
+class CDA_Webservice(DataProvider):
     def __init__(self):
+        DataProvider.__init__(self, provider_name='cda', provider_alt_names='cdaweb')
         self.__url = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1"
 
     def _dl_variable(self,

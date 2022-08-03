@@ -26,7 +26,7 @@ def description(node) -> str:
 
 def make_inventory_node(parent, ctor, name, **meta):
     if name not in parent.__dict__:
-        parent.__dict__[name] = ctor(name=name, provider="cdaweb", meta=meta)
+        parent.__dict__[name] = ctor(name=name, provider="cdaweb", uid=meta.get('serviceprovider_ID'), meta=meta)
     return parent.__dict__[name]
 
 
@@ -52,7 +52,6 @@ def register_dataset(inventory_tree, mission_group_node, observatory_node, instr
     inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **observatory)
     inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **extract_node(instrument_node))
     inventory_tree = make_inventory_node(inventory_tree, DatasetIndex, **extract_node(dataset_node, is_dataset=True))
-    flat_inventories.cda.datasets[inventory_tree.name] = inventory_tree
     return inventory_tree
 
 

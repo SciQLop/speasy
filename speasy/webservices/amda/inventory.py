@@ -37,7 +37,8 @@ class AmdaXMLParser:
     def index_ctor_args(node, name_key='xmlid', is_public=True):
         meta = AmdaXMLParser.fix_names(**AmdaXMLParser.fix_xmlid(**node.attrib))
         meta['is_public'] = is_public
-        return {"name": meta.get('name', node.tag), "provider": "amda", "meta": meta}
+        uid = meta.get('xmlid', node.tag)
+        return {"name": meta.get('name', node.tag), "provider": "amda", 'uid': uid, "meta": meta}
 
     @staticmethod
     def make_any_node(parent, node, ctor, name_key='xmlid', is_public=True):
@@ -53,32 +54,26 @@ class AmdaXMLParser:
     @staticmethod
     def make_dataset_node(parent, node, is_public=True):
         ds = AmdaXMLParser.make_any_node(parent, node, DatasetIndex, is_public=is_public)
-        flat_inventories.amda.datasets[ds.xmlid] = ds
         return ds
 
     @staticmethod
     def make_parameter_node(parent, node, is_public=True):
         param = AmdaXMLParser.make_any_node(parent, node, ParameterIndex, is_public=is_public)
-        param.product = param.xmlid
-        flat_inventories.amda.parameters[param.xmlid] = param
         return param
 
     @staticmethod
     def make_component_node(parent, node, is_public=True):
         component = AmdaXMLParser.make_any_node(parent, node, ComponentIndex, is_public=is_public)
-        flat_inventories.amda.components[component.xmlid] = component
         return component
 
     @staticmethod
     def make_timetable_node(parent, node, is_public=True):
         tt = AmdaXMLParser.make_any_node(parent, node, TimetableIndex, name_key='name', is_public=is_public)
-        flat_inventories.amda.timetables[tt.xmlid] = tt
         return tt
 
     @staticmethod
     def make_catalogue_node(parent, node, is_public=True):
         cat = AmdaXMLParser.make_any_node(parent, node, CatalogIndex, name_key='name', is_public=is_public)
-        flat_inventories.amda.catalogs[cat.xmlid] = cat
         return cat
 
     @staticmethod
@@ -103,10 +98,9 @@ class AmdaXMLParser:
             for subnode in node:
                 _recursive_parser(new, subnode, is_public)
 
-        root = SpeasyIndex("root", "amda")
+        root = SpeasyIndex("root", "amda", "amda_root_node")
         if xml is not None:
             tree = Et.fromstring(xml)
-            root = SpeasyIndex("root", "amda")
             _recursive_parser(root, tree, is_public=is_public)
 
         return root

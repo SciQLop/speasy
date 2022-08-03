@@ -27,6 +27,7 @@ __PROVIDERS__ = {
     'cdaweb': cda.get_data,
     'cda': cda.get_data,
     'sscweb': ssc.get_trajectory,
+    'ssc': ssc.get_trajectory,
     'csa': csa.get_data
 }
 
