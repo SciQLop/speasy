@@ -7,14 +7,15 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from typing import Optional, Dict
+from types import SimpleNamespace
 from datetime import datetime, timedelta
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.products.variable import SpeasyVariable
 from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-from ...inventory.indexes import ParameterIndex
-from ..dataprovider import DataProvider
-from speasy.inventory import data_tree, flat_inventories
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.dataprovider import DataProvider
+from speasy.inventories import data_tree
 import numpy as np
 from astropy import units
 
@@ -68,13 +69,13 @@ def make_index(meta: Dict):
 
 class SSC_Webservice(DataProvider):
     def __init__(self):
-        DataProvider.__init__(self, provider_name='ssc', provider_alt_names=['sscweb'])
         self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
-        self.update_inventory()
+        DataProvider.__init__(self, provider_name='ssc', provider_alt_names=['sscweb'])
 
-    def update_inventory(self):
+    def build_inventory(self, root: SpeasyIndex):
         inv = list(map(make_index, self.get_observatories()))
-        data_tree.ssc.Trajectories.__dict__.update({item.Id: item for item in inv})
+        root.Trajectories = SpeasyIndex(name='Trajectories', provider='ssc', uid='Trajectories',
+                                        meta={item.Id: item for item in inv})
 
     @CacheCall(cache_retention=7 * 24 * 60 * 60, is_pure=True)
     def get_observatories(self):

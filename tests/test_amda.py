@@ -12,6 +12,7 @@ from speasy.webservices.amda.utils import load_csv
 from speasy.webservices.amda import ProductType
 from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
 from speasy.webservices.amda.exceptions import MissingCredentials
+from speasy.inventories import flat_inventories
 
 
 def has_amda_creds() -> bool:
@@ -184,14 +185,13 @@ class AMDAModule(unittest.TestCase):
 
     def test_load_obs_datatree(self):
         with open(f'{os.path.dirname(os.path.abspath(__file__))}/resources/obsdatatree.xml') as obs_xml:
-            spz.amda._impl._clear_inventory()
-            AmdaXMLParser.parse(obs_xml.read(), is_public=True)
+            flat_inventories.amda.parameters.clear()
+            flat_inventories.amda.datasets.clear()
+            root = AmdaXMLParser.parse(obs_xml.read(), is_public=True)
             # grep -o -i '<parameter ' obsdatatree.xml | wc -l
             self.assertEqual(len(spz.amda.list_parameters()), 4696)
             # grep -o -i '<dataset ' obsdatatree.xml | wc -l
             self.assertEqual(len(spz.amda.list_datasets()), 935)
-            spz.amda._impl._clear_inventory()
-            spz.amda._impl.update_inventory()
 
     @data(
         (spz.amda.list_catalogs()[-1], ProductType.CATALOG),
@@ -200,12 +200,12 @@ class AMDAModule(unittest.TestCase):
         (to_xmlid(spz.amda.list_timetables()[-1]), ProductType.TIMETABLE),
         (spz.amda.list_datasets()[-1], ProductType.DATASET),
         (to_xmlid(spz.amda.list_datasets()[-1]), ProductType.DATASET),
-        (spz.inventory.data_tree.amda.Parameters.ACE.Ephemeris.ace_orb_all.ace_xyz_gse.ace_xyz_gse0,
+        (spz.inventories.data_tree.amda.Parameters.ACE.Ephemeris.ace_orb_all.ace_xyz_gse.ace_xyz_gse0,
          ProductType.COMPONENT),
-        (to_xmlid(spz.inventory.data_tree.amda.Parameters.ACE.Ephemeris.ace_orb_all.ace_xyz_gse.ace_xyz_gse0),
+        (to_xmlid(spz.inventories.data_tree.amda.Parameters.ACE.Ephemeris.ace_orb_all.ace_xyz_gse.ace_xyz_gse0),
          ProductType.COMPONENT),
         ('this xml id is unlikely to exist', ProductType.UNKNOWN),
-        (spz.inventory.data_tree.amda.Parameters.ACE, ProductType.UNKNOWN)
+        (spz.inventories.data_tree.amda.Parameters.ACE, ProductType.UNKNOWN)
     )
     @unpack
     def test_returns_product_type_from_either_id_or_index(self, index, expexted_type):

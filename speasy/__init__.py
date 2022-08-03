@@ -12,15 +12,15 @@ __version__ = '0.10.2'
 __all__ = ['amda', 'cda', 'ssc', 'get_data', 'get_orbit', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 
-from .inventory.indexes import SpeasyIndex
+from speasy.core.inventory.indexes import SpeasyIndex
 from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
-from . import webservices
-from typing import List, Union, Optional
+from . import webservices as _ws
+from typing import List
 
-amda = webservices.AMDA_Webservice()
-cda = webservices.CDA_Webservice()
-ssc = webservices.SSC_Webservice()
-csa = webservices.CSA_Webservice()
+amda = _ws.AMDA_Webservice()
+cda = _ws.CDA_Webservice()
+ssc = _ws.SSC_Webservice()
+csa = _ws.CSA_Webservice()
 
 __PROVIDERS__ = {
     'amda': amda.get_data,

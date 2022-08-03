@@ -1,7 +1,8 @@
 from types import SimpleNamespace
 
 from . import rest_client
-from ..dataprovider import DataProvider
+from speasy.core.dataprovider import DataProvider
+from speasy.core.inventory.indexes import SpeasyIndex
 from .utils import load_csv, load_timetable, load_catalog
 from .inventory import AmdaXMLParser
 from .rest_client import auth_args
@@ -13,8 +14,8 @@ from typing import Optional
 # General modules
 from ...config import amda_password, amda_username, amda_user_cache_retention, amda_max_chunk_size_days
 from ...products.variable import SpeasyVariable, merge
-from ...inventory import data_tree, flat_inventories
-from ...inventory import reset_amda_inventory as reset_amda_flat_inventory
+from ...inventories import data_tree, flat_inventories
+from ...inventories import reset_amda_inventory as reset_amda_flat_inventory
 from ...core.cache import CacheCall
 import logging
 
@@ -44,48 +45,50 @@ def is_private(node):
 
 class AmdaImpl(DataProvider):
     def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
-        DataProvider.__init__(self, provider_name='amda')
         self.server_url = server_url
-        self.update_inventory()
+        DataProvider.__init__(self, provider_name='amda')
 
-    def _update_lists(self):
+    def _update_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
         if credential_are_valid():
             username, password = _get_credentials()
             user_tt = AmdaXMLParser.parse(
                 rest_client.get_user_timetables_xml_tree(username=username, password=password,
                                                          server_url=self.server_url),
                 is_public=False)
-            data_tree.amda.TimeTables.MyTimeTables.__dict__.update(user_tt.timetabList.__dict__)
+            TimeTables.MyTimeTables = SpeasyIndex(name='MyTimeTables', provider='amda', uid='MyTimeTables',
+                                                  meta=user_tt.timetabList.__dict__)
 
             user_cat = AmdaXMLParser.parse(
                 rest_client.get_user_catalogs_xml_tree(username=username, password=password,
                                                        server_url=self.server_url),
                 is_public=False)
-            data_tree.amda.Catalogs.MyCatalogs.__dict__.update(user_cat.catalogList.__dict__)
+            Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider='amda', uid='MyCatalogs',
+                                              meta=user_cat.catalogList.__dict__)
 
             user_param = AmdaXMLParser.parse(
                 rest_client.get_user_parameters_xml_tree(username=username, password=password,
                                                          server_url=self.server_url),
                 is_public=False)
-            data_tree.amda.DerivedParameters.__dict__.update(user_param.ws.paramList.__dict__)
+            root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider='amda', uid='DerivedParameters',
+                                                 meta=user_cat.catalogList.__dict__)
 
         public_tt = AmdaXMLParser.parse(rest_client.get_timetables_xml_tree(server_url=self.server_url))
-        data_tree.amda.TimeTables.SharedTimeTables.__dict__.update(public_tt.timeTableList.__dict__)
+        TimeTables.SharedTimeTables = SpeasyIndex(name='SharedTimeTables', provider='amda', uid='SharedTimeTables',
+                                                  meta=public_tt.timeTableList.__dict__)
         public_cat = AmdaXMLParser.parse(rest_client.get_catalogs_xml_tree(server_url=self.server_url))
-        data_tree.amda.Catalogs.SharedCatalogs.__dict__.update(public_cat.catalogList.__dict__)
+        Catalogs.SharedCatalogs = SpeasyIndex(name='SharedCatalogs', provider='amda', uid='SharedCatalogs',
+                                              meta=public_cat.catalogList.__dict__)
 
-    @staticmethod
-    def _clear_inventory():
-        data_tree.reset_amda_inventory()
-        reset_amda_flat_inventory()
-
-    def update_inventory(self):
-        """Load AMDA_Webservice invertory and save to cache.
-        """
+    def build_inventory(self, root: SpeasyIndex):
         data = AmdaXMLParser.parse(rest_client.get_obs_data_tree(server_url=self.server_url))
-        data_tree.amda.Parameters.__dict__.update(data.dataRoot.AMDA.__dict__)
+        root.Parameters = SpeasyIndex(name='Parameters', provider='amda', uid='Parameters',
+                                      meta=data.dataRoot.AMDA.__dict__)
 
-        self._update_lists()
+        root.TimeTables = SpeasyIndex(name='TimeTables', provider='amda', uid='TimeTables')
+        root.Catalogs = SpeasyIndex(name='Catalogs', provider='amda', uid='Catalogs')
+        root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider='amda', uid='DerivedParameters')
+        self._update_lists(TimeTables=root.TimeTables, Catalogs=root.Catalogs, root=root)
+        return root
 
     def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
