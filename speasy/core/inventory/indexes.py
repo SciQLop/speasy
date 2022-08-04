@@ -115,3 +115,9 @@ def to_json(inventory_tree: SpeasyIndex):
 
 def from_json(inventory_tree: str):
     return from_dict(json.loads(inventory_tree))
+
+
+def make_inventory_node(parent, ctor, name, provider, uid, **meta):
+    if name not in parent.__dict__:
+        parent.__dict__[name] = ctor(name=name, provider=provider, uid=uid, meta=meta)
+    return parent.__dict__[name]

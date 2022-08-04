@@ -1,5 +1,5 @@
 from speasy.core import fix_name
-from speasy.core.inventory.indexes import DatasetIndex, SpeasyIndex
+from speasy.core.inventory.indexes import DatasetIndex, SpeasyIndex, make_inventory_node
 import xml.etree.ElementTree as Et
 
 
@@ -23,12 +23,6 @@ def description(node) -> str:
     return ""
 
 
-def make_inventory_node(parent, ctor, name, **meta):
-    if name not in parent.__dict__:
-        parent.__dict__[name] = ctor(name=name, provider="cda", uid=meta.get('serviceprovider_ID'), meta=meta)
-    return parent.__dict__[name]
-
-
 def extract_node(node, is_dataset=False):
     name = node.attrib["serviceprovider_ID"]
     n = {
@@ -47,10 +41,15 @@ def register_dataset(inventory_tree, mission_group_node, observatory_node, instr
     observatory = extract_node(observatory_node)
     mission_group = extract_node(mission_group_node)
     if mission_group['name'] != observatory['name']:
-        inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **mission_group)
-    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **observatory)
-    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, **extract_node(instrument_node))
-    inventory_tree = make_inventory_node(inventory_tree, DatasetIndex, **extract_node(dataset_node, is_dataset=True))
+        inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
+                                             uid=mission_group.get('serviceprovider_ID'), **mission_group)
+    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
+                                         uid=observatory.get('serviceprovider_ID'), **observatory)
+    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
+                                         uid=instrument_node.get('serviceprovider_ID'), **extract_node(instrument_node))
+    inventory_tree = make_inventory_node(inventory_tree, DatasetIndex, provider="cda",
+                                         uid=dataset_node.get('serviceprovider_ID'),
+                                         **extract_node(dataset_node, is_dataset=True))
     return inventory_tree
 
 
