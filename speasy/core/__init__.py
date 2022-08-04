@@ -220,7 +220,8 @@ def fix_name(name: str):
         ('(', ''),
         ('⊙', 'o')
     )
-
+    if name[0].isnumeric():
+        name = "n_" + name
     for bad, replacement in rules:
         if bad in name:
             name = name.replace(bad, replacement)

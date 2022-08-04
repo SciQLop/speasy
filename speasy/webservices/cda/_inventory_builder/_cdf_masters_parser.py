@@ -20,6 +20,12 @@ def extract_variables(cdf):
     }
 
 
+def filter_meta(attributes):
+    keep_list = ['CATDESC', 'FIELDNAM', 'UNITS', 'UNIT_PTR', 'DISPLAY_TYPE', 'LABLAXIS', 'LABL_PTR_1', 'LABL_PTR_2',
+                 'LABL_PTR_3']
+    return {key: value for key, value in attributes.items() if key in keep_list}
+
+
 def load_master_cdf(path, dataset):
     skip_count = 0
     try:
@@ -29,7 +35,7 @@ def load_master_cdf(path, dataset):
                 datavar = cdf.data_variable(name)
                 if datavar is not None:
                     index = ParameterIndex(name=name, provider="cda", uid=f"{dataset.serviceprovider_ID}/{name}",
-                                           meta=datavar.attributes)
+                                           meta=filter_meta(datavar.attributes))
                     dataset.__dict__[name] = index
             except IndexError or RuntimeError:
                 print(f"Issue loading {name} from {path}")

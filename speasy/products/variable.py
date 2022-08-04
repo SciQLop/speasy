@@ -3,6 +3,7 @@ import pandas as pds
 from datetime import datetime
 from typing import List, Optional
 from speasy.core import deprecation
+from copy import deepcopy
 
 import astropy.units
 import astropy.table
@@ -138,9 +139,8 @@ class SpeasyVariable(object):
         except ValueError:
             units = None
         df = self.to_dataframe()
-        umap = {c:units for c in df.columns}
+        umap = {c: units for c in df.columns}
         return astropy.table.Table.from_pandas(df, units=umap, index=True)
-
 
     def plot(self, *args, **kwargs):
         """Plot the variable.
@@ -185,6 +185,15 @@ class SpeasyVariable(object):
     @staticmethod
     def epoch_to_datetime64(epoch_array: np.array):
         return (epoch_array * 1e9).astype('datetime64[ns]')
+
+    def replace_fillval_by_nan(self, inplace=False) -> 'SpeasyVariable':
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+        if 'FILLVAL' in res.meta:
+            res.data[res.data == res.meta['FILLVAL']] = np.nan
+        return res
 
 
 def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:

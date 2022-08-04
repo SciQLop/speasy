@@ -163,13 +163,15 @@ class Cacheable(object):
                         self.add_to_cache(variable=data, fragments=contiguous_fragments, product=product,
                                           fragment_duration_hours=fragment_hours, version=version, **kwargs)
                         contiguous_fragments = []
-                        result.append(data)
+                        if data is not None:
+                            result.append(data)
 
             if len(contiguous_fragments):
                 data = get_data(wrapped_self, product=product, start_time=contiguous_fragments[0],
                                 stop_time=contiguous_fragments[-1] + timedelta(hours=fragment_hours), **kwargs)
                 self.add_to_cache(data, contiguous_fragments, product, fragment_hours, version, **kwargs)
-                result.append(data)
+                if data is not None:
+                    result.append(data)
             if len(result):
                 return merge_variables(result)[dt_range.start_time:dt_range.stop_time]
             return None
