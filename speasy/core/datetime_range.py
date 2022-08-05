@@ -26,6 +26,10 @@ class DateTimeRange:
     def stop_time(self, stop_time: datetime or str or np.float64 or float or np.datetime64):
         self._rng[1] = make_utc_datetime(stop_time)
 
+    @property
+    def duration(self):
+        return self.stop_time - self.start_time
+
     def __eq__(self, other):
         return span_utils.equals(self, other)
 
