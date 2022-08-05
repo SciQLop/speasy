@@ -35,36 +35,37 @@ def register_dataset(inventory_tree, dataset):
     name = fix_name(meta['dataset_id'])
     make_inventory_node(flat_inventories.csa.instruments[dataset['instruments']], DatasetIndex, name=name,
                         provider="csa",
-                        uid=meta['dataset_id'], meta=meta)
+                        uid=meta['dataset_id'], **meta)
 
 
 def register_observatory(inventory_tree, observatory):
     meta = {cname: observatory[cname] for cname in observatory.colnames}
-    name = meta['name']
+    name = meta.pop('name')
     node = make_inventory_node(flat_inventories.csa.missions[observatory['mission_name']], SpeasyIndex,
                                name=fix_name(name),
                                provider="csa",
-                               uid=name)
+                               uid=name,
+                               **meta)
     flat_inventories.csa.observatories[name] = node
 
 
 def register_mission(inventory_tree, mission):
     meta = {cname: mission[cname] for cname in mission.colnames}
-    name = meta['name']
+    name = meta.pop('name')
     node = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(name),
                                provider="csa",
-                               uid=name)
+                               uid=name, **meta)
     flat_inventories.csa.missions[name] = node
 
 
 def register_instrument(inventory_tree, instrument):
     meta = {cname: instrument[cname] for cname in instrument.colnames}
-    name = meta['name']
+    name = meta.pop('name')
     node = make_inventory_node(flat_inventories.csa.observatories.get(instrument['observatories'],
                                                                       flat_inventories.csa.observatories['MULTIPLE']),
                                SpeasyIndex, name=fix_name(name),
                                provider="csa",
-                               uid=name)
+                               uid=name, **meta)
     flat_inventories.csa.instruments[name] = node
 
 
@@ -73,7 +74,7 @@ def register_param(parameter):
         meta = {cname: parameter[cname] for cname in parameter.colnames}
         name = fix_name(meta['parameter_id'])
         make_inventory_node(flat_inventories.csa.datasets[parameter["dataset_id"]], ParameterIndex, name=name,
-                            provider="csa", uid=f"{parameter['dataset_id']}/{parameter['parameter_id']}", meta=meta)
+                            provider="csa", uid=f"{parameter['dataset_id']}/{parameter['parameter_id']}", **meta)
 
 
 def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
@@ -117,7 +118,7 @@ class CSA_Webservice(DataProvider):
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
         if type(dataset) is str:
             dataset = self.flat_inventory.datasets[dataset]
-        return DateTimeRange(dataset.meta['start_date'], dataset.meta['end_date'])
+        return DateTimeRange(dataset.start_date, dataset.end_date)
 
     def _dl_variable(self,
                      dataset: str, variable: str,
@@ -161,7 +162,7 @@ class CSA_Webservice(DataProvider):
             product last update date
         """
         dataset, variable = to_dataset_and_variable(product)
-        return self.flat_inventory.datasets[dataset].meta['date_last_update']
+        return self.flat_inventory.datasets[dataset].date_last_update
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
