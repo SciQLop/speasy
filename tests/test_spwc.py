@@ -62,7 +62,7 @@ class GetSpwc(unittest.TestCase):
             "disable_proxy": True
         },
         {
-            "product": "csa/C1_PP_PEA/T_e_par__C1_PP_PEA",
+            "product": "csa/C1_CP_EFW_L3_P/Spacecraft_potential__C1_CP_EFW_L3_P",
             "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc),
             "disable_proxy": True
@@ -121,3 +121,9 @@ class GetSpwc(unittest.TestCase):
                                disable_cache=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
+
+
+class SpeasyModule(unittest.TestCase):
+    def test_can_list_providers(self):
+        l = spz.list_providers()
+        self.assertListEqual(l, ['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa'])

@@ -68,7 +68,8 @@ class SpeasyVariable(object):
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
-        return SpeasyVariable(self.time[index_range], self.values[index_range], self.meta, self.columns, self.y)
+        return SpeasyVariable(self.time[index_range], self.values[index_range], self.meta, self.columns,
+                              self.y[index_range] if (self.y is not None) and (len(self.y.shape) == 2) else self.y)
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
@@ -136,7 +137,7 @@ class SpeasyVariable(object):
         """
         try:
             units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
-        except ValueError:
+        except (ValueError, KeyError):
             units = None
         df = self.to_dataframe()
         umap = {c: units for c in df.columns}
@@ -259,6 +260,11 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     time = np.zeros(dest_len, dtype=np.dtype('datetime64[ns]'))
     data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
         sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
+    if sorted_var_list[0].y is not None:
+        y = np.zeros((dest_len, sorted_var_list[0].y.shape[1])) if len(
+            sorted_var_list[0].y.shape) == 2 else sorted_var_list[0].y
+    else:
+        y = None
 
     units = set([var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')])
     if len(units) == 1:
@@ -267,7 +273,9 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     pos = 0
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
         frag_len = len(r.time) if overlap == -1 else overlap
-        time[pos:pos + frag_len] = r.time[0:frag_len]
-        data[pos:pos + frag_len] = r.values[0:frag_len]
+        time[pos:(pos + frag_len)] = r.time[0:frag_len]
+        data[pos:(pos + frag_len)] = r.values[0:frag_len]
+        if y is not None and len(y.shape) == 2:
+            y[pos:(pos + frag_len)] = r.y[0:frag_len]
         pos += frag_len
-    return SpeasyVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=sorted_var_list[0].y)
+    return SpeasyVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=y)
