@@ -38,7 +38,7 @@ def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef
 
 
 @ddt
-class SpwcVariableSlice(unittest.TestCase):
+class SpeasyVariableSlice(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -80,7 +80,7 @@ class SpwcVariableSlice(unittest.TestCase):
 
 
 @ddt
-class SpwcVariableMerge(unittest.TestCase):
+class SpeasyVariableMerge(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -131,7 +131,7 @@ class SpwcVariableMerge(unittest.TestCase):
 
 
 @ddt
-class ASpwcVariable(unittest.TestCase):
+class ASpeasyVariable(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -175,7 +175,7 @@ class ASpwcVariable(unittest.TestCase):
             self.skipTest("Can't import matplotlib")
 
 
-class SpwcVariableCompare(unittest.TestCase):
+class SpeasyVariableCompare(unittest.TestCase):
     def setUp(self):
         pass
 
