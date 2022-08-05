@@ -97,7 +97,7 @@ class AMDA_Webservice:
     def __del__(self):
         pass
 
-    def product_version(self, parameter_id: str or AMDAParameterIndex):
+    def product_version(self, parameter_id: str or ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
         Parameters
@@ -303,7 +303,7 @@ class AMDA_Webservice:
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
-    def get_dataset(self, dataset_id: str or AMDADatasetIndex, start: str or datetime, stop: str or datetime,
+    def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
                     **kwargs) -> Dataset:
         """Get dataset contents. Returns list of SpeasyVariable objects, one for each
         parameter in the dataset.
@@ -413,8 +413,6 @@ class AMDA_Webservice:
         <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
 
         """
-        if not len(flat_inventories.amda.parameters):
-            self._impl.update_inventory()
         parameter_id = to_xmlid(parameter_id)
         dataset_name = self._find_parent_dataset(parameter_id)
 
