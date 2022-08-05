@@ -79,16 +79,17 @@ def register_param(parameter):
 
 def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
     CSA = TapPlus(url=tapurl)
+    missions_req = CSA.launch_job_async("SELECT * FROM csa.v_mission")
+    observatories_req = CSA.launch_job_async("SELECT * FROM csa.v_observatory")
+    instruments_req = CSA.launch_job_async("SELECT * FROM csa.v_instrument")
+    datasets_req = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true' AND is_istp='true'")
+    parameters_req = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'")
 
-    list(map(lambda m: register_mission(root, m), CSA.launch_job_async("SELECT * FROM csa.v_mission").get_results()))
-    list(map(lambda o: register_observatory(root, o),
-             CSA.launch_job_async("SELECT * FROM csa.v_observatory").get_results()))
-    list(map(lambda i: register_instrument(root, i),
-             CSA.launch_job_async("SELECT * FROM csa.v_instrument").get_results()))
-    list(map(lambda d: register_dataset(root, d),
-             CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true' AND is_istp='true'").get_results()))
-    list(map(lambda p: register_param(p),
-             CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'").get_results()))
+    list(map(lambda m: register_mission(root, m), missions_req.get_results()))
+    list(map(lambda o: register_observatory(root, o), observatories_req.get_results()))
+    list(map(lambda i: register_instrument(root, i), instruments_req.get_results()))
+    list(map(lambda d: register_dataset(root, d), datasets_req.get_results()))
+    list(map(lambda p: register_param(p), parameters_req.get_results()))
 
     return root
 
