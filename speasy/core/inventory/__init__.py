@@ -12,6 +12,8 @@ class ProviderInventory:
     def __init__(self):
         self.parameters = {}
         self.datasets = {}
+        self.instruments = {}
+        self.observatories = {}
         self.missions = {}
         self.timetables = {}
         self.catalogs = {}

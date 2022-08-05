@@ -33,14 +33,39 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
 def register_dataset(inventory_tree, dataset):
     meta = {cname: dataset[cname] for cname in dataset.colnames}
     name = fix_name(meta['dataset_id'])
-    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(dataset['observatory_name']),
-                                         provider="csa",
-                                         uid=dataset['observatory_name'])
-    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(dataset['instruments']),
-                                         provider="csa",
-                                         uid=dataset['instruments'])
-    make_inventory_node(inventory_tree, DatasetIndex, name=name, provider="csa",
+    make_inventory_node(flat_inventories.csa.instruments[dataset['instruments']], DatasetIndex, name=name,
+                        provider="csa",
                         uid=meta['dataset_id'], meta=meta)
+
+
+def register_observatory(inventory_tree, observatory):
+    meta = {cname: observatory[cname] for cname in observatory.colnames}
+    name = meta['name']
+    node = make_inventory_node(flat_inventories.csa.missions[observatory['mission_name']], SpeasyIndex,
+                               name=fix_name(name),
+                               provider="csa",
+                               uid=name)
+    flat_inventories.csa.observatories[name] = node
+
+
+def register_mission(inventory_tree, mission):
+    meta = {cname: mission[cname] for cname in mission.colnames}
+    name = meta['name']
+    node = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(name),
+                               provider="csa",
+                               uid=name)
+    flat_inventories.csa.missions[name] = node
+
+
+def register_instrument(inventory_tree, instrument):
+    meta = {cname: instrument[cname] for cname in instrument.colnames}
+    name = meta['name']
+    node = make_inventory_node(flat_inventories.csa.observatories.get(instrument['observatories'],
+                                                                      flat_inventories.csa.observatories['MULTIPLE']),
+                               SpeasyIndex, name=fix_name(name),
+                               provider="csa",
+                               uid=name)
+    flat_inventories.csa.instruments[name] = node
 
 
 def register_param(parameter):
@@ -53,13 +78,16 @@ def register_param(parameter):
 
 def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
     CSA = TapPlus(url=tapurl)
-    datasets = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true' AND is_istp='true'").get_results()
-    for d in datasets:
-        register_dataset(root, d)
-
-    parameters = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'").get_results()
-    for p in parameters:
-        register_param(p)
+    
+    list(map(lambda m: register_mission(root, m), CSA.launch_job_async("SELECT * FROM csa.v_mission").get_results()))
+    list(map(lambda o: register_observatory(root, o),
+             CSA.launch_job_async("SELECT * FROM csa.v_observatory").get_results()))
+    list(map(lambda i: register_instrument(root, i),
+             CSA.launch_job_async("SELECT * FROM csa.v_instrument").get_results()))
+    list(map(lambda d: register_dataset(root, d),
+             CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true' AND is_istp='true'").get_results()))
+    list(map(lambda p: register_param(p),
+             CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'").get_results()))
 
     return root
 
