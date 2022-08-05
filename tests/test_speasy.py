@@ -9,7 +9,7 @@ from ddt import ddt, data
 
 
 @ddt
-class GetSpwc(unittest.TestCase):
+class SpeasyGetData(unittest.TestCase):
     def setUp(self):
         self.proxy_state = spz.config.proxy_enabled.get()
         spz.config.proxy_enabled.set("true")
