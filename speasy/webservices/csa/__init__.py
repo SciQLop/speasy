@@ -78,7 +78,7 @@ def register_param(parameter):
 
 def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
     CSA = TapPlus(url=tapurl)
-    
+
     list(map(lambda m: register_mission(root, m), CSA.launch_job_async("SELECT * FROM csa.v_mission").get_results()))
     list(map(lambda o: register_observatory(root, o),
              CSA.launch_job_async("SELECT * FROM csa.v_observatory").get_results()))
@@ -147,8 +147,24 @@ class CSA_Webservice(DataProvider):
     def build_inventory(root: SpeasyIndex):
         return build_inventory(root)
 
+    def product_last_update(self, product: str or ParameterIndex):
+        """Get date of last modification of dataset or parameter.
+
+        Parameters
+        ----------
+        product: str or ParameterIndex
+            product
+
+        Returns
+        -------
+        str
+            product last update date
+        """
+        dataset, variable = to_dataset_and_variable(product)
+        return self.flat_inventory.datasets[dataset].meta['date_last_update']
+
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
-    @Cacheable(prefix="csa", fragment_hours=lambda x: 12)
+    @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime):
         dataset, variable = to_dataset_and_variable(product)
