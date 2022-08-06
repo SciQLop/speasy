@@ -73,7 +73,7 @@ def parse_dataset(inventory_tree, dataset_node):
 def load_xml_catalog(xml_file_path: str, root: SpeasyIndex or None = None):
     with open(xml_file_path) as xml_file:
         tree = Et.fromstring(xml_file.read())
-        inventory_tree = root or SpeasyIndex(name='root', provider='cda')
+        inventory_tree = root or SpeasyIndex(name='root', provider='cda', uid='cda_root')
         for site in tree.iter('{cdas}datasite'):
             if site.attrib['ID'] == 'CDAWeb_HTTPS':
                 for node in site.iter('{cdas}dataset'):

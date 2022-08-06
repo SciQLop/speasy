@@ -3,7 +3,7 @@ from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core import span_utils
-from speasy.core.cache import _round_for_cache
+from speasy.core.cache._providers_caches import round_for_cache
 import operator
 
 
@@ -298,7 +298,7 @@ class _DateTimeRangeTest(unittest.TestCase):
     )
     @unpack
     def test_range_rounding(self, dt_range, fragment_hours, expected):
-        self.assertEqual(_round_for_cache(dt_range, fragment_hours), expected)
+        self.assertEqual(round_for_cache(dt_range, fragment_hours), expected)
 
     @data(
         (DateTimeRange(datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
