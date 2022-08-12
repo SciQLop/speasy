@@ -13,7 +13,7 @@ from ._instance import _cache
 
 log = logging.getLogger(__name__)
 
-CACHE_ALLOWED_KWARGS = ['disable_proxy', 'disable_cache']
+CACHE_ALLOWED_KWARGS = ['disable_cache']
 
 
 def lower_hour_bound(dt: datetime, factor: int):
@@ -37,16 +37,20 @@ def is_up_to_date(item: CacheItem, version):
     return (item.version is None) or (item.version >= version)
 
 
-def group_contiguous_fragments(fragments, duration):
+def group_fragments_if(fragments, predicate):
     merged = []
     if len(fragments):
         merged = [[fragments[0]]]
         for fragment in fragments[1:]:
-            if (merged[-1][-1] + duration * 1.01) > fragment:
+            if predicate(merged[-1][-1], fragment):
                 merged[-1].append(fragment)
             else:
                 merged.append([fragment])
     return merged
+
+
+def group_contiguous_fragments(fragments, duration):
+    return group_fragments_if(fragments, lambda previous, current: (previous + duration * 1.01) > current)
 
 
 def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
@@ -181,13 +185,13 @@ class Cacheable(object):
 class UnversionedProviderCache(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
-                 cache_retention=timedelta(days=14)):
+                 cache_retention=None):
         self._cache = _Cacheable(prefix, cache_instance=cache_instance, start_time_arg=start_time_arg,
                                  stop_time_arg=stop_time_arg,
                                  version=lambda x, y: datetime.utcnow().isoformat(),
                                  fragment_hours=fragment_hours, cache_margins=cache_margins, leak_cache=leak_cache,
                                  entry_name=entry_name)
-        self.cache_retention = cache_retention
+        self.cache_retention = cache_retention or timedelta(days=14)
 
     def __call__(self, get_data):
         @wraps(get_data)
@@ -213,7 +217,6 @@ class UnversionedProviderCache(object):
                     maybe_outdated_fragments.append((fragment, entry))
 
             missing_fragments = group_contiguous_fragments(missing_fragments, duration=fragment_duration)
-
             data_chunks += \
                 list(filter(lambda d: d is not None, [
                     self._cache.add_to_cache(
@@ -221,19 +224,31 @@ class UnversionedProviderCache(object):
                             wrapped_self, product=product, start_time=fragment_group[0],
                             stop_time=fragment_group[-1] + fragment_duration, **kwargs),
                         fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
-                        version=datetime.now(), **kwargs)
+                        version=datetime.utcnow(), **kwargs)
                     for fragment_group
                     in missing_fragments]))
 
-            for fragment, entry in maybe_outdated_fragments:
-                data = get_data(wrapped_self, product=product, start_time=fragment,
-                                stop_time=fragment + fragment_duration, if_newer_than=entry.version, **kwargs)
+            # This is a deliberate choice here to group fragments in order to reduce requests count, the bet here is
+            # that it costs less to asks for more data in one shot then doing several requests. To be more clear about
+            # the issue there, grouping fragments implies choosing a date to compare for the whole group and by
+            # construction each fragment inside the group is likely to have different date. So the safe choice is to
+            # declare the whole group as old as the oldest element which leads to maybe updating some fragments inside
+            # the group that were up-to-date.
+            maybe_outdated_fragments = group_fragments_if(
+                maybe_outdated_fragments,
+                lambda previous, current: (previous[0] + fragment_duration * 1.01) > current[0])
+            for group in maybe_outdated_fragments:
+                oldest = max(group, key=lambda item: item[1].version)[1].version
+                data = get_data(wrapped_self, product=product, start_time=group[0][0],
+                                stop_time=group[-1][0] + fragment_duration, if_newer_than=oldest, **kwargs)
                 if data is None:
-                    entry.version = datetime.utcnow()
-                    self._cache.set_cache_entry(fragment, product, entry)
-                    data_chunks.append(entry.data)
+                    for fragment, entry in group:
+                        entry.version = datetime.utcnow()
+                        self._cache.set_cache_entry(fragment, product, entry)
+                        data_chunks.append(entry.data)
                 else:
-                    self._cache.add_to_cache(data, fragment, product, fragment_duration_hours=fragment_hours,
+                    self._cache.add_to_cache(data, [item[0] for item in group], product,
+                                             fragment_duration_hours=fragment_hours,
                                              version=datetime.now(), **kwargs)
                     data_chunks.append(data)
 
