@@ -1,6 +1,6 @@
 import unittest
 from ddt import ddt, data
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from multiprocessing import dummy
 import speasy.webservices.cda as cd
 from speasy.webservices.cda import CDA_Webservice
@@ -39,6 +39,20 @@ class SimpleRequest(unittest.TestCase):
         result = self.cd.get_variable(**kw, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
+
+    def test_data_has_not_been_modified_since_a_short_period(self):
+        result = self.cd.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
+                                      start_time=datetime(2014, 6, 1, tzinfo=timezone.utc),
+                                      stop_time=datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                      disable_cache=True, if_newer_than=datetime.utcnow())
+        self.assertIsNone(result)
+
+    def test_data_must_have_been_modified_since_a_long_period(self):
+        result = self.cd.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
+                                      start_time=datetime(2014, 6, 1, tzinfo=timezone.utc),
+                                      stop_time=datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                      disable_cache=True, if_newer_than=datetime.utcnow() - timedelta(days=50 * 365))
+        self.assertIsNotNone(result)
 
     @data({'sampling': '1'},
           {'unknown_arg': 10})

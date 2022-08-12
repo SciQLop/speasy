@@ -4,7 +4,7 @@
 """Tests for `amda` package parameter getting functions."""
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 

@@ -7,8 +7,9 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from typing import Optional, Tuple
-from datetime import datetime
-from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS, _cache  # _cache is used for tests (hack...)
+from datetime import datetime, timedelta
+from speasy.core.cache import UnversionedProviderCache, CACHE_ALLOWED_KWARGS, \
+    _cache  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
 from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
@@ -59,27 +60,32 @@ class CDA_Webservice(DataProvider):
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime) -> Optional[SpeasyVariable]:
+                     start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None) -> Optional[
+        SpeasyVariable]:
 
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         fmt = "cdf"
         url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format={fmt}"
         headers = {"Accept": "application/json"}
-        log.debug(url)
+        if if_newer_than is not None:
+            headers["If-Modified-Since"] = if_newer_than.ctime()
         resp = http.get(url, headers=headers)
-        if resp.status_code != 200:
+        log.debug(resp.url)
+        if resp.status_code is 200 and 'FileDescription' in resp.json():
+            return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
+        elif not resp.ok:
             raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
-        if not resp.ok or 'FileDescription' not in resp.json():
+        else:
             return None
-        return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
-    @Cacheable(prefix="cda", fragment_hours=lambda x: 12)
+    @AllowedKwargs(
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'if_newer_than'])
+    @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime):
+    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None):
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
-                                 variable=variable)
+                                 variable=variable, if_newer_than=if_newer_than)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \
