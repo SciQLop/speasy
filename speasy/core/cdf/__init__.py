@@ -11,10 +11,12 @@ def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None
             var = istp.data_variable(variable.replace('-', '_'))
         else:
             return None
-        if len(var.axes) <= 2:
-            if len(var.axes) == 2:
-                y = var.axes[1].values.copy()
-            else:
-                y = None
-            return SpeasyVariable(time=var.axes[0].values.copy(), data=var.values.copy(), meta=var.attributes, y=y,
-                                  columns=var.labels)
+        if var:
+            if len(var.axes) <= 2:
+                if len(var.axes) == 2:
+                    y = var.axes[1].values.copy()
+                else:
+                    y = None
+                return SpeasyVariable(time=var.axes[0].values.copy(), data=var.values.copy(), meta=var.attributes, y=y,
+                                      columns=var.labels)
+    return None

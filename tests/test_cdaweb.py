@@ -1,5 +1,7 @@
+import logging
 import unittest
 from ddt import ddt, data
+import numpy as np
 from datetime import datetime, timezone, timedelta
 from multiprocessing import dummy
 import speasy.webservices.cda as cd
@@ -31,14 +33,49 @@ class SimpleRequest(unittest.TestCase):
         {
             "dataset": "THA_L2_FGM",
             "variable": "tha_fgl_gsm",
-            "start_time": datetime(2014, 6, 1, tzinfo=timezone.utc),
-            "stop_time": datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc)
+            "start_time": datetime(2014, 6, 1, 23, tzinfo=timezone.utc),
+            "stop_time": datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc)
         }
     )
     def test_get_variable(self, kw):
         result = self.cd.get_variable(**kw, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
+        result = self.cd.get_variable(**kw, disable_proxy=True, disable_cache=False)
+        self.assertIsNotNone(result)
+        self.assertGreater(len(result), 0)
+
+    def test_get_simple_vector(self):
+        logging.root.addHandler(logging.StreamHandler())
+        logging.root.setLevel(logging.DEBUG)
+        result1 = self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
+                                       start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
+                                       stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                       disable_cache=True)
+        self.assertIsNotNone(result1)
+        self.assertGreater(len(result1), 0)
+        result2 = self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
+                                       start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
+                                       stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                       disable_cache=False)
+        self.assertIsNotNone(result2)
+        self.assertTrue(np.all(result1.data == result2.data))
+        result3 = self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
+                                       start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
+                                       stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                       disable_cache=False)
+        self.assertIsNotNone(result3)
+        self.assertTrue(np.all(result2.data == result3.data))
+
+    def test_get_empty_vector(self):
+        # this used to fail because CDA returns at least a record but removes one dimension from data
+        logging.root.addHandler(logging.StreamHandler())
+        logging.root.setLevel(logging.DEBUG)
+        result = self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
+                                      start_time=datetime(2014, 6, 1, 23, tzinfo=timezone.utc),
+                                      stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                      disable_cache=True)
+        self.assertIsNone(result)
 
     def test_data_has_not_been_modified_since_a_short_period(self):
         result = self.cd.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
