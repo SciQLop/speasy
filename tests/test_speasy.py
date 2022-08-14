@@ -33,8 +33,8 @@ class SpeasyGetData(unittest.TestCase):
         },
         {
             "product": "cdaweb/THA_L2_FGM/tha_fgl_gsm",
-            "start_time": datetime(2015, 6, 1, tzinfo=timezone.utc),
-            "stop_time": datetime(2015, 6, 1, 0, 10, tzinfo=timezone.utc),
+            "start_time": datetime(2015, 6, 1, 23, 50, tzinfo=timezone.utc),
+            "stop_time": datetime(2015, 6, 2, 0, 10, tzinfo=timezone.utc),
             "disable_proxy": False
         },
         {

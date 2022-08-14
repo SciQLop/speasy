@@ -85,7 +85,7 @@ class _Cacheable:
         if variable is not None:
             for fragment in fragments:
                 self.set_cache_entry(fragment, product,
-                                     CacheItem(variable[fragment:fragment + timedelta(hours=fragment_duration_hours)],
+                                     CacheItem(variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))],
                                                version))
         return variable
 
@@ -117,10 +117,6 @@ class _Cacheable:
         cache_dt_range = round_for_cache(dt_range * self.cache_margins, fragment_hours)
         dt = timedelta(hours=fragment_hours)
         fragments = [cache_dt_range.start_time + i * dt for i in range(math.ceil(cache_dt_range.duration / dt))]
-        tend = cache_dt_range.start_time
-        while tend < cache_dt_range.stop_time:
-            fragments.append(tend)
-            tend += timedelta(hours=fragment_hours)
         return fragment_hours, fragments
 
     def get_fragments_from_cache(self, fragments: List[str], product: str, version, **kwargs):
@@ -193,6 +189,31 @@ class UnversionedProviderCache(object):
                                  entry_name=entry_name)
         self.cache_retention = cache_retention or timedelta(days=14)
 
+    def split_fragments(self, fragments, product, fragment_duration, **kwargs):
+        entries = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
+        missing_fragments = []
+        data_chunks = []
+        maybe_outdated_fragments = []
+        for fragment, entry in zip(fragments, entries):
+            if entry is None:
+                missing_fragments.append(fragment)
+            elif (entry.version + self.cache_retention) > datetime.utcnow():
+                data_chunks.append(entry.data)
+            else:
+                maybe_outdated_fragments.append((fragment, entry))
+
+        missing_fragments = group_contiguous_fragments(missing_fragments, duration=fragment_duration)
+        # This is a deliberate choice here to group fragments in order to reduce requests count, the bet here is
+        # that it costs less to asks for more data in one shot then doing several requests. To be more clear about
+        # the issue here, grouping fragments implies choosing a date to compare for the whole group and by
+        # construction each fragment inside the group is likely to have different date. So the safe choice is to
+        # declare the whole group as old as the oldest element which leads to maybe updating some fragments inside
+        # the group that were up-to-date.
+        maybe_outdated_fragments = group_fragments_if(
+            maybe_outdated_fragments,
+            lambda previous, current: (previous[0] + fragment_duration * 1.01) > current[0])
+        return data_chunks, maybe_outdated_fragments, missing_fragments
+
     def __call__(self, get_data):
         @wraps(get_data)
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
@@ -204,19 +225,8 @@ class UnversionedProviderCache(object):
 
             fragment_hours, fragments = self._cache.fragment_list(product, dt_range)
             fragment_duration = timedelta(hours=fragment_hours)
-            entries = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
-            missing_fragments = []
-            data_chunks = []
-            maybe_outdated_fragments = []
-            for fragment, entry in zip(fragments, entries):
-                if entry is None:
-                    missing_fragments.append(fragment)
-                elif (entry.version + self.cache_retention) > datetime.utcnow():
-                    data_chunks.append(entry.data)
-                else:
-                    maybe_outdated_fragments.append((fragment, entry))
-
-            missing_fragments = group_contiguous_fragments(missing_fragments, duration=fragment_duration)
+            data_chunks, maybe_outdated_fragments, missing_fragments = self.split_fragments(fragments, product,
+                                                                                            fragment_duration, **kwargs)
             data_chunks += \
                 list(filter(lambda d: d is not None, [
                     self._cache.add_to_cache(
@@ -228,15 +238,6 @@ class UnversionedProviderCache(object):
                     for fragment_group
                     in missing_fragments]))
 
-            # This is a deliberate choice here to group fragments in order to reduce requests count, the bet here is
-            # that it costs less to asks for more data in one shot then doing several requests. To be more clear about
-            # the issue there, grouping fragments implies choosing a date to compare for the whole group and by
-            # construction each fragment inside the group is likely to have different date. So the safe choice is to
-            # declare the whole group as old as the oldest element which leads to maybe updating some fragments inside
-            # the group that were up-to-date.
-            maybe_outdated_fragments = group_fragments_if(
-                maybe_outdated_fragments,
-                lambda previous, current: (previous[0] + fragment_duration * 1.01) > current[0])
             for group in maybe_outdated_fragments:
                 oldest = max(group, key=lambda item: item[1].version)[1].version
                 data = get_data(wrapped_self, product=product, start_time=group[0][0],
