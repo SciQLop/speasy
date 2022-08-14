@@ -9,6 +9,17 @@ import astropy.units
 import astropy.table
 
 
+def _to_index(key, time):
+    if key is None:
+        return None
+    if type(key) is int:
+        return key
+    if isinstance(key, float):
+        return np.searchsorted(time, np.datetime64(int(key * 1e9), 'ns'), side='left')
+    if isinstance(key, datetime):
+        return np.searchsorted(time, np.datetime64(key, 'ns'), side='left')
+
+
 class SpeasyVariable(object):
     """SpeasyVariable object. Base class for storing variable data.
 
@@ -45,6 +56,8 @@ class SpeasyVariable(object):
 
         if time.dtype != np.dtype('datetime64[ns]'):
             raise ValueError(f"Please provide datetime64[ns] for time axis, got {time.dtype}")
+        if len(time) != len(data):
+            raise ValueError(f"Time and data must have the same length, got time:{len(time)} and data:{len(data)}")
 
         self.meta = meta or {}
         self.columns = columns or []
@@ -69,7 +82,8 @@ class SpeasyVariable(object):
             view of the variable on the given range
         """
         return SpeasyVariable(self.time[index_range], self.values[index_range], self.meta, self.columns,
-                              self.y[index_range] if (self.y is not None) and (len(self.y.shape) == 2) else self.y)
+                              self.y[index_range] if (
+                                  self.y is not None and self.y.shape == self.values.shape) else self.y)
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
@@ -95,20 +109,7 @@ class SpeasyVariable(object):
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            if isinstance(key.start, int) or isinstance(key.stop, int) or (key.start is None and key.stop is None):
-                return self.view(key)
-            if isinstance(key.start, float) or isinstance(key.stop, float):
-                start = self.time[0] - 1 if key.start is None else np.datetime64(int(key.start * 1e9), 'ns')
-                stop = self.time[-1] + 1 if key.stop is None else np.datetime64(int(key.stop * 1e9), 'ns')
-                start = np.searchsorted(self.time, start, side='left')
-                stop = np.searchsorted(self.time, stop, side='left')
-                return self.view(slice(start, stop))
-            if isinstance(key.start, datetime):
-                start = self.time[0] - 1 if key.start is None else np.datetime64(key.start, 'ns')
-                stop = self.time[-1] + 1 if key.stop is None else np.datetime64(key.stop, 'ns')
-                start = np.searchsorted(self.time, start, side='left')
-                stop = np.searchsorted(self.time, stop, side='left')
-                return self.view(slice(start, stop))
+            return self.view(slice(_to_index(key.start, self.time), _to_index(key.stop, self.time)))
 
     def to_dataframe(self) -> pds.DataFrame:
         """Convert the variable to a pandas.DataFrame object.
@@ -232,8 +233,7 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     """
     if len(variables) == 0:
         return None
-    variables = [v for v in variables if v is not None]
-    sorted_var_list = [v for v in variables if len(v.time)]
+    sorted_var_list = [v for v in variables if (v is not None) and (len(v.time) > 0)]
     sorted_var_list.sort(key=lambda v: v.time[0])
 
     # drop variables covered by previous ones
@@ -258,11 +258,12 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     dest_len += len(sorted_var_list[-1].time)
 
     time = np.zeros(dest_len, dtype=np.dtype('datetime64[ns]'))
-    data = np.zeros((dest_len, sorted_var_list[0].values.shape[1])) if len(
-        sorted_var_list[0].values.shape) == 2 else np.zeros(dest_len)
+    data = np.zeros((dest_len,) + sorted_var_list[0].values.shape[1:])
     if sorted_var_list[0].y is not None:
-        y = np.zeros((dest_len, sorted_var_list[0].y.shape[1])) if len(
-            sorted_var_list[0].y.shape) == 2 else sorted_var_list[0].y
+        if sorted_var_list[0].y.shape == sorted_var_list[0].values.shape:
+            y = np.zeros((dest_len,) + sorted_var_list[0].y.shape[1:])
+        else:
+            y = sorted_var_list[0].y
     else:
         y = None
 
