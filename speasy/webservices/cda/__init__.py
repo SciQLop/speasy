@@ -71,7 +71,7 @@ class CDA_Webservice(DataProvider):
             headers["If-Modified-Since"] = if_newer_than.ctime()
         resp = http.get(url, headers=headers)
         log.debug(resp.url)
-        if resp.status_code is 200 and 'FileDescription' in resp.json():
+        if resp.status_code == 200 and 'FileDescription' in resp.json():
             return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
         elif not resp.ok:
             raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
