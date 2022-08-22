@@ -13,18 +13,30 @@ class SpeasyIndex:
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         if meta:
             self.__dict__.update(meta)
-        self.provider = provider
-        self.name = name
-        self.uid = uid
-        self.type = self.__class__.__name__
+        self.__spz_provider__ = provider
+        self.__spz_name__ = name
+        self.__spz_uid__ = uid
+        self.__spz_type__ = self.__class__.__name__
 
     def clear(self):
         for key in self.__dict__:
             if key not in ('provider', 'name', 'uid', 'type'):
                 self.__dict__.pop(key)
 
+    def provider(self):
+        return self.__spz_provider__
+
+    def name(self):
+        return self.__spz_name__
+
+    def uid(self):
+        return self.__spz_uid__
+
+    def type(self):
+        return self.__spz_type__
+
     def __repr__(self):
-        return f'<SpeasyIndex: {self.name}>'
+        return f'<SpeasyIndex: {self.name()}>'
 
 
 class TimetableIndex(SpeasyIndex):
@@ -33,7 +45,7 @@ class TimetableIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].timetables[uid] = self
 
     def __repr__(self):
-        return f'<TimetableIndex: {self.name}>'
+        return f'<TimetableIndex: {self.name()}>'
 
 
 class CatalogIndex(SpeasyIndex):
@@ -42,7 +54,7 @@ class CatalogIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].catalogs[uid] = self
 
     def __repr__(self):
-        return f'<CatalogIndex: {self.name}>'
+        return f'<CatalogIndex: {self.name()}>'
 
 
 class ComponentIndex(SpeasyIndex):
@@ -51,7 +63,7 @@ class ComponentIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].components[uid] = self
 
     def __repr__(self):
-        return f'<ComponentIndex: {self.name}>'
+        return f'<ComponentIndex: {self.name()}>'
 
 
 class ParameterIndex(SpeasyIndex):
@@ -60,14 +72,14 @@ class ParameterIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].parameters[uid] = self
 
     def __repr__(self):
-        return f'<ParameterIndex: {self.name}>'
+        return f'<ParameterIndex: {self.name()}>'
 
     def __iter__(self):
         return [v for v in self.__dict__.values() if type(v) is ComponentIndex].__iter__()
 
     def __contains__(self, item: str or ComponentIndex):
         if type(item) is ComponentIndex:
-            item = item.name
+            item = item.name()
         return item in self.__dict__
 
 
@@ -77,14 +89,14 @@ class DatasetIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].datasets[uid] = self
 
     def __repr__(self):
-        return f'<DatasetIndex: {self.name}>'
+        return f'<DatasetIndex: {self.name()}>'
 
     def __iter__(self):
         return [v for v in self.__dict__.values() if type(v) is ParameterIndex].__iter__()
 
     def __contains__(self, item: str or ParameterIndex):
         if type(item) is ParameterIndex:
-            item = item.name
+            item = item.name()
         return item in self.__dict__
 
 
@@ -99,10 +111,10 @@ def to_dict(inventory_tree: SpeasyIndex or str):
 def from_dict(inventory_tree: dict or str):
     if type(inventory_tree) is str:
         return inventory_tree
-    idx_type = inventory_tree.pop("type")
-    idx_name = inventory_tree.pop("name")
-    idx_provider = inventory_tree.pop("provider")
-    idx_uid = inventory_tree.pop("uid")
+    idx_type = inventory_tree.pop("__spz_type__")
+    idx_name = inventory_tree.pop("__spz_name__")
+    idx_provider = inventory_tree.pop("__spz_provider__")
+    idx_uid = inventory_tree.pop("__spz_uid__")
     idx_meta = {key: from_dict(value) for key, value in inventory_tree.items()}
     root = __INDEXES_TYPES__.get(idx_type, SpeasyIndex)(name=idx_name, provider=idx_provider, uid=idx_uid,
                                                         meta=idx_meta)
