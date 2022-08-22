@@ -23,7 +23,6 @@ class CatalogRequests(unittest.TestCase):
 
     def test_catalog_has_metadata(self):
         self.assertIn('description', self.cat.meta)
-        self.assertIn('provider', self.cat.meta)
         self.assertIn('nbIntervals', self.cat.meta)
         self.assertIn('sharedBy', self.cat.meta)
 

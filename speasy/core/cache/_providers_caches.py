@@ -61,7 +61,7 @@ def product_name(product: str or ParameterIndex):
     if type(product) is str:
         return product
     elif isinstance(product, ParameterIndex):
-        return product.uid
+        return product.uid()
     else:
         raise TypeError(f'Product must either be str or ParameterIndex got {type(product)}')
 
