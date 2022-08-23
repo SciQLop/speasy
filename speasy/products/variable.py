@@ -27,14 +27,14 @@ class SpeasyVariable(object):
     ----------
     time: numpy.ndarray
         time vector (x-axis data)
-    data: numpy.ndarray
+    values: numpy.ndarray
         data
     meta: Optional[dict]
         metadata
     columns: Optional[List[str]]
         column names
-    y: Optional[np.ndarray]
-        y-axis for 2D data
+    axes: Optional[List[np.ndarray]]
+        Collection composed of time axis plus eventual additional axes according to values' shape
 
     Methods
     -------
@@ -46,27 +46,27 @@ class SpeasyVariable(object):
         Plot the data with matplotlib
 
     """
-    __slots__ = ['meta', 'time', 'values', 'columns', 'y']
+    __slots__ = ['__meta', '__time', '__values', '__columns', '__axes']
 
-    def __init__(self, time=np.empty(0, dtype=np.dtype('datetime64[ns]')), data=np.empty((0, 1)),
+    def __init__(self, time=np.empty(0, dtype=np.dtype('datetime64[ns]')), values=np.empty((0, 1)),
                  meta: Optional[dict] = None,
-                 columns: Optional[List[str]] = None, y: Optional[np.ndarray] = None):
+                 columns: Optional[List[str]] = None, extra_axes: Optional[List[np.ndarray]] = None):
         """Constructor
         """
 
         if time.dtype != np.dtype('datetime64[ns]'):
             raise ValueError(f"Please provide datetime64[ns] for time axis, got {time.dtype}")
-        if len(time) != len(data):
-            raise ValueError(f"Time and data must have the same length, got time:{len(time)} and data:{len(data)}")
+        if len(time) != len(values):
+            raise ValueError(f"Time and data must have the same length, got time:{len(time)} and data:{len(values)}")
 
-        self.meta = meta or {}
-        self.columns = columns or []
-        if len(data.shape) == 1:
-            self.values = data.reshape((data.shape[0], 1))  # to be consistent with pandas
+        self.__meta = meta or {}
+        self.__columns = columns or []
+        if len(values.shape) == 1:
+            self.__values = values.reshape((values.shape[0], 1))  # to be consistent with pandas
         else:
-            self.values = data
-        self.time = time
-        self.y = y
+            self.__values = values
+        self.__time = time
+        self.__axes = [time] + (extra_axes or [])
 
     def view(self, index_range: slice):
         """Return view of the current variable within the desired :data:`time_range`.
@@ -81,9 +81,17 @@ class SpeasyVariable(object):
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
-        return SpeasyVariable(self.time[index_range], self.values[index_range], self.meta, self.columns,
-                              self.y[index_range] if (
-                                  self.y is not None and self.y.shape == self.values.shape) else self.y)
+        extra_axes = []
+        for axis in self.__axes[1:]:
+            if axis is not None:
+                if len(axis.shape) > 1 and axis.shape[0] == len(self.__time):
+                    extra_axes.append(axis[index_range])
+                else:
+                    extra_axes.append(axis)
+            else:
+                extra_axes.append(None)  # maybe this should be avoided
+        return SpeasyVariable(time=self.__time[index_range], values=self.__values[index_range], meta=self.__meta,
+                              columns=self.__columns, extra_axes=extra_axes)
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
@@ -98,11 +106,11 @@ class SpeasyVariable(object):
         bool:
             True if all attributes are equal
         """
-        return self.meta == other.meta and \
-               self.columns == other.columns and \
+        return self.__meta == other.__meta and \
+               self.__columns == other.__columns and \
                len(self.time) == len(other.time) and \
-               np.all(self.time == other.time) and \
-               np.all(self.values == other.values)
+               np.all([ np.all(lhs == rhs) for lhs, rhs in zip(self.axes, other.axes)]) and \
+               np.all(self.__values == other.values)
 
     def __len__(self):
         return len(self.time)
@@ -121,7 +129,7 @@ class SpeasyVariable(object):
         pandas.DataFrame:
             Variable converted to Pandas DataFrame
         """
-        return pds.DataFrame(index=self.time, data=self.values, columns=self.columns, copy=True)
+        return pds.DataFrame(index=self.time, data=self.values, columns=self.__columns, copy=True)
 
     def to_astropy_table(self) -> astropy.table.Table:
         """Convert the variable to a astropy.Table object.
@@ -155,12 +163,27 @@ class SpeasyVariable(object):
     @property
     def data(self):
         deprecation('data will be removed soon')
-        return self.values
+        return self.__values
 
-    @data.setter
-    def data(self, values):
-        deprecation('data will be removed soon')
-        self.values = values
+    @property
+    def values(self):
+        return self.__values
+
+    @property
+    def time(self):
+        return self.__time
+
+    @property
+    def meta(self):
+        return self.__meta
+
+    @property
+    def axes(self):
+        return self.__axes
+
+    @property
+    def columns(self):
+        return self.__columns
 
     @staticmethod
     def from_dataframe(df: pds.DataFrame) -> 'SpeasyVariable':
@@ -182,7 +205,7 @@ class SpeasyVariable(object):
             time = np.array([np.datetime64(d.timestamp() * 1e9, 'ns') for d in df.index])
         else:
             raise ValueError("Can't convert DataFrame index to datetime64[ns] array")
-        return SpeasyVariable(time=time, data=df.values, meta={}, columns=list(df.columns))
+        return SpeasyVariable(time=time, values=df.values, meta={}, columns=list(df.columns))
 
     @staticmethod
     def epoch_to_datetime64(epoch_array: np.array):
@@ -194,7 +217,7 @@ class SpeasyVariable(object):
         else:
             res = deepcopy(self)
         if 'FILLVAL' in res.meta:
-            res.data[res.data == res.meta['FILLVAL']] = np.nan
+            res.values[res.values == res.meta['FILLVAL']] = np.nan
         return res
 
 
@@ -247,7 +270,8 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
             sorted_var_list.remove(current)
 
     if len(sorted_var_list) == 0:
-        return SpeasyVariable(columns=variables[0].columns, meta=variables[0].meta, y=variables[0].y)
+        return SpeasyVariable(columns=variables[0].columns, meta=variables[0].meta,
+                              extra_axes=variables[0].axes[1:])
 
     overlaps = [np.where(current.time >= nxt.time[0])[0][0] if current.time[-1] >= nxt.time[0] else -1 for current, nxt
                 in
@@ -258,25 +282,33 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     dest_len += len(sorted_var_list[-1].time)
 
     time = np.zeros(dest_len, dtype=np.dtype('datetime64[ns]'))
-    data = np.zeros((dest_len,) + sorted_var_list[0].values.shape[1:])
-    if sorted_var_list[0].y is not None:
-        if sorted_var_list[0].y.shape == sorted_var_list[0].values.shape:
-            y = np.zeros((dest_len,) + sorted_var_list[0].y.shape[1:])
+    values = np.zeros((dest_len,) + sorted_var_list[0].values.shape[1:])
+
+    extra_axes = []
+    for axis in sorted_var_list[0].axes[1:]:
+        if axis is not None:
+            if len(axis.shape) > 1 and axis.shape[0] == len(sorted_var_list[0].time):
+                extra_axes.append(np.zeros((dest_len, *axis.shape[1:]), dtype=axis.dtype))
+            else:
+                extra_axes.append(axis.copy())
         else:
-            y = sorted_var_list[0].y
-    else:
-        y = None
+            extra_axes.append(None)
 
     units = set([var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')])
     if len(units) == 1:
-        data <<= units.pop()
+        values <<= units.pop()
+    elif len(units) > 1:
+        raise ValueError("Merging variables with different units")
 
     pos = 0
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
         frag_len = len(r.time) if overlap == -1 else overlap
         time[pos:(pos + frag_len)] = r.time[0:frag_len]
-        data[pos:(pos + frag_len)] = r.values[0:frag_len]
-        if y is not None and len(y.shape) == 2:
-            y[pos:(pos + frag_len)] = r.y[0:frag_len]
+        values[pos:(pos + frag_len)] = r.values[0:frag_len]
+        for axis, src_axis in zip(extra_axes, r.axes[1:]):
+            if axis is not None:
+                if len(axis.shape) > 1 and axis.shape[0] == dest_len:
+                    axis[pos:(pos + frag_len)] = src_axis[0:frag_len]
         pos += frag_len
-    return SpeasyVariable(time, data, sorted_var_list[0].meta, sorted_var_list[0].columns, y=y)
+    return SpeasyVariable(time=time, values=values, meta=sorted_var_list[0].meta, columns=sorted_var_list[0].columns,
+                          extra_axes=extra_axes)

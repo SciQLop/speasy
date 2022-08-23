@@ -74,7 +74,7 @@ def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwa
 
     """
     if isinstance(product, SpeasyIndex):
-        provider = product.provider().lower()
+        provider = product.spz_provider().lower()
         if provider in __PROVIDERS__:
             return __PROVIDERS__[provider](product, start_time, stop_time, **kwargs)
     else:

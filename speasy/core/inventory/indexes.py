@@ -23,20 +23,20 @@ class SpeasyIndex:
             if key not in ('provider', 'name', 'uid', 'type'):
                 self.__dict__.pop(key)
 
-    def provider(self):
+    def spz_provider(self):
         return self.__spz_provider__
 
-    def name(self):
+    def spz_name(self):
         return self.__spz_name__
 
-    def uid(self):
+    def spz_uid(self):
         return self.__spz_uid__
 
-    def type(self):
+    def spz_type(self):
         return self.__spz_type__
 
     def __repr__(self):
-        return f'<SpeasyIndex: {self.name()}>'
+        return f'<SpeasyIndex: {self.spz_name()}>'
 
 
 class TimetableIndex(SpeasyIndex):
@@ -45,7 +45,7 @@ class TimetableIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].timetables[uid] = self
 
     def __repr__(self):
-        return f'<TimetableIndex: {self.name()}>'
+        return f'<TimetableIndex: {self.spz_name()}>'
 
 
 class CatalogIndex(SpeasyIndex):
@@ -54,7 +54,7 @@ class CatalogIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].catalogs[uid] = self
 
     def __repr__(self):
-        return f'<CatalogIndex: {self.name()}>'
+        return f'<CatalogIndex: {self.spz_name()}>'
 
 
 class ComponentIndex(SpeasyIndex):
@@ -63,7 +63,7 @@ class ComponentIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].components[uid] = self
 
     def __repr__(self):
-        return f'<ComponentIndex: {self.name()}>'
+        return f'<ComponentIndex: {self.spz_name()}>'
 
 
 class ParameterIndex(SpeasyIndex):
@@ -72,7 +72,7 @@ class ParameterIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].parameters[uid] = self
 
     def __repr__(self):
-        return f'<ParameterIndex: {self.name()}>'
+        return f'<ParameterIndex: {self.spz_name()}>'
 
     def __iter__(self):
         return [v for v in self.__dict__.values() if type(v) is ComponentIndex].__iter__()
@@ -89,7 +89,7 @@ class DatasetIndex(SpeasyIndex):
         flat_inventories.__dict__[provider].datasets[uid] = self
 
     def __repr__(self):
-        return f'<DatasetIndex: {self.name()}>'
+        return f'<DatasetIndex: {self.spz_name()}>'
 
     def __iter__(self):
         return [v for v in self.__dict__.values() if type(v) is ParameterIndex].__iter__()

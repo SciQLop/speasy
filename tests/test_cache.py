@@ -25,7 +25,7 @@ def data_generator(start_time, stop_time):
         [(start_time + timedelta(minutes=delta)).timestamp() for delta in
          range(int((stop_time - start_time).seconds / 60))])
     data = index / 3600.
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(index), data=data)
+    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(index), values=data)
 
 
 @ddt

@@ -41,7 +41,7 @@ def _variable(orbit: dict) -> Optional[SpeasyVariable]:
     time_axis = np.array([_make_datetime(v[1]) for v in
                           orbit['Result']['Data'][1][0]['Time'][1]])
     return SpeasyVariable(time=time_axis,
-                          data=values,
+                          values=values,
                           meta={'CoordinateSystem': data['CoordinateSystem']},
                           columns=['X', 'Y', 'Z'])
 
