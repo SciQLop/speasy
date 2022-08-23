@@ -6,7 +6,7 @@
 import unittest
 from ddt import ddt, data, unpack
 
-from speasy.products.variable import SpeasyVariable, merge, to_dataframe, from_dataframe
+from speasy.products.variable import SpeasyVariable, merge, to_dataframe, from_dataframe, to_dictionary, from_dictionary
 import numpy as np
 import pandas as pds
 
@@ -144,6 +144,18 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertIs(type(df), pds.DataFrame)
         self.assertIs(type(df.index[0]), pds.Timestamp)
         self.assertEqual(var.values.shape, df.values.shape)
+
+    def test_to_dict(self):
+        var = make_simple_var(1., 10., 1., 10.)
+        d = to_dictionary(var)
+        self.assertIs(type(d), dict)
+        for attr in ['metadata', 'time', 'values', 'extra_axes', 'columns']:
+            self.assertIn(attr, d)
+
+    def test_from_dict(self):
+        var1 = make_simple_var(1., 10., 1., 10.)
+        var2 = from_dictionary(to_dictionary(var1))
+        self.assertEqual(var1, var2)
 
     def test_from_dataframe(self):
         var1 = make_simple_var(1., 10., 1., 10.)

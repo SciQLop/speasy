@@ -2,10 +2,9 @@ from speasy import SpeasyVariable
 from .cache import CacheItem
 from typing import Union, Callable, List, Tuple
 from speasy.core.datetime_range import DateTimeRange
-from .. import make_utc_datetime
-from speasy.products.variable import merge as merge_variables
+from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
 from speasy.core.inventory.indexes import ParameterIndex
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from functools import wraps
 import logging
 import math
@@ -85,7 +84,8 @@ class _Cacheable:
         if variable is not None:
             for fragment in fragments:
                 self.set_cache_entry(fragment, product,
-                                     CacheItem(variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))],
+                                     CacheItem(to_dictionary(
+                                         variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))]),
                                                version))
         return variable
 
@@ -108,7 +108,7 @@ class _Cacheable:
         entry = self.get_cache_entry(fragment, product, **kwargs)
         if entry is not None:
             if is_up_to_date(entry, version):
-                return entry.data
+                return from_dictionary(entry.data)
             log.debug(f"Cache entry is outdated")
         return None
 
@@ -198,7 +198,7 @@ class UnversionedProviderCache(object):
             if entry is None:
                 missing_fragments.append(fragment)
             elif (entry.version + self.cache_retention) > datetime.utcnow():
-                data_chunks.append(entry.data)
+                data_chunks.append(from_dictionary(entry.data))
             else:
                 maybe_outdated_fragments.append((fragment, entry))
 
