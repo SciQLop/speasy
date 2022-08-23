@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pds
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 from speasy.core import deprecation
 from copy import deepcopy
 
@@ -109,7 +109,7 @@ class SpeasyVariable(object):
         return self.__meta == other.__meta and \
                self.__columns == other.__columns and \
                len(self.time) == len(other.time) and \
-               np.all([ np.all(lhs == rhs) for lhs, rhs in zip(self.axes, other.axes)]) and \
+               np.all([np.all(lhs == rhs) for lhs, rhs in zip(self.axes, other.axes)]) and \
                np.all(self.__values == other.values)
 
     def __len__(self):
@@ -118,47 +118,6 @@ class SpeasyVariable(object):
     def __getitem__(self, key):
         if isinstance(key, slice):
             return self.view(slice(_to_index(key.start, self.time), _to_index(key.stop, self.time)))
-
-    def to_dataframe(self) -> pds.DataFrame:
-        """Convert the variable to a pandas.DataFrame object.
-
-        Parameters
-        ----------
-        Returns
-        -------
-        pandas.DataFrame:
-            Variable converted to Pandas DataFrame
-        """
-        return pds.DataFrame(index=self.time, data=self.values, columns=self.__columns, copy=True)
-
-    def to_astropy_table(self) -> astropy.table.Table:
-        """Convert the variable to a astropy.Table object.
-
-        Parameters
-        ----------
-        datetime_index: bool
-            boolean indicating that the index is datetime
-
-        Returns
-        -------
-        astropy.Table:
-            Variable converted to astropy.Table
-        """
-        try:
-            units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
-        except (ValueError, KeyError):
-            units = None
-        df = self.to_dataframe()
-        umap = {c: units for c in df.columns}
-        return astropy.table.Table.from_pandas(df, units=umap, index=True)
-
-    def plot(self, *args, **kwargs):
-        """Plot the variable.
-
-        See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-
-        """
-        return self.to_dataframe().plot(*args, **kwargs)
 
     @property
     def data(self):
@@ -185,6 +144,39 @@ class SpeasyVariable(object):
     def columns(self):
         return self.__columns
 
+    def to_astropy_table(self) -> astropy.table.Table:
+        """Convert the variable to a astropy.Table object.
+
+        Parameters
+        ----------
+        datetime_index: bool
+            boolean indicating that the index is datetime
+
+        Returns
+        -------
+        astropy.Table:
+            Variable converted to astropy.Table
+        """
+        try:
+            units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
+        except (ValueError, KeyError):
+            units = None
+        df = self.to_dataframe()
+        umap = {c: units for c in df.columns}
+        return astropy.table.Table.from_pandas(df, units=umap, index=True)
+
+    def to_dataframe(self) -> pds.DataFrame:
+        """Convert the variable to a pandas.DataFrame object.
+
+        Parameters
+        ----------
+        Returns
+        -------
+        pandas.DataFrame:
+            Variable converted to Pandas DataFrame
+        """
+        return pds.DataFrame(index=self.time, data=self.values, columns=self.__columns, copy=True)
+
     @staticmethod
     def from_dataframe(df: pds.DataFrame) -> 'SpeasyVariable':
         """Load from pandas.DataFrame object.
@@ -207,9 +199,36 @@ class SpeasyVariable(object):
             raise ValueError("Can't convert DataFrame index to datetime64[ns] array")
         return SpeasyVariable(time=time, values=df.values, meta={}, columns=list(df.columns))
 
+    def to_dictionary(self) -> Dict[str, object]:
+        return {
+            'metadata': self.__meta.copy(),
+            'time': self.__time.copy(),
+            'values': self.__values.copy(),
+            'extra_axes': deepcopy(self.__axes[1:]),
+            'columns': deepcopy(self.__columns)
+        }
+
+    @staticmethod
+    def from_dictionary(dictionary: Dict[str, object]) -> 'SpeasyVariable':
+        return SpeasyVariable(
+            values=dictionary.get('values', np.empty((0, 1))),
+            time=dictionary.get('time', np.empty(0, dtype=np.dtype('datetime64[ns]'))),
+            extra_axes=dictionary.get('extra_axes', None),
+            columns=dictionary.get('columns', None),
+            meta=dictionary.get('metadata', {}),
+        )
+
     @staticmethod
     def epoch_to_datetime64(epoch_array: np.array):
         return (epoch_array * 1e9).astype('datetime64[ns]')
+
+    def plot(self, *args, **kwargs):
+        """Plot the variable.
+
+        See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+
+        """
+        return self.to_dataframe().plot(*args, **kwargs)
 
     def replace_fillval_by_nan(self, inplace=False) -> 'SpeasyVariable':
         if inplace:
@@ -219,6 +238,14 @@ class SpeasyVariable(object):
         if 'FILLVAL' in res.meta:
             res.values[res.values == res.meta['FILLVAL']] = np.nan
         return res
+
+
+def to_dictionary(var: SpeasyVariable) -> Dict[str, object]:
+    return var.to_dictionary()
+
+
+def from_dictionary(dictionary: Dict[str, object]) -> SpeasyVariable:
+    return SpeasyVariable.from_dictionary(dictionary)
 
 
 def from_dataframe(df: pds.DataFrame) -> SpeasyVariable:
