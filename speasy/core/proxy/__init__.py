@@ -1,11 +1,27 @@
 from speasy.config import proxy_enabled, proxy_url
 from functools import wraps
-import requests
+from .. import http
+from ...products.variable import from_dictionary
 import pickle
 import logging
+from packaging.version import Version
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
+MINIMUM_REQUIRED_PROXY_VERSION = Version("0.5.0")
+_CURRENT_PROXY_SERVER_VERSION = None
+
+
+def query_proxy_version():
+    global _CURRENT_PROXY_SERVER_VERSION
+    if _CURRENT_PROXY_SERVER_VERSION is None:
+        url = proxy_url.get()
+        if url != "":
+            resp = http.get(f"{url}/get_version?")
+            if resp.status_code == 200:
+                _CURRENT_PROXY_SERVER_VERSION = Version(resp.text.strip())
+                return _CURRENT_PROXY_SERVER_VERSION
+    return _CURRENT_PROXY_SERVER_VERSION
 
 
 class GetProduct:
@@ -18,10 +34,11 @@ class GetProduct:
         kwargs['path'] = path
         kwargs['start_time'] = start_time
         kwargs['stop_time'] = stop_time
-        resp = requests.get(f"{url}/get_data?", params=kwargs)
+        kwargs['format'] = 'python_dict'
+        resp = http.get(f"{url}/get_data?", params=kwargs)
         log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
-            var = pickle.loads(resp.content)
+            var = from_dictionary(pickle.loads(resp.content))
             return var
         return None
 
@@ -35,9 +52,13 @@ class Proxyfiable(object):
         @wraps(func)
         def wrapped(*args, **kwargs):
             disable_proxy = kwargs.pop("disable_proxy", False)
+            proxy_version = query_proxy_version()
             if proxy_enabled.get().lower() == "true" and not disable_proxy:
-                return self.request.get(**self.arg_builder(**kwargs))
-            else:
-                return func(*args, **kwargs)
+                if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:
+                    return self.request.get(**self.arg_builder(**kwargs))
+                else:
+                    log.warning(
+                        f"You are using an incompatible proxy server {proxy_url.get()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
+            return func(*args, **kwargs)
 
         return wrapped
