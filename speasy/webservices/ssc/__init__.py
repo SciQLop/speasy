@@ -42,7 +42,7 @@ def _variable(orbit: dict) -> Optional[SpeasyVariable]:
                           orbit['Result']['Data'][1][0]['Time'][1]])
     return SpeasyVariable(time=time_axis,
                           values=values,
-                          meta={'CoordinateSystem': data['CoordinateSystem']},
+                          meta={'CoordinateSystem': data['CoordinateSystem'], 'UNITS': 'km'},
                           columns=['X', 'Y', 'Z'])
 
 

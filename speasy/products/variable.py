@@ -158,7 +158,7 @@ class SpeasyVariable(object):
             Variable converted to astropy.Table
         """
         try:
-            units = astropy.units.Unit(self.meta["PARAMETER_UNITS"])
+            units = astropy.units.Unit(self.meta["UNITS"])
         except (ValueError, KeyError):
             units = None
         df = self.to_dataframe()

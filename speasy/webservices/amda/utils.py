@@ -41,6 +41,7 @@ def load_csv(filename: str) -> SpeasyVariable:
                 meta[key.strip()] = value.strip()
             line = csv.readline().decode()
         columns = [col.strip() for col in meta['DATA_COLUMNS'].split(', ')[:]]
+        meta["UNITS"] = meta.get("PARAMETER_UNITS")
         with urlopen(filename) as f:
             data = pds.read_csv(f, comment='#', delim_whitespace=True, header=None, names=columns).values.transpose()
         time, data = SpeasyVariable.epoch_to_datetime64(data[0]), data[1:].transpose()
