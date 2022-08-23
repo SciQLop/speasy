@@ -12,11 +12,7 @@ def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None
         else:
             return None
         if var:
-            if len(var.axes) <= 2:
-                if len(var.axes) == 2:
-                    y = var.axes[1].values.copy()
-                else:
-                    y = None
-                return SpeasyVariable(time=var.axes[0].values.copy(), data=var.values.copy(), meta=var.attributes, y=y,
-                                      columns=var.labels)
+            return SpeasyVariable(time=var.axes[0].values.copy(), values=var.values.copy(), meta=var.attributes,
+                                  extra_axes=[ax.values.copy() for ax in var.axes[1:]],
+                                  columns=var.labels)
     return None

@@ -53,7 +53,7 @@ def load_csv(filename: str) -> SpeasyVariable:
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
-        return SpeasyVariable(time=time, data=data, meta=meta, columns=columns[1:], y=y)
+        return SpeasyVariable(time=time, values=data, meta=meta, columns=columns[1:], extra_axes=[y])
 
 
 def _build_event(data, colnames: List[str]) -> Event:

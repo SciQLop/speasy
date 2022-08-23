@@ -14,27 +14,27 @@ import astropy.table
 import astropy.units
 
 
-def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
+def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), data=values, meta=None, columns=["Values"],
-                          y=None)
+    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=meta, columns=["Values"],
+                          extra_axes=None)
 
 
 def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = values * 0.1
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), data=values, meta=None, columns=["Values"],
-                          y=y)
+    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=None, columns=["Values"],
+                          extra_axes=[y])
 
 
 def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = np.arange(height)
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), data=values, meta=None, columns=["Values"],
-                          y=y)
+    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=None, columns=["Values"],
+                          extra_axes=[y])
 
 
 @ddt
@@ -158,9 +158,7 @@ class ASpeasyVariable(unittest.TestCase):
     )
     @unpack
     def test_can_be_converted_to_astropy_table(self, meta, expected):
-        var = make_simple_var(1., 10., 1., 10.)
-        # valid astropy unit
-        var.meta = meta
+        var = make_simple_var(1., 10., 1., 10., meta=meta)
         at = var.to_astropy_table()
         self.assertIsInstance(at, astropy.table.Table)
         self.assertEqual(at["Values"].unit, expected)
