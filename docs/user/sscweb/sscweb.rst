@@ -31,7 +31,7 @@ Now you can get your trajectory:
     >>> mms1_traj = spz.ssc.get_trajectory(spz.inventories.data_tree.ssc.Trajectories.mms1, "2018-01-01", "2018-02-01", 'gsm')
     >>> mms1_traj.columns
     ['X', 'Y', 'Z']
-    >>> mms1_traj.data
+    >>> mms1_traj.values
     <Quantity [[57765.77891127, 39928.64689416, 36127.69757491],
                [57636.78726753, 39912.67690181, 36075.18117495],
                [57507.67093183, 39896.65117739, 36022.43945697],
