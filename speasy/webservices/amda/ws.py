@@ -419,8 +419,8 @@ class AMDA_Webservice:
         if dataset_name in flat_inventories.amda.datasets:
             dataset = flat_inventories.amda.datasets[dataset_name]
             return DateTimeRange(
-                datetime.strptime(dataset.dataStart, '%Y-%m-%dT%H:%M:%SZ'),
-                datetime.strptime(dataset.dataStop, '%Y-%m-%dT%H:%M:%SZ')
+                datetime.strptime(dataset.start_date, '%Y-%m-%dT%H:%M:%SZ'),
+                datetime.strptime(dataset.stop_date, '%Y-%m-%dT%H:%M:%SZ')
             )
 
     @staticmethod
