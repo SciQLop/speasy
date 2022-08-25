@@ -164,7 +164,7 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertListEqual(var1.values.tolist(), var2.values.tolist())
 
     @data(
-        ({"PARAMETER_UNITS": "nT"}, astropy.units.nT),
+        ({"UNITS": "nT"}, astropy.units.nT),
         ({"PARAMETER_UNITS": "not a unit"}, None),
         ({}, None)
     )

@@ -120,7 +120,7 @@ class CSA_Webservice(DataProvider):
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
         if type(dataset) is str:
             dataset = self.flat_inventory.datasets[dataset]
-        return DateTimeRange(dataset.start_date, dataset.end_date)
+        return DateTimeRange(dataset.start_date, dataset.stop_date)
 
     def _dl_variable(self,
                      dataset: str, variable: str,
