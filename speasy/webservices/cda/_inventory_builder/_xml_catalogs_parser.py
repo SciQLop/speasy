@@ -29,11 +29,13 @@ def extract_node(node, is_dataset=False):
         'name': fix_name(alias_rules(name)),
         'description': description(node)
     }
+    n.update(node.attrib)
     if is_dataset:
+        n['start_date'] = n.pop('timerange_start')
+        n['stop_date'] = n.pop('timerange_stop')
         master_cd_node = node.find('{cdas}mastercdf')
         if master_cd_node is not None:
             n["mastercdf"] = master_cd_node.attrib["serviceprovider_ID"]
-    n.update(node.attrib)
     return n
 
 
