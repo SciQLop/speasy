@@ -86,7 +86,7 @@ class _Cacheable:
                 self.set_cache_entry(fragment, product,
                                      CacheItem(to_dictionary(
                                          variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))]),
-                                               version))
+                                         version))
         return variable
 
     def set_cache_entry(self, fragment, product, entry, **kwargs):
@@ -158,16 +158,17 @@ class Cacheable(object):
                 [fragment for f_data, fragment in zip(data_chunks, fragments) if f_data is None],
                 duration=fragment_duration)
 
-            data_chunks += \
-                list(filter(lambda d: d is not None, [
-                    self._cache.add_to_cache(
-                        get_data(
-                            wrapped_self, product=product, start_time=fragment_group[0],
-                            stop_time=fragment_group[-1] + fragment_duration, **kwargs),
-                        fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
-                        version=version, **kwargs)
-                    for fragment_group
-                    in missing_fragments]))
+            data_chunks += [
+                self._cache.add_to_cache(
+                    get_data(
+                        wrapped_self, product=product, start_time=fragment_group[0],
+                        stop_time=fragment_group[-1] + fragment_duration, **kwargs),
+                    fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
+                    version=version, **kwargs)
+                for fragment_group
+                in missing_fragments]
+
+            data_chunks = list(filter(lambda d: d is not None, data_chunks))
 
             if len(data_chunks):
                 return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
