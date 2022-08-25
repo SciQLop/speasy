@@ -83,10 +83,21 @@ class PublicProductsRequests(unittest.TestCase):
             self.assertTrue(
                 any(["This request duration is too long, consider reducing time range" in line for line in cm.output]))
 
+    def test_returns_none_for_a_request_outside_of_range(self):
+        with self.assertLogs('speasy.webservices.amda.ws', level='WARNING') as cm:
+            start_date = datetime(1999, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            stop_date = datetime(1999, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
+            parameter_id = "mms1_b_gse"
+            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
+                                            disable_cache=True)
+            self.assertIsNone(result)
+            self.assertTrue(
+                any(["outside of its definition range" in line for line in cm.output]))
+
     def test_get_product_range(self):
         param_range = spz.amda.parameter_range(spz.amda.list_parameters()[0])
         self.assertIsNotNone(param_range)
-        dataset_range = spz.amda.parameter_range(spz.amda.list_datasets()[0])
+        dataset_range = spz.amda.dataset_range(spz.amda.list_datasets()[0])
         self.assertIsNotNone(dataset_range)
 
     def test_list_parameters(self):
@@ -103,7 +114,7 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertTrue(len(result) != 0)
 
     def test_get_dataset(self):
-        start, stop = datetime(2000, 1, 1), datetime(2000, 1, 2)
+        start, stop = datetime(2012, 1, 1), datetime(2012, 1, 1, 1)
         r = spz.amda.get_dataset("tao-ura-sw", start, stop, disable_cache=True)
         self.assertTrue(len(r) != 0)
 

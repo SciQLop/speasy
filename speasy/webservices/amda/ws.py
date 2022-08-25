@@ -3,8 +3,9 @@
 
 from enum import Enum
 from .utils import get_parameter_args
-from .inventory import to_xmlid
-from speasy.core.inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, ComponentIndex
+from .inventory import to_xmlid, to_parameter_index, to_dataset_index
+from speasy.core.inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, \
+    ComponentIndex
 
 from ._impl import is_public, is_private
 
@@ -300,11 +301,15 @@ class AMDA_Webservice:
 
         """
 
+        p_range = self.parameter_range(product)
+        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
+            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
+            return None
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
-                    **kwargs) -> Dataset:
+                    **kwargs) -> Dataset or None:
         """Get dataset contents. Returns list of SpeasyVariable objects, one for each
         parameter in the dataset.
 
@@ -319,8 +324,8 @@ class AMDA_Webservice:
 
         Returns
         -------
-        Dataset
-            dataset content as a collection of SpeasyVariable
+        Dataset or None
+            dataset content as a collection of SpeasyVariable if it succeeds or None
 
         Examples
         --------
@@ -335,7 +340,11 @@ class AMDA_Webservice:
 
 
         """
-        # get list of parameters for this dataset
+        ds_range = self.dataset_range(dataset_id)
+        if not ds_range.intersect(DateTimeRange(start, stop)):
+            log.warning(f"You are requesting {dataset_id} outside of its definition range {ds_range}")
+            return None
+
         dataset_id = to_xmlid(dataset_id)
         name = flat_inventories.amda.datasets[dataset_id].name
         meta = {k: v for k, v in flat_inventories.amda.datasets[dataset_id].__dict__.items() if
@@ -392,12 +401,12 @@ class AMDA_Webservice:
         """
         return self._impl.dl_catalog(to_xmlid(catalog_id), **kwargs)
 
-    def parameter_range(self, parameter_id: str or ParameterIndex or DatasetIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.
 
         Parameters
         ----------
-        parameter_id: str or AMDAParameterIndex or AMDADatasetIndex
+        parameter_id: str or ParameterIndex
             parameter id
 
         Returns
@@ -413,15 +422,32 @@ class AMDA_Webservice:
         <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
 
         """
-        parameter_id = to_xmlid(parameter_id)
-        dataset_name = self._find_parent_dataset(parameter_id)
+        return self._impl._parameter_range(parameter_id)
 
-        if dataset_name in flat_inventories.amda.datasets:
-            dataset = flat_inventories.amda.datasets[dataset_name]
-            return DateTimeRange(
-                datetime.strptime(dataset.start_date, '%Y-%m-%dT%H:%M:%SZ'),
-                datetime.strptime(dataset.stop_date, '%Y-%m-%dT%H:%M:%SZ')
-            )
+
+    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        dataset_id: str or DatasetIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.amda.dataset_range("ace-imf-all")
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
+
+        """
+
+        return self._impl._dataset_range(dataset_id)
 
     @staticmethod
     def list_parameters(dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:

@@ -69,8 +69,8 @@ class SpeasyGetData(unittest.TestCase):
         },
         {
             "product": spz.inventories.data_tree.amda.Parameters.THEMIS.THEMIS_A.FGM.tha_fgm_s.tha_bs_gsm,
-            "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "start_time": datetime(2008, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2008, 1, 8, 3, 0, 0, tzinfo=timezone.utc),
             "disable_proxy": True
         },
         {
