@@ -16,10 +16,10 @@ speasy dynamic inventory so you will always get an up to date inventory:
 
     >>> import speasy as spz
     >>> # Let's only print the first 10 trajectories
-    >>> print(list(spz.inventory.flat_inventories.ssc.parameters.keys())[:10])
+    >>> print(list(spz.inventories.flat_inventories.ssc.parameters.keys())[:10])
     ['ace', 'active', 'aec', 'aed', 'aee', 'aerocube6a', 'aerocube6b', 'aim', 'akebono', 'alouette1']
 
-Note that you can also use your python terminal completion and browse `spz.inventory.data_tree.ssc.Trajectories` to find
+Note that you can also use your python terminal completion and browse `spz.inventories.data_tree.ssc.Trajectories` to find
 your trajectory.
 Once you have found your trajectory, you may also want to chose in which coordinates system your data will be downloaded.
 The following coordinates systems are available: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**.
@@ -28,7 +28,7 @@ Now you can get your trajectory:
 
     >>> import speasy as spz
     >>> # Let's assume you wanted to get MMS1 trajectory
-    >>> mms1_traj = spz.ssc.get_trajectory(spz.inventory.data_tree.ssc.Trajectories.mms1, "2018-01-01", "2018-02-01", 'gsm')
+    >>> mms1_traj = spz.ssc.get_trajectory(spz.inventories.data_tree.ssc.Trajectories.mms1, "2018-01-01", "2018-02-01", 'gsm')
     >>> mms1_traj.columns
     ['X', 'Y', 'Z']
     >>> mms1_traj.data

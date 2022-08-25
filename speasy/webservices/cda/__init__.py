@@ -100,7 +100,7 @@ class CDA_Webservice(DataProvider):
 
         >>> import speasy as spz
         >>> spz.cda.dataset_range("AC_H0_MFI")
-        <DateTimeRange: 1997-09-02T00:00+00:00 -> ...>
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
 
         """
         return self._dataset_range(dataset_id)
