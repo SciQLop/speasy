@@ -7,7 +7,6 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from typing import Optional, Dict
-from types import SimpleNamespace
 from datetime import datetime, timedelta
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.products.variable import SpeasyVariable
@@ -104,7 +103,7 @@ class SSC_Webservice(DataProvider):
         --------
 
         >>> import speasy as spz
-        >>> spz.cda.parameter_range("solarorbiter")
+        >>> spz.ssc.parameter_range("solarorbiter")
         <DateTimeRange: 2020-02-10T04:56:30+00:00 -> ...>
 
         """

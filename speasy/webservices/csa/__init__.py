@@ -171,7 +171,7 @@ class CSA_Webservice(DataProvider):
         --------
 
         >>> import speasy as spz
-        >>> spz.cda.parameter_range("C3_CP_WBD_WAVEFORM_BM2/B__C3_CP_WBD_WAVEFORM_BM2")
+        >>> spz.csa.parameter_range("C3_CP_WBD_WAVEFORM_BM2/B__C3_CP_WBD_WAVEFORM_BM2")
         <DateTimeRange: 2001-03-07T17:45:22+00:00 -> ...>
 
         """
@@ -194,7 +194,7 @@ class CSA_Webservice(DataProvider):
         --------
 
         >>> import speasy as spz
-        >>> spz.cda.dataset_range("D2_CP_FGM_SPIN")
+        >>> spz.csa.dataset_range("D2_CP_FGM_SPIN")
         <DateTimeRange: 2004-07-27T00:00:00+00:00 -> ...>
 
         """

@@ -39,12 +39,12 @@ Let's start with a simple example, we want to download the first parameter avail
     >>> from speasy import amda
     >>> first_param_index=amda.list_parameters()[0]
     >>> print(first_param_index)
-    <ParameterIndex: |b|>
+    <ParameterIndex: He flux>
     >>> first_param=amda.get_parameter(first_param_index, "2018-01-01", "2018-01-02")
     >>> first_param.columns
-    ['imf_mag']
+    ['ace_epam_ca60_he[0]', 'ace_epam_ca60_he[1]']
     >>> len(first_param.time)
-    5400
+    276
 
 Usually you already know which product you want to download, two scenarios are available:
 
@@ -69,8 +69,8 @@ the following example, we alias AMDA data tree as amdatree, note that Python com
 AMDA products directly from your Python terminal or notebook:
 
     >>> from speasy import amda
-    >>> from speasy.inventory.data_tree import amda as amdatree
-    >>> mms4_fgm_btot=amda.get_parameter(amdatree.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-02")
+    >>> from speasy.inventories import data_tree
+    >>> mms4_fgm_btot=amda.get_parameter(data_tree.amda.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-02")
     >>> mms4_fgm_btot.columns
     ['mms4_b_tot']
     >>> len(mms4_fgm_btot.time)
@@ -132,8 +132,8 @@ Then simply:
 And also alternatively you can use the dynamic inventory:
 
     >>> from speasy import amda
-    >>> from speasy.inventory.data_tree import amda as amdatree
-    >>> catalog_mms_2019=amda.get_catalog(amdatree.Catalogs.SharedCatalogs.EARTH.model_regions_plasmas_mms_2019)
+    >>> from speasy.inventories import data_tree
+    >>> catalog_mms_2019=amda.get_catalog(data_tree.amda.Catalogs.SharedCatalogs.EARTH.model_regions_plasmas_mms_2019)
     >>> catalog_mms_2019
     <Catalog: model_regions_plasmas_mms_2019>
     >>> len(catalog_mms_2019)
@@ -151,8 +151,8 @@ In this example we will use AMDA module to retrieve and plot MMS2 FGM data, feel
 
     >>> import matplotlib.pyplot as plt # doctest: +SKIP
     >>> import speasy as spz
-    >>> from speasy.inventory.data_tree import amda as amda_tree
-    >>> mms2_b_gse = spz.amda.get_parameter(amda_tree.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse, "2020-02-01", "2020-02-02")
+    >>> from speasy.inventories import data_tree
+    >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse, "2020-02-01", "2020-02-02")
     >>> # Check that mms2_b_gse isn't empty
     >>> len(mms2_b_gse)
     1382895
@@ -181,8 +181,8 @@ Once we have magnetic field measurements inside each cloud, we will as an exampl
     >>> import matplotlib.pyplot as plt # doctest: +SKIP
     >>> import numpy as np
     >>> import speasy as spz
-    >>> from speasy.inventory.data_tree import amda as amda_tree
-    >>> Magnetic_Clouds = spz.amda.get_timetable(amda_tree.TimeTables.SharedTimeTables.SOLAR_WIND.Magnetic_Clouds)
+    >>> from speasy.inventories import data_tree
+    >>> Magnetic_Clouds = spz.amda.get_timetable(data_tree.amda.TimeTables.SharedTimeTables.SOLAR_WIND.Magnetic_Clouds)
     >>> print(Magnetic_Clouds.meta['description'])  # doctest: +NORMALIZE_WHITESPACE
     Magnetic Clouds from WIND/MFI 1995-2007 -- Estimated start and end times from a magnetic field model [Lepping et al., 1990] which assumes that the field within the magnetic cloud is force free, i.e., so that the electrical current and the magnetic field are parallel and proportional in strength everywhere within its volume -- see http://lepmfi.gsfc.nasa.gov/mfi/mag_cloud_pub1.html ;
             Historic: From old AMDA;
@@ -199,7 +199,7 @@ Once we have magnetic field measurements inside each cloud, we will as an exampl
     >>> plt.legend() # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
     >>> # Now let's get MFI data for each cloud
-    >>> b_mfi_coulds = [ spz.amda.get_parameter(amda_tree.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag, cloud.start_time, cloud.stop_time) for cloud in Magnetic_Clouds ]
+    >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag, cloud.start_time, cloud.stop_time) for cloud in Magnetic_Clouds ]
     >>> # compute mean of B for each cloud and ignore NaNs
     >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
     >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
