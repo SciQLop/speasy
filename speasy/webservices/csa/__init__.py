@@ -32,6 +32,7 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
 
 def register_dataset(inventory_tree, dataset):
     meta = {cname: dataset[cname] for cname in dataset.colnames}
+    meta['stop_date'] = meta.pop('end_date')
     name = fix_name(meta['dataset_id'])
     make_inventory_node(flat_inventories.csa.instruments[dataset['instruments']], DatasetIndex, name=name,
                         provider="csa",

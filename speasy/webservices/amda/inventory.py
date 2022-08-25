@@ -36,6 +36,10 @@ class AmdaXMLParser:
     def index_ctor_args(node, name_key='xmlid', is_public=True):
         meta = AmdaXMLParser.fix_names(**AmdaXMLParser.fix_xmlid(**node.attrib))
         meta['is_public'] = is_public
+        if 'dataStart' in meta:
+            meta['start_date'] = meta.pop('dataStart')
+        if 'dataStop' in meta:
+            meta['stop_date'] = meta.pop('dataStop')
         uid = meta.get('xmlid', node.tag)
         return {"name": meta.get('name', node.tag), "provider": "amda", 'uid': uid, "meta": meta}
 
