@@ -91,6 +91,16 @@ class SimpleRequest(unittest.TestCase):
                                       disable_cache=True, if_newer_than=datetime.utcnow() - timedelta(days=50 * 365))
         self.assertIsNotNone(result)
 
+    def test_returns_none_for_a_request_outside_of_range(self):
+        with self.assertLogs('speasy.webservices.cda', level='WARNING') as cm:
+            result = self.cd.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
+                                          start_time=datetime(2000, 6, 1, tzinfo=timezone.utc),
+                                          stop_time=datetime(2000, 6, 1, 1, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                          disable_cache=True)
+            self.assertIsNone(result)
+            self.assertTrue(
+                any(["outside of its definition range" in line for line in cm.output]))
+
     @data({'sampling': '1'},
           {'unknown_arg': 10})
     def test_raises_if_user_passes_unexpected_kwargs_to_get_variable(self, kwargs):

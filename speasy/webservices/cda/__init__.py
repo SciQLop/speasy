@@ -14,8 +14,9 @@ from speasy.products.variable import SpeasyVariable
 from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
-from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex, DatasetIndex
 from speasy.core.dataprovider import DataProvider
+from speasy.core.datetime_range import DateTimeRange
 from urllib.request import urlopen
 import logging
 
@@ -58,6 +59,52 @@ class CDA_Webservice(DataProvider):
         root = build_inventory(root=root)
         return root
 
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.cda.parameter_range("AC_H0_MFI/BGSEc")
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
+
+        """
+        return self._parameter_range(parameter_id)
+
+    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        dataset_id: str or DatasetIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.cda.dataset_range("AC_H0_MFI")
+        <DateTimeRange: 1997-09-02T00:00+00:00 -> ...>
+
+        """
+        return self._dataset_range(dataset_id)
+
     def _dl_variable(self,
                      dataset: str, variable: str,
                      start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None) -> Optional[
@@ -83,6 +130,11 @@ class CDA_Webservice(DataProvider):
     @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None):
+        p_range = self.parameter_range(product)
+        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
+            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
+            return None
+
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than)

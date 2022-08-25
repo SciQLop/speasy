@@ -15,7 +15,7 @@ from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.dataprovider import DataProvider
-from speasy.inventories import data_tree
+from speasy.core.datetime_range import DateTimeRange
 import numpy as np
 from astropy import units
 
@@ -87,6 +87,29 @@ class SSC_Webservice(DataProvider):
     def version(self, product):
         return 2
 
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.cda.parameter_range("solarorbiter")
+        <DateTimeRange: 2020-02-10T04:56:30+00:00 -> ...>
+
+        """
+        return self._parameter_range(parameter_id)
+
     # Wrapper to ensure that whatever the source (Proxy, Cache, SSCWeb) the returned variable is in km
     def get_trajectory(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                        debug=False, **kwargs) -> Optional[SpeasyVariable]:
@@ -108,6 +131,10 @@ class SSC_Webservice(DataProvider):
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                    debug=False) -> Optional[SpeasyVariable]:
+        p_range = self.parameter_range(product)
+        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
+            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
+            return None
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"

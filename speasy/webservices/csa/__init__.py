@@ -72,9 +72,13 @@ def register_instrument(inventory_tree, instrument):
 
 def register_param(parameter):
     if parameter["dataset_id"] in flat_inventories.csa.datasets:
+        parent_dataset = flat_inventories.csa.datasets[parameter["dataset_id"]]
         meta = {cname: parameter[cname] for cname in parameter.colnames}
+        meta['dataset'] = parameter["dataset_id"]
+        meta['start_date'] = parent_dataset.start_date
+        meta['stop_date'] = parent_dataset.stop_date
         name = fix_name(meta['parameter_id'])
-        make_inventory_node(flat_inventories.csa.datasets[parameter["dataset_id"]], ParameterIndex, name=name,
+        make_inventory_node(parent_dataset, ParameterIndex, name=name,
                             provider="csa", uid=f"{parameter['dataset_id']}/{parameter['parameter_id']}", **meta)
 
 
@@ -150,6 +154,52 @@ class CSA_Webservice(DataProvider):
     def build_inventory(root: SpeasyIndex):
         return build_inventory(root)
 
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.cda.parameter_range("C3_CP_WBD_WAVEFORM_BM2/B__C3_CP_WBD_WAVEFORM_BM2")
+        <DateTimeRange: 2001-03-07T17:45:22+00:00 -> ...>
+
+        """
+        return self._parameter_range(parameter_id)
+
+    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        dataset_id: str or DatasetIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.cda.dataset_range("D2_CP_FGM_SPIN")
+        <DateTimeRange: 2004-07-27T00:00:00+00:00 -> ...>
+
+        """
+        return self._dataset_range(dataset_id)
+
     def product_last_update(self, product: str or ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
@@ -170,6 +220,10 @@ class CSA_Webservice(DataProvider):
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime):
+        p_range = self.parameter_range(product)
+        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
+            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
+            return None
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable)

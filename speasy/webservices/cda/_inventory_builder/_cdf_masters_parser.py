@@ -2,7 +2,7 @@ import os.path
 import logging
 import pyistp
 from speasy.inventories import flat_inventories
-from speasy.core.inventory.indexes import ParameterIndex
+from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def filter_meta(attributes):
     return {key: value for key, value in attributes.items() if key in keep_list}
 
 
-def load_master_cdf(path, dataset):
+def load_master_cdf(path, dataset: DatasetIndex):
     skip_count = 0
     try:
         cdf = pyistp.load(path)
@@ -36,6 +36,9 @@ def load_master_cdf(path, dataset):
                 if datavar is not None:
                     index = ParameterIndex(name=name, provider="cda", uid=f"{dataset.serviceprovider_ID}/{name}",
                                            meta=filter_meta(datavar.attributes))
+                    index.start_date = dataset.start_date
+                    index.stop_date = dataset.stop_date
+                    index.dataset = dataset.spz_uid()
                     dataset.__dict__[name] = index
             except IndexError or RuntimeError:
                 print(f"Issue loading {name} from {path}")
