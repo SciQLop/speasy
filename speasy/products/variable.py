@@ -46,11 +46,11 @@ class SpeasyVariable(object):
         Plot the data with matplotlib
 
     """
-    __slots__ = ['__meta', '__time', '__values', '__columns', '__axes']
+    __slots__ = ['__meta', '__time', '__values', '__columns', '__axes', '__axes_labels']
 
     def __init__(self, time=np.empty(0, dtype=np.dtype('datetime64[ns]')), values=np.empty((0, 1)),
-                 meta: Optional[dict] = None,
-                 columns: Optional[List[str]] = None, extra_axes: Optional[List[np.ndarray]] = None):
+                 meta: Optional[dict] = None, columns: Optional[List[str]] = None,
+                 extra_axes: Optional[List[np.ndarray]] = None, extra_axes_labels: Optional[List[str]] = None):
         """Constructor
         """
 
@@ -58,6 +58,10 @@ class SpeasyVariable(object):
             raise ValueError(f"Please provide datetime64[ns] for time axis, got {time.dtype}")
         if len(time) != len(values):
             raise ValueError(f"Time and data must have the same length, got time:{len(time)} and data:{len(values)}")
+        if extra_axes is not None and extra_axes_labels is not None:
+            if len(extra_axes) != len(extra_axes_labels):
+                raise ValueError(
+                    f"extra_axes and extra_axes_labels must have the same length, got extra_axes:{len(extra_axes)} and extra_axes_labels:{len(extra_axes_labels)}")
 
         self.__meta = meta or {}
         self.__columns = columns or []
@@ -67,6 +71,7 @@ class SpeasyVariable(object):
             self.__values = values
         self.__time = time
         self.__axes = [time] + (extra_axes or [])
+        self.__axes_labels = ['time'] + (extra_axes_labels or [])
 
     def view(self, index_range: slice):
         """Return view of the current variable within the desired :data:`time_range`.
@@ -91,7 +96,7 @@ class SpeasyVariable(object):
             else:
                 extra_axes.append(None)  # maybe this should be avoided
         return SpeasyVariable(time=self.__time[index_range], values=self.__values[index_range], meta=self.__meta,
-                              columns=self.__columns, extra_axes=extra_axes)
+                              columns=self.__columns, extra_axes=extra_axes, extra_axes_labels=self.__axes_labels[1:])
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
@@ -108,6 +113,7 @@ class SpeasyVariable(object):
         """
         return self.__meta == other.__meta and \
                self.__columns == other.__columns and \
+               self.__axes_labels == other.__axes_labels and \
                len(self.time) == len(other.time) and \
                np.all([np.all(lhs == rhs) for lhs, rhs in zip(self.axes, other.axes)]) and \
                np.all(self.__values == other.values)
@@ -139,6 +145,10 @@ class SpeasyVariable(object):
     @property
     def axes(self):
         return self.__axes
+
+    @property
+    def axes_labels(self):
+        return self.__axes_labels
 
     @property
     def columns(self):
@@ -205,6 +215,7 @@ class SpeasyVariable(object):
             'time': self.__time.copy(),
             'values': self.__values.copy(),
             'extra_axes': deepcopy(self.__axes[1:]),
+            'extra_axes_labels': deepcopy(self.__axes_labels[1:]),
             'columns': deepcopy(self.__columns)
         }
 
@@ -214,6 +225,7 @@ class SpeasyVariable(object):
             values=dictionary.get('values', np.empty((0, 1))),
             time=dictionary.get('time', np.empty(0, dtype=np.dtype('datetime64[ns]'))),
             extra_axes=dictionary.get('extra_axes', None),
+            extra_axes_labels=dictionary.get('extra_axes_labels', None),
             columns=dictionary.get('columns', None),
             meta=dictionary.get('metadata', {}),
         )
@@ -298,7 +310,7 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
 
     if len(sorted_var_list) == 0:
         return SpeasyVariable(columns=variables[0].columns, meta=variables[0].meta,
-                              extra_axes=variables[0].axes[1:])
+                              extra_axes=variables[0].axes[1:], extra_axes_labels=variables[0].axes_labels[1:])
 
     overlaps = [np.where(current.time >= nxt.time[0])[0][0] if current.time[-1] >= nxt.time[0] else -1 for current, nxt
                 in
@@ -338,4 +350,4 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
                     axis[pos:(pos + frag_len)] = src_axis[0:frag_len]
         pos += frag_len
     return SpeasyVariable(time=time, values=values, meta=sorted_var_list[0].meta, columns=sorted_var_list[0].columns,
-                          extra_axes=extra_axes)
+                          extra_axes=extra_axes, extra_axes_labels=sorted_var_list[0].axes_labels[1:])

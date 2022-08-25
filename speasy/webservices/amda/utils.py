@@ -35,6 +35,7 @@ def load_csv(filename: str) -> SpeasyVariable:
         line = csv.readline().decode()
         meta = {}
         y = None
+        y_label = None
         while line[0] == '#':
             if ':' in line:
                 key, value = line[1:].split(':', 1)
@@ -49,12 +50,14 @@ def load_csv(filename: str) -> SpeasyVariable:
         if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[1]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[1]"].split(',')])
+            y_label = meta["PARAMETER_TABLE[1]"]
             y = (max_v + min_v) / 2.
         elif "PARAMETER_TABLE_MIN_VALUES[0]" in meta:
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[0]"].split(',')])
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
-        return SpeasyVariable(time=time, values=data, meta=meta, columns=columns[1:], extra_axes=[y])
+            y_label = meta["PARAMETER_TABLE[0]"]
+        return SpeasyVariable(time=time, values=data, meta=meta, columns=columns[1:], extra_axes=[y], extra_axes_labels=[y_label])
 
 
 def _build_event(data, colnames: List[str]) -> Event:
