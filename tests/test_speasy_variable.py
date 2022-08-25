@@ -26,7 +26,7 @@ def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: flo
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = values * 0.1
     return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=None, columns=["Values"],
-                          extra_axes=[y])
+                          extra_axes=[y], extra_axes_labels=['y'])
 
 
 def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
@@ -34,7 +34,7 @@ def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = np.arange(height)
     return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=None, columns=["Values"],
-                          extra_axes=[y])
+                          extra_axes=[y], extra_axes_labels=['y'])
 
 
 @ddt
