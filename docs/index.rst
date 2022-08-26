@@ -104,6 +104,11 @@ Features
 - Local cache to avoid repeating twice the same request
 - Can take advantage of SciQLop dedicated poxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`_ API.
+- Can retrieve timeseries from:
+ - AMDA
+ - CDAWeb
+ - CSA
+ - SSCWeb
 
 Examples
 ========
