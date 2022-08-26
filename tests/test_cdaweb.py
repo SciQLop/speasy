@@ -69,11 +69,17 @@ class SimpleRequest(unittest.TestCase):
 
     def test_get_empty_vector(self):
         # this used to fail because CDA returns at least a record but removes one dimension from data
-        logging.root.addHandler(logging.StreamHandler())
-        logging.root.setLevel(logging.DEBUG)
         result = self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
                                       start_time=datetime(2014, 6, 1, 23, tzinfo=timezone.utc),
                                       stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                      disable_cache=True)
+        self.assertIsNone(result)
+
+    def test_no_data_404_error(self):
+        # this used to fail because CDA returns a 404 error
+        result = self.cd.get_variable(dataset="PSP_FLD_L2_DFB_DBM_SCM", variable="psp_fld_l2_dfb_dbm_scmlgu_rms",
+                                      start_time="2020-01-01",
+                                      stop_time="2020-01-01T09", disable_proxy=True,
                                       disable_cache=True)
         self.assertIsNone(result)
 
@@ -95,7 +101,8 @@ class SimpleRequest(unittest.TestCase):
         with self.assertLogs('speasy.webservices.cda', level='WARNING') as cm:
             result = self.cd.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
                                           start_time=datetime(2000, 6, 1, tzinfo=timezone.utc),
-                                          stop_time=datetime(2000, 6, 1, 1, 10, tzinfo=timezone.utc), disable_proxy=True,
+                                          stop_time=datetime(2000, 6, 1, 1, 10, tzinfo=timezone.utc),
+                                          disable_proxy=True,
                                           disable_cache=True)
             self.assertIsNone(result)
             self.assertTrue(

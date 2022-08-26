@@ -121,6 +121,9 @@ class CDA_Webservice(DataProvider):
         if resp.status_code == 200 and 'FileDescription' in resp.json():
             return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
         elif not resp.ok:
+            if resp.status_code == 404 and "No data available" in resp.json().get('Message', [""])[0]:
+                log.warning(f"Got 404 'No data available' from CDAWeb with {url}")
+                return None
             raise CdaWebException(f'Failed to get data with request: {url}, got {resp.status_code} HTTP response')
         else:
             return None
