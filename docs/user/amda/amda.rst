@@ -1,5 +1,5 @@
-AMDA
-====
+Automated Multi-Dataset Analysis
+================================
 
 .. toctree::
    :maxdepth: 1

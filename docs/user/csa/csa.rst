@@ -4,9 +4,9 @@ Cluster Science Archive
 .. toctree::
    :maxdepth: 1
 
-`Cluster Science Archive (CSA) <https://csa.esac.esa.int/csa-web/>`_ The Cluster Science Archive provides access to all
-science and support data of the on-going Cluster (2000- ) and Double Star (2004-2008) missions. It's integration into
-speasy makes easy to get any public data from the **CSA** handling both webservice **API** and **ISTP** **CDF** files read.
+The `Cluster Science Archive (CSA) <https://csa.esac.esa.int/csa-web/>`_ provides access to all science and support data
+of the on-going Cluster (2000- ) and Double Star (2004-2008) missions. It's integration into speasy makes easy to get any
+public data from the **CSA** handling both webservice **API** and **ISTP** **CDF** files read.
 
 Basics: Getting data from CSA module
 ------------------------------------
