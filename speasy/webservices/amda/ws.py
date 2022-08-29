@@ -472,7 +472,7 @@ class AMDA_Webservice:
         >>> len(amda_parameters) > 0
         True
         >>> amda_parameters[0]
-        <ParameterIndex: |b|>
+        <ParameterIndex: ...>
 
 
         """
@@ -598,7 +598,7 @@ class AMDA_Webservice:
 
         >>> import speasy as spz
         >>> spz.amda.list_timetables()[::50]
-        [<TimetableIndex: FTE_c1>, <TimetableIndex: Jian_SIR_list>, <TimetableIndex: MMS_Burst_Mode_2019January>]
+        [<TimetableIndex: ...>, <TimetableIndex: ...>, <TimetableIndex: ...>]
 
         """
         return list(filter(is_public, flat_inventories.amda.timetables.values()))
@@ -620,9 +620,9 @@ class AMDA_Webservice:
         >>> len(amda_datasets) > 0
         True
         >>> amda_datasets[0]
-        <DatasetIndex: final / prelim>
+        <DatasetIndex: ...>
         >>> amda_datasets[0].desc
-        'Interplanetary Magnetic Field 16-sec Level2/PRELIM Data<br/> Sampling: 16S<br/> Provider: CDAWeb'
+        '...'
 
         """
         return list(filter(is_public, flat_inventories.amda.datasets.values()))

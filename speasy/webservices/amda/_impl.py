@@ -70,7 +70,7 @@ class AmdaImpl(DataProvider):
                                                          server_url=self.server_url),
                 is_public=False)
             root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider='amda', uid='DerivedParameters',
-                                                 meta=user_cat.catalogList.__dict__)
+                                                 meta=user_param.ws.paramList.__dict__)
 
         public_tt = AmdaXMLParser.parse(rest_client.get_timetables_xml_tree(server_url=self.server_url))
         TimeTables.SharedTimeTables = SpeasyIndex(name='SharedTimeTables', provider='amda', uid='SharedTimeTables',
