@@ -94,6 +94,11 @@ class AmdaXMLParser:
             param.stop_date = parent.stop_date
             param.dataset = parent.spz_uid()
         return param
+    @staticmethod
+    def make_user_parameter_node(parent, node, is_public=True):
+        # It seems that AMDA prevents users from using incompatible names here
+        param = AmdaXMLParser.make_any_node(parent, node, ParameterIndex, name_key='name', is_public=is_public)
+        return param
 
     @staticmethod
     def make_component_node(parent, node, is_public=True):
@@ -129,7 +134,7 @@ class AmdaXMLParser:
             'timeTable': AmdaXMLParser.make_timetable_node,
             'timetab': AmdaXMLParser.make_timetable_node,
             'catalog': AmdaXMLParser.make_catalogue_node,
-            'param': AmdaXMLParser.make_parameter_node,
+            'param': AmdaXMLParser.make_user_parameter_node,
         }
 
         def _recursive_parser(parent, node, is_public):
