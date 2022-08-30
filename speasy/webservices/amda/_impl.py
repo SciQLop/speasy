@@ -15,7 +15,6 @@ from typing import Optional
 from ...config import amda_password, amda_username, amda_user_cache_retention, amda_max_chunk_size_days
 from ...products.variable import SpeasyVariable, merge
 from ...inventories import data_tree, flat_inventories
-from ...inventories import reset_amda_inventory as reset_amda_flat_inventory
 from ...core.cache import CacheCall
 import logging
 
@@ -36,7 +35,7 @@ def _get_credentials():
 
 
 def is_public(node):
-    return node.__dict__.get('is_public', True)
+    return node.__dict__.get('is_public', 'True') == 'True'
 
 
 def is_private(node):

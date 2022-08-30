@@ -75,6 +75,7 @@ class SSC_Webservice(DataProvider):
         inv = list(map(make_index, self.get_observatories()))
         root.Trajectories = SpeasyIndex(name='Trajectories', provider='ssc', uid='Trajectories',
                                         meta={item.Id: item for item in inv})
+        return root
 
     @CacheCall(cache_retention=7 * 24 * 60 * 60, is_pure=True)
     def get_observatories(self):

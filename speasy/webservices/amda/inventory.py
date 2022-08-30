@@ -60,7 +60,7 @@ class AmdaXMLParser:
         return {clean(key): value for key, value in kwargs.items()}
 
     @staticmethod
-    def index_ctor_args(node, name_key='xmlid', is_public=True):
+    def index_ctor_args(node, name_key='xmlid', is_public='True'):
         meta = AmdaXMLParser.fix_names(**AmdaXMLParser.fix_xmlid(**node.attrib))
         meta['is_public'] = is_public
         if 'dataStart' in meta:
@@ -71,8 +71,8 @@ class AmdaXMLParser:
         return {"name": meta.get('name', node.tag), "provider": "amda", 'uid': uid, "meta": meta}
 
     @staticmethod
-    def make_any_node(parent, node, ctor, name_key='xmlid', is_public=True):
-        new = ctor(**AmdaXMLParser.index_ctor_args(node, is_public=is_public))
+    def make_any_node(parent, node, ctor, name_key='xmlid', is_public='True'):
+        new = ctor(**AmdaXMLParser.index_ctor_args(node, is_public=str(is_public)))
         name = fix_name(new.__dict__.get(name_key, node.tag))
         parent.__dict__[name] = new
         return new
@@ -94,6 +94,7 @@ class AmdaXMLParser:
             param.stop_date = parent.stop_date
             param.dataset = parent.spz_uid()
         return param
+
     @staticmethod
     def make_user_parameter_node(parent, node, is_public=True):
         # It seems that AMDA prevents users from using incompatible names here

@@ -147,4 +147,7 @@ amda_password = ConfigEntry("AMDA", "password",
 amda_user_cache_retention = ConfigEntry("AMDA", "user_cache_retention", "900",
                                         description="AMDA specific cache retention for requests such as list_catalogs.")  # 60 * 15 seconds
 amda_max_chunk_size_days = ConfigEntry("AMDA", "max_chunk_size_days", "10",
-                                       description="Maximum request duration in days, any request over a longer period will be split in smaller ones.")
+                                       description="Maximum request duration in days, any request over a longer period will be split into smaller ones.")
+
+inventories_cache_retention_days = ConfigEntry("INVENTORIES", "cache_retention_days", "2",
+                                               description="Maximum times in days speasy will keep inventories in cache before fetching newer version.")
