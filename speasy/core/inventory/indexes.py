@@ -19,8 +19,9 @@ class SpeasyIndex:
         self.__spz_type__ = self.__class__.__name__
 
     def clear(self):
-        for key in self.__dict__:
-            if key not in ('provider', 'name', 'uid', 'type'):
+        keys = list(self.__dict__.keys())
+        for key in keys:
+            if not key.startswith('__spz_'):
                 self.__dict__.pop(key)
 
     def spz_provider(self):

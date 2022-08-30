@@ -7,6 +7,8 @@ from ..config import inventories_cache_retention_days
 from datetime import timedelta
 from typing import List, Optional
 
+PROVIDERS = {}
+
 
 class DataProvider:
     def __init__(self, provider_name: str, provider_alt_names: List or None = None):
@@ -17,10 +19,23 @@ class DataProvider:
         tree.__dict__[provider_name] = from_dict(self._inventory(provider_name))
         for alt_name in self.provider_alt_names:
             flat_inventories.__dict__[alt_name] = self.flat_inventory
+        PROVIDERS[provider_name] = self
 
     @CacheCall(cache_retention=timedelta(days=int(inventories_cache_retention_days.get())), is_pure=True)
     def _inventory(self, provider_name):
         return to_dict(self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name)))
+
+    def update_inventory(self, disable_cache=False, force_refresh=False):
+        self.flat_inventory.observatories.clear()
+        self.flat_inventory.missions.clear()
+        self.flat_inventory.instruments.clear()
+        self.flat_inventory.datasets.clear()
+        self.flat_inventory.parameters.clear()
+        self.flat_inventory.catalogs.clear()
+        self.flat_inventory.timetables.clear()
+        tree.__dict__[self.provider_name].clear()
+        tree.__dict__[self.provider_name] = from_dict(
+            self._inventory(self.provider_name, disable_cache=disable_cache, force_refresh=force_refresh))
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
         if type(index_or_str) is str:
