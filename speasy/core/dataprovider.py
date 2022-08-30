@@ -4,7 +4,7 @@ from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIn
 from speasy.core.datetime_range import DateTimeRange
 from .cache import CacheCall
 from ..config import inventories_cache_retention_days
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List, Optional
 
 PROVIDERS = {}
@@ -23,7 +23,8 @@ class DataProvider:
 
     @CacheCall(cache_retention=timedelta(days=int(inventories_cache_retention_days.get())), is_pure=True)
     def _inventory(self, provider_name):
-        return to_dict(self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name)))
+        return to_dict(self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
+                                                        meta={'build_date': datetime.utcnow().isoformat()})))
 
     def update_inventory(self, disable_cache=False, force_refresh=False):
         self.flat_inventory.observatories.clear()
