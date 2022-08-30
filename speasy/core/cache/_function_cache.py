@@ -3,6 +3,7 @@ import inspect
 import base64
 from typing import Union, Callable, List, Tuple
 from ._instance import _cache
+from datetime import timedelta
 
 
 def make_key_from_args(*args, **kwargs):
@@ -14,6 +15,8 @@ def make_key_from_args(*args, **kwargs):
 
 class CacheCall(object):
     def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache):
+        if type(cache_retention) is timedelta:
+            cache_retention = cache_retention.total_seconds()
         self.cache_retention = cache_retention
         self.cache = cache_instance
         self.is_methode = False

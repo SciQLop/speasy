@@ -1,7 +1,10 @@
 from speasy.inventories import flat_inventories, tree
 from speasy.core.inventory import ProviderInventory
-from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIndex
+from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIndex, from_dict, to_dict
 from speasy.core.datetime_range import DateTimeRange
+from .cache import CacheCall
+from ..config import inventories_cache_retention_days
+from datetime import timedelta
 from typing import List, Optional
 
 
@@ -11,10 +14,13 @@ class DataProvider:
         self.provider_alt_names = provider_alt_names or []
         self.flat_inventory = ProviderInventory()
         flat_inventories.__dict__[provider_name] = self.flat_inventory
-        tree.__dict__[provider_name] = SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name)
-        self.build_inventory(tree.__dict__[provider_name])
+        tree.__dict__[provider_name] = from_dict(self._inventory(provider_name))
         for alt_name in self.provider_alt_names:
             flat_inventories.__dict__[alt_name] = self.flat_inventory
+
+    @CacheCall(cache_retention=timedelta(days=int(inventories_cache_retention_days.get())), is_pure=True)
+    def _inventory(self, provider_name):
+        return to_dict(self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name)))
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
         if type(index_or_str) is str:
