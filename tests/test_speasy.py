@@ -5,7 +5,8 @@
 import unittest
 from datetime import datetime, timezone
 import speasy as spz
-from ddt import ddt, data
+from speasy.core.dataprovider import PROVIDERS
+from ddt import ddt, data, unpack
 
 
 @ddt
@@ -123,7 +124,24 @@ class SpeasyGetData(unittest.TestCase):
         self.assertGreater(len(result), 0)
 
 
+@ddt
 class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
         self.assertListEqual(l, ['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa'])
+
+    @data(*[(provider,) for provider in PROVIDERS.keys()])
+    @unpack
+    def test_can_update_inventories(self, provider):
+        spz.inventories.flat_inventories.__dict__[provider].parameters.clear()
+        spz.__dict__[provider].update_inventory()
+        self.assertGreaterEqual(len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+
+    def test_can_update_inventories_all_at_once(self):
+        for provider in PROVIDERS.keys():
+            spz.inventories.flat_inventories.__dict__[provider].parameters.clear()
+
+        spz.update_inventories()
+
+        for provider in PROVIDERS.keys():
+            self.assertGreaterEqual(len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)

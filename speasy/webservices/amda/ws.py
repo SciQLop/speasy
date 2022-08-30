@@ -98,6 +98,9 @@ class AMDA_Webservice:
     def __del__(self):
         pass
 
+    def update_inventory(self, disable_cache=False, force_refresh=False):
+        return self._impl.update_inventory(disable_cache=disable_cache, force_refresh=force_refresh)
+
     def product_version(self, parameter_id: str or ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
@@ -423,7 +426,6 @@ class AMDA_Webservice:
 
         """
         return self._impl._parameter_range(parameter_id)
-
 
     def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
         """Get product time range.

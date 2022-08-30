@@ -94,3 +94,9 @@ def get_orbit(body: str or SpeasyIndex, start_time, stop_time, coordinate_system
 
 def list_providers() -> List[str]:
     return list(__PROVIDERS__.keys())
+
+
+def update_inventories(disable_cache=False, force_refresh=False):
+    from .core.dataprovider import PROVIDERS
+    for provider in PROVIDERS.values():
+        provider.update_inventory(disable_cache=disable_cache, force_refresh=force_refresh)
