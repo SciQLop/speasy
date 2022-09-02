@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['Click>=6.0', 'requests', 'pandas', 'diskcache', 'appdirs', 'numpy',
-                'packaging', 'python-dateutil', 'astropy', 'astroquery']
+                'packaging', 'python-dateutil', 'astropy', 'astroquery', 'pyistp']
 
 setup_requirements = []
 
