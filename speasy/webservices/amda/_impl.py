@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 
 from . import rest_client
-from speasy.core.dataprovider import DataProvider
 from speasy.core.inventory.indexes import SpeasyIndex
 from .utils import load_csv, load_timetable, load_catalog
 from .inventory import AmdaXMLParser
@@ -42,10 +41,9 @@ def is_private(node):
     return not is_public(node)
 
 
-class AmdaImpl(DataProvider):
+class AmdaImpl:
     def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
         self.server_url = server_url
-        DataProvider.__init__(self, provider_name='amda')
 
     def _update_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
         if credential_are_valid():
