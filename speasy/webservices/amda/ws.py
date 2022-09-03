@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Union
 
 # General modules
+from speasy.core.dataprovider import DataProvider
 from speasy.config import amda_user_cache_retention
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
@@ -22,7 +23,6 @@ from speasy.products.dataset import Dataset
 from speasy.products.timetable import TimeTable
 from speasy.products.catalog import Catalog
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-from speasy.inventories import flat_inventories
 import logging
 
 log = logging.getLogger(__name__)
@@ -46,19 +46,7 @@ def _is_user_prod(product_id: str or SpeasyIndex, collection: Dict):
     return False
 
 
-def is_user_catalog(catalog_id: str or CatalogIndex):
-    return _is_user_prod(catalog_id, flat_inventories.amda.catalogs)
-
-
-def is_user_timetable(timetable_id: str or TimetableIndex):
-    return _is_user_prod(timetable_id, flat_inventories.amda.timetables)
-
-
-def is_user_parameter(parameter_id: str or ParameterIndex):
-    return _is_user_prod(parameter_id, flat_inventories.amda.parameters)
-
-
-class AMDA_Webservice:
+class AMDA_Webservice(DataProvider):
     __datetime_format__ = "%Y-%m-%dT%H:%M:%S.%f"
     """AMDA_Webservice connexion class. This class manages the connexion to AMDA_Webservice. Use the :meth:`get_data` or
     :meth:`get_parameter` methods for retrieving data.
@@ -94,12 +82,22 @@ class AMDA_Webservice:
     def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
         from ._impl import AmdaImpl
         self._impl = AmdaImpl(server_url=server_url)
+        DataProvider.__init__(self, provider_name='amda')
 
     def __del__(self):
         pass
 
-    def update_inventory(self, disable_cache=False, force_refresh=False):
-        return self._impl.update_inventory(disable_cache=disable_cache, force_refresh=force_refresh)
+    def build_inventory(self, root: SpeasyIndex):
+        return self._impl.build_inventory(root)
+
+    def is_user_catalog(self, catalog_id: str or CatalogIndex):
+        return _is_user_prod(catalog_id, self.flat_inventory.catalogs)
+
+    def is_user_timetable(self, timetable_id: str or TimetableIndex):
+        return _is_user_prod(timetable_id, self.flat_inventory.timetables)
+
+    def is_user_parameter(self, parameter_id: str or ParameterIndex):
+        return _is_user_prod(parameter_id, self.flat_inventory.parameters)
 
     def product_version(self, parameter_id: str or ParameterIndex):
         """Get date of last modification of dataset or parameter.
@@ -115,7 +113,44 @@ class AMDA_Webservice:
             product version
         """
         dataset = self._find_parent_dataset(parameter_id)
-        return flat_inventories.amda.datasets[dataset].lastUpdate
+        return self.flat_inventory.datasets[dataset].lastUpdate
+
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            parameter id
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+        Examples
+        --------
+        >>> import speasy as spz
+        >>> spz.amda.parameter_range("imf")
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
+        """
+        return self._parameter_range(parameter_id)
+
+    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+        Parameters
+        ----------
+        dataset_id: str or DatasetIndex
+            parameter id
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+        Examples
+        --------
+        >>> import speasy as spz
+        >>> spz.amda.dataset_range("ace-imf-all")
+        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
+        """
+
+        return self._dataset_range(dataset_id)
 
     def get_data(self, product, start_time=None, stop_time=None, **kwargs) -> Optional[Union[
         SpeasyVariable, TimeTable, Catalog, Dataset]]:
@@ -151,18 +186,18 @@ class AMDA_Webservice:
         if product_t == ProductType.DATASET and start_time and stop_time:
             return self.get_dataset(dataset_id=product, start=start_time, stop=stop_time, **kwargs)
         if product_t == ProductType.PARAMETER and start_time and stop_time:
-            if is_user_parameter(product):
+            if self.is_user_parameter(product):
                 return self.get_user_parameter(parameter_id=product, start_time=start_time, stop_time=stop_time,
                                                **kwargs)
             else:
                 return self.get_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
         if product_t == ProductType.CATALOG:
-            if is_user_catalog(product):
+            if self.is_user_catalog(product):
                 return self.get_user_catalog(catalog_id=product, **kwargs)
             else:
                 return self.get_catalog(catalog_id=product, **kwargs)
         if product_t == ProductType.TIMETABLE:
-            if is_user_timetable(product):
+            if self.is_user_timetable(product):
                 return self.get_user_timetable(timetable_id=product, **kwargs)
             else:
                 return self.get_timetable(timetable_id=product, **kwargs)
@@ -349,8 +384,8 @@ class AMDA_Webservice:
             return None
 
         dataset_id = to_xmlid(dataset_id)
-        name = flat_inventories.amda.datasets[dataset_id].name
-        meta = {k: v for k, v in flat_inventories.amda.datasets[dataset_id].__dict__.items() if
+        name = self.flat_inventory.datasets[dataset_id].name
+        meta = {k: v for k, v in self.flat_inventory.datasets[dataset_id].__dict__.items() if
                 not isinstance(v, SpeasyIndex)}
         parameters = self.list_parameters(dataset_id)
         return Dataset(name=name, variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
@@ -404,55 +439,7 @@ class AMDA_Webservice:
         """
         return self._impl.dl_catalog(to_xmlid(catalog_id), **kwargs)
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
-        """Get product time range.
-
-        Parameters
-        ----------
-        parameter_id: str or ParameterIndex
-            parameter id
-
-        Returns
-        -------
-        Optional[DateTimeRange]
-            Data time range
-
-        Examples
-        --------
-
-        >>> import speasy as spz
-        >>> spz.amda.parameter_range("imf")
-        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
-
-        """
-        return self._impl._parameter_range(parameter_id)
-
-    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
-        """Get product time range.
-
-        Parameters
-        ----------
-        dataset_id: str or DatasetIndex
-            parameter id
-
-        Returns
-        -------
-        Optional[DateTimeRange]
-            Data time range
-
-        Examples
-        --------
-
-        >>> import speasy as spz
-        >>> spz.amda.dataset_range("ace-imf-all")
-        <DateTimeRange: 1997-09-02T00:00:12+00:00 -> ...>
-
-        """
-
-        return self._impl._dataset_range(dataset_id)
-
-    @staticmethod
-    def list_parameters(dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:
+    def list_parameters(self, dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:
 
         """Get the list of parameter indexes available in AMDA or a given dataset
 
@@ -480,11 +467,10 @@ class AMDA_Webservice:
         """
 
         if dataset_id is not None:
-            return list(flat_inventories.amda.datasets[to_xmlid(dataset_id)])
-        return list(filter(is_public, flat_inventories.amda.parameters.values()))
+            return list(self.flat_inventory.datasets[to_xmlid(dataset_id)])
+        return list(filter(is_public, self.flat_inventory.parameters.values()))
 
-    @staticmethod
-    def list_catalogs() -> List[CatalogIndex]:
+    def list_catalogs(self) -> List[CatalogIndex]:
         """Get the list of public catalog IDs:
 
         Returns
@@ -503,10 +489,9 @@ class AMDA_Webservice:
         <CatalogIndex: model_regions_plasmas_mms_2019>
 
         """
-        return list(filter(is_public, flat_inventories.amda.catalogs.values()))
+        return list(filter(is_public, self.flat_inventory.catalogs.values()))
 
-    @staticmethod
-    def list_user_timetables() -> List[TimetableIndex]:
+    def list_user_timetables(self) -> List[TimetableIndex]:
         """Get the list of user timetables. User timetable are represented as dictionary objects.
 
         Returns
@@ -530,10 +515,9 @@ class AMDA_Webservice:
 
         """
         # get list of private parameters
-        return list(filter(is_private, flat_inventories.amda.timetables.values()))
+        return list(filter(is_private, self.flat_inventory.timetables.values()))
 
-    @staticmethod
-    def list_user_catalogs() -> List[CatalogIndex]:
+    def list_user_catalogs(self) -> List[CatalogIndex]:
         """Get the list of user catalogs. User catalogs are represented as dictionary objects.
 
         Returns
@@ -557,10 +541,9 @@ class AMDA_Webservice:
 
         """
         # get list of private parameters
-        return list(filter(is_private, flat_inventories.amda.catalogs.values()))
+        return list(filter(is_private, self.flat_inventory.catalogs.values()))
 
-    @staticmethod
-    def list_user_parameters() -> List[ParameterIndex]:
+    def list_user_parameters(self) -> List[ParameterIndex]:
         """Get the list of user parameters. User parameters are represented as dictionary objects.
 
         Returns
@@ -584,10 +567,9 @@ class AMDA_Webservice:
 
         """
         # get list of private parameters
-        return list(filter(is_private, flat_inventories.amda.parameters.values()))
+        return list(filter(is_private, self.flat_inventory.parameters.values()))
 
-    @staticmethod
-    def list_timetables() -> List[TimetableIndex]:
+    def list_timetables(self) -> List[TimetableIndex]:
         """Get list of public timetables.
 
         Returns
@@ -603,10 +585,9 @@ class AMDA_Webservice:
         [<TimetableIndex: ...>, <TimetableIndex: ...>, <TimetableIndex: ...>]
 
         """
-        return list(filter(is_public, flat_inventories.amda.timetables.values()))
+        return list(filter(is_public, self.flat_inventory.timetables.values()))
 
-    @staticmethod
-    def list_datasets() -> List[DatasetIndex]:
+    def list_datasets(self) -> List[DatasetIndex]:
         """Get the list of dataset id available in AMDA_Webservice
 
         Returns
@@ -627,23 +608,21 @@ class AMDA_Webservice:
         '...'
 
         """
-        return list(filter(is_public, flat_inventories.amda.datasets.values()))
+        return list(filter(is_public, self.flat_inventory.datasets.values()))
 
-    @staticmethod
-    def _find_parent_dataset(product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> \
+    def _find_parent_dataset(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> \
         Optional[str]:
 
         product_id = to_xmlid(product_id)
-        product_type = AMDA_Webservice.product_type(product_id)
+        product_type = self.product_type(product_id)
         if product_type is ProductType.DATASET:
             return product_id
         elif product_type in (ProductType.COMPONENT, ProductType.PARAMETER):
-            for dataset in flat_inventories.amda.datasets.values():
+            for dataset in self.flat_inventory.datasets.values():
                 if product_id in dataset:
                     return to_xmlid(dataset)
 
-    @staticmethod
-    def product_type(product_id: str or SpeasyIndex) -> ProductType:
+    def product_type(self, product_id: str or SpeasyIndex) -> ProductType:
         """Returns product type for any known ADMA product from its index or ID.
 
         Parameters
@@ -666,15 +645,15 @@ class AMDA_Webservice:
         <ProductType.DATASET: 1>
         """
         product_id = to_xmlid(product_id)
-        if product_id in flat_inventories.amda.datasets:
+        if product_id in self.flat_inventory.datasets:
             return ProductType.DATASET
-        if product_id in flat_inventories.amda.parameters:
+        if product_id in self.flat_inventory.parameters:
             return ProductType.PARAMETER
-        if product_id in flat_inventories.amda.components:
+        if product_id in self.flat_inventory.components:
             return ProductType.COMPONENT
-        if product_id in flat_inventories.amda.timetables:
+        if product_id in self.flat_inventory.timetables:
             return ProductType.TIMETABLE
-        if product_id in flat_inventories.amda.catalogs:
+        if product_id in self.flat_inventory.catalogs:
             return ProductType.CATALOG
 
         return ProductType.UNKNOWN
