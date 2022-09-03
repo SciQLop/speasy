@@ -38,17 +38,6 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}'}
 
 
-def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
-    if type(index_or_str) is str:
-        parts = index_or_str.split('/')
-    elif type(index_or_str) is ParameterIndex:
-        parts = index_or_str.product.split('/')
-    else:
-        raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
-    assert len(parts) == 2
-    return parts[0], parts[1]
-
-
 class CDA_Webservice(DataProvider):
     def __init__(self):
         self.__url = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1"
@@ -105,6 +94,26 @@ class CDA_Webservice(DataProvider):
         """
         return self._dataset_range(dataset_id)
 
+    def _to_dataset_and_variable(self, index_or_str: ParameterIndex or str) -> Tuple[str, str]:
+
+        if type(index_or_str) is ParameterIndex:
+            index_or_str = index_or_str.spz_uid()
+
+        if type(index_or_str) is str:
+            if '/' in index_or_str:
+                parts = index_or_str.split('/')
+                if len(parts) == 2:
+                    return parts[0], parts[1]
+                for pos in range(1, len(parts)):
+                    ds = '/'.join(parts[:pos])
+                    var = '/'.join(parts[pos:])
+                    if (ds in self.flat_inventory.datasets) and (index_or_str in self.flat_inventory.parameters):
+                        return ds, var
+                raise ValueError(
+                    f"Given string is ambiguous, it contains several '/', tried all combinations but failed to find a matching dataset/variable pair in inventory: {index_or_str}")
+            raise ValueError(f"Given string does not look like a CDA dataset/variable pair: {index_or_str}")
+        raise TypeError(f"Wrong type for {index_or_str}, expecting a string or a SpeasyIndex, got {type(index_or_str)}")
+
     def _dl_variable(self,
                      dataset: str, variable: str,
                      start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None) -> Optional[
@@ -112,7 +121,7 @@ class CDA_Webservice(DataProvider):
 
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         fmt = "cdf"
-        url = f"{self.__url}/dataviews/sp_phys/datasets/{dataset}/data/{start_time},{stop_time}/{variable}?format={fmt}"
+        url = f"{self.__url}/dataviews/sp_phys/datasets/{http.quote(dataset, safe='')}/data/{start_time},{stop_time}/{http.quote(variable, safe='')}?format={fmt}"
         headers = {"Accept": "application/json"}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
@@ -138,7 +147,7 @@ class CDA_Webservice(DataProvider):
             log.warning(f"You are requesting {product} outside of its definition range {p_range}")
             return None
 
-        dataset, variable = to_dataset_and_variable(product)
+        dataset, variable = self._to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than)
 

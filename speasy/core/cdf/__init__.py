@@ -9,6 +9,8 @@ def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None
             var = istp.data_variable(variable)
         elif variable.replace('-', '_') in istp.data_variables():  # THX CSA/ISTP
             var = istp.data_variable(variable.replace('-', '_'))
+        elif variable.replace('/', '$') in istp.data_variables():  # CDA
+            var = istp.data_variable(variable.replace('/', '$'))
         else:
             return None
         if var:
