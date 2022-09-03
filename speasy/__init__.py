@@ -38,6 +38,30 @@ def find_product(name: str) -> List[str]:
     pass
 
 
+def provider_and_product(path_or_product: str or SpeasyIndex) -> (str, str):
+    """Breaks given product in two parts: provider and product UID
+
+    Parameters
+    ----------
+    path_or_product : str or SpeasyIndex
+        The product as SpeasyIndex or path as string you want to split
+    Returns
+    -------
+    (str, str)
+        the provider UID and the product UID
+    """
+    if isinstance(path_or_product, SpeasyIndex):
+        return path_or_product.spz_provider().lower(), path_or_product.spz_uid()
+    elif type(path_or_product) is str:
+        if '/' in path_or_product:
+            provider_uid, product_uid = path_or_product.split('/', 1)
+            return provider_uid, product_uid
+        else:
+            raise ValueError(f"Given string does not look like a path {path_or_product}")
+    raise TypeError(
+        f"Wrong type for {path_or_product}, expecting a string or a SpeasyIndex, got {type(path_or_product)}")
+
+
 def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwargs) -> MaybeAnyProduct:
     """Download given product, this function accepts string paths like "sscweb/moon" or index objects
     from inventory trees.
@@ -73,16 +97,10 @@ def get_data(product: str or SpeasyIndex, start_time=None, stop_time=None, **kwa
 
 
     """
-    if isinstance(product, SpeasyIndex):
-        provider = product.spz_provider().lower()
-        if provider in __PROVIDERS__:
-            return __PROVIDERS__[provider](product, start_time, stop_time, **kwargs)
-    else:
-        components = product.split('/')
-        provider = components[0]
-        if provider in __PROVIDERS__:
-            return __PROVIDERS__[provider]('/'.join(components[1:]), start_time=start_time, stop_time=stop_time,
-                                           **kwargs)
+    provider_uid, product_uid = provider_and_product(product)
+    if provider_uid in __PROVIDERS__:
+        return __PROVIDERS__[provider_uid](product_uid, start_time=start_time, stop_time=stop_time, **kwargs)
+
     raise ValueError(
         f"Can't find a provider for {product}")
 

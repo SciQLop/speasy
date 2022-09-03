@@ -35,6 +35,12 @@ class SimpleRequest(unittest.TestCase):
             "variable": "tha_fgl_gsm",
             "start_time": datetime(2014, 6, 1, 23, tzinfo=timezone.utc),
             "stop_time": datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "WI_K0_SMS",
+            "variable": "C/O_ratio",
+            "start_time": datetime(1996, 8, 1, 20, tzinfo=timezone.utc),
+            "stop_time": datetime(1996, 8, 1, 23, tzinfo=timezone.utc)
         }
     )
     def test_get_variable(self, kw):

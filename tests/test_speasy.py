@@ -145,3 +145,11 @@ class SpeasyModule(unittest.TestCase):
 
         for provider in PROVIDERS.keys():
             self.assertGreaterEqual(len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+
+    def test_raises_if_product_path_is_broken(self):
+        with self.assertRaises(ValueError):
+            spz.get_data('this_misses_a_slash', datetime.now(), datetime.now())
+
+    def test_raises_if_product_is_worng_type(self):
+        with self.assertRaises(TypeError):
+            spz.get_data({}, datetime.now(), datetime.now())

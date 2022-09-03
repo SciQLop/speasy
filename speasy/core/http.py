@@ -1,6 +1,7 @@
 from speasy import __version__
 import platform
 import requests
+from requests.utils import quote
 from time import sleep
 import logging
 
