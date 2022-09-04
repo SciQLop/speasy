@@ -2,11 +2,10 @@ from speasy.inventories import flat_inventories, tree
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIndex, from_dict, to_dict
 from speasy.core.datetime_range import DateTimeRange
-from speasy.products.variable import merge as var_merge
 from .cache import CacheCall
 from ..config import inventories as inventories_cfg
 from datetime import timedelta, datetime
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 PROVIDERS = {}
 

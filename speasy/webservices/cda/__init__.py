@@ -8,8 +8,6 @@ __version__ = '0.1.0'
 
 from typing import Optional, Tuple
 from datetime import datetime, timedelta
-
-from pywt import threshold
 from speasy.core.cache import UnversionedProviderCache, CACHE_ALLOWED_KWARGS, \
     _cache  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
