@@ -220,15 +220,18 @@ class SpeasyVariable(object):
         }
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, object]) -> 'SpeasyVariable':
-        return SpeasyVariable(
-            values=dictionary.get('values', np.empty((0, 1))),
-            time=dictionary.get('time', np.empty(0, dtype=np.dtype('datetime64[ns]'))),
-            extra_axes=dictionary.get('extra_axes', None),
-            extra_axes_labels=dictionary.get('extra_axes_labels', None),
-            columns=dictionary.get('columns', None),
-            meta=dictionary.get('metadata', {}),
-        )
+    def from_dictionary(dictionary: Dict[str, object] or None) -> 'SpeasyVariable' or None:
+        if dictionary is not None:
+            return SpeasyVariable(
+                values=dictionary.get('values', np.empty((0, 1))),
+                time=dictionary.get('time', np.empty(0, dtype=np.dtype('datetime64[ns]'))),
+                extra_axes=dictionary.get('extra_axes', None),
+                extra_axes_labels=dictionary.get('extra_axes_labels', None),
+                columns=dictionary.get('columns', None),
+                meta=dictionary.get('metadata', {}),
+            )
+        else:
+            return None
 
     @staticmethod
     def epoch_to_datetime64(epoch_array: np.array):
@@ -256,7 +259,7 @@ def to_dictionary(var: SpeasyVariable) -> Dict[str, object]:
     return var.to_dictionary()
 
 
-def from_dictionary(dictionary: Dict[str, object]) -> SpeasyVariable:
+def from_dictionary(dictionary: Dict[str, object] or None) -> SpeasyVariable or None:
     return SpeasyVariable.from_dictionary(dictionary)
 
 
