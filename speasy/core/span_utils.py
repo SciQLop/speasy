@@ -98,6 +98,6 @@ def split(span: Sequence, fragment_duration) -> List[Sequence]:
     if total_duration <= fragment_duration:
         return [span]
     fragments = [
-        span_ctor(type(span), span[0] + fragment_duration * i, span[0] + min(fragment_duration * (i + 1), span[1])) for
+        span_ctor(type(span), span[0] + fragment_duration * i, min(span[0] + fragment_duration * (i + 1), span[1])) for
         i in range(ceil(total_duration / fragment_duration))]
     return fragments
