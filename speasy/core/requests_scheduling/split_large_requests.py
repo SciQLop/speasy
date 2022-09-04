@@ -1,7 +1,9 @@
-from typing import List, Callable
+from typing import Callable
 from speasy.core.datetime_range import DateTimeRange
 from datetime import timedelta
 from functools import wraps
+from speasy.products.variable import merge as var_merge
+
 
 class SplitLargeRequests(object):
     def __init__(self, threshold: Callable[[], timedelta]):
