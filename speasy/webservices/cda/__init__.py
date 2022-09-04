@@ -15,7 +15,7 @@ from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex, DatasetIndex
-from speasy.core.dataprovider import DataProvider
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
 from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.core.datetime_range import DateTimeRange
 from urllib.request import urlopen
@@ -140,15 +140,11 @@ class CDA_Webservice(DataProvider):
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'if_newer_than'])
+    @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
     @SplitLargeRequests(threshold=lambda: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None):
-        p_range = self.parameter_range(product)
-        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
-            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
-            return None
-
         dataset, variable = self._to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than)

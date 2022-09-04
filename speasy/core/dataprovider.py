@@ -5,9 +5,29 @@ from speasy.core.datetime_range import DateTimeRange
 from .cache import CacheCall
 from ..config import inventories as inventories_cfg
 from datetime import timedelta, datetime
-from typing import List, Optional
+from typing import List, Optional, Callable
+from functools import wraps
+import logging
+
+log = logging.getLogger(__name__)
 
 PROVIDERS = {}
+
+
+class ParameterRangeCheck(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, get_data: Callable):
+        @wraps(get_data)
+        def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
+            p_range = wrapped_self.parameter_range(product)
+            if not p_range.intersect(DateTimeRange(start_time, stop_time)):
+                log.warning(f"You are requesting {product} outside of its definition range {p_range}")
+                return None
+            return get_data(wrapped_self, product=product, start_time=start_time, stop_time=stop_time, **kwargs)
+
+        return wrapped
 
 
 class DataProvider:

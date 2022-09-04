@@ -9,7 +9,7 @@ from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from ...inventories import flat_inventories
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
-from speasy.core.dataprovider import DataProvider
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 from speasy.core.datetime_range import DateTimeRange
@@ -218,14 +218,11 @@ class CSA_Webservice(DataProvider):
         return self.flat_inventory.datasets[dataset].date_last_update
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
+    @ParameterRangeCheck()
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
     @SplitLargeRequests(threshold=lambda: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime):
-        p_range = self.parameter_range(product)
-        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
-            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
-            return None
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable)

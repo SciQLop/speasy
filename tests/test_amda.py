@@ -84,7 +84,7 @@ class PublicProductsRequests(unittest.TestCase):
                 any(["This request duration is too long, consider reducing time range" in line for line in cm.output]))
 
     def test_returns_none_for_a_request_outside_of_range(self):
-        with self.assertLogs('speasy.webservices.amda.ws', level='WARNING') as cm:
+        with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
             start_date = datetime(1999, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
             stop_date = datetime(1999, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
             parameter_id = "mms1_b_gse"
