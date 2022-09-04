@@ -15,6 +15,7 @@ from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.dataprovider import DataProvider
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.requests_scheduling import SplitLargeRequests
 import numpy as np
 from astropy import units
 
@@ -128,6 +129,7 @@ class SSC_Webservice(DataProvider):
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'coordinate_system',
                                                        'debug'])
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
+    @SplitLargeRequests(threshold=lambda: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                    debug=False) -> Optional[SpeasyVariable]:

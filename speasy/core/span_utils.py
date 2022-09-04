@@ -88,3 +88,16 @@ def shift(span: Sequence, distance):
     if not is_span(span):
         raise TypeError("You must provide a Span like object")
     return span_ctor(type(span), span[0] + distance, span[1] + distance)
+
+
+def split(span: Sequence, fragment_duration) -> List[Sequence]:
+    from math import ceil
+    if not is_span(span):
+        raise TypeError("You must provide a Span like object")
+    total_duration = span[1] - span[0]
+    if total_duration <= fragment_duration:
+        return [span]
+    fragments = [
+        span_ctor(type(span), span[0] + fragment_duration * i, span[0] + min(fragment_duration * (i + 1), span[1])) for
+        i in range(ceil(total_duration / fragment_duration))]
+    return fragments

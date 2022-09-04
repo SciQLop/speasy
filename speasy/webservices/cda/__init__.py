@@ -8,6 +8,8 @@ __version__ = '0.1.0'
 
 from typing import Optional, Tuple
 from datetime import datetime, timedelta
+
+from pywt import threshold
 from speasy.core.cache import UnversionedProviderCache, CACHE_ALLOWED_KWARGS, \
     _cache  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
@@ -16,6 +18,7 @@ from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex, DatasetIndex
 from speasy.core.dataprovider import DataProvider
+from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.core.datetime_range import DateTimeRange
 from urllib.request import urlopen
 import logging
@@ -140,6 +143,7 @@ class CDA_Webservice(DataProvider):
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'if_newer_than'])
     @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
+    @SplitLargeRequests(threshold=lambda: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None):
         p_range = self.parameter_range(product)

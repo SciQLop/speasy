@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from speasy.core import span_utils, make_utc_datetime
+from typing import List
 import numpy as np
 
 
@@ -11,7 +12,7 @@ class DateTimeRange:
         self._rng = [make_utc_datetime(start_time), make_utc_datetime(stop_time)]
 
     @property
-    def start_time(self):
+    def start_time(self) -> datetime:
         return self._rng[0]
 
     @start_time.setter
@@ -19,7 +20,7 @@ class DateTimeRange:
         self._rng[0] = make_utc_datetime(start_time)
 
     @property
-    def stop_time(self):
+    def stop_time(self) -> datetime:
         return self._rng[1]
 
     @stop_time.setter
@@ -27,10 +28,13 @@ class DateTimeRange:
         self._rng[1] = make_utc_datetime(stop_time)
 
     @property
-    def duration(self):
+    def duration(self) -> timedelta:
         return self.stop_time - self.start_time
 
-    def __eq__(self, other):
+    def split(self, fragment_duration: timedelta) -> List["DateTimeRange"]:
+        return span_utils.split(self, fragment_duration)
+
+    def __eq__(self, other) -> bool:
         return span_utils.equals(self, other)
 
     def intersect(self, other):

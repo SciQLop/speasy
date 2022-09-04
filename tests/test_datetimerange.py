@@ -124,6 +124,30 @@ class SpanMergeTest(unittest.TestCase):
         self.assertEqual(span_utils.merge([[1, 4], [3, 5]]), [[1, 5]])
 
 
+class SpanSplitTest(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_split_a_span_into_larger_fragment_returns_self(self):
+        range = [0, 1]
+        self.assertEqual(span_utils.split(range, 2), [range])
+
+    def test_split_a_span_into_two_exacts_fragmnets(self):
+        range = [0, 2]
+        self.assertEqual(span_utils.split(range, 1), [[0, 1], [1, 2]])
+
+    def test_split_a_span_with_non_exact_div(self):
+        range = [0, 2.5]
+        self.assertEqual(span_utils.split(range, 1), [[0, 1], [1, 2], [2, 2.5]])
+
+    def test_split_merge_preserves_input(self):
+        range = [0, 2.5]
+        self.assertEqual(span_utils.merge(span_utils.split(range, 1)), [range])
+
+
 @ddt
 class SpanDiffTest(unittest.TestCase):
     def setUp(self):

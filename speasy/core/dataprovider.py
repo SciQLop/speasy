@@ -2,10 +2,11 @@ from speasy.inventories import flat_inventories, tree
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIndex, from_dict, to_dict
 from speasy.core.datetime_range import DateTimeRange
+from speasy.products.variable import merge as var_merge
 from .cache import CacheCall
 from ..config import inventories_cache_retention_days
 from datetime import timedelta, datetime
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 PROVIDERS = {}
 
@@ -27,13 +28,7 @@ class DataProvider:
                                                         meta={'build_date': datetime.utcnow().isoformat()})))
 
     def update_inventory(self, disable_cache=False, force_refresh=False):
-        self.flat_inventory.observatories.clear()
-        self.flat_inventory.missions.clear()
-        self.flat_inventory.instruments.clear()
-        self.flat_inventory.datasets.clear()
-        self.flat_inventory.parameters.clear()
-        self.flat_inventory.catalogs.clear()
-        self.flat_inventory.timetables.clear()
+        self.flat_inventory.clear()
         tree.__dict__[self.provider_name].clear()
         tree.__dict__[self.provider_name] = from_dict(
             self._inventory(self.provider_name, disable_cache=disable_cache, force_refresh=force_refresh))

@@ -19,6 +19,16 @@ class ProviderInventory:
         self.catalogs = {}
         self.components = {}
 
+    def clear(self):
+        self.parameters.clear()
+        self.datasets.clear()
+        self.instruments.clear()
+        self.observatories.clear()
+        self.missions.clear()
+        self.timetables.clear()
+        self.catalogs.clear()
+        self.components.clear()
+
 
 class FlatInventories:
     def __init__(self):
