@@ -14,7 +14,7 @@ class SpeasyGetData(unittest.TestCase):
     def setUp(self):
         self.proxy_state = spz.config.proxy.enabled()
         spz.config.proxy.enabled.set("true")
-        spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache")
+        spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache-dev")
 
     def tearDown(self):
         spz.config.proxy.enabled.set(self.proxy_state)

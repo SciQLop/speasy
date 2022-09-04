@@ -13,7 +13,7 @@ from speasy.products.variable import SpeasyVariable
 from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
-from speasy.core.dataprovider import DataProvider
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.requests_scheduling import SplitLargeRequests
 import numpy as np
@@ -121,22 +121,15 @@ class SSC_Webservice(DataProvider):
                 var.values *= units.km
         return var
 
-    def get_orbit(self, *args, **kwargs) -> SpeasyVariable or None:
-        deprecation("Use get_trajectory instead, get_orbit will be removed in speasy 1.0")
-        return self.get_trajectory(*args, **kwargs)
-
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'coordinate_system',
                                                        'debug'])
+    @ParameterRangeCheck()
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @SplitLargeRequests(threshold=lambda: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                    debug=False) -> Optional[SpeasyVariable]:
-        p_range = self.parameter_range(product)
-        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
-            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
-            return None
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"

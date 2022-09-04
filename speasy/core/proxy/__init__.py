@@ -24,6 +24,23 @@ def query_proxy_version():
     return _CURRENT_PROXY_SERVER_VERSION
 
 
+try:
+    import zstd
+
+    zstd_compression = 'true'
+
+
+    def decompress(data):
+        return zstd.decompress(data)
+
+except ImportError:
+    zstd_compression = 'false'
+
+
+    def decompress(data):
+        return data
+
+
 class GetProduct:
     def __init__(self):
         pass
@@ -35,10 +52,11 @@ class GetProduct:
         kwargs['start_time'] = start_time
         kwargs['stop_time'] = stop_time
         kwargs['format'] = 'python_dict'
+        kwargs['zstd_compression'] = zstd_compression
         resp = http.get(f"{url}/get_data?", params=kwargs)
         log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
-            var = from_dictionary(pickle.loads(resp.content))
+            var = from_dictionary(pickle.loads(decompress(resp.content)))
             return var
         return None
 

@@ -16,10 +16,11 @@ class SplitLargeRequests(object):
             duration = range.duration
             max_range_per_request = self.threshold()
             if duration <= max_range_per_request:
-                return get_data(wrapped_self, product, start_time, stop_time, **kwargs)
+                return get_data(wrapped_self, product=product, start_time=start_time, stop_time=stop_time, **kwargs)
             else:
                 fragments = range.split(max_range_per_request)
                 return var_merge(
-                    [get_data(wrapped_self, product, r.start_time, r.stop_time, **kwargs) for r in fragments])
+                    [get_data(wrapped_self, product=product, start_time=r.start_time, stop_time=r.stop_time, **kwargs)
+                     for r in fragments])
 
         return wrapped

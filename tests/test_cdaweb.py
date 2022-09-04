@@ -104,7 +104,7 @@ class SimpleRequest(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_returns_none_for_a_request_outside_of_range(self):
-        with self.assertLogs('speasy.webservices.cda', level='WARNING') as cm:
+        with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
             result = self.cd.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
                                           start_time=datetime(2000, 6, 1, tzinfo=timezone.utc),
                                           stop_time=datetime(2000, 6, 1, 1, 10, tzinfo=timezone.utc),

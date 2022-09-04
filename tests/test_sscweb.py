@@ -75,7 +75,7 @@ class SscWeb(unittest.TestCase):
             self.assertIs(type(result.values), units.quantity.Quantity)
 
     def test_returns_none_for_a_request_outside_of_range(self):
-        with self.assertLogs('speasy.webservices.ssc', level='WARNING') as cm:
+        with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
             result = self.ssc.get_trajectory('solarorbiter', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
                                              datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))
             self.assertIsNone(result)

@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Union
 
 # General modules
-from speasy.core.dataprovider import DataProvider
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
 from speasy.config import amda as amda_cfg
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
@@ -305,6 +305,7 @@ class AMDA_Webservice(DataProvider):
         return self._impl.dl_user_catalog(catalog_id=catalog_id)
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
+    @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time) -> Optional[SpeasyVariable]:
@@ -338,11 +339,6 @@ class AMDA_Webservice(DataProvider):
         (5400, 3)
 
         """
-
-        p_range = self.parameter_range(product)
-        if not p_range.intersect(DateTimeRange(start_time, stop_time)):
-            log.warning(f"You are requesting {product} outside of its definition range {p_range}")
-            return None
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
 
