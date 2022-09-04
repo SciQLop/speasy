@@ -3,8 +3,12 @@ from unittest.mock import patch
 import os
 from speasy import config
 from io import StringIO
+from ddt import ddt, data, unpack
+from dateutil.parser import parse as parse_dt
+from datetime import datetime
 
 
+@ddt
 class ConfigModule(unittest.TestCase):
     def setUp(self):
         pass
@@ -13,12 +17,28 @@ class ConfigModule(unittest.TestCase):
         pass
 
     def test_config_entry_has_repr(self):
-        self.assertIn("ConfigEntry: AMDA/username", str(config.amda_username))
+        self.assertIn("ConfigEntry: AMDA/username", str(config.amda.username))
 
     @patch('sys.stdout', new_callable=StringIO)
     def test_config_module_shows_entries(self, mock_stdout):
         config.show()
         self.assertIn("ConfigEntry: AMDA/username", mock_stdout.getvalue())
+
+    @data(
+        ("hello", None, "hello"),
+        ("1e9", float, 1e9),
+        ("2019-01-01", parse_dt, datetime(2019, 1, 1))
+    )
+    @unpack
+    def test_get_handles_type_conversion(self, default, ctor, expected):
+        my_test_entry = config.ConfigEntry("unit-tests", "from-env", default=default, type_ctor=ctor)
+        self.assertEqual(expected, my_test_entry.get())
+        config.remove_entry(my_test_entry)
+
+    def test_cfg_entry_call_is_get(self):
+        my_test_entry = config.ConfigEntry("unit-tests", "from-env", default="10", type_ctor=int)
+        self.assertEqual(10, my_test_entry())
+        config.remove_entry(my_test_entry)
 
     def test_reads_first_from_env(self):
         my_test_entry = config.ConfigEntry("unit-tests", "from-env", "DEFAULT")

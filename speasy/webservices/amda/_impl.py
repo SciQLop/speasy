@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 # General modules
-from ...config import amda_password, amda_username, amda_user_cache_retention, amda_max_chunk_size_days
+from ...config import amda as amda_cfg
 from ...products.variable import SpeasyVariable, merge
 from ...inventories import data_tree, flat_inventories
 from ...core.cache import CacheCall
@@ -21,14 +21,14 @@ log = logging.getLogger(__name__)
 
 
 def credential_are_valid():
-    login = amda_username.get()
-    password = amda_password.get()
+    login = amda_cfg.username()
+    password = amda_cfg.password()
     return login != "" and password != ""
 
 
 def _get_credentials():
     if credential_are_valid():
-        return amda_username.get(), amda_password.get()
+        return amda_cfg.username(), amda_cfg.password()
     else:
         raise MissingCredentials()
 
@@ -106,7 +106,7 @@ class AmdaImpl:
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:
-        dt = timedelta(days=int(amda_max_chunk_size_days.get()))
+        dt = timedelta(days=amda_cfg.max_chunk_size_days())
 
         if stop_time - start_time > dt:
             var = None
@@ -127,7 +127,7 @@ class AmdaImpl:
         return self.dl_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time,
                                  **auth_args(username=username, password=password), **kwargs)
 
-    @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention())
     def dl_timetable(self, timetable_id: str, **kwargs):
         url = rest_client.get_timetable(ttID=timetable_id, server_url=self.server_url, **kwargs)
         if url is not None:
@@ -144,7 +144,7 @@ class AmdaImpl:
         username, password = _get_credentials()
         return self.dl_timetable(timetable_id, **auth_args(username=username, password=password), **kwargs)
 
-    @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention())
     def dl_catalog(self, catalog_id: str, **kwargs):
         url = rest_client.get_catalog(catID=catalog_id, server_url=self.server_url, **kwargs)
         if url is not None:

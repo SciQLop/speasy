@@ -2,15 +2,15 @@ from ._xml_catalogs_parser import load_xml_catalog
 from ._cdf_masters_parser import update_tree
 from ....core.index import index
 from ....core.inventory.indexes import SpeasyIndex, to_dict, from_dict
-from ....config import cdaweb_inventory_data_path
+from ....config import cdaweb as cda_cfg
 import requests
 from tempfile import NamedTemporaryFile
 import tarfile
 import os
 from glob import glob
 
-_MASTERS_CDF_PATH = f"{cdaweb_inventory_data_path.get()}/masters_cdf/"
-_XML_CATALOG_PATH = f"{cdaweb_inventory_data_path.get()}/all.xml"
+_MASTERS_CDF_PATH = f"{cda_cfg.inventory_data_path()}/masters_cdf/"
+_XML_CATALOG_PATH = f"{cda_cfg.inventory_data_path()}/all.xml"
 
 
 def _ensure_path_exists(path: str):

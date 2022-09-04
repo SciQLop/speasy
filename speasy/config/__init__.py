@@ -18,21 +18,9 @@ _config.read(_CONFIG_FNAME)
 _entries = {}
 
 
-def _register_entry(entry):
-    if entry.key1 not in _entries:
-        _entries[entry.key1] = {}
-    _entries[entry.key1][entry.key2] = entry
-
-
 def show():
-    for section_name, section in _entries.items():
-        print(f"""
-============================================
-\t\t{section_name}
-============================================""")
-        for _, entry in section.items():
-            print(f"\n  {entry}")
-            print('-------------------------------------------')
+    for section in _entries.values():
+        print(section)
 
 
 def _save_changes():
@@ -51,6 +39,8 @@ class ConfigEntry:
         Entry name
     default: str
         Default value given by ctor
+    type_ctor: any
+        function called to get value from string repr
     env_var_name: str
         Environment variable name to use to set this entry
 
@@ -62,12 +52,12 @@ class ConfigEntry:
         Set entry value (could be env or file)
     """
 
-    def __init__(self, key1: str, key2: str, default: str = "", description: str = ""):
+    def __init__(self, key1: str, key2: str, default: str = "", type_ctor=None, description: str = ""):
         self.key1 = key1
         self.key2 = key2
         self.default = default
+        self.type_ctor = type_ctor or (lambda x: x)
         self.description = description
-        _register_entry(self)
         self.env_var_name = f"SPEASY_{self.key1}_{self.key2}".upper().replace('-', '_')
 
     def __repr__(self):
@@ -85,18 +75,39 @@ class ConfigEntry:
             configuration value
         """
         if self.env_var_name in os.environ:
-            return os.environ[self.env_var_name]
+            return self.type_ctor(os.environ[self.env_var_name])
         if self.key1 in _config and self.key2 in _config[self.key1]:
-            return _config[self.key1][self.key2]
-        return self.default
+            return self.type_ctor(_config[self.key1][self.key2])
+        return self.type_ctor(self.default)
 
     def set(self, value: str):
         if self.env_var_name in os.environ:
-            os.environ[self.env_var_name] = value
+            os.environ[self.env_var_name] = str(value)
         if self.key1 not in _config:
             _config.add_section(self.key1)
-        _config[self.key1][self.key2] = value
+        _config[self.key1][self.key2] = str(value)
         _save_changes()
+
+    def __call__(self, *args, **kwargs):
+        return self.get()
+
+
+class ConfigSection:
+    def __init__(self, name, **kwargs):
+        self.__dict__.update({
+            entry_name: ConfigEntry(name, entry_name, **e_kwargs) for entry_name, e_kwargs in kwargs.items()
+        })
+        _entries[name] = self
+        self.name = name
+
+    def __repr__(self):
+        s = f"""
+============================================
+\t\t{self.name}
+============================================"""
+        for _, entry in self.__dict__.items():
+            s += f"\n  {entry}\n-------------------------------------------"
+        return s
 
 
 def remove_entry(entry: ConfigEntry):
@@ -125,29 +136,48 @@ def remove_entry(entry: ConfigEntry):
 #                           ADD HERE CONFIG ENTRIES
 # user can easily discover them with speasy.config.<completion>
 # ==========================================================================================
+proxy = ConfigSection("PROXY",
+                      enabled={"default": "False",
+                               "description": """Enables or disables speasy proxy usage.
+Speasy proxy is an intermediary server which helps by caching requests among several users.""",
+                               "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
+                      url={"default": "",
+                           "description": """Speasy proxy server URL, you can use http://sciqlop.lpp.polytechnique.fr/cache.
+Speasy proxy is an intermediary server which helps by caching requests among several users."""}
+                      )
 
-proxy_enabled = ConfigEntry("PROXY", "enabled", "False",
-                            description="""Enables or disables speasy proxy usage.
-Speasy proxy is an intermediary server which helps by caching requests among several users.""")
-proxy_url = ConfigEntry("PROXY", "url", "",
-                        description="""Speasy proxy server URL, you can use http://sciqlop.lpp.polytechnique.fr/cache.
-Speasy proxy is an intermediary server which helps by caching requests among several users.""")
+cache = ConfigSection("CACHE",
+                      size={"default": "20e9", "description": """Sets the maximum cache capacity.""",
+                            "type_ctor": lambda x: int(float(x))},
+                      path={"default": str(appdirs.user_cache_dir("speasy", "LPP")),
+                            "description": """Sets Speasy cache path."""}
+                      )
 
-cache_size = ConfigEntry("CACHE", "size", "20e9", description="""Sets the maximum cache capacity.""")
-cache_path = ConfigEntry("CACHE", "path", str(appdirs.user_cache_dir("speasy", "LPP")),
-                         description="""Sets Speasy cache path.""")
+index = ConfigSection("INDEX",
+                      path={"default": f'{appdirs.user_data_dir("speasy", "LPP")}/index'}
+                      )
+cdaweb = ConfigSection("CDAWEB",
+                       inventory_data_path={"default": f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory'}
+                       )
 
-index_path = ConfigEntry("INDEX", "path", f'{appdirs.user_data_dir("speasy", "LPP")}/index')
-cdaweb_inventory_data_path = ConfigEntry("INDEX", "path", f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory')
+amda = ConfigSection("AMDA",
+                     username={
+                         "description": """Your AMDA username, once set, you will be able to get your private products."""},
+                     password={
+                         "description": """Your AMDA password, once set, you will be able to get your private products."""},
+                     user_cache_retention={"default": "900",
+                                           "description": "AMDA specific cache retention for requests such as list_catalogs.",
+                                           "type_ctor": int
+                                           },
+                     max_chunk_size_days={
+                         "default": "10",
+                         "description": "Maximum request duration in days, any request over a longer period will be split into smaller ones.",
+                         "type_ctor": int}
+                     )
 
-amda_username = ConfigEntry("AMDA", "username",
-                            description="""Your AMDA username, once set, you will be able to get your private products.""")
-amda_password = ConfigEntry("AMDA", "password",
-                            description="""Your AMDA password, once set, you will be able to get your private products.""")
-amda_user_cache_retention = ConfigEntry("AMDA", "user_cache_retention", "900",
-                                        description="AMDA specific cache retention for requests such as list_catalogs.")  # 60 * 15 seconds
-amda_max_chunk_size_days = ConfigEntry("AMDA", "max_chunk_size_days", "10",
-                                       description="Maximum request duration in days, any request over a longer period will be split into smaller ones.")
-
-inventories_cache_retention_days = ConfigEntry("INVENTORIES", "cache_retention_days", "2",
-                                               description="Maximum times in days speasy will keep inventories in cache before fetching newer version.")
+inventories = ConfigSection("INVENTORIES",
+                            cache_retention_days={
+                                "default": "2",
+                                "description": "Maximum times in days speasy will keep inventories in cache before fetching newer version.",
+                                "type_ctor": int}
+                            )

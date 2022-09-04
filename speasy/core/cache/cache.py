@@ -2,7 +2,7 @@ from typing import Union
 
 import diskcache as dc
 from .version import str_to_version, version_to_str, Version
-from speasy.config import cache_size
+from speasy.config import cache as cache_cfg
 from contextlib import ExitStack
 
 cache_version = str_to_version("1.1")
@@ -20,9 +20,9 @@ class Cache:
     def __init__(self, cache_path: str = "", cache_type='Cache'):
         cache_path = f"{cache_path}/{cache_type}"
         if cache_type == 'Fanout':
-            self._data = dc.FanoutCache(cache_path, shards=8, size_limit=int(float(cache_size.get())))
+            self._data = dc.FanoutCache(cache_path, shards=8, size_limit=cache_cfg.size())
         elif cache_type == 'Cache':
-            self._data = dc.Cache(cache_path, size_limit=int(float(cache_size.get())))
+            self._data = dc.Cache(cache_path, size_limit=cache_cfg.size())
         else:
             raise ValueError(f"Unimplemented cache type: {cache_type}")
 

@@ -14,7 +14,7 @@ from typing import Optional, List, Dict, Union
 
 # General modules
 from speasy.core.dataprovider import DataProvider
-from speasy.config import amda_user_cache_retention
+from speasy.config import amda as amda_cfg
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
 from ...core import make_utc_datetime, AllowedKwargs
@@ -242,7 +242,7 @@ class AMDA_Webservice(DataProvider):
         start_time, stop_time = make_utc_datetime(start_time), make_utc_datetime(stop_time)
         return self._impl.dl_user_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time)
 
-    @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention())
     def get_user_timetable(self, timetable_id: str or TimetableIndex) -> Optional[TimeTable]:
         """Get user timetable. Raises an exception if user is not authenticated.
 
@@ -272,7 +272,7 @@ class AMDA_Webservice(DataProvider):
         timetable_id = to_xmlid(timetable_id)
         return self._impl.dl_user_timetable(timetable_id=timetable_id)
 
-    @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention())
     def get_user_catalog(self, catalog_id: str or CatalogIndex) -> Optional[Catalog]:
         """Get user catalog. Raises an exception if user is not authenticated.
 
@@ -391,7 +391,7 @@ class AMDA_Webservice(DataProvider):
         return Dataset(name=name, variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
                        meta=meta)
 
-    @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention())
     def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
         """Get timetable data by ID.
 
@@ -415,7 +415,7 @@ class AMDA_Webservice(DataProvider):
         """
         return self._impl.dl_timetable(to_xmlid(timetable_id), **kwargs)
 
-    @CacheCall(cache_retention=float(amda_user_cache_retention.get()))
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention())
     def get_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
         """Get catalog data by ID.
 

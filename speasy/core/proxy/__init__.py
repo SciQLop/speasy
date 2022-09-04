@@ -1,4 +1,4 @@
-from speasy.config import proxy_enabled, proxy_url
+from speasy.config import proxy as proxy_cfg
 from functools import wraps
 from .. import http
 from ...products.variable import from_dictionary
@@ -15,7 +15,7 @@ _CURRENT_PROXY_SERVER_VERSION = None
 def query_proxy_version():
     global _CURRENT_PROXY_SERVER_VERSION
     if _CURRENT_PROXY_SERVER_VERSION is None:
-        url = proxy_url.get()
+        url = proxy_cfg.url()
         if url != "":
             resp = http.get(f"{url}/get_version?")
             if resp.status_code == 200:
@@ -30,7 +30,7 @@ class GetProduct:
 
     @staticmethod
     def get(path: str, start_time: str, stop_time: str, **kwargs):
-        url = proxy_url.get()
+        url = proxy_cfg.url()
         kwargs['path'] = path
         kwargs['start_time'] = start_time
         kwargs['stop_time'] = stop_time
@@ -53,12 +53,12 @@ class Proxyfiable(object):
         def wrapped(*args, **kwargs):
             disable_proxy = kwargs.pop("disable_proxy", False)
             proxy_version = query_proxy_version()
-            if proxy_enabled.get().lower() == "true" and not disable_proxy:
+            if proxy_cfg.enabled() and not disable_proxy:
                 if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:
                     return self.request.get(**self.arg_builder(**kwargs))
                 else:
                     log.warning(
-                        f"You are using an incompatible proxy server {proxy_url.get()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
+                        f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
             return func(*args, **kwargs)
 
         return wrapped

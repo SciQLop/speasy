@@ -89,12 +89,12 @@ class _Cacheable:
                                          version))
         return variable
 
-    def set_cache_entry(self, fragment, product, entry, **kwargs):
+    def set_cache_entry(self, fragment, product: str, entry, **kwargs):
         key = self.entry_name(self.prefix, product, fragment.isoformat(), **kwargs)
         log.debug(f"add {key} into cache")
         self.cache[key] = entry
 
-    def get_cache_entry(self, fragment, product, **kwargs):
+    def get_cache_entry(self, fragment: datetime, product, **kwargs):
         key = self.entry_name(self.prefix, product, fragment.isoformat(), **kwargs)
         if key in self.cache:
             entry = self.cache[key]
@@ -119,14 +119,14 @@ class _Cacheable:
         fragments = [cache_dt_range.start_time + i * dt for i in range(math.ceil(cache_dt_range.duration / dt))]
         return fragment_hours, fragments
 
-    def get_fragments_from_cache(self, fragments: List[str], product: str, version, **kwargs):
+    def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, **kwargs):
         data_fragments = []
         with self.cache.transact():
             for fragment in fragments:
                 data_fragments.append(self.get_from_cache(fragment, product, version, **kwargs))
         return data_fragments
 
-    def get_cache_entries(self, fragments: List[str], product: str, **kwargs):
+    def get_cache_entries(self, fragments: List[datetime], product: str, **kwargs):
         return [self.get_cache_entry(fragment, product, **kwargs) for fragment in fragments]
 
 

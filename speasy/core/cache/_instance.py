@@ -1,4 +1,4 @@
 from .cache import Cache
-from ...config import cache_path
+from ...config import cache as cache_cfg
 
-_cache = Cache(cache_path.get())
+_cache = Cache(cache_cfg.path())
