@@ -16,17 +16,17 @@ from speasy.inventories import flat_inventories
 
 
 def has_amda_creds() -> bool:
-    return spz.config.amda_username.get() != "" and spz.config.amda_password.get() != ""
+    return spz.config.amda.username() != "" and spz.config.amda.password() != ""
 
 
 class UserProductsRequestsWithoutCreds(unittest.TestCase):
     def setUp(self):
-        os.environ[spz.config.amda_username.env_var_name] = ""
-        os.environ[spz.config.amda_password.env_var_name] = ""
+        os.environ[spz.config.amda.username.env_var_name] = ""
+        os.environ[spz.config.amda.password.env_var_name] = ""
 
     def tearDown(self):
-        os.environ.pop(spz.config.amda_username.env_var_name)
-        os.environ.pop(spz.config.amda_password.env_var_name)
+        os.environ.pop(spz.config.amda.username.env_var_name)
+        os.environ.pop(spz.config.amda.password.env_var_name)
 
     def test_get_user_timetables(self):
         with self.assertRaises(MissingCredentials):

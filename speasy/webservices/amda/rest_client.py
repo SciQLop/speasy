@@ -5,7 +5,7 @@ from enum import Enum
 
 from speasy.core import http, pack_kwargs
 from speasy.core.cache import CacheCall
-from speasy.config import amda_user_cache_retention
+from speasy.config import amda as amda_cfg
 
 import xml.etree.ElementTree as Et
 
@@ -198,7 +198,7 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
     return None
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_timetables_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get list of timetables.
 
@@ -218,7 +218,7 @@ def get_timetables_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwarg
     return send_indirect_request(Endpoint.LISTTT, params=kwargs, server_url=server_url)
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_catalogs_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get list of catalogs.
 
@@ -237,7 +237,7 @@ def get_catalogs_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs:
     return send_indirect_request(Endpoint.LISTCAT, params=kwargs, server_url=server_url)
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_user_timetables_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
                                  **kwargs: Dict) -> str or None:
     """Get private list of timetables.
@@ -261,7 +261,7 @@ def get_user_timetables_xml_tree(username: str, password: str, server_url: str =
     return get_timetables_xml_tree(**auth_args(username, password), **kwargs, server_url=server_url)
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_user_catalogs_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
                                **kwargs: Dict) -> str or None:
     """Get private list of catalogs.
@@ -285,7 +285,7 @@ def get_user_catalogs_xml_tree(username: str, password: str, server_url: str = "
     return get_catalogs_xml_tree(**auth_args(username, password), **kwargs, server_url=server_url)
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_user_parameters_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
                                  **kwargs: Dict) -> str or None:
     """Get private list of parameters.
@@ -314,7 +314,7 @@ def get_user_parameters_xml_tree(username: str, password: str, server_url: str =
     return None
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_timetable(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get timetable request.
 
@@ -333,7 +333,7 @@ def get_timetable(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -
     return send_request(Endpoint.GETTT, params=kwargs, server_url=server_url)
 
 
-@CacheCall(cache_retention=float(amda_user_cache_retention.get()), is_pure=True)
+@CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
 def get_catalog(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
     """Get catalog request.
 

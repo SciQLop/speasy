@@ -46,7 +46,7 @@ class _CacheTest(unittest.TestCase):
     @UnversionedProviderCache(prefix="", cache_instance=cache, leak_cache=True,
                               cache_retention=timedelta(microseconds=5e5))
     def _make_unversioned_data(self, product, start_time, stop_time, if_newer_than=None):
-        if if_newer_than is None or if_newer_than + timedelta(seconds=1) < datetime.utcnow():
+        if if_newer_than is None or (if_newer_than + timedelta(seconds=1)) < datetime.utcnow():
             self._make_unversioned_data_cntr += 1
             return data_generator(start_time, stop_time)
         return None

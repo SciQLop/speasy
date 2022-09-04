@@ -12,12 +12,12 @@ from ddt import ddt, data, unpack
 @ddt
 class SpeasyGetData(unittest.TestCase):
     def setUp(self):
-        self.proxy_state = spz.config.proxy_enabled.get()
-        spz.config.proxy_enabled.set("true")
-        spz.config.proxy_url.set("http://sciqlop.lpp.polytechnique.fr/cache")
+        self.proxy_state = spz.config.proxy.enabled()
+        spz.config.proxy.enabled.set("true")
+        spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache")
 
     def tearDown(self):
-        spz.config.proxy_enabled.set(self.proxy_state)
+        spz.config.proxy.enabled.set(self.proxy_state)
 
     @data(
         {
