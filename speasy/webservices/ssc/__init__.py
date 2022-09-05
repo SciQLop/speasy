@@ -13,7 +13,7 @@ from speasy.products.variable import SpeasyVariable
 from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.requests_scheduling import SplitLargeRequests
 import numpy as np
@@ -122,20 +122,23 @@ class SSC_Webservice(DataProvider):
         return var
 
     @AllowedKwargs(
-        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'coordinate_system',
-                                                       'debug'])
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['coordinate_system',
+                                                                                 'debug'])
     @ParameterRangeCheck()
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @SplitLargeRequests(threshold=lambda: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                   debug=False) -> Optional[SpeasyVariable]:
+                   debug=False, extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
         if debug:
             print(url)
-        res = http.get(url, headers={"Accept": "application/json"})
+        headers = {"Accept": "application/json"}
+        if extra_http_headers is not None:
+            headers.update(extra_http_headers)
+        res = http.get(url, headers=headers)
         orbit = res.json()
         if res.ok and _is_valid(orbit):
             return _variable(orbit)[start_time:stop_time]

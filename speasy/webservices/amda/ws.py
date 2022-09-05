@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Union
 
 # General modules
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.config import amda as amda_cfg
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
@@ -304,11 +304,12 @@ class AMDA_Webservice(DataProvider):
         catalog_id = to_xmlid(catalog_id)
         return self._impl.dl_user_catalog(catalog_id=catalog_id)
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)
     @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_parameter(self, product, start_time, stop_time) -> Optional[SpeasyVariable]:
+    def get_parameter(self, product, start_time, stop_time, extra_http_headers: Dict or None = None) -> Optional[
+        SpeasyVariable]:
         """Get parameter data.
 
         Parameters
@@ -319,8 +320,8 @@ class AMDA_Webservice(DataProvider):
             desired data start time
         stop_time:
             desired data stop time
-        kwargs: dict
-            optional arguments
+        extra_http_headers: dict
+            reserved for internal use
 
         Returns
         -------
@@ -332,7 +333,7 @@ class AMDA_Webservice(DataProvider):
 
         >>> import speasy as spz
         >>> import datetime
-        >>> imf_data = spz.amda.get_parameter("imf", datetime.datetime(2000,1,1), datetime.datetime(2000,1,2))
+        >>> imf_data = spz.amda.get_parameter("imf")
         >>> print(imf_data.columns)
         ['imf[0]', 'imf[1]', 'imf[2]']
         >>> print(imf_data.data.shape)
@@ -340,7 +341,8 @@ class AMDA_Webservice(DataProvider):
 
         """
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
-        return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product)
+        return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product,
+                                       extra_http_headers=extra_http_headers)
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
                     **kwargs) -> Dataset or None:

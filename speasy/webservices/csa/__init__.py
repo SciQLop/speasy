@@ -1,6 +1,6 @@
 import requests
 from astroquery.utils.tap.core import TapPlus
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 from datetime import datetime, timedelta
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.products.variable import SpeasyVariable
@@ -9,7 +9,7 @@ from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from ...inventories import flat_inventories
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 from speasy.core.datetime_range import DateTimeRange
@@ -129,13 +129,17 @@ class CSA_Webservice(DataProvider):
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime) -> Optional[SpeasyVariable]:
+                     start_time: datetime, stop_time: datetime, extra_http_headers: Dict[str, str] or None = None) -> \
+        Optional[SpeasyVariable]:
 
         # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
         ds_range = self._dataset_range(dataset)
         if not ds_range.intersect(DateTimeRange(start_time, stop_time)):
             log.warning(f"You are requesting {dataset}/{variable} outside of its definition range {ds_range}")
             return None
+        headers = {}
+        if extra_http_headers is not None:
+            headers.update(extra_http_headers)
         resp = http.get(self.__url, params={
             "RETRIEVAL_TYPE": "product",
             "DATASET_ID": dataset,
@@ -143,7 +147,7 @@ class CSA_Webservice(DataProvider):
             "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
             "DELIVERY_FORMAT": "CDF_ISTP",
             "DELIVERY_INTERVAL": "all"
-        })
+        }, headers=headers)
         log.debug(f"{resp.url}")
         if resp.status_code != 200:
             raise RuntimeError(f'Failed to get data with request: {resp.url}, got {resp.status_code} HTTP response')
@@ -217,15 +221,16 @@ class CSA_Webservice(DataProvider):
         dataset, variable = to_dataset_and_variable(product)
         return self.flat_inventory.datasets[dataset].date_last_update
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time'])
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)
     @ParameterRangeCheck()
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
     @SplitLargeRequests(threshold=lambda: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime):
+    def get_data(self, product, start_time: datetime, stop_time: datetime,
+                 extra_http_headers: Dict[str, str] or None = None):
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
-                                 variable=variable)
+                                 variable=variable, extra_http_headers=extra_http_headers)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \

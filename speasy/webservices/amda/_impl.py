@@ -8,7 +8,7 @@ from .rest_client import auth_args
 from .exceptions import MissingCredentials
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict
 
 # General modules
 from ...config import amda as amda_cfg
@@ -87,12 +87,12 @@ class AmdaImpl:
         self._update_lists(TimeTables=root.TimeTables, Catalogs=root.Catalogs, root=root)
         return root
 
-    def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
+    def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
+                           extra_http_headers: Dict or None = None, **kwargs) -> Optional[
         SpeasyVariable]:
-        url = rest_client.get_parameter(
-            startTime=start_time.timestamp(), stopTime=stop_time.timestamp(), parameterID=parameter_id,
-            timeFormat='UNIXTIME',
-            server_url=self.server_url, **kwargs)
+        url = rest_client.get_parameter(server_url=self.server_url, startTime=start_time.timestamp(),
+                                        stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
+                                        extra_http_headers=extra_http_headers, **kwargs)
         # check status until done
         if url is not None:
             var = load_csv(url)
@@ -104,7 +104,8 @@ class AmdaImpl:
             return var
         return None
 
-    def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
+    def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
+                     extra_http_headers: Dict or None = None, **kwargs) -> Optional[
         SpeasyVariable]:
         dt = timedelta(days=amda_cfg.max_chunk_size_days())
 
@@ -113,13 +114,16 @@ class AmdaImpl:
             curr_t = start_time
             while curr_t < stop_time:
                 if curr_t + dt < stop_time:
-                    var = merge([var, self.dl_parameter_chunk(curr_t, curr_t + dt, parameter_id, **kwargs)])
+                    var = merge([var, self.dl_parameter_chunk(curr_t, curr_t + dt, parameter_id,
+                                                              extra_http_headers=extra_http_headers, **kwargs)])
                 else:
-                    var = merge([var, self.dl_parameter_chunk(curr_t, stop_time, parameter_id, **kwargs)])
+                    var = merge([var, self.dl_parameter_chunk(curr_t, stop_time, parameter_id,
+                                                              extra_http_headers=extra_http_headers, **kwargs)])
                 curr_t += dt
             return var
         else:
-            return self.dl_parameter_chunk(start_time, stop_time, parameter_id, **kwargs)
+            return self.dl_parameter_chunk(start_time, stop_time, parameter_id, extra_http_headers=extra_http_headers,
+                                           **kwargs)
 
     def dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
         SpeasyVariable]:

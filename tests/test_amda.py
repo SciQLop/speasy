@@ -52,22 +52,19 @@ class PublicProductsRequests(unittest.TestCase):
         start_date = datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                        disable_cache=True)
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
         start_date = datetime(2016, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
         stop_date = datetime(2016, 1, 8, 1, 0, 10, tzinfo=timezone.utc)
         parameter_id = "c1_hia_prest"
-        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                        disable_cache=True)
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
 
     def test_get_variable_over_midnight(self):
         start_date = datetime(2006, 1, 8, 23, 30, 0, tzinfo=timezone.utc)
         stop_date = datetime(2006, 1, 9, 0, 30, 0, tzinfo=timezone.utc)
         parameter_id = "c1_b_gsm"
-        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                        disable_cache=True)
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
         self.assertIsNotNone(result)
 
     def test_get_variable_long_request(self):
@@ -77,8 +74,7 @@ class PublicProductsRequests(unittest.TestCase):
             start_date = datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
             stop_date = datetime(2021, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
             parameter_id = "mms1_b_gse"
-            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                            disable_cache=True)
+            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
             self.assertIsNotNone(result)
             self.assertTrue(
                 any(["This request duration is too long, consider reducing time range" in line for line in cm.output]))
@@ -88,8 +84,7 @@ class PublicProductsRequests(unittest.TestCase):
             start_date = datetime(1999, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
             stop_date = datetime(1999, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
             parameter_id = "mms1_b_gse"
-            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True,
-                                            disable_cache=True)
+            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
             self.assertIsNone(result)
             self.assertTrue(
                 any(["outside of its definition range" in line for line in cm.output]))
