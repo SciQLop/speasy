@@ -2,7 +2,6 @@ import logging
 import time
 from enum import Enum
 
-
 from speasy.core import http, pack_kwargs
 from speasy.core.cache import CacheCall
 from speasy.config import amda as amda_cfg
@@ -145,7 +144,8 @@ def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try: int = 
 
 
 def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
-                      server_url: str = "http://amda.irap.omp.eu") -> str or None:
+                      server_url: str = "http://amda.irap.omp.eu",
+                      extra_http_headers: Dict or None = None) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. We expect the result to be JSON data.
 
     Parameters
@@ -167,11 +167,12 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
 
     url = request_url(endpoint, server_url=server_url)
     params = params or {}
+    http_headers = extra_http_headers or {}
     params['token'] = token(server_url=server_url)
     for _ in [None] * n_try:  # in case of failure
         # add token now ? does it change
         log.debug(f"Send request on AMDA_Webservice server {url}")
-        r = http.get(url, params=params)
+        r = http.get(url, params=params, headers=http_headers)
         js = r.json()
         if 'success' in js and \
             js['success'] is True and \
@@ -179,16 +180,16 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
             log.debug(f"success: {js['dataFileURLs']}")
             return js['dataFileURLs']
         elif "success" in js and \
-                js["success"] is True and \
-                "status" in js and \
-                js["status"]=="in progress":
+            js["success"] is True and \
+            "status" in js and \
+            js["status"] == "in progress":
             log.warning("This request duration is too long, consider reducing time range")
             while True:
                 default_sleep_time = 10.
                 time.sleep(default_sleep_time)
                 url = request_url(Endpoint.GETSTATUS, server_url=server_url)
 
-                status = http.get(url, params=js).json()
+                status = http.get(url, params=js, headers=http_headers).json()
                 if status is not None and status["status"] == "done":
                     return status["dataFileURLs"]
 
@@ -353,11 +354,14 @@ def get_catalog(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> 
     return send_request(Endpoint.GETCAT, params=kwargs, server_url=server_url)
 
 
-def get_parameter(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
+def get_parameter(server_url: str = "http://amda.irap.omp.eu", extra_http_headers: Dict or None = None,
+                  **kwargs: Dict) -> str or None:
     """Get parameter request.
 
     Parameters
     ----------
+    extra_http_headers : Dict or None
+        reserved for internal use
     server_url: str
         the base server URL
     kwargs: dict
@@ -368,7 +372,8 @@ def get_parameter(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -
     str or None
         request result, XML formatted text
     """
-    return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url)
+    return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url,
+                             extra_http_headers=extra_http_headers)
 
 
 @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)

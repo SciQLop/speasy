@@ -40,6 +40,34 @@ Let's start with a simple example, we want to download the first parameter avail
     >>> first_param_index=amda.list_parameters()[0]
     >>> print(first_param_index)
     <ParameterIndex: He flux>
+    >>> first_param=amda.get_parameter(first_param_index)
+    >>> first_param.columns
+    ['ace_epam_ca60_he[0]', 'ace_epam_ca60_he[1]']
+    >>> len(first_param.time)
+    276
+
+Usually you already know which product you want to download, two scenarios are available:
+
+1. You are an
+
+    >>> from speasy import amda
+    >>> first_param_index=amda.list_parameters()[0]
+    >>> print(first_param_index)
+    <ParameterIndex: He flux>
+    >>> first_param=amda.get_parameter(first_param_index)
+    >>> first_param.columns
+    ['ace_epam_ca60_he[0]', 'ace_epam_ca60_he[1]']
+    >>> len(first_param.time)
+    276
+
+Usually you already know which product you want to download, two scenarios are available:
+
+1. You are an
+
+    >>> from speasy import amda
+    >>> first_param_index=amda.list_parameters()[0]
+    >>> print(first_param_index)
+    <ParameterIndex: He flux>
     >>> first_param=amda.get_parameter(first_param_index, "2018-01-01", "2018-01-02")
     >>> first_param.columns
     ['ace_epam_ca60_he[0]', 'ace_epam_ca60_he[1]']
@@ -54,6 +82,98 @@ you will find the id from the tooltip while hovering any product (Dataset, Param
 .. image:: images/AMDA_param_id.png
    :height: 400px
    :alt: AMDA workspace id
+
+   Then simply:
+
+       >>> from speasy import amda
+       >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot')
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   2. Second scenario, your are not much familiar with AMDA, then you can simply browse speasy dynamic inventory. In
+   the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
+   AMDA products directly from your Python terminal or notebook:
+
+       >>> from speasy import amda
+       >>> from speasy.inventories import data_tree
+       >>> mms4_fgm_btot=amda.get_parameter(data_tree.amda.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-02")
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   See
+
+   Then simply:
+
+       >>> from speasy import amda
+       >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot')
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   2. Second scenario, your are not much familiar with AMDA, then you can simply browse speasy dynamic inventory. In
+   the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
+   AMDA products directly from your Python terminal or notebook:
+
+       >>> from speasy import amda
+       >>> from speasy.inventories import data_tree
+       >>> mms4_fgm_btot=amda.get_parameter(data_tree.amda.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-02")
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   See
+
+   Then simply:
+
+       >>> from speasy import amda
+       >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot', "2018-01-01", "2018-01-02")
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   2. Second scenario, your are not much familiar with AMDA, then you can simply browse speasy dynamic inventory. In
+   the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
+   AMDA products directly from your Python terminal or notebook:
+
+       >>> from speasy import amda
+       >>> from speasy.inventories import data_tree
+       >>> mms4_fgm_btot=amda.get_parameter(data_tree.amda.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot)
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   See
+
+   Then simply:
+
+       >>> from speasy import amda
+       >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot', "2018-01-01", "2018-01-02")
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   2. Second scenario, your are not much familiar with AMDA, then you can simply browse speasy dynamic inventory. In
+   the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
+   AMDA products directly from your Python terminal or notebook:
+
+       >>> from speasy import amda
+       >>> from speasy.inventories import data_tree
+       >>> mms4_fgm_btot=amda.get_parameter(data_tree.amda.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot)
+       >>> mms4_fgm_btot.columns
+       ['mms4_b_tot']
+       >>> len(mms4_fgm_btot.time)
+       986745
+
+   See
 
 Then simply:
 
@@ -152,6 +272,58 @@ In this example we will use AMDA module to retrieve and plot MMS2 FGM data, feel
     >>> import matplotlib.pyplot as plt # doctest: +SKIP
     >>> import speasy as spz
     >>> from speasy.inventories import data_tree
+    >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse)
+    >>> # Check that mms2_b_gse isn't empty
+    >>> len(mms2_b_gse)
+    1382895
+    >>> # Then you can use the SpeasyVariable plot method for quick plots
+    >>> mms2_b_gse.plot() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+
+Then you should get something like this:
+
+    >>> import matplotlib.pyplot as plt # doctest: +SKIP
+    >>> import speasy as spz
+    >>> from speasy.inventories import data_tree
+    >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse)
+    >>> # Check that mms2_b_gse isn't empty
+    >>> len(mms2_b_gse)
+    1382895
+    >>> # Then you can use the SpeasyVariable plot method for quick plots
+    >>> mms2_b_gse.plot() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+
+Then you should get something like this:
+
+    >>> import matplotlib.pyplot as plt # doctest: +SKIP
+    >>> import speasy as spz
+    >>> from speasy.inventories import data_tree
+    >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse)
+    >>> # Check that mms2_b_gse isn't empty
+    >>> len(mms2_b_gse)
+    1382895
+    >>> # Then you can use the SpeasyVariable plot method for quick plots
+    >>> mms2_b_gse.plot() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+
+Then you should get something like this:
+
+    >>> import matplotlib.pyplot as plt # doctest: +SKIP
+    >>> import speasy as spz
+    >>> from speasy.inventories import data_tree
+    >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse)
+    >>> # Check that mms2_b_gse isn't empty
+    >>> len(mms2_b_gse)
+    1382895
+    >>> # Then you can use the SpeasyVariable plot method for quick plots
+    >>> mms2_b_gse.plot() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
+
+Then you should get something like this:
+
+    >>> import matplotlib.pyplot as plt # doctest: +SKIP
+    >>> import speasy as spz
+    >>> from speasy.inventories import data_tree
     >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse, "2020-02-01", "2020-02-02")
     >>> # Check that mms2_b_gse isn't empty
     >>> len(mms2_b_gse)
@@ -185,6 +357,138 @@ Once we have magnetic field measurements inside each cloud, we will as an exampl
     >>> Magnetic_Clouds = spz.amda.get_timetable(data_tree.amda.TimeTables.SharedTimeTables.SOLAR_WIND.Magnetic_Clouds)
     >>> print(Magnetic_Clouds.meta['description'])  # doctest: +NORMALIZE_WHITESPACE
     Magnetic Clouds from WIND/MFI 1995-2007 -- Estimated start and end times from a magnetic field model [Lepping et al., 1990] which assumes that the field within the magnetic cloud is force free, i.e., so that the electrical current and the magnetic field are parallel and proportional in strength everywhere within its volume -- see http://lepmfi.gsfc.nasa.gov/mfi/mag_cloud_pub1.html ;
+                Historic: From old AMDA;
+                Creation Date :  2013-11-22T13:52:50;
+        >>> # Check that the timetable has at least some events (as expected)
+        >>> len(Magnetic_Clouds)
+        106
+        >>> # Then we can plot their duration distribution
+        >>> def duration(event):
+        ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+        ...
+        >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+        >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+        >>> # Now let's get MFI data for each cloud
+        >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag) for cloud in Magnetic_Clouds ]
+        >>> # compute mean of B for each cloud and ignore NaNs
+        >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+        >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+
+    Then you should get something like these plots:
+                Historic: From old AMDA;
+                Creation Date :  2013-11-22T13:52:50;
+        >>> # Check that the timetable has at least some events (as expected)
+        >>> len(Magnetic_Clouds)
+        106
+        >>> # Then we can plot their duration distribution
+        >>> def duration(event):
+        ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+        ...
+        >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+        >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+        >>> # Now let's get MFI data for each cloud
+        >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag) for cloud in Magnetic_Clouds ]
+        >>> # compute mean of B for each cloud and ignore NaNs
+        >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+        >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+
+    Then you should get something like these plots:
+                Historic: From old AMDA;
+                Creation Date :  2013-11-22T13:52:50;
+        >>> # Check that the timetable has at least some events (as expected)
+        >>> len(Magnetic_Clouds)
+        106
+        >>> # Then we can plot their duration distribution
+        >>> def duration(event):
+        ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+        ...
+        >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+        >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+        >>> # Now let's get MFI data for each cloud
+        >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag) for cloud in Magnetic_Clouds ]
+        >>> # compute mean of B for each cloud and ignore NaNs
+        >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+        >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+
+    Then you should get something like these plots:
+                Historic: From old AMDA;
+                Creation Date :  2013-11-22T13:52:50;
+        >>> # Check that the timetable has at least some events (as expected)
+        >>> len(Magnetic_Clouds)
+        106
+        >>> # Then we can plot their duration distribution
+        >>> def duration(event):
+        ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+        ...
+        >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+        >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+        >>> # Now let's get MFI data for each cloud
+        >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag) for cloud in Magnetic_Clouds ]
+        >>> # compute mean of B for each cloud and ignore NaNs
+        >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+        >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+
+    Then you should get something like these plots:
+                Historic: From old AMDA;
+                Creation Date :  2013-11-22T13:52:50;
+        >>> # Check that the timetable has at least some events (as expected)
+        >>> len(Magnetic_Clouds)
+        106
+        >>> # Then we can plot their duration distribution
+        >>> def duration(event):
+        ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+        ...
+        >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+        >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+        >>> # Now let's get MFI data for each cloud
+        >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag) for cloud in Magnetic_Clouds ]
+        >>> # compute mean of B for each cloud and ignore NaNs
+        >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+        >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+
+    Then you should get something like these plots:
+                Historic: From old AMDA;
+                Creation Date :  2013-11-22T13:52:50;
+        >>> # Check that the timetable has at least some events (as expected)
+        >>> len(Magnetic_Clouds)
+        106
+        >>> # Then we can plot their duration distribution
+        >>> def duration(event):
+        ...     return (event.stop_time.timestamp() - event.start_time.timestamp())/3600
+        ...
+        >>> clouds_duration = [duration(cloud) for cloud in Magnetic_Clouds]
+        >>> plt.hist(clouds_duration, label="Clouds duration (Hours)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+        >>> # Now let's get MFI data for each cloud
+        >>> b_mfi_coulds = [ spz.amda.get_parameter(data_tree.amda.Parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag) for cloud in Magnetic_Clouds ]
+        >>> # compute mean of B for each cloud and ignore NaNs
+        >>> b_mean_mfi_clouds = [ np.nanmean(cloud.data) for cloud in b_mfi_coulds ]
+        >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
+        >>> plt.legend() # doctest: +SKIP
+        >>> plt.show() # doctest: +SKIP
+
+    Then you should get something like these plots:
             Historic: From old AMDA;
             Creation Date :  2013-11-22T13:52:50;
     >>> # Check that the timetable has at least some events (as expected)

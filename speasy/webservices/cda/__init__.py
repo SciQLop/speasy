@@ -6,7 +6,7 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 from datetime import datetime, timedelta
 from speasy.core.cache import UnversionedProviderCache, CACHE_ALLOWED_KWARGS, \
     _cache  # _cache is used for tests (hack...)
@@ -15,7 +15,7 @@ from speasy.core import http, AllowedKwargs
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex, DatasetIndex
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.core.datetime_range import DateTimeRange
 from urllib.request import urlopen
@@ -117,7 +117,8 @@ class CDA_Webservice(DataProvider):
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None) -> Optional[
+                     start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
+                     extra_http_headers: Dict or None = None) -> Optional[
         SpeasyVariable]:
 
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
@@ -126,6 +127,8 @@ class CDA_Webservice(DataProvider):
         headers = {"Accept": "application/json"}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
+        if extra_http_headers is not None:
+            headers.update(extra_http_headers)
         resp = http.get(url, headers=headers)
         log.debug(resp.url)
         if resp.status_code == 200 and 'FileDescription' in resp.json():
@@ -139,15 +142,16 @@ class CDA_Webservice(DataProvider):
             return None
 
     @AllowedKwargs(
-        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['product', 'start_time', 'stop_time', 'if_newer_than'])
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than'])
     @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
     @SplitLargeRequests(threshold=lambda: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None):
+    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
+                 extra_http_headers: Dict or None = None):
         dataset, variable = self._to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
-                                 variable=variable, if_newer_than=if_newer_than)
+                                 variable=variable, if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \
