@@ -3,6 +3,7 @@ import pandas as pds
 from datetime import datetime
 from typing import List, Optional, Dict
 from speasy.core import deprecation
+from speasy.plotting import Plot
 from copy import deepcopy
 
 import astropy.units
@@ -18,6 +19,9 @@ def _to_index(key, time):
         return np.searchsorted(time, np.datetime64(int(key * 1e9), 'ns'), side='left')
     if isinstance(key, datetime):
         return np.searchsorted(time, np.datetime64(key, 'ns'), side='left')
+
+class VariableAxis(object):
+    __slots__ = ['']
 
 
 class SpeasyVariable(object):
@@ -237,13 +241,14 @@ class SpeasyVariable(object):
     def epoch_to_datetime64(epoch_array: np.array):
         return (epoch_array * 1e9).astype('datetime64[ns]')
 
+    @property
     def plot(self, *args, **kwargs):
         """Plot the variable.
 
         See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
 
         """
-        return self.to_dataframe().plot(*args, **kwargs)
+        return Plot(values=self.values, columns_names=self.columns, axes=self.axes, metadata=self.meta)
 
     def replace_fillval_by_nan(self, inplace=False) -> 'SpeasyVariable':
         if inplace:
