@@ -20,8 +20,174 @@ def _to_index(key, time):
     if isinstance(key, datetime):
         return np.searchsorted(time, np.datetime64(key, 'ns'), side='left')
 
+
+class DataContainer(object):
+    __slots__ = ['__values', '__name', '__meta', '__time']
+
+    def __init__(self, name: str, values: np.array, meta: Dict, time: np.array or None = None):
+        self.__values = values
+        self.__time = time
+        self.__name = name
+        self.__meta = meta
+
+    def reshape(self, new_shape):
+        self.__values = self.__values.reshape(new_shape)
+
+    def set_time_vector(self, time: np.array or 'DataContainer'):
+        if type(time) is np.array:
+            self.__time = time
+        elif type(time) is DataContainer:
+            self.__time = time.values
+
+    @property
+    def is_time_dependent(self):
+        return self.__time is not None
+
+    @property
+    def values(self):
+        return self.__values
+
+    @property
+    def shape(self):
+        return self.__values.shape
+
+    def view(self, index_range: slice):
+        return DataContainer(name=self.__name, meta=self.__meta, values=self.__values[index_range],
+                             time=self.__time[index_range])
+
+    def to_dictionary(self) -> Dict[str, object]:
+        return {
+            "values": self.__values.copy(),
+            "meta": self.__meta.copy(),
+            "name": self.__name,
+            "time_dependent": self.is_time_dependent
+        }
+
+    @staticmethod
+    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time) -> "DataContainer":
+        return DataContainer(values=np.array(dictionary["values"]), meta=dictionary["meta"], name=dictionary["name"],
+                             time=time if dictionary["time_dependent"] else None)
+
+    @staticmethod
+    def reserve_like(other: 'DataContainer', length: int = 0) -> 'DataContainer':
+        return DataContainer(name=other.__name, meta=other.__meta,
+                             values=np.empty([length] + other.shape[1:], dtype=other.__values.dtype),
+                             time=np.empty([length], dtype=other.__time.dtype) if other.__time is not None else None
+                             )
+
+    def __len__(self):
+        return len(self.__values)
+
+    def __getitem__(self, key):
+        if self.is_time_dependent:
+            if isinstance(key, slice):
+                return self.view(slice(_to_index(key.start, self.__time), _to_index(key.stop, self.__time)))
+        elif isinstance(key, slice) and type(key.start) == int and type(key.stop) == int:
+            return self.view(key)
+        else:
+            raise TypeError("Can only index/slice a time independent DataContainer with integer slice")
+
+    def __eq__(self, other: 'DataContainer') -> bool:
+        return self.__meta == other.__meta and \
+               self.__name == other.__name and \
+               self.is_time_dependent == other.is_time_dependent and \
+               np.all(self.__values.shape == other.__values.shape) and \
+               np.all(self.__time == other.__time) and \
+               np.all(self.__values == other.__values)
+
+    def replace_val_by_nan(self, val):
+        self.__values[self.__values == val] = np.nan
+
+    @property
+    def meta(self):
+        return self.__meta
+
+    @property
+    def name(self):
+        return self.__name
+
+
 class VariableAxis(object):
-    __slots__ = ['']
+    __slots__ = ['__data']
+
+    def __init__(self, data: DataContainer):
+        self.__data = data
+
+    def to_dictionary(self) -> Dict[str, object]:
+        d = self.__data.to_dictionary()
+        d.update({"type": "VariableAxis"})
+        return d
+
+    @staticmethod
+    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time=None) -> "VariableAxis":
+        assert dictionary['type'] == "VariableAxis"
+        return VariableAxis(DataContainer.from_dictionary(dictionary, time if dictionary['time_dependent'] else None))
+
+    def set_time_vector(self, time: np.array or 'DataContainer'):
+        self.__data.set_time_vector(time)
+
+    @staticmethod
+    def reserve_like(other: 'VariableAxis', length: int = 0) -> 'VariableAxis':
+        return VariableAxis(data=DataContainer.reserve_like(other.__data, length))
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return self.view(slice(_to_index(key.start, self.__data.values), _to_index(key.stop, self.__data.values)))
+
+    def view(self, index_range: slice):
+        return VariableTimeAxis(self.__data[index_range])
+
+    def __eq__(self, other: 'VariableAxis') -> bool:
+        return type(other) is VariableAxis and self.__data == other.__data
+
+    @property
+    def is_time_dependent(self):
+        return self.__data.is_time_dependent
+
+    @property
+    def values(self):
+        return self.__data.values
+
+
+class VariableTimeAxis(object):
+    __slots__ = ['__data']
+
+    def __init__(self, data: DataContainer):
+        if data.values.dtype != np.dtype('datetime64[ns]'):
+            raise ValueError(f"Please provide datetime64[ns] for time axis, got {data.values.dtype}")
+        self.__data = data
+
+    def to_dictionary(self) -> Dict[str, object]:
+        d = self.__data.to_dictionary()
+        d.update({"type": "VariableTimeAxis"})
+        return d
+
+    @staticmethod
+    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time=None) -> "VariableTimeAxis":
+        assert dictionary['type'] == "VariableTimeAxis"
+        return VariableTimeAxis(DataContainer.from_dictionary(dictionary))
+
+    @staticmethod
+    def reserve_like(other: 'VariableTimeAxis', length: int = 0) -> 'VariableTimeAxis':
+        return VariableTimeAxis(data=DataContainer.reserve_like(other.__data, length))
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return self.view(slice(_to_index(key.start, self.__data.values), _to_index(key.stop, self.__data.values)))
+
+    def view(self, index_range: slice):
+        return VariableTimeAxis(self.__data[index_range])
+
+    def __eq__(self, other: 'VariableTimeAxis') -> bool:
+        return type(other) is VariableTimeAxis and self.__data == other.__data
+
+    @property
+    def is_time_dependent(self):
+        return True
+
+    @property
+    def values(self):
+        return self.__data.values
 
 
 class SpeasyVariable(object):
@@ -50,32 +216,24 @@ class SpeasyVariable(object):
         Plot the data with matplotlib
 
     """
-    __slots__ = ['__meta', '__time', '__values', '__columns', '__axes', '__axes_labels']
+    __slots__ = ['__values_container', '__columns', '__axes']
 
-    def __init__(self, time=np.empty(0, dtype=np.dtype('datetime64[ns]')), values=np.empty((0, 1)),
-                 meta: Optional[dict] = None, columns: Optional[List[str]] = None,
-                 extra_axes: Optional[List[np.ndarray]] = None, extra_axes_labels: Optional[List[str]] = None):
-        """Constructor
-        """
+    def __init__(self, axes: List[VariableAxis or VariableTimeAxis], values: DataContainer,
+                 columns: Optional[List[str]] = None):
+        if not isinstance(axes[0], VariableTimeAxis):
+            raise TypeError(f"axes[0] must be a VariableTimeAxis instance, got {type(axes[0])}")
+        if axes[0].shape[0] != values.shape[0]:
+            raise ValueError(
+                f"Time and data must have the same length, got time:{len(axes[0].shape[0])} and data:{len(values)}")
 
-        if time.dtype != np.dtype('datetime64[ns]'):
-            raise ValueError(f"Please provide datetime64[ns] for time axis, got {time.dtype}")
-        if len(time) != len(values):
-            raise ValueError(f"Time and data must have the same length, got time:{len(time)} and data:{len(values)}")
-        if extra_axes is not None and extra_axes_labels is not None:
-            if len(extra_axes) != len(extra_axes_labels):
-                raise ValueError(
-                    f"extra_axes and extra_axes_labels must have the same length, got extra_axes:{len(extra_axes)} and extra_axes_labels:{len(extra_axes_labels)}")
-
-        self.__meta = meta or {}
         self.__columns = columns or []
-        if len(values.shape) == 1:
-            self.__values = values.reshape((values.shape[0], 1))  # to be consistent with pandas
-        else:
-            self.__values = values
-        self.__time = time
-        self.__axes = [time] + (extra_axes or [])
-        self.__axes_labels = ['time'] + (extra_axes_labels or [])
+        if not values.is_time_dependent:
+            values.set_time_vector(axes[0])
+        if len(values.values.shape) == 1:
+            values.reshape((values.shape[0], 1))  # to be consistent with pandas
+
+        self.__values_container = values
+        self.__axes = axes
 
     def view(self, index_range: slice):
         """Return view of the current variable within the desired :data:`time_range`.
@@ -90,17 +248,8 @@ class SpeasyVariable(object):
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
-        extra_axes = []
-        for axis in self.__axes[1:]:
-            if axis is not None:
-                if len(axis.shape) > 1 and axis.shape[0] == len(self.__time):
-                    extra_axes.append(axis[index_range])
-                else:
-                    extra_axes.append(axis)
-            else:
-                extra_axes.append(None)  # maybe this should be avoided
-        return SpeasyVariable(time=self.__time[index_range], values=self.__values[index_range], meta=self.__meta,
-                              columns=self.__columns, extra_axes=extra_axes, extra_axes_labels=self.__axes_labels[1:])
+        return SpeasyVariable(axes=[axis[index_range] if axis.is_time_dependent else axis for axis in self.__axes],
+                              values=self.__values_container[index_range])
 
     def __eq__(self, other: 'SpeasyVariable') -> bool:
         """Check if this variable equals another.
@@ -115,36 +264,35 @@ class SpeasyVariable(object):
         bool:
             True if all attributes are equal
         """
-        return self.__meta == other.__meta and \
-               self.__columns == other.__columns and \
-               self.__axes_labels == other.__axes_labels and \
-               len(self.time) == len(other.time) and \
-               np.all([np.all(lhs == rhs) for lhs, rhs in zip(self.axes, other.axes)]) and \
-               np.all(self.__values == other.values)
+        return type(
+            other) is SpeasyVariable and self.__axes == other.__axes and self.__values_container == other.__values_container
 
     def __len__(self):
-        return len(self.time)
+        return len(self.__axes[0])
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            return self.view(slice(_to_index(key.start, self.time), _to_index(key.stop, self.time)))
+            return self.view(slice(_to_index(key.start, self.time.values), _to_index(key.stop, self.time.values)))
+
+    def __setitem__(self, k, v: 'SpeasyVariable'):
+        assert type(v) is SpeasyVariable
+        pass
 
     @property
-    def data(self):
-        deprecation('data will be removed soon')
-        return self.__values
+    def name(self):
+        return self.__values_container.name
 
     @property
     def values(self):
-        return self.__values
+        return self.__values_container.values
 
     @property
     def time(self):
-        return self.__time
+        return self.__axes[0].values
 
     @property
     def meta(self):
-        return self.__meta
+        return self.__values_container.meta
 
     @property
     def axes(self):
@@ -152,7 +300,7 @@ class SpeasyVariable(object):
 
     @property
     def axes_labels(self):
-        return self.__axes_labels
+        return [axis.name for axis in self.__axes]
 
     @property
     def columns(self):
@@ -189,6 +337,9 @@ class SpeasyVariable(object):
         pandas.DataFrame:
             Variable converted to Pandas DataFrame
         """
+        if len(self.__values_container.shape) != 2:
+            raise ValueError(
+                f"Cant' convert a SpeasyVariable with shape {self.__values_container.shape} to DataFrame, only 1D/2D variables are accepted")
         return pds.DataFrame(index=self.time, data=self.values, columns=self.__columns, copy=True)
 
     @staticmethod
@@ -211,28 +362,28 @@ class SpeasyVariable(object):
             time = np.array([np.datetime64(d.timestamp() * 1e9, 'ns') for d in df.index])
         else:
             raise ValueError("Can't convert DataFrame index to datetime64[ns] array")
-        return SpeasyVariable(time=time, values=df.values, meta={}, columns=list(df.columns))
+        return SpeasyVariable(axes=[VariableTimeAxis(DataContainer(name='time', values=time, meta={}))],
+                              values=DataContainer(values=df.values, meta={}, name='Unknown'),
+                              columns=list(df.columns))
 
     def to_dictionary(self) -> Dict[str, object]:
         return {
-            'metadata': self.__meta.copy(),
-            'time': self.__time.copy(),
-            'values': self.__values.copy(),
-            'extra_axes': deepcopy(self.__axes[1:]),
-            'extra_axes_labels': deepcopy(self.__axes_labels[1:]),
+            'axes': [axis.to_dictionary() for axis in self.__axes],
+            'values': self.__values_container.to_dictionary(),
             'columns': deepcopy(self.__columns)
         }
 
     @staticmethod
     def from_dictionary(dictionary: Dict[str, object] or None) -> 'SpeasyVariable' or None:
         if dictionary is not None:
+            axes = dictionary['axes']
+            time_axis = VariableTimeAxis.from_dictionary(axes[0])
+            axes = [time_axis] + [VariableAxis.from_dictionary(axis, time_axis.values) for axis in axes[1:]]
+
             return SpeasyVariable(
-                values=dictionary.get('values', np.empty((0, 1))),
-                time=dictionary.get('time', np.empty(0, dtype=np.dtype('datetime64[ns]'))),
-                extra_axes=dictionary.get('extra_axes', None),
-                extra_axes_labels=dictionary.get('extra_axes_labels', None),
-                columns=dictionary.get('columns', None),
-                meta=dictionary.get('metadata', {}),
+                values=DataContainer.from_dictionary(dictionary['values'], time_axis.values),
+                axes=axes,
+                columns=dictionary.get('columns', None)
             )
         else:
             return None
@@ -256,8 +407,21 @@ class SpeasyVariable(object):
         else:
             res = deepcopy(self)
         if 'FILLVAL' in res.meta:
-            res.values[res.values == res.meta['FILLVAL']] = np.nan
+            res.__values_container.replace_val_by_nan(res.meta['FILLVAL'])
         return res
+
+    @staticmethod
+    def reserve_like(other: 'SpeasyVariable', length: int = 0) -> 'SpeasyVariable':
+        axes = [VariableTimeAxis.reserve_like(other.__axes[0], length)]
+        for axis in other.__axes[1:]:
+            if axis.is_time_dependent:
+                new_axis = VariableAxis.reserve_like(axis, length)
+                new_axis.set_time_vector(axes[0])
+                axes.append(new_axis)
+            else:
+                axes.append(deepcopy(axis))
+        return SpeasyVariable(values=DataContainer.reserve_like(other.__values_container, length), axes=axes,
+                              columns=other.columns)
 
 
 def to_dictionary(var: SpeasyVariable) -> Dict[str, object]:
@@ -317,8 +481,7 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
             sorted_var_list.remove(current)
 
     if len(sorted_var_list) == 0:
-        return SpeasyVariable(columns=variables[0].columns, meta=variables[0].meta,
-                              extra_axes=variables[0].axes[1:], extra_axes_labels=variables[0].axes_labels[1:])
+        return SpeasyVariable.reserve_like(variables[0], length=0)
 
     overlaps = [np.where(current.time >= nxt.time[0])[0][0] if current.time[-1] >= nxt.time[0] else -1 for current, nxt
                 in
@@ -328,34 +491,20 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
         [overlap if overlap != -1 else len(r.time) for overlap, r in zip(overlaps, sorted_var_list[:-1])]))
     dest_len += len(sorted_var_list[-1].time)
 
-    time = np.zeros(dest_len, dtype=np.dtype('datetime64[ns]'))
-    values = np.zeros((dest_len,) + sorted_var_list[0].values.shape[1:])
-
-    extra_axes = []
-    for axis in sorted_var_list[0].axes[1:]:
-        if axis is not None:
-            if len(axis.shape) > 1 and axis.shape[0] == len(sorted_var_list[0].time):
-                extra_axes.append(np.zeros((dest_len, *axis.shape[1:]), dtype=axis.dtype))
-            else:
-                extra_axes.append(axis.copy())
-        else:
-            extra_axes.append(None)
+    result = SpeasyVariable.reserve_like(sorted_var_list[0], dest_len)
 
     units = set([var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')])
     if len(units) == 1:
-        values <<= units.pop()
+        result.values <<= units.pop()
     elif len(units) > 1:
         raise ValueError("Merging variables with different units")
-
     pos = 0
+
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
         frag_len = len(r.time) if overlap == -1 else overlap
-        time[pos:(pos + frag_len)] = r.time[0:frag_len]
-        values[pos:(pos + frag_len)] = r.values[0:frag_len]
-        for axis, src_axis in zip(extra_axes, r.axes[1:]):
-            if axis is not None:
-                if len(axis.shape) > 1 and axis.shape[0] == dest_len:
-                    axis[pos:(pos + frag_len)] = src_axis[0:frag_len]
+        result[pos:(pos + frag_len)] = r[0:frag_len]
+        # time[pos:(pos + frag_len)] = r.time[0:frag_len]
+        # values[pos:(pos + frag_len)] = r.values[0:frag_len]
+
         pos += frag_len
-    return SpeasyVariable(time=time, values=values, meta=sorted_var_list[0].meta, columns=sorted_var_list[0].columns,
-                          extra_axes=extra_axes, extra_axes_labels=sorted_var_list[0].axes_labels[1:])
+    return result
