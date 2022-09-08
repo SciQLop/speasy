@@ -9,7 +9,7 @@ __version__ = '0.1.0'
 from typing import Optional, Dict
 from datetime import datetime, timedelta
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
-from speasy.products.variable import SpeasyVariable
+from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
 from ...core import http, AllowedKwargs, deprecation
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
@@ -36,14 +36,15 @@ def _variable(orbit: dict) -> Optional[SpeasyVariable]:
     data = orbit['Result']['Data'][1][0]['Coordinates'][1][0]
     keys = list(data.keys())
     keys.remove('CoordinateSystem')
-    values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose() * units.km
+    values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose()
     # this is damn slow!
     time_axis = np.array([_make_datetime(v[1]) for v in
                           orbit['Result']['Data'][1][0]['Time'][1]])
-    return SpeasyVariable(time=time_axis,
-                          values=values,
-                          meta={'CoordinateSystem': data['CoordinateSystem'], 'UNITS': 'km'},
-                          columns=['X', 'Y', 'Z'])
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=time_axis)],
+        values=DataContainer(values, meta={'CoordinateSystem': data['CoordinateSystem'], 'UNITS': 'km'}),
+        columns=['X', 'Y', 'Z']
+    )
 
 
 def _is_valid(orbit: dict):
@@ -116,9 +117,6 @@ class SSC_Webservice(DataProvider):
                        debug=False, **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
                               coordinate_system=coordinate_system, debug=debug, **kwargs)
-        if var:
-            if not hasattr(var.values, 'unit'):
-                var.values *= units.km
         return var
 
     @AllowedKwargs(

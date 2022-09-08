@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from speasy.core.cache import Cache
 from speasy.core.cache import Cacheable, UnversionedProviderCache
 from speasy.core.cache.version import str_to_version, version_to_str
-from speasy.products.variable import SpeasyVariable
+from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
 import packaging.version as Version
 import dateutil.parser as dt_parser
 import operator
@@ -25,7 +25,9 @@ def data_generator(start_time, stop_time):
         [(start_time + timedelta(minutes=delta)).timestamp() for delta in
          range(int((stop_time - start_time).seconds / 60))])
     data = index / 3600.
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(index), values=data)
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(index))],
+        values=DataContainer(values=data))
 
 
 @ddt

@@ -54,12 +54,14 @@ class Plot:
     def line(self, *args, backend=None, **kwargs):
         units = self.metadata.get('UNITS', None)
         yaxis_label = self.metadata.get('FIELDNAM', None)
-        return self._get_backend(backend).line(x=self.axes[0], y=self.values, labels=self.columns_names, units=units,
+        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values, labels=self.columns_names,
+                                               units=units,
                                                yaxis_label=yaxis_label, *args,
                                                **kwargs)
 
     def colormap(self, *args, logy=True, logz=True, backend=None, **kwargs):
-        return self._get_backend(backend).colormap(x=self.axes[0], y=self.axes[1].T, z=self.values.T, *args, **kwargs)
+        return self._get_backend(backend).colormap(x=self.axes[0].values, y=self.axes[1].values.T, z=self.values.T,
+                                                   *args, **kwargs)
 
     def __call__(self, *args, backend=None, **kwargs):
         if self._infer_plot_type() == PlotType.SPECTRO:

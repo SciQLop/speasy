@@ -8,7 +8,7 @@ from packaging.version import Version
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
-MINIMUM_REQUIRED_PROXY_VERSION = Version("0.5.0")
+MINIMUM_REQUIRED_PROXY_VERSION = Version("0.6.0")
 _CURRENT_PROXY_SERVER_VERSION = None
 
 

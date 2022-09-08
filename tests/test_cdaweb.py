@@ -65,13 +65,13 @@ class SimpleRequest(unittest.TestCase):
                                        stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
                                        disable_cache=False)
         self.assertIsNotNone(result2)
-        self.assertTrue(np.all(result1.data == result2.data))
+        self.assertTrue(np.all(result1.values == result2.values))
         result3 = self.cd.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
                                        start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
                                        stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
                                        disable_cache=False)
         self.assertIsNotNone(result3)
-        self.assertTrue(np.all(result2.data == result3.data))
+        self.assertTrue(np.all(result2.values == result3.values))
 
     def test_get_empty_vector(self):
         # this used to fail because CDA returns at least a record but removes one dimension from data

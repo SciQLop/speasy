@@ -23,7 +23,7 @@ class Plot:
             ax.legend(labels)
         if units is not None and yaxis_label is not None:
             ax.set_ylabel(f"{yaxis_label} ({units})")
-        return lines
+        return ax
 
     def colormap(self, x, y, z, ax=None, cmap=None, logy=True, logz=True, *args, **kwargs):
         ax = self._get_ax(ax)
