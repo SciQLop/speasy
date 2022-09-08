@@ -6,7 +6,8 @@
 import unittest
 from ddt import ddt, data, unpack
 
-from speasy.products.variable import SpeasyVariable, merge, to_dataframe, from_dataframe, to_dictionary, from_dictionary
+from speasy.products.variable import SpeasyVariable, VariableTimeAxis, VariableAxis, DataContainer, merge, to_dataframe, \
+    from_dataframe, to_dictionary, from_dictionary
 import numpy as np
 import pandas as pds
 
@@ -17,24 +18,27 @@ import astropy.units
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=meta, columns=["Values"],
-                          extra_axes=None)
+    return SpeasyVariable(axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time))],
+                          values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["Values"])
 
 
 def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = values * 0.1
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=None, columns=["Values"],
-                          extra_axes=[y], extra_axes_labels=['y'])
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time)),
+              VariableAxis(name='y', values=y, is_time_dependent=True)],
+        values=DataContainer(values, is_time_dependent=True), columns=["Values"])
 
 
 def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = np.arange(height)
-    return SpeasyVariable(time=SpeasyVariable.epoch_to_datetime64(time), values=values, meta=None, columns=["Values"],
-                          extra_axes=[y], extra_axes_labels=['y'])
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time)), VariableAxis(name='y', values=y)],
+        values=DataContainer(values, is_time_dependent=True), columns=["Values"])
 
 
 @ddt
@@ -149,8 +153,14 @@ class ASpeasyVariable(unittest.TestCase):
         var = make_simple_var(1., 10., 1., 10.)
         d = to_dictionary(var)
         self.assertIs(type(d), dict)
-        for attr in ['metadata', 'time', 'values', 'extra_axes', 'columns']:
+        for attr in ['axes', 'values', 'columns']:
             self.assertIn(attr, d)
+        dc_attributes = ['values', 'meta', 'name', 'is_time_dependent']
+        for attr in dc_attributes:
+            self.assertIn(attr, d['values'])
+        for axis in d['axes']:
+            for attr in dc_attributes + ['type']:
+                self.assertIn(attr, axis)
 
     def test_from_dict(self):
         var1 = make_simple_var(1., 10., 1., 10.)
