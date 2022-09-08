@@ -132,7 +132,7 @@ class PublicProductsRequests(unittest.TestCase):
     def test_get_multidimensional_data(self):
         r = spz.amda.get_data("psp_spe_EvsEvspa", "2021-07-30T00:00:00", "2021-07-30T00:05:00")
         self.assertIsNotNone(r)
-        self.assertIsNotNone(r.data)
+        self.assertIsNotNone(r.values)
 
 
 class PrivateProductsRequests(unittest.TestCase):

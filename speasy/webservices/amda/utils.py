@@ -5,7 +5,7 @@ conversion procedures for parsing CSV and VOTable data.
 import os
 import datetime
 from urllib.request import urlopen
-from speasy.products.variable import SpeasyVariable
+from speasy.products.variable import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 import pandas as pds
 import numpy as np
 
@@ -57,7 +57,15 @@ def load_csv(filename: str) -> SpeasyVariable:
             max_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MAX_VALUES[0]"].split(',')])
             y = (max_v + min_v) / 2.
             y_label = meta["PARAMETER_TABLE[0]"]
-        return SpeasyVariable(time=time, values=data, meta=meta, columns=columns[1:], extra_axes=[y], extra_axes_labels=[y_label])
+        time_axis = VariableTimeAxis(values=time)
+        if y is None:
+            axes = [time_axis]
+        else:
+            axes = [time_axis, VariableAxis(name='y', values=y, is_time_dependent=False)]
+        return SpeasyVariable(
+            axes=axes,
+            values=DataContainer(values=data, meta=meta),
+            columns=columns[1:])
 
 
 def _build_event(data, colnames: List[str]) -> Event:

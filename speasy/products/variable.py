@@ -44,8 +44,21 @@ class DataContainer(object):
     def shape(self):
         return self.__values.shape
 
+    @property
+    def unit(self):
+        return self.__meta.get('UNITS')
+
     def view(self, index_range: slice):
         return DataContainer(name=self.__name, meta=self.__meta, values=self.__values[index_range],
+                             is_time_dependent=self.__is_time_dependent)
+
+    def unit_applied(self, unit: str or None = None) -> "DataContainer":
+        try:
+            u = astropy.units.Unit(unit or self.unit)
+        except (ValueError, KeyError):
+            u = astropy.units.Unit("")
+
+        return DataContainer(values=self.__values * u, meta=self.__meta, name=self.__name,
                              is_time_dependent=self.__is_time_dependent)
 
     def to_dictionary(self) -> Dict[str, object]:
@@ -116,7 +129,7 @@ class VariableAxis(object):
     @staticmethod
     def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time=None) -> "VariableAxis":
         assert dictionary['type'] == "VariableAxis"
-        return VariableAxis(DataContainer.from_dictionary(dictionary))
+        return VariableAxis(data=DataContainer.from_dictionary(dictionary))
 
     @staticmethod
     def reserve_like(other: 'VariableAxis', length: int = 0) -> 'VariableAxis':
@@ -138,6 +151,10 @@ class VariableAxis(object):
 
     def __eq__(self, other: 'VariableAxis') -> bool:
         return type(other) is VariableAxis and self.__data == other.__data
+
+    @property
+    def unit(self):
+        return self.__meta.get('UNITS')
 
     @property
     def is_time_dependent(self):
@@ -205,6 +222,10 @@ class VariableTimeAxis(object):
     @property
     def values(self):
         return self.__data.values
+
+    @property
+    def unit(self):
+        return 'ns'
 
 
 class SpeasyVariable(object):
@@ -323,6 +344,21 @@ class SpeasyVariable(object):
     @property
     def columns(self):
         return self.__columns
+
+    @property
+    def unit(self):
+        return self.__values_container.unit
+
+    def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
+        if copy:
+            axes = deepcopy(self.__axes)
+            values = deepcopy(self.__values_container)
+            columns = deepcopy(self.__columns)
+        else:
+            axes = self.__axes
+            values = self.__values_container
+            columns = self.__columns
+        return SpeasyVariable(axes=axes, values=values.unit_applied(unit), columns=columns)
 
     def to_astropy_table(self) -> astropy.table.Table:
         """Convert the variable to a astropy.Table object.
@@ -510,18 +546,10 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
 
     result = SpeasyVariable.reserve_like(sorted_var_list[0], dest_len)
 
-    units = set([var.values.unit for var in sorted_var_list if hasattr(var.values, 'unit')])
-    if len(units) == 1:
-        result.values <<= units.pop()
-    elif len(units) > 1:
-        raise ValueError("Merging variables with different units")
     pos = 0
 
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
         frag_len = len(r.time) if overlap == -1 else overlap
         result[pos:(pos + frag_len)] = r[0:frag_len]
-        # time[pos:(pos + frag_len)] = r.time[0:frag_len]
-        # values[pos:(pos + frag_len)] = r.values[0:frag_len]
-
         pos += frag_len
     return result

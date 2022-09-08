@@ -67,13 +67,6 @@ class SscWeb(unittest.TestCase):
         self.assertGreater(np.timedelta64(60, 's'), np.datetime64(kw["start_time"], 'ns') - result.time[0])
         self.assertGreater(np.timedelta64(60, 's'), np.datetime64(kw["stop_time"], 'ns') - result.time[-1])
 
-    def test_get_data_from_cache_preserve_unit(self):
-        # https://github.com/SciQLop/speasy/issues/7
-        for _ in range(3):
-            result = self.ssc.get_trajectory('moon', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-                                             datetime(2006, 1, 8, 2, 0, 0, tzinfo=timezone.utc))
-            self.assertIs(type(result.values), units.quantity.Quantity)
-
     def test_returns_none_for_a_request_outside_of_range(self):
         with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
             result = self.ssc.get_trajectory('solarorbiter', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
