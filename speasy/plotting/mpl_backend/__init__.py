@@ -16,17 +16,29 @@ class Plot:
             fig, ax = plt.subplots()
         return ax
 
-    def line(self, x, y, ax=None, labels=None, units=None, yaxis_label=None, *args, **kwargs):
+    def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
         ax = self._get_ax(ax)
         lines = ax.plot(x, y)
         if labels is not None:
             ax.legend(labels)
         if units is not None and yaxis_label is not None:
             ax.set_ylabel(f"{yaxis_label} ({units})")
+        if xaxis_label is not None:
+            ax.set_xlabel(f"{xaxis_label}")
         return ax
 
-    def colormap(self, x, y, z, ax=None, cmap=None, logy=True, logz=True, *args, **kwargs):
+    def colormap(self, x, y, z, xaxis_label=None, yaxis_label=None, yaxis_units=None, zaxis_label=None,
+                 zaxis_units=None, ax=None,
+                 cmap=None, logy=True,
+                 logz=True, *args,
+                 **kwargs):
         ax = self._get_ax(ax)
+
+        if yaxis_units is not None and yaxis_label is not None:
+            ax.set_ylabel(f"{yaxis_label} ({yaxis_units})")
+        if xaxis_label is not None:
+            ax.set_xlabel(f"{xaxis_label}")
+
         if logy:
             ax.semilogy()
         if logz:
@@ -34,9 +46,14 @@ class Plot:
                                   vmax=np.nanmax(z))
         else:
             norm = None
-        return ax.pcolormesh(x, y, z,
-                             cmap=cmap or 'plasma',
-                             norm=norm, *args, **kwargs)
+
+        cm = ax.pcolormesh(x, y, z,
+                           cmap=cmap or 'plasma',
+                           norm=norm, *args, **kwargs)
+        cbar = plt.colorbar(cm, ax=ax)
+        if zaxis_units is not None and zaxis_label is not None:
+            cbar.set_label(f'{zaxis_label} ({zaxis_units})')
+        return ax
 
     def __call__(self, *args, **kwargs):
         pass
