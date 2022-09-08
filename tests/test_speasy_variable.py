@@ -22,6 +22,13 @@ def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef:
                           values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["Values"])
 
 
+def make_simple_var_2cols(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
+    time = np.arange(start, stop, step)
+    values = np.random.random((len(time), 2))
+    return SpeasyVariable(axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time))],
+                          values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["x", "y"])
+
+
 def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
@@ -81,6 +88,27 @@ class SpeasyVariableSlice(unittest.TestCase):
         var = make_simple_var(1., 10., 1., 1.)
         var[:].values[1] = 999.
         self.assertEqual(var.values[1], 999.)
+
+    def test_view_preserves_columns(self):
+        var = make_simple_var(1., 10., 1., 1.)
+        self.assertEqual(var[:].columns, var.columns)
+
+    def test_can_slice_columns(self):
+        var = make_simple_var_2cols(1., 10., 1., 1.)
+        x = var["x"]
+        y = var["y"]
+        cp = var[["x", "y"]]
+        cp2 = var["x", "y"]
+        self.assertEqual(cp.columns, var.columns)
+        self.assertEqual(cp2.columns, var.columns)
+        self.assertTrue(np.all(cp.values == var.values))
+        self.assertTrue(np.all(cp2.values == var.values))
+        self.assertTrue(np.all(cp.axes == var.axes))
+        self.assertTrue(np.all(cp2.axes == var.axes))
+        self.assertTrue(np.all(x.values[:, 0] == var.values[:, 0]))
+        self.assertTrue(np.all(x.axes == var.axes))
+        self.assertTrue(np.all(y.values[:, 0] == var.values[:, 1]))
+        self.assertTrue(np.all(y.axes == var.axes))
 
 
 @ddt

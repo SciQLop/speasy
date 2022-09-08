@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from .mpl_backend import Plot as MplPlot
+from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
 from typing import List, Dict
 import numpy as np
 from enum import Enum
@@ -16,21 +17,11 @@ class PlotType(Enum):
     SPECTRO = 1
 
 
-class _PlotImpl:
-    axes: List
-    values: np.array
-    columns_names: List[str]
-    metadata: Dict
-    _backend = None
-    _backend_name = None
-
-
 @dataclass
 class Plot:
-    axes: List
-    values: np.array
+    axes: List[VariableAxis or VariableTimeAxis]
+    values: DataContainer
     columns_names: List[str]
-    metadata: Dict
 
     def _set_backend(self, name=None):
         if not hasattr(self, "_backend") or name != self._backend_name or self._backend_name is None:
@@ -47,20 +38,31 @@ class Plot:
         return new
 
     def _infer_plot_type(self):
-        if self.metadata.get("dfsfs", "fsfsd") != "fsfsd":
+        if self.values.meta.get("DISPLAY_TYPE", "") == "spectrogram":
             return PlotType.SPECTRO
         return PlotType.LINE
 
     def line(self, *args, backend=None, **kwargs):
-        units = self.metadata.get('UNITS', None)
-        yaxis_label = self.metadata.get('FIELDNAM', None)
+        units = self.values.unit
+        yaxis_label = self.values.name
         return self._get_backend(backend).line(x=self.axes[0].values, y=self.values, labels=self.columns_names,
                                                units=units,
+                                               xaxis_label=self.axes[0].name,
                                                yaxis_label=yaxis_label, *args,
                                                **kwargs)
 
     def colormap(self, *args, logy=True, logz=True, backend=None, **kwargs):
-        return self._get_backend(backend).colormap(x=self.axes[0].values, y=self.axes[1].values.T, z=self.values.T,
+        yaxis_units = self.axes[1].unit
+        yaxis_label = self.axes[1].name
+        zaxis_units = self.values.unit
+        zaxis_label = self.values.name
+        return self._get_backend(backend).colormap(x=self.axes[0].values, y=self.axes[1].values.T,
+                                                   z=self.values.values.T,
+                                                   xaxis_label=self.axes[0].name,
+                                                   yaxis_label=yaxis_label,
+                                                   yaxis_units=yaxis_units,
+                                                   zaxis_label=zaxis_label,
+                                                   zaxis_units=zaxis_units,
                                                    *args, **kwargs)
 
     def __call__(self, *args, backend=None, **kwargs):
