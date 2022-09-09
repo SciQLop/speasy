@@ -4,7 +4,7 @@
 from enum import Enum
 from .utils import get_parameter_args
 from .inventory import to_xmlid, to_parameter_index, to_dataset_index
-from speasy.core.inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, \
+from ...core.inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, \
     ComponentIndex
 
 from ._impl import is_public, is_private
@@ -13,16 +13,16 @@ from datetime import datetime
 from typing import Optional, List, Dict, Union
 
 # General modules
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
-from speasy.config import amda as amda_cfg
-from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
-from speasy.core.datetime_range import DateTimeRange
+from ...core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from ...config import amda as amda_cfg
+from ...core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
+from ...core.datetime_range import DateTimeRange
 from ...core import make_utc_datetime, AllowedKwargs
-from speasy.products.variable import SpeasyVariable
-from speasy.products.dataset import Dataset
-from speasy.products.timetable import TimeTable
-from speasy.products.catalog import Catalog
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
+from ...products.variable import SpeasyVariable
+from ...products.dataset import Dataset
+from ...products.timetable import TimeTable
+from ...products.catalog import Catalog
+from ...core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 import logging
 
 log = logging.getLogger(__name__)

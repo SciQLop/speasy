@@ -73,6 +73,22 @@ def all_of_type(collection: Sequence, expected_type: Type) -> bool:
     return all(map(lambda x: type(x) is expected_type, collection))
 
 
+def is_collection(value: Any) -> bool:
+    """
+
+    Parameters
+    ----------
+    value : Any
+
+    Returns
+    -------
+    bool
+        True if given value is collection like object but not a string
+
+    """
+    return hasattr(value, '__iter__') and type(value) is not str
+
+
 def mkdir(directory: str) -> None:
     """Creates directory and parents if they do not exist
 

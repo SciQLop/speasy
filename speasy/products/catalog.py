@@ -98,6 +98,9 @@ class Catalog:
     def __len__(self) -> int:
         return len(self._events)
 
+    def __iter__(self):
+        return self._events.__iter__()
+
     def append(self, events: Event or List[Event]) -> None:
         """Append an Event or a list of Event to the end of the Catalog.
 
