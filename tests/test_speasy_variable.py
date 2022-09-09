@@ -193,7 +193,9 @@ class ASpeasyVariable(unittest.TestCase):
     def test_from_dict(self):
         var1 = make_simple_var(1., 10., 1., 10.)
         var2 = from_dictionary(to_dictionary(var1))
+        var3 = from_dictionary(to_dictionary(var1, array_to_list=True))
         self.assertEqual(var1, var2)
+        self.assertEqual(var1, var3)
 
     def test_from_dataframe(self):
         var1 = make_simple_var(1., 10., 1., 10.)

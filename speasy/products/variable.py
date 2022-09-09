@@ -226,10 +226,10 @@ class SpeasyVariable(object):
                               values=DataContainer(values=df.values, meta={}, name='Unknown'),
                               columns=list(df.columns))
 
-    def to_dictionary(self) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         return {
-            'axes': [axis.to_dictionary() for axis in self.__axes],
-            'values': self.__values_container.to_dictionary(),
+            'axes': [axis.to_dictionary(array_to_list=array_to_list) for axis in self.__axes],
+            'values': self.__values_container.to_dictionary(array_to_list=array_to_list),
             'columns': deepcopy(self.__columns)
         }
 
@@ -283,8 +283,8 @@ class SpeasyVariable(object):
                               columns=other.columns)
 
 
-def to_dictionary(var: SpeasyVariable) -> Dict[str, object]:
-    return var.to_dictionary()
+def to_dictionary(var: SpeasyVariable, array_to_list=False) -> Dict[str, object]:
+    return var.to_dictionary(array_to_list=array_to_list)
 
 
 def from_dictionary(dictionary: Dict[str, object] or None) -> SpeasyVariable or None:
