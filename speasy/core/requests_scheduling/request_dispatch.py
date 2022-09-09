@@ -87,6 +87,10 @@ def get_data(product: TimeSerieIndexT, time_range: TimeRangeT, **kwargs) -> Mapp
     ...
 
 
+def _could_be_datetime(value):
+    return type(value) in (str, datetime, np.datetime64, float)
+
+
 def provider_and_product(path_or_product: str or SpeasyIndex) -> (str, str):
     """Breaks given product in two parts: provider and product UID
 
@@ -120,26 +124,29 @@ def _scalar_get_data(index, *args, **kwargs):
 
 def _get_catalog_or_timetable(index, **kwargs):
     if is_collection(index) and not isinstance(index, SpeasyIndex):
-        return list(map(get_data, index))
+        return list(map(lambda i: get_data(i, **kwargs), index))
     else:
         return _scalar_get_data(index, **kwargs)
 
 
-def _get_timeserie1(index, range, **kwargs):
+def _get_timeserie1(index, range_or_collection, **kwargs):
     if is_collection(index) and not isinstance(index, SpeasyIndex):
-        return list(map(lambda i: get_data(i, range), index))
-    elif is_collection(range) and not isinstance(range, SpeasyIndex):
-        return list(map(lambda r: get_data(index, r), range))
-    elif type(range) in (CatalogIndex, TimetableIndex):
-        r = get_data(range)
-        return get_data(index, r)
+        return list(map(lambda i: get_data(i, range_or_collection, **kwargs), index))
+    elif is_collection(range_or_collection) and not isinstance(range_or_collection,
+                                                               SpeasyIndex) and len(
+        range_or_collection) > 0 and not _could_be_datetime(
+        range_or_collection[0]):
+        return list(map(lambda r: get_data(index, r, **kwargs), range_or_collection))
+    elif type(range_or_collection) in (CatalogIndex, TimetableIndex):
+        tt_or_cat = get_data(range_or_collection, **kwargs)
+        return list(map(lambda r: get_data(index, r[0], r[1], **kwargs), tt_or_cat))
     else:
-        return _scalar_get_data(index, range[0], range[1], **kwargs)
+        return _scalar_get_data(index, range_or_collection[0], range_or_collection[1], **kwargs)
 
 
 def _get_timeserie2(index, start, stop, **kwargs):
     if is_collection(index) and not isinstance(index, SpeasyIndex):
-        return list(map(lambda i: get_data(i, start, stop), index))
+        return list(map(lambda i: get_data(i, start, stop, **kwargs), index))
     else:
         return _scalar_get_data(index, start, stop, **kwargs)
 

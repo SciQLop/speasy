@@ -92,6 +92,16 @@ class SpeasyGetData(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
+    def test_get_several_product_on_several_ranges(self):
+        result = spz.get_data(
+            [spz.inventories.data_tree.ssc.Trajectories.ace, "cda/THA_L2_FGM/tha_fgl_gsm"],
+            [['2018-06-01', '2018-06-01T01'], ['2018-06-03', '2018-06-03T01']]
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result[0]), 2)
+        self.assertEqual(len(result[1]), 2)
+
     def test_get_data_wrong_path(self):
         with self.assertRaises(ValueError):
             spz.get_data('wrong/path', datetime.now(), datetime.now())
