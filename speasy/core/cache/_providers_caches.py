@@ -171,6 +171,10 @@ class Cacheable(object):
             data_chunks = list(filter(lambda d: d is not None, data_chunks))
 
             if len(data_chunks):
+                if len(data_chunks) == 1:
+                    return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
+                data_chunks[0] = data_chunks[0][dt_range.start_time:]
+                data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
                 return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
             return None
 
@@ -255,6 +259,10 @@ class UnversionedProviderCache(object):
                     data_chunks.append(data)
 
             if len(data_chunks):
+                if len(data_chunks) == 1:
+                    return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
+                data_chunks[0] = data_chunks[0][dt_range.start_time:]
+                data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
                 return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
             return None
 

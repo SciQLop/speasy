@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime
 from typing import List, Optional, Dict
 from copy import deepcopy
+from sys import getsizeof
 
 import astropy.units
 
@@ -30,11 +31,11 @@ class DataContainer(object):
         self.__values = self.__values.reshape(new_shape)
 
     @property
-    def is_time_dependent(self):
+    def is_time_dependent(self) -> bool:
         return self.__is_time_dependent
 
     @property
-    def values(self):
+    def values(self) -> np.array:
         return self.__values
 
     @property
@@ -42,8 +43,12 @@ class DataContainer(object):
         return self.__values.shape
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return self.__meta.get('UNITS')
+
+    @property
+    def nbytes(self) -> int:
+        return self.__values.nbytes + getsizeof(self.__meta) + getsizeof(self.__name)
 
     def view(self, index_range: slice):
         return DataContainer(name=self.__name, meta=self.__meta, values=self.__values[index_range],
@@ -150,15 +155,15 @@ class VariableAxis(object):
         return type(other) is VariableAxis and self.__data == other.__data
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return self.__data.unit
 
     @property
-    def is_time_dependent(self):
+    def is_time_dependent(self) -> bool:
         return self.__data.is_time_dependent
 
     @property
-    def values(self):
+    def values(self) -> np.array:
         return self.__data.values
 
     @property
@@ -166,8 +171,12 @@ class VariableAxis(object):
         return self.__data.shape
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__data.name
+
+    @property
+    def nbytes(self) -> int:
+        return self.__data.nbytes
 
 
 class VariableTimeAxis(object):
@@ -210,24 +219,28 @@ class VariableTimeAxis(object):
     def __len__(self):
         return len(self.__data)
 
-    def view(self, index_range: slice):
+    def view(self, index_range: slice) -> "VariableTimeAxis":
         return VariableTimeAxis(data=self.__data[index_range])
 
     def __eq__(self, other: 'VariableTimeAxis') -> bool:
         return type(other) is VariableTimeAxis and self.__data == other.__data
 
     @property
-    def is_time_dependent(self):
+    def is_time_dependent(self) -> bool:
         return True
 
     @property
-    def values(self):
+    def values(self) -> np.array:
         return self.__data.values
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return 'ns'
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__data.name
+
+    @property
+    def nbytes(self) -> int:
+        return self.__data.nbytes

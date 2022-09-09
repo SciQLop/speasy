@@ -152,4 +152,4 @@ class SpeasyModule(unittest.TestCase):
 
     def test_raises_if_product_is_worng_type(self):
         with self.assertRaises(TypeError):
-            spz.get_data({}, datetime.now(), datetime.now())
+            spz.get_data(None, datetime.now(), datetime.now())

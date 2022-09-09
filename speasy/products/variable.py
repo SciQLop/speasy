@@ -53,7 +53,7 @@ class SpeasyVariable(object):
         self.__values_container = values
         self.__axes = axes
 
-    def view(self, index_range: slice):
+    def view(self, index_range: slice) -> "SpeasyVariable":
         """Return view of the current variable within the desired :data:`time_range`.
 
         Parameters
@@ -68,6 +68,10 @@ class SpeasyVariable(object):
         """
         return SpeasyVariable(axes=[axis[index_range] if axis.is_time_dependent else axis for axis in self.__axes],
                               values=self.__values_container[index_range], columns=self.columns)
+
+    def copy(self) -> "SpeasyVariable":
+        return SpeasyVariable(axes=deepcopy(self.__axes),
+                              values=deepcopy(self.__values_container), columns=deepcopy(self.columns))
 
     def filter_columns(self, columns: List[str]):
         indexes = list(map(lambda v: self.__columns.index(v), columns))
@@ -124,28 +128,32 @@ class SpeasyVariable(object):
         return self.__values_container.values
 
     @property
-    def time(self):
+    def time(self) -> np.array:
         return self.__axes[0].values
 
     @property
-    def meta(self):
+    def meta(self) -> Dict:
         return self.__values_container.meta
 
     @property
-    def axes(self):
+    def axes(self) -> List[VariableTimeAxis or VariableAxis]:
         return self.__axes
 
     @property
-    def axes_labels(self):
+    def axes_labels(self) -> List[str]:
         return [axis.name for axis in self.__axes]
 
     @property
-    def columns(self):
+    def columns(self) -> List[str]:
         return self.__columns
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return self.__values_container.unit
+
+    @property
+    def nbytes(self):
+        return self.__values_container.nbytes + np.sum(list(map(lambda ax: ax.nbytes, self.__axes)))
 
     def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
         if copy:

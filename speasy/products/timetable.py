@@ -27,6 +27,9 @@ class TimeTable:
     def __len__(self):
         return len(self._storage)
 
+    def __iter__(self):
+        return self._storage.__iter__()
+
     def append(self, dt_range: DateTimeRange or List[DateTimeRange]):
         dt_range = listify(dt_range)
         if not _all_are_datetime_ranges(dt_range):
