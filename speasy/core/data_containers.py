@@ -63,9 +63,9 @@ class DataContainer(object):
         return DataContainer(values=self.__values * u, meta=self.__meta, name=self.__name,
                              is_time_dependent=self.__is_time_dependent)
 
-    def to_dictionary(self) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         return {
-            "values": self.__values.copy(),
+            "values": self.__values.tolist() if array_to_list else self.__values.copy(),
             "meta": self.__meta.copy(),
             "name": self.__name,
             "is_time_dependent": self.is_time_dependent
@@ -123,8 +123,8 @@ class VariableAxis(object):
         else:
             self.__data = DataContainer(values=values, name=name, meta=meta, is_time_dependent=is_time_dependent)
 
-    def to_dictionary(self) -> Dict[str, object]:
-        d = self.__data.to_dictionary()
+    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+        d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableAxis"})
         return d
 
@@ -190,8 +190,8 @@ class VariableTimeAxis(object):
                 raise ValueError(f"Please provide datetime64[ns] for time axis, got {values.dtype}")
             self.__data = DataContainer(values=values, name='time', meta=meta, is_time_dependent=True)
 
-    def to_dictionary(self) -> Dict[str, object]:
-        d = self.__data.to_dictionary()
+    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+        d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableTimeAxis"})
         return d
 
