@@ -102,6 +102,8 @@ class DataContainer(object):
                np.all(self.__values == other.__values)
 
     def replace_val_by_nan(self, val):
+        if self.__values.dtype != np.float:
+            self.__values = self.__values.astype(np.float)
         self.__values[self.__values == val] = np.nan
 
     @property
