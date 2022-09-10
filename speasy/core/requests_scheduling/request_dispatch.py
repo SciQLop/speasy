@@ -1,6 +1,6 @@
 from typing import overload, Optional, Union, Iterable, Tuple, Mapping, List
 from ...products import MaybeAnyProduct, TimeTable, Catalog, SpeasyVariable, Dataset
-from .. import is_collection, all_of_type
+from .. import is_collection, all_of_type, progress_bar
 from ..datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import SpeasyIndex, CatalogIndex, TimetableIndex, DatasetIndex, ParameterIndex, \
     ComponentIndex
@@ -123,32 +123,15 @@ def _scalar_get_data(index, *args, **kwargs):
 
 
 def _get_catalog_or_timetable(index, **kwargs):
-    if is_collection(index) and not isinstance(index, SpeasyIndex):
-        return list(map(lambda i: get_data(i, **kwargs), index))
-    else:
-        return _scalar_get_data(index, **kwargs)
+    return _scalar_get_data(index, **kwargs)
 
 
-def _get_timeserie1(index, range_or_collection, **kwargs):
-    if is_collection(index) and not isinstance(index, SpeasyIndex):
-        return list(map(lambda i: get_data(i, range_or_collection, **kwargs), index))
-    elif is_collection(range_or_collection) and not isinstance(range_or_collection,
-                                                               SpeasyIndex) and len(
-        range_or_collection) > 0 and not _could_be_datetime(
-        range_or_collection[0]):
-        return list(map(lambda r: get_data(index, r, **kwargs), range_or_collection))
-    elif type(range_or_collection) in (CatalogIndex, TimetableIndex):
-        tt_or_cat = get_data(range_or_collection, **kwargs)
-        return list(map(lambda r: get_data(index, r[0], r[1], **kwargs), tt_or_cat))
-    else:
-        return _scalar_get_data(index, range_or_collection[0], range_or_collection[1], **kwargs)
+def _get_timeserie1(index, dtrange, **kwargs):
+    return _scalar_get_data(index, dtrange[0], dtrange[1], **kwargs)
 
 
 def _get_timeserie2(index, start, stop, **kwargs):
-    if is_collection(index) and not isinstance(index, SpeasyIndex):
-        return list(map(lambda i: get_data(i, start, stop, **kwargs), index))
-    else:
-        return _scalar_get_data(index, start, stop, **kwargs)
+    return _scalar_get_data(index, start, stop, **kwargs)
 
 
 def _compile_args(*args, **kwargs):
@@ -161,6 +144,11 @@ def _compile_args(*args, **kwargs):
         elif 'time_range' in kwargs:
             args += [kwargs.pop('time_range')]
     return args, kwargs
+
+
+def _is_dtrange(value):
+    return type(value) is DateTimeRange or (
+        hasattr(value, '__len__') and len(value) == 2 and _could_be_datetime(value[0]) and _could_be_datetime(value[1]))
 
 
 def get_data(*args, **kwargs) -> MaybeAnyProduct:
@@ -198,9 +186,23 @@ def get_data(*args, **kwargs) -> MaybeAnyProduct:
     """
 
     args, kwargs = _compile_args(*args, **kwargs)
+    if len(args) == 0:
+        raise ValueError("You must at least provide a product to retrieve")
+
+    product = args[0]
+    if is_collection(product) and not isinstance(product, SpeasyIndex):
+        return list(map(lambda p: get_data(p, *args[1:], **kwargs), progress_bar(leave=True, **kwargs)(product)))
+
     if len(args) == 1:
         return _get_catalog_or_timetable(*args, **kwargs)
     if len(args) == 2:
-        return _get_timeserie1(*args, **kwargs)
+        t_range = args[1]
+        if _is_dtrange(t_range):
+            return _get_timeserie1(*args, **kwargs)
+        if is_collection(t_range):
+            return list(
+                map(lambda r: get_data(product, r, *args[2:], **kwargs),
+                    progress_bar(leave=False, **kwargs)(t_range)))
+        return get_data(product, get_data(t_range), *args[2:], **kwargs)
     if len(args) == 3:
         return _get_timeserie2(*args, **kwargs)

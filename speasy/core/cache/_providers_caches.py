@@ -1,7 +1,8 @@
 from speasy import SpeasyVariable
 from .cache import CacheItem
-from typing import Union, Callable, List, Tuple
+from typing import List, Tuple
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core import progress_bar
 from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
 from speasy.core.inventory.indexes import ParameterIndex
 from datetime import datetime, timedelta
@@ -166,7 +167,8 @@ class Cacheable(object):
                     fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
                     version=version, **kwargs)
                 for fragment_group
-                in missing_fragments]
+                in
+                progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(missing_fragments)]
 
             data_chunks = list(filter(lambda d: d is not None, data_chunks))
 
@@ -241,9 +243,11 @@ class UnversionedProviderCache(object):
                         fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
                         version=datetime.utcnow(), **kwargs)
                     for fragment_group
-                    in missing_fragments]))
+                    in progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(
+                        missing_fragments)]))
 
-            for group in maybe_outdated_fragments:
+            for group in progress_bar(leave=False, desc="Checking if cache fragments are outdated", **kwargs)(
+                maybe_outdated_fragments):
                 oldest = max(group, key=lambda item: item[1].version)[1].version
                 data = get_data(wrapped_self, product=product, start_time=group[0][0],
                                 stop_time=group[-1][0] + fragment_duration, if_newer_than=oldest, **kwargs)

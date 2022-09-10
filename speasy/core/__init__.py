@@ -9,6 +9,8 @@ import warnings
 from datetime import datetime, timezone
 from typing import Any, Dict, Sequence, Type, List
 from functools import wraps
+from collections.abc import Iterable
+from tqdm.auto import tqdm
 
 import numpy as np
 from dateutil.parser import parse
@@ -86,7 +88,7 @@ def is_collection(value: Any) -> bool:
         True if given value is collection like object but not a string
 
     """
-    return hasattr(value, '__iter__') and type(value) is not str
+    return isinstance(value, Iterable) and type(value) is not str
 
 
 def mkdir(directory: str) -> None:
@@ -183,7 +185,7 @@ class AllowedKwargs(object):
     """
 
     def __init__(self, allowed_list):
-        self.allowed_list = allowed_list
+        self.allowed_list = set(allowed_list)
 
     def __call__(self, func):
         @wraps(func)
@@ -225,16 +227,17 @@ def fix_name(name: str):
     """
     rules = (
         ('-', '_'),
-        (':', ''),
+        (':', '_'),
         ('.', '_'),
         ('(', ''),
         (')', ''),
         ('/', ''),
-        (' ', ''),
+        (' ', '_'),
         ('{', ''),
         ('}', ''),
         ('(', ''),
-        ('⊙', 'o')
+        ('⊙', 'o'),
+        (';', '_')
     )
     if len(name):
         if name[0].isnumeric():
@@ -243,3 +246,10 @@ def fix_name(name: str):
             if bad in name:
                 name = name.replace(bad, replacement)
         return name
+
+
+def progress_bar(leave=True, no_progress=False, desc=None, **kwargs):
+    if no_progress:
+        return lambda x: x
+    else:
+        return lambda x: tqdm(x, leave=leave, desc=desc)
