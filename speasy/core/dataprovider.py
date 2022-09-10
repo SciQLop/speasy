@@ -10,7 +10,7 @@ from functools import wraps
 import logging
 
 log = logging.getLogger(__name__)
-GET_DATA_ALLOWED_KWARGS = ['product', 'start_time', 'stop_time', 'extra_http_headers']
+GET_DATA_ALLOWED_KWARGS = ['product', 'start_time', 'stop_time', 'extra_http_headers', 'no_progress']
 PROVIDERS = {}
 
 
