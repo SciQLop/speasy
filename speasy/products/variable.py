@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pds
 from datetime import datetime
 from typing import List, Optional, Dict
+from .base_product import SpeasyProduct
 from speasy.plotting import Plot
 from speasy.core.data_containers import DataContainer, VariableTimeAxis, VariableAxis, _to_index
 from copy import deepcopy
@@ -10,7 +11,7 @@ import astropy.units
 import astropy.table
 
 
-class SpeasyVariable(object):
+class SpeasyVariable(SpeasyProduct):
     """SpeasyVariable object. Base class for storing variable data.
 
     Attributes
@@ -40,6 +41,7 @@ class SpeasyVariable(object):
 
     def __init__(self, axes: List[VariableAxis or VariableTimeAxis], values: DataContainer,
                  columns: Optional[List[str]] = None):
+        super().__init__()
         if not isinstance(axes[0], VariableTimeAxis):
             raise TypeError(f"axes[0] must be a VariableTimeAxis instance, got {type(axes[0])}")
         if axes[0].shape[0] != values.shape[0]:

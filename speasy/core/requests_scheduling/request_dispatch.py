@@ -152,39 +152,38 @@ def _is_dtrange(value):
 
 
 def get_data(*args, **kwargs) -> MaybeAnyProduct:
-    """Download given product, this function accepts string paths like "sscweb/moon" or index objects
-    from inventory trees.
+    """Retrieve requested product(s).
+    Speasy gives access to two kind of products, time-dependent products such as physical measurements or trajectories
+    and products such as timetables or event catalogs. So depending on which product you want to retrieve :func:`speasy.get_data`
+    accepts different sets of arguments:
+
+    - For time-independent products:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        get_data(product_or_products, **kwargs)
+
+    - For time-dependent products:
+
+    .. highlight:: python
+    .. code-block:: python
+
+        get_data(product_or_products, start_time, stop_time, **kwargs)
+        get_data(product_or_products, datetime_range_or_datetime_range, **kwargs)
+
+    Since get_data accepts both at the same time a list of products and a list of ranges, it will always iterate first
+    on products then on datetime ranges. In other words, all products will be retrieved for all given datetime ranges.
 
     Parameters
     ----------
-    product : str or SpeasyIndex
-        The product you want to download, either path like "sscweb/moon" or index objects.
-    start_time : str or datetime.datetime, optional
-        Start time, mandatory for time-series.
-    stop_time : str or datetime.datetime, optional
-        Stop time, mandatory for time-series.
-    kwargs
+    args :
+    kwargs :
 
     Returns
     -------
-    MaybeAnyProduct
-        The requested product if available or None
 
-    Examples
-    --------
-    >>> moon=spz.get_data('sscweb/moon', '2000-01-01', '2000-09-02T12:00:00+00:00')
-    >>> moon.columns
-    ['X', 'Y', 'Z']
-    >>> moon.data
-               [[ 183940.73767809, -354329.74995782,   36559.09278865],
-               [ 183989.39891203, -354307.09633046,   36558.99256677],
-               [ 184038.04489285, -354284.42184423,   36558.88913279],
-               ...,
-               [ 230448.57392717,  305986.424528  ,   33999.47652102],
-               [ 230405.72253792,  306023.74218105,   33998.89651167],
-               [ 230362.93800137,  306061.10305253,   33998.32408929]]
     """
-
     args, kwargs = _compile_args(*args, **kwargs)
     if len(args) == 0:
         raise ValueError("You must at least provide a product to retrieve")

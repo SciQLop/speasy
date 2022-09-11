@@ -1,4 +1,5 @@
 from speasy.core.datetime_range import DateTimeRange
+from .base_product import SpeasyProduct
 from typing import List
 from speasy.core import all_of_type, listify
 import pandas as pds
@@ -8,13 +9,14 @@ def _all_are_datetime_ranges(dt_list):
     return all_of_type(dt_list, DateTimeRange)
 
 
-class TimeTable:
+class TimeTable(SpeasyProduct):
     """A TimeTable is basically a collection of DateTimeRange
 
     """
     __slots__ = ['name', 'meta', '_storage']
 
     def __init__(self, name: str, meta: dict = None, dt_ranges: List[DateTimeRange] = None):
+        super().__init__()
         self.name = name
         self.meta = meta or {}
         self._storage = dt_ranges or []

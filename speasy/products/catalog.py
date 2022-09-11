@@ -2,6 +2,7 @@
 """
 
 from speasy.core.datetime_range import DateTimeRange
+from .base_product import SpeasyProduct
 from datetime import datetime
 from typing import List
 from speasy.core import all_of_type, listify
@@ -47,7 +48,7 @@ class Event(DateTimeRange):
         return f"<Event: {self.start_time.isoformat()} -> {self.stop_time.isoformat()} | {self.meta}>"
 
 
-class Catalog:
+class Catalog(SpeasyProduct):
     """The Catalog class allows to manipulate a goup of events like a simple Python list of Event plus some meta data.
 
     Attributes
@@ -86,6 +87,7 @@ class Catalog:
     __slots__ = ['_events', 'name', 'meta']
 
     def __init__(self, name: str, meta: dict = None, events: List[Event] = None):
+        super().__init__()
         self.name = name
         self.meta = meta or {}
         self._events = []
