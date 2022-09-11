@@ -1,3 +1,4 @@
+from .base_product import SpeasyProduct
 from .catalog import Catalog, Event
 from .timetable import TimeTable
 from .dataset import Dataset

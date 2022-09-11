@@ -1,16 +1,18 @@
 from typing import Optional
+from .base_product import SpeasyProduct
 from speasy.core import all_of_type
 from speasy.products.variable import SpeasyVariable
 from speasy.core.datetime_range import DateTimeRange
 
 
-class Dataset:
+class Dataset(SpeasyProduct):
     """A Dataset is basically a collection of SpeasyVariables
 
     """
     __slots__ = ['name', 'variables', 'meta']
 
     def __init__(self, name: str, variables: dict, meta: dict):
+        super().__init__()
         if not all_of_type(variables.values(), SpeasyVariable):
             raise TypeError(f"variables must be a {dict} with {SpeasyVariable} as values")
         self.name = name
