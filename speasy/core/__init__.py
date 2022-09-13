@@ -248,8 +248,8 @@ def fix_name(name: str):
         return name
 
 
-def progress_bar(leave=True, no_progress=False, desc=None, **kwargs):
-    if no_progress:
+def progress_bar(leave=True, progress=False, desc=None, **kwargs):
+    if progress:
         return lambda x: x
     else:
         return lambda x: tqdm(x, leave=leave, desc=desc)

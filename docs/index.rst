@@ -7,7 +7,7 @@ Space Physics made EASY
    :maxdepth: 2
 
    installation
-   user/modules
+   user/webservices
    examples/index
    dev/index
    history

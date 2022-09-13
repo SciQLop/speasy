@@ -1,5 +1,5 @@
-modules
-=======
+Web services
+============
 
 .. toctree::
    :titlesonly:

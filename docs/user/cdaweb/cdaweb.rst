@@ -20,7 +20,7 @@ Once you have found your product, then simply ask CDA module to get data for the
     >>> solo_mag_rtn = spz.cda.get_data(spz.inventories.tree.cda.SolarOrbiter.SOLO.MAG.SOLO_L2_MAG_RTN_NORMAL_1_MINUTE.B_RTN, "2021-01-01", "2021-01-02")
     >>> solo_mag_rtn.columns
     ['B_r', 'B_t', 'B_n']
-    >>> solo_mag_rtn.values
+    >>> solo_mag_rtn.values.shape
     array([[-3.61791134,  4.90589952,  1.66810775],
            [-4.45308304,  4.99237871,  2.0582211 ],
            [-4.4630909 ,  5.60436535,  0.67475253],

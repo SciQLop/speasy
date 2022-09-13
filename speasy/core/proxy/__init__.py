@@ -70,8 +70,8 @@ class Proxyfiable(object):
         @wraps(func)
         def wrapped(*args, **kwargs):
             disable_proxy = kwargs.pop("disable_proxy", False)
-            proxy_version = query_proxy_version()
             if proxy_cfg.enabled() and not disable_proxy:
+                proxy_version = query_proxy_version()
                 if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:
                     return self.request.get(**self.arg_builder(**kwargs))
                 else:
