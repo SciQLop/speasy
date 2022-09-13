@@ -1,5 +1,5 @@
 from typing import overload, Optional, Union, Iterable, Tuple, Mapping, List
-from ...products import MaybeAnyProduct, TimeTable, Catalog, SpeasyVariable, Dataset
+from ...products import *
 from .. import is_collection, all_of_type, progress_bar
 from ..datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import SpeasyIndex, CatalogIndex, TimetableIndex, DatasetIndex, ParameterIndex, \
@@ -11,6 +11,7 @@ import numpy as np
 TimeT = Union[str, datetime, float, np.datetime64]
 TimeRangeT = Union[DateTimeRange, Tuple[TimeT, TimeT]]
 TimeSerieIndexT = Union[ParameterIndex, ComponentIndex]
+TimeRangeCollectionT = Union[TimetableIndex, CatalogIndex, Iterable[Iterable[Union[TimeT]]]]
 
 amda = AMDA_Webservice()
 cda = CDA_Webservice()
@@ -57,7 +58,7 @@ def get_data(product: DatasetIndex, time_range: TimeRangeT, **kwargs) -> Dataset
 
 
 @overload
-def get_data(product: DatasetIndex, time_range: Iterable[TimeRangeT], **kwargs) -> List[Dataset] or None:
+def get_data(product: DatasetIndex, time_range: Iterable[TimeRangeT], **kwargs) -> List[Optional[Dataset]] or None:
     ...
 
 
@@ -72,18 +73,26 @@ def get_data(product: TimeSerieIndexT, time_range: TimeRangeT, **kwargs) -> Spea
 
 
 @overload
-def get_data(product: TimeSerieIndexT, time_range: Iterable[TimeRangeT], **kwargs) -> List[SpeasyVariable] or None:
+def get_data(product: TimeSerieIndexT, time_range: Iterable[TimeRangeT], **kwargs) -> List[Optional[
+    SpeasyVariable]] or None:
+    ...
+
+
+@overload
+def get_data(product: TimeSerieIndexT, time_range: TimeRangeCollectionT, **kwargs) -> List[Optional[
+    SpeasyVariable]] or None:
     ...
 
 
 @overload
 def get_data(product: Iterable[TimeSerieIndexT], start_time: TimeT, stop_time: TimeT,
-             **kwargs) -> Mapping[str, SpeasyVariable] or None:
+             **kwargs) -> List[Optional[SpeasyVariable]] or None:
     ...
 
 
 @overload
-def get_data(product: TimeSerieIndexT, time_range: TimeRangeT, **kwargs) -> Mapping[str, SpeasyVariable] or None:
+def get_data(product: Iterable[TimeSerieIndexT], time_range: TimeRangeCollectionT, **kwargs) -> List[List[
+    Optional[SpeasyVariable]]] or None:
     ...
 
 
@@ -178,10 +187,97 @@ def get_data(*args, **kwargs) -> MaybeAnyProduct:
     Parameters
     ----------
     args :
+        Either a time independent or a list of time independent indexes or any combination of time dependent or list of
+        time dependent indexes plus a datetime range or a list of datetime ranges. See examples below for more details.
     kwargs :
+        For webservice specific keyword arguments check :doc:`user/webservices`.
+
+        - disable_proxy: bool
+            ignore proxy configuration and always bypass proxy server when True (default: False).
+        - disable_cache: bool
+            ignore cache content when True (default: False).
+        - progress: bool
+            show progress bar when True (default: False).
 
     Returns
     -------
+        requested product(s) according to given parameters, either a single product or a collection of products.
+
+    Examples
+    --------
+
+    - A simple parameter request on a single tile range:
+
+    >>> import speasy as spz
+    >>> spz.get_data("amda/imf_gsm", "2016-10-10", "2016-10-11")
+    <speasy.products.variable.SpeasyVariable object at ...>
+
+
+    - Same with a catalog using Speasy dynamic inventory:
+
+    >>> import speasy as spz
+    >>> amda_catalogs = spz.inventories.tree.amda.Catalogs
+    >>> spz.get_data(amda_catalogs.SharedCatalogs.EARTH.model_regions_plasmas_cluster_2005)
+    <Catalog: model_regions_plasmas_cluster_2005>
+
+    - You can also request a collection of catalogs:
+
+    >>> import speasy as spz
+    >>> amda_catalogs = spz.inventories.tree.amda.Catalogs
+    >>> spz.get_data([amda_catalogs.SharedCatalogs.EARTH.model_regions_plasmas_cluster_2005,
+    ...               amda_catalogs.SharedCatalogs.EARTH.model_regions_plasmas_mms_2019])
+    [<Catalog: model_regions_plasmas_cluster_2005>, <Catalog: model_regions_plasmas_mms_2019>]
+
+    - You can also request a parameter for several intervals:
+
+    >>> import speasy as spz
+    >>> spz.get_data("amda/imf_gsm", [["2016-10-10", "2016-10-11"],
+    ...                               ["2017-10-10", "2017-10-11"]])
+    [<speasy.products.variable.SpeasyVariable object at ...>, <speasy.products.variable.SpeasyVariable object at ...>]
+
+    - Several products on a single interval:
+
+    >>> import speasy as spz
+    >>> spz.get_data(["amda/imf_gsm", spz.inventories.tree.ssc.Trajectories.wind],
+    ...              "2016-10-10", "2016-10-11")
+    [<speasy.products.variable.SpeasyVariable object at ...>, <speasy.products.variable.SpeasyVariable object at ...>]
+
+    - Several products for several time ranges:
+
+    >>> import speasy as spz
+    >>> data= spz.get_data(["amda/imf_gsm",
+    ...                  spz.inventories.tree.ssc.Trajectories.wind],
+    ...              [["2016-10-10", "2016-10-11"],
+    ...               ["2017-10-10", "2017-10-11"]])
+    >>> len(data), len(data[0])
+    (2, 2)
+
+    - A catalog or a timetable can also be used as time ranges collection to download a product:
+
+    >>> import speasy as spz
+    >>> amda_shared_tt = spz.inventories.tree.amda.TimeTables.SharedTimeTables
+    >>> mex_inventory = spz.inventories.tree.amda.Parameters.MEX
+    >>> mgs_inventory = spz.inventories.tree.amda.Parameters.MGS
+    >>> conj_mex_mgs = spz.get_data(amda_shared_tt.MARS.conjonctions_mex_mgs_2004_0)
+    >>> data = spz.get_data(
+    ...                     [mex_inventory.ELS.mex_els_all.mex_els_spec,
+    ...                      mgs_inventory.MAG.mgs_mag_mso.b_mgs_mso],
+    ...                     conj_mex_mgs)
+    >>> len(data), len(data[0])
+    (2, 28)
+
+    - Can even pass a CatalogIndex or a TimeTableIndex directly:
+
+    >>> import speasy as spz
+    >>> amda_shared_tt = spz.inventories.tree.amda.TimeTables.SharedTimeTables
+    >>> mex_inventory = spz.inventories.tree.amda.Parameters.MEX
+    >>> mgs_inventory = spz.inventories.tree.amda.Parameters.MGS
+    >>> data = spz.get_data(
+    ...                     [mex_inventory.ELS.mex_els_all.mex_els_spec,
+    ...                      mgs_inventory.MAG.mgs_mag_mso.b_mgs_mso],
+    ...                     amda_shared_tt.MARS.conjonctions_mex_mgs_2004_0)
+    >>> len(data), len(data[0])
+    (2, 28)
 
     """
     args, kwargs = _compile_args(*args, **kwargs)
