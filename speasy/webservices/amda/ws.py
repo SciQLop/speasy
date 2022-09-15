@@ -177,7 +177,7 @@ class AMDA_Webservice(DataProvider):
         >>> imf_data = spz.amda.get_data("imf", "2019-02-24T19:20:05", "2019-02-25")
         >>> print(imf_data.columns)
         ['imf[0]', 'imf[1]', 'imf[2]']
-        >>> print(imf_data.data.shape)
+        >>> print(imf_data.values.shape)
         (1050, 3)
 
 
@@ -227,7 +227,7 @@ class AMDA_Webservice(DataProvider):
         >>> user_param = spz.amda.get_user_parameter("ws_0", "2019-02-24T19:20:05", "2019-02-25") # doctest: +SKIP
         >>> print(user_param.columns) # doctest: +SKIP
         ['ws_test_param']
-        >>> print(user_param.data.shape) # doctest: +SKIP
+        >>> print(user_param.values.shape) # doctest: +SKIP
         (2, 1)
 
 
@@ -308,7 +308,7 @@ class AMDA_Webservice(DataProvider):
     @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_parameter(self, product, start_time, stop_time, extra_http_headers: Dict or None = None) -> Optional[
+    def get_parameter(self, product, start_time, stop_time, extra_http_headers: Dict or None = None, **kwargs) -> Optional[
         SpeasyVariable]:
         """Get parameter data.
 
@@ -333,11 +333,11 @@ class AMDA_Webservice(DataProvider):
 
         >>> import speasy as spz
         >>> import datetime
-        >>> imf_data = spz.amda.get_parameter("imf")
+        >>> imf_data = spz.amda.get_parameter("imf", "2018-01-01", "2018-01-01T01")
         >>> print(imf_data.columns)
         ['imf[0]', 'imf[1]', 'imf[2]']
-        >>> print(imf_data.data.shape)
-        (5400, 3)
+        >>> print(imf_data.values.shape)
+        (225, 3)
 
         """
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')

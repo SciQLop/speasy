@@ -14,3 +14,4 @@ pytest
 pytest-cov
 pyistp
 astroquery
+tqdm

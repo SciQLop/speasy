@@ -216,7 +216,7 @@ def fix_name(name: str):
     Examples
     --------
     >>> fix_name('Parker Solar Probe (PSP)')
-    'ParkerSolarProbePSP'
+    'Parker_Solar_Probe_PSP'
 
     >>> fix_name('IS⊙ISEPI_Lo')
     'ISoISEPI_Lo'
@@ -249,7 +249,7 @@ def fix_name(name: str):
 
 
 def progress_bar(leave=True, progress=False, desc=None, **kwargs):
-    if progress:
+    if not progress:
         return lambda x: x
     else:
         return lambda x: tqdm(x, leave=leave, desc=desc)

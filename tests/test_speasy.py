@@ -14,7 +14,8 @@ class SpeasyGetData(unittest.TestCase):
     def setUp(self):
         self.proxy_state = spz.config.proxy.enabled()
         spz.config.proxy.enabled.set("true")
-        spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache-dev")
+        spz.config.proxy.url.set(
+            "http://sciqlop.lpp.polytechnique.fr/cache-dev")
 
     def tearDown(self):
         spz.config.proxy.enabled.set(self.proxy_state)
@@ -94,7 +95,8 @@ class SpeasyGetData(unittest.TestCase):
 
     def test_get_several_product_on_several_ranges(self):
         result = spz.get_data(
-            [spz.inventories.data_tree.ssc.Trajectories.ace, "cda/THA_L2_FGM/tha_fgl_gsm"],
+            [spz.inventories.data_tree.ssc.Trajectories.ace,
+                "cda/THA_L2_FGM/tha_fgl_gsm"],
             [['2018-06-01', '2018-06-01T01'], ['2018-06-03', '2018-06-03T01']]
         )
         self.assertIsNotNone(result)
@@ -106,55 +108,32 @@ class SpeasyGetData(unittest.TestCase):
         with self.assertRaises(ValueError):
             spz.get_data('wrong/path', datetime.now(), datetime.now())
 
-    @data(
-        {
-            "body": "moon",
-            "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
-            "disable_proxy": True
-        },
-        {
-            "body": "bepicolombo",
-            "start_time": datetime(2019, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2019, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
-            "disable_proxy": True
-        },
-        {
-            "body": "mms1",
-            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2021, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
-            "disable_proxy": True
-        }
-    )
-    def test_get_orbit(self, kw):
-        result = spz.get_orbit(**kw,
-                               debug=True,
-                               disable_cache=True)
-        self.assertIsNotNone(result)
-        self.assertGreater(len(result), 0)
-
 
 @ddt
 class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
-        self.assertListEqual(l, ['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa'])
+        self.assertListEqual(
+            l, ['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa'])
 
     @data(*[(provider,) for provider in PROVIDERS.keys()])
     @unpack
     def test_can_update_inventories(self, provider):
         spz.inventories.flat_inventories.__dict__[provider].parameters.clear()
         spz.__dict__[provider].update_inventory()
-        self.assertGreaterEqual(len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+        self.assertGreaterEqual(
+            len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
     def test_can_update_inventories_all_at_once(self):
         for provider in PROVIDERS.keys():
-            spz.inventories.flat_inventories.__dict__[provider].parameters.clear()
+            spz.inventories.flat_inventories.__dict__[
+                provider].parameters.clear()
 
         spz.update_inventories()
 
         for provider in PROVIDERS.keys():
-            self.assertGreaterEqual(len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+            self.assertGreaterEqual(
+                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
     def test_raises_if_product_path_is_broken(self):
         with self.assertRaises(ValueError):
