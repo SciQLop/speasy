@@ -24,11 +24,6 @@ def find_product(name: str) -> List[str]:
     pass
 
 
-def get_orbit(body: str or SpeasyIndex, start_time, stop_time, coordinate_system: str = 'gse',
-              **kwargs) -> SpeasyVariable:
-    return ssc.get_data(body, start_time, stop_time, coordinate_system=coordinate_system, **kwargs)
-
-
 def update_inventories(disable_cache=False, force_refresh=False):
     from .core.dataprovider import PROVIDERS
     for provider in PROVIDERS.values():

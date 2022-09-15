@@ -11,3 +11,4 @@ python-dateutil
 astropy
 pyistp
 astroquery
+tqdm
