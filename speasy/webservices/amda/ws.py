@@ -90,6 +90,9 @@ class AMDA_Webservice(DataProvider):
     def build_inventory(self, root: SpeasyIndex):
         return self._impl.build_inventory(root)
 
+    def build_private_inventory(self, root: SpeasyIndex):
+        return self._impl.build_private_inventory(root)
+
     def is_user_catalog(self, catalog_id: str or CatalogIndex):
         return _is_user_prod(catalog_id, self.flat_inventory.catalogs)
 
@@ -308,7 +311,8 @@ class AMDA_Webservice(DataProvider):
     @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_parameter(self, product, start_time, stop_time, extra_http_headers: Dict or None = None, **kwargs) -> Optional[
+    def get_parameter(self, product, start_time, stop_time, extra_http_headers: Dict or None = None, **kwargs) -> \
+    Optional[
         SpeasyVariable]:
         """Get parameter data.
 
