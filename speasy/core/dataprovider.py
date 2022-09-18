@@ -52,7 +52,6 @@ class DataProvider:
         return self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
                                                 meta={'build_date': datetime.utcnow().isoformat()}))
 
-    @CacheCall(cache_retention=timedelta(days=inventories_cfg.cache_retention_days()), is_pure=True)
     def _update_private_inventory(self, root: SpeasyIndex):
         if hasattr(self, 'build_private_inventory'):
             return self.build_private_inventory(root)
