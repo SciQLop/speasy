@@ -2,6 +2,7 @@ from speasy.inventories import flat_inventories, tree
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIndex, from_dict, to_dict
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.proxy import Proxyfiable, GetInventory
 from .cache import CacheCall
 from ..config import inventories as inventories_cfg
 from datetime import timedelta, datetime
@@ -30,27 +31,39 @@ class ParameterRangeCheck(object):
         return wrapped
 
 
+def _get_inventory_args(provider_name, **kwargs):
+    return {'provider': f"{provider_name}"}
+
+
 class DataProvider:
     def __init__(self, provider_name: str, provider_alt_names: List or None = None):
         self.provider_name = provider_name
         self.provider_alt_names = provider_alt_names or []
         self.flat_inventory = ProviderInventory()
         flat_inventories.__dict__[provider_name] = self.flat_inventory
-        tree.__dict__[provider_name] = from_dict(self._inventory(provider_name))
         for alt_name in self.provider_alt_names:
             flat_inventories.__dict__[alt_name] = self.flat_inventory
+        self.update_inventory()
         PROVIDERS[provider_name] = self
 
+    @Proxyfiable(request=GetInventory, arg_builder=_get_inventory_args)
     @CacheCall(cache_retention=timedelta(days=inventories_cfg.cache_retention_days()), is_pure=True)
     def _inventory(self, provider_name):
-        return to_dict(self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
-                                                        meta={'build_date': datetime.utcnow().isoformat()})))
+        return self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
+                                                meta={'build_date': datetime.utcnow().isoformat()}))
+
+    @CacheCall(cache_retention=timedelta(days=inventories_cfg.cache_retention_days()), is_pure=True)
+    def _update_private_inventory(self, root: SpeasyIndex):
+        if hasattr(self, 'build_private_inventory'):
+            return self.build_private_inventory(root)
 
     def update_inventory(self, disable_cache=False, force_refresh=False):
         self.flat_inventory.clear()
-        tree.__dict__[self.provider_name].clear()
-        tree.__dict__[self.provider_name] = from_dict(
-            self._inventory(self.provider_name, disable_cache=disable_cache, force_refresh=force_refresh))
+        if self.provider_name in tree.__dict__:
+            tree.__dict__[self.provider_name].clear()
+        tree.__dict__[self.provider_name] = self._inventory(provider_name=self.provider_name,
+                                                            disable_cache=disable_cache, force_refresh=force_refresh)
+        self._update_private_inventory(tree.__dict__[self.provider_name])
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
         if type(index_or_str) is str:

@@ -1,7 +1,8 @@
 from speasy.config import proxy as proxy_cfg
 from functools import wraps
 from .. import http
-from ...products.variable import from_dictionary
+from ...products.variable import from_dictionary as var_from_dict
+from ..inventory.indexes import from_dict as inventory_from_dict
 import pickle
 import logging
 from packaging.version import Version
@@ -56,7 +57,22 @@ class GetProduct:
         resp = http.get(f"{url}/get_data?", params=kwargs)
         log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
-            var = from_dictionary(pickle.loads(decompress(resp.content)))
+            var = var_from_dict(pickle.loads(decompress(resp.content)))
+            return var
+        return None
+
+
+class GetInventory:
+    @staticmethod
+    def get(provider: str, **kwargs):
+        url = proxy_cfg.url()
+        kwargs['provider'] = provider
+        kwargs['format'] = 'python_dict'
+        kwargs['zstd_compression'] = zstd_compression
+        resp = http.get(f"{url}/get_inventory?", params=kwargs)
+        log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.request.headers}")
+        if resp.status_code == 200:
+            var = inventory_from_dict(pickle.loads(decompress(resp.content)))
             return var
         return None
 

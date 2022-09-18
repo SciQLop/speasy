@@ -45,7 +45,7 @@ class AmdaImpl:
     def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
         self.server_url = server_url
 
-    def _update_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
+    def _update_private_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
         if credential_are_valid():
             username, password = _get_credentials()
             user_tt = AmdaXMLParser.parse(
@@ -69,6 +69,8 @@ class AmdaImpl:
             root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider='amda', uid='DerivedParameters',
                                                  meta=user_param.ws.paramList.__dict__)
 
+    def _update_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
+
         public_tt = AmdaXMLParser.parse(rest_client.get_timetables_xml_tree(server_url=self.server_url))
         TimeTables.SharedTimeTables = SpeasyIndex(name='SharedTimeTables', provider='amda', uid='SharedTimeTables',
                                                   meta=public_tt.timeTableList.__dict__)
@@ -85,6 +87,10 @@ class AmdaImpl:
         root.Catalogs = SpeasyIndex(name='Catalogs', provider='amda', uid='Catalogs')
         root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider='amda', uid='DerivedParameters')
         self._update_lists(TimeTables=root.TimeTables, Catalogs=root.Catalogs, root=root)
+        return root
+
+    def build_private_inventory(self, root: SpeasyIndex):
+        self._update_private_lists(TimeTables=root.TimeTables, Catalogs=root.Catalogs, root=root)
         return root
 
     def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
