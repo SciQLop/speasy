@@ -1,5 +1,5 @@
-Coordinated Data Analysis Web
-=============================
+Coordinated Data Analysis Web (CDAWeb)
+======================================
 
 .. toctree::
    :maxdepth: 1

@@ -2,6 +2,7 @@
 .. testsetup:: *
 
    from speasy.core import *
+   import numpy as np
 """
 
 import os
@@ -177,8 +178,29 @@ def make_utc_datetime(input_dt: str or datetime or np.float64 or float or np.dat
                     input_dt.microsecond, tzinfo=timezone.utc)
 
 
-def epoch_to_datetime64(epoch_array: np.array):
+def epoch_to_datetime64(epoch_array: np.array) -> np.array:
+    """Converts an array of floats encoded as Unix Epoch (seconds since 1970) to an array of numpy datetime64[ns]
+
+    Parameters
+    ----------
+    epoch_array : np.array
+        Input array of folats (Epoch)
+
+    Returns
+    -------
+    np.array
+        Output array of datetime64[ns]
+        
+    Examples
+    --------
+    >>> epoch_to_datetime64(np.arange(2))
+    array(['1970-01-01T00:00:00.000000000', '1970-01-01T00:00:01.000000000'],
+          dtype='datetime64[ns]')
+
+    
+    """
     return (epoch_array * 1e9).astype("datetime64[ns]")
+
 
 class AllowedKwargs(object):
     """A decorator that prevent from passing unexpected kwargs to a function
@@ -193,7 +215,8 @@ class AllowedKwargs(object):
     def __call__(self, func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            unexpected_args = list(filter(lambda arg_name: arg_name not in self.allowed_list, kwargs.keys()))
+            unexpected_args = list(
+                filter(lambda arg_name: arg_name not in self.allowed_list, kwargs.keys()))
             if not unexpected_args:
                 return func(*args, **kwargs)
             raise TypeError(

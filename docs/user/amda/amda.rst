@@ -1,18 +1,19 @@
-Automated Multi-Dataset Analysis
-================================
+Automated Multi-Dataset Analysis (AMDA)
+=======================================
 
 .. toctree::
    :maxdepth: 1
 
-`AMDA <http://amda.irap.omp.eu/>`_ is one of the main data providers handled by speasy. Most products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
+`AMDA <http://amda.irap.omp.eu/>`_ is one of the main data providers handled by speasy. All products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
+:meth:`speasy.get_data()` usage should be preferred over AMDA module methods since it is more flexible and it's interface is guaranteed to be more stable.
 The following documentation will focus on AMDA module specific usage.
 
 
 Basics: Getting data from AMDA
 ------------------------------
 
-`AMDA <http://amda.irap.omp.eu/>`_ distributes several products such as Parameters, user Parameters, Datasets, Timetables, user Timetables, Catalogs
-and user Catalogs. Speasy makes them accessible thanks to this module with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()`
+`AMDA <http://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs. 
+Speasy makes them accessible thanks to this module with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()`
 or their dedicated methods such as :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()`, :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_user_parameter()`,...
 Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`_ Workspace:
 
@@ -69,9 +70,10 @@ Then simply:
 the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
 AMDA products directly from your Python terminal or notebook:
 
+    >>> import speasy as spz
     >>> from speasy import amda
-    >>> from speasy.inventories import data_tree
-    >>> mms4_fgm_btot=amda.get_parameter(data_tree.amda.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-01T01")
+    >>> amdatree = spz.inventories.tree.amda
+    >>> mms4_fgm_btot=amda.get_parameter(amdatree.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-01T01")
     >>> mms4_fgm_btot.columns
     ['mms4_b_tot']
     >>> len(mms4_fgm_btot.time)
@@ -133,8 +135,9 @@ Then simply:
 And also alternatively you can use the dynamic inventory:
 
     >>> from speasy import amda
-    >>> from speasy.inventories import data_tree
-    >>> catalog_mms_2019=amda.get_catalog(data_tree.amda.Catalogs.SharedCatalogs.EARTH.model_regions_plasmas_mms_2019)
+    >>> import speasy as spz
+    >>> amdatree = spz.inventories.tree.amda
+    >>> catalog_mms_2019=amda.get_catalog(amdatree.Catalogs.SharedCatalogs.EARTH.model_regions_plasmas_mms_2019)
     >>> catalog_mms_2019
     <Catalog: model_regions_plasmas_mms_2019>
     >>> len(catalog_mms_2019)
@@ -152,8 +155,8 @@ In this example we will use AMDA module to retrieve and plot MMS2 FGM data, feel
 
     >>> import matplotlib.pyplot as plt # doctest: +SKIP
     >>> import speasy as spz
-    >>> from speasy.inventories import data_tree
-    >>> mms2_b_gse = spz.amda.get_parameter(data_tree.amda.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse, "2019-01-01", "2019-01-02")
+    >>> amdatree = spz.inventories.tree.amda
+    >>> mms2_b_gse = spz.amda.get_parameter(amdatree.Parameters.MMS.MMS2.FGM.mms2_fgm_srvy.mms2_b_gse, "2019-01-01", "2019-01-02")
     >>> # Check that mms2_b_gse isn't empty
     >>> len(mms2_b_gse)
     816750
@@ -261,7 +264,7 @@ compared to remote data. Requests like catalogs or time-tables download have a d
 based on duration, by default they will be cached for 15 minutes. As a consequence if a time-table has changed on AMDA servers
 it might take up to the configured duration to see it.
 This cache has been designed with interactive usage of speasy in mind where we want to minimize penalty of running
-multiple times the same command/line.
+multiple times the same command/line in a short amount of time.
 
 To change this cache duration value:
 

@@ -7,10 +7,14 @@ Configuration module for SPEASY, it reads or sets config entries first from ENV 
 
 import configparser
 import os
+from typing import Any
+
 import appdirs
+
 from ..core import mkdir
 
-_CONFIG_FNAME = str(appdirs.user_config_dir(appname="speasy", appauthor="LPP")) + "/config.ini"
+_CONFIG_FNAME = str(appdirs.user_config_dir(
+    appname="speasy", appauthor="LPP")) + "/config.ini"
 mkdir(os.path.dirname(_CONFIG_FNAME))
 _config = configparser.ConfigParser()
 _config.read(_CONFIG_FNAME)
@@ -19,6 +23,8 @@ _entries = {}
 
 
 def show():
+    """Prints config entries and current values
+    """
     for section in _entries.values():
         print(section)
 
@@ -38,8 +44,8 @@ class ConfigEntry:
     key2: str
         Entry name
     default: str
-        Default value given by ctor
-    type_ctor: any
+        Default value
+    type_ctor: Any
         function called to get value from string repr
     env_var_name: str
         Environment variable name to use to set this entry
@@ -52,13 +58,14 @@ class ConfigEntry:
         Set entry value (could be env or file)
     """
 
-    def __init__(self, key1: str, key2: str, default: str = "", type_ctor=None, description: str = ""):
+    def __init__(self, key1: str, key2: str, default: Any = "", type_ctor=None, description: str = ""):
         self.key1 = key1
         self.key2 = key2
-        self.default = default
+        self.default = str(default)
         self.type_ctor = type_ctor or (lambda x: x)
         self.description = description
-        self.env_var_name = f"SPEASY_{self.key1}_{self.key2}".upper().replace('-', '_')
+        self.env_var_name = f"SPEASY_{self.key1}_{self.key2}".upper().replace(
+            '-', '_')
 
     def __repr__(self):
         return f"""ConfigEntry: {self.key1}/{self.key2}
@@ -137,7 +144,7 @@ def remove_entry(entry: ConfigEntry):
 # user can easily discover them with speasy.config.<completion>
 # ==========================================================================================
 proxy = ConfigSection("PROXY",
-                      enabled={"default": "False",
+                      enabled={"default": False,
                                "description": """Enables or disables speasy proxy usage.
 Speasy proxy is an intermediary server which helps by caching requests among several users.""",
                                "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
@@ -147,17 +154,19 @@ Speasy proxy is an intermediary server which helps by caching requests among sev
                       )
 
 cache = ConfigSection("CACHE",
-                      size={"default": "20e9", "description": """Sets the maximum cache capacity.""",
+                      size={"default": 20e9, "description": """Sets the maximum cache capacity.""",
                             "type_ctor": lambda x: int(float(x))},
                       path={"default": str(appdirs.user_cache_dir("speasy", "LPP")),
                             "description": """Sets Speasy cache path."""}
                       )
 
 index = ConfigSection("INDEX",
-                      path={"default": f'{appdirs.user_data_dir("speasy", "LPP")}/index'}
+                      path={
+                          "default": f'{appdirs.user_data_dir("speasy", "LPP")}/index'}
                       )
 cdaweb = ConfigSection("CDAWEB",
-                       inventory_data_path={"default": f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory'}
+                       inventory_data_path={
+                           "default": f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory'}
                        )
 
 amda = ConfigSection("AMDA",
@@ -165,19 +174,19 @@ amda = ConfigSection("AMDA",
                          "description": """Your AMDA username, once set, you will be able to get your private products."""},
                      password={
                          "description": """Your AMDA password, once set, you will be able to get your private products."""},
-                     user_cache_retention={"default": "900",
+                     user_cache_retention={"default": 900,
                                            "description": "AMDA specific cache retention for requests such as list_catalogs.",
                                            "type_ctor": int
                                            },
                      max_chunk_size_days={
-                         "default": "10",
+                         "default": 10,
                          "description": "Maximum request duration in days, any request over a longer period will be split into smaller ones.",
                          "type_ctor": int}
                      )
 
 inventories = ConfigSection("INVENTORIES",
                             cache_retention_days={
-                                "default": "2",
+                                "default": 2,
                                 "description": "Maximum times in days speasy will keep inventories in cache before fetching newer version.",
                                 "type_ctor": int}
                             )

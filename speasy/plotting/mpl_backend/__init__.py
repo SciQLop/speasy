@@ -18,6 +18,7 @@ class Plot:
 
     def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
         ax = self._get_ax(ax)
+        ax.tick_params(axis='x', labelrotation = 45)
         lines = ax.plot(x, y)
         if labels is not None:
             ax.legend(labels)
@@ -46,7 +47,8 @@ class Plot:
                                   vmax=np.nanmax(z))
         else:
             norm = None
-
+        
+        ax.tick_params(axis='x', labelrotation = 45)
         cm = ax.pcolormesh(x, y, z,
                            cmap=cmap or 'plasma',
                            norm=norm, *args, **kwargs)
