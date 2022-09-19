@@ -6,14 +6,14 @@
 
 import os
 import warnings
-from datetime import datetime, timezone
-from typing import Any, Dict, Sequence, Type, List
-from functools import wraps
 from collections.abc import Iterable
-from tqdm.auto import tqdm
+from datetime import datetime, timezone
+from functools import wraps
+from typing import Any, Dict, List, Sequence, Type
 
 import numpy as np
 from dateutil.parser import parse
+from tqdm.auto import tqdm
 
 
 def deprecation(message: str) -> None:
@@ -176,6 +176,9 @@ def make_utc_datetime(input_dt: str or datetime or np.float64 or float or np.dat
     return datetime(input_dt.year, input_dt.month, input_dt.day, input_dt.hour, input_dt.minute, input_dt.second,
                     input_dt.microsecond, tzinfo=timezone.utc)
 
+
+def epoch_to_datetime64(epoch_array: np.array):
+    return (epoch_array * 1e9).astype("datetime64[ns]")
 
 class AllowedKwargs(object):
     """A decorator that prevent from passing unexpected kwargs to a function

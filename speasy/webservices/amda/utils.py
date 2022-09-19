@@ -2,18 +2,20 @@
 conversion procedures for parsing CSV and VOTable data.
 
 """
-import os
 import datetime
+import os
+from typing import Dict, List
 from urllib.request import urlopen
-from speasy.products.variable import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
-import pandas as pds
+
 import numpy as np
+import pandas as pds
 
-from speasy.products.timetable import TimeTable
-from speasy.products.catalog import Catalog, Event
+from speasy.core import epoch_to_datetime64
 from speasy.core.datetime_range import DateTimeRange
-
-from typing import List, Dict
+from speasy.products.catalog import Catalog, Event
+from speasy.products.timetable import TimeTable
+from speasy.products.variable import (DataContainer, SpeasyVariable,
+                                      VariableAxis, VariableTimeAxis)
 
 
 def load_csv(filename: str) -> SpeasyVariable:
@@ -45,7 +47,7 @@ def load_csv(filename: str) -> SpeasyVariable:
         meta["UNITS"] = meta.get("PARAMETER_UNITS")
         with urlopen(filename) as f:
             data = pds.read_csv(f, comment='#', delim_whitespace=True, header=None, names=columns).values.transpose()
-        time, data = SpeasyVariable.epoch_to_datetime64(data[0]), data[1:].transpose()
+        time, data = epoch_to_datetime64(data[0]), data[1:].transpose()
 
         if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
             min_v = np.array([float(v) for v in meta["PARAMETER_TABLE_MIN_VALUES[1]"].split(',')])
@@ -92,8 +94,9 @@ def load_timetable(filename: str) -> TimeTable:
     with urlopen(filename) as votable:
         # save the timetable as a dataframe, speasy.common.SpeasyVariable
         # get header data first
-        from astropy.io.votable import parse as parse_votable
         import io
+
+        from astropy.io.votable import parse as parse_votable
         votable = parse_votable(io.BytesIO(votable.read()))
         name = next(filter(lambda e: 'Name' in e, votable.description.split(';\n'))).split(':')[-1]
         # convert astropy votable structure to SpeasyVariable
@@ -126,8 +129,9 @@ def load_catalog(filename: str) -> Catalog:
     with urlopen(filename) as votable:
         # save the timetable as a dataframe, speasy.common.SpeasyVariable
         # get header data first
-        from astropy.io.votable import parse as parse_votable
         import io
+
+        from astropy.io.votable import parse as parse_votable
         votable = parse_votable(io.BytesIO(votable.read()))
         # convert astropy votable structure to SpeasyVariable
         tab = votable.get_first_table()
