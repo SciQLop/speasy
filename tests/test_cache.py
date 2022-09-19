@@ -1,18 +1,21 @@
+import imp
+import operator
+import shutil
+import tempfile
 import time
 import unittest
-from ddt import ddt, data, unpack
 from datetime import datetime, timedelta, timezone
-from speasy.core.cache import Cache
-from speasy.core.cache import Cacheable, UnversionedProviderCache
-from speasy.core.cache.version import str_to_version, version_to_str
-from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
-import packaging.version as Version
-import dateutil.parser as dt_parser
-import operator
-import numpy as np
 
-import tempfile
-import shutil
+import dateutil.parser as dt_parser
+import numpy as np
+import packaging.version as Version
+from ddt import data, ddt, unpack
+
+from speasy.core import epoch_to_datetime64
+from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache
+from speasy.core.cache.version import str_to_version, version_to_str
+from speasy.products.variable import (DataContainer, SpeasyVariable,
+                                      VariableTimeAxis)
 
 start_date = datetime(2016, 6, 1, 12, tzinfo=timezone.utc)
 
@@ -26,7 +29,7 @@ def data_generator(start_time, stop_time):
          range(int((stop_time - start_time).seconds / 60))])
     data = index / 3600.
     return SpeasyVariable(
-        axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(index))],
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(index))],
         values=DataContainer(values=data))
 
 

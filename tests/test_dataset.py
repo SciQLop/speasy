@@ -1,15 +1,18 @@
 import unittest
 
-from speasy.products.dataset import Dataset
-from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
-from speasy.core.datetime_range import DateTimeRange
 import numpy as np
+
+from speasy.core.datetime_range import DateTimeRange
+from speasy.core import epoch_to_datetime64
+from speasy.products.dataset import Dataset
+from speasy.products.variable import (DataContainer, SpeasyVariable,
+                                      VariableTimeAxis)
 
 
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpeasyVariable(axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time))],
+    return SpeasyVariable(axes=[VariableTimeAxis(values=epoch_to_datetime64(time))],
                           values=DataContainer(values=values, meta=None),
                           columns=["Values"])
 

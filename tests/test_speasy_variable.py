@@ -4,28 +4,31 @@
 """Tests for `SpeasyVariable` class."""
 
 import unittest
-from ddt import ddt, data, unpack
-
-from speasy.products.variable import SpeasyVariable, VariableTimeAxis, VariableAxis, DataContainer, merge, to_dataframe, \
-    from_dataframe, to_dictionary, from_dictionary
-import numpy as np
-import pandas as pds
 
 import astropy.table
 import astropy.units
+import numpy as np
+import pandas as pds
+from ddt import data, ddt, unpack
+
+from speasy.core import epoch_to_datetime64
+from speasy.products.variable import (DataContainer, SpeasyVariable,
+                                      VariableAxis, VariableTimeAxis,
+                                      from_dataframe, from_dictionary, merge,
+                                      to_dataframe, to_dictionary)
 
 
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
     time = np.arange(start, stop, step)
     values = time * coef
-    return SpeasyVariable(axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time))],
+    return SpeasyVariable(axes=[VariableTimeAxis(values=epoch_to_datetime64(time))],
                           values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["Values"])
 
 
 def make_simple_var_2cols(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
     time = np.arange(start, stop, step)
     values = np.random.random((len(time), 2))
-    return SpeasyVariable(axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time))],
+    return SpeasyVariable(axes=[VariableTimeAxis(values=epoch_to_datetime64(time))],
                           values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["x", "y"])
 
 
@@ -34,7 +37,7 @@ def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: flo
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = values * 0.1
     return SpeasyVariable(
-        axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time)),
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
               VariableAxis(name='y', values=y, is_time_dependent=True)],
         values=DataContainer(values, is_time_dependent=True), columns=["Values"])
 
@@ -44,7 +47,7 @@ def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = np.arange(height)
     return SpeasyVariable(
-        axes=[VariableTimeAxis(values=SpeasyVariable.epoch_to_datetime64(time)), VariableAxis(name='y', values=y)],
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(time)), VariableAxis(name='y', values=y)],
         values=DataContainer(values, is_time_dependent=True), columns=["Values"])
 
 
