@@ -1,5 +1,5 @@
-Cluster Science Archive
-=======================
+Cluster Science Archive (CSA)
+=============================
 
 .. toctree::
    :maxdepth: 1

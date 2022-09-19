@@ -10,5 +10,6 @@ Browse example folder on MyBinder:
    :glob:
 
    ./AMDA
+   ./CDAWeb
    ./SSCWeb
    ./Caches

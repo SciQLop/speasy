@@ -66,6 +66,7 @@ nbsphinx_thumbnails = {
     "examples/AMDA": "_static/AMDA_nb_thumbnail.png",
     "examples/SSCWeb": "_static/SSCWEB_nb_thumbnail.png",
     "examples/Caches": "_static/Caches_nb_thumbnail.png",
+    "examples/CDAWeb": "_static/CDAWeb_nb_thumbnail.png",
 }
 
 nbsphinx_prolog = r"""

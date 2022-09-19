@@ -1,5 +1,5 @@
-Satellite Situation Center
-==========================
+Satellite Situation Center (SSCWeb)
+===================================
 
 .. toctree::
    :maxdepth: 1
