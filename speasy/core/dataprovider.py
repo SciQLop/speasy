@@ -1,14 +1,14 @@
-from speasy.inventories import flat_inventories, tree
-from speasy.core.inventory import ProviderInventory
-from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex, ParameterIndex, from_dict, to_dict
-from speasy.core.datetime_range import DateTimeRange
-from speasy.core.proxy import Proxyfiable, GetInventory
-from .cache import CacheCall
-from ..config import inventories as inventories_cfg
-from datetime import timedelta, datetime
-from typing import List, Optional, Callable
-from functools import wraps
 import logging
+from datetime import datetime
+from functools import wraps
+from typing import Callable, List, Optional
+
+from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory import ProviderInventory
+from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
+                                           SpeasyIndex)
+from speasy.core.proxy import GetInventory, Proxyfiable
+from speasy.inventories import flat_inventories, tree
 
 log = logging.getLogger(__name__)
 GET_DATA_ALLOWED_KWARGS = ['product', 'start_time', 'stop_time', 'extra_http_headers', 'progress']

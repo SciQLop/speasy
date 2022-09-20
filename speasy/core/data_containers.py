@@ -1,10 +1,9 @@
-import numpy as np
 from datetime import datetime
-from typing import List, Optional, Dict
-from copy import deepcopy
 from sys import getsizeof
+from typing import Dict, List
 
 import astropy.units
+import numpy as np
 
 
 def _to_index(key, time):

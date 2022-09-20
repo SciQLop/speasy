@@ -6,20 +6,23 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-from typing import Optional, Tuple, Dict
-from datetime import datetime, timedelta
-from speasy.core.cache import UnversionedProviderCache, CACHE_ALLOWED_KWARGS, \
-    _cache  # _cache is used for tests (hack...)
-from speasy.products.variable import SpeasyVariable
-from speasy.core import http, AllowedKwargs
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-from speasy.core.cdf import load_variable
-from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex, DatasetIndex
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
-from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.core.datetime_range import DateTimeRange
-from urllib.request import urlopen
 import logging
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Tuple
+from urllib.request import urlopen
+
+from speasy.core import AllowedKwargs, http
+from speasy.core.cache import _cache  # _cache is used for tests (hack...)
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
+from speasy.core.cdf import load_variable
+from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
+                                      ParameterRangeCheck)
+from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
+                                           SpeasyIndex)
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
+from speasy.core.requests_scheduling import SplitLargeRequests
+from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
-from typing import Union
 import diskcache as dc
+
 from speasy.config import index as index_cfg
 
 

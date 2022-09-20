@@ -1,9 +1,10 @@
-from functools import wraps
-import inspect
 import base64
-from typing import Union, Callable, List, Tuple
-from ._instance import _cache
+import inspect
 from datetime import timedelta
+from functools import wraps
+from typing import Callable
+
+from ._instance import _cache
 
 
 def make_key_from_args(*args, **kwargs):
