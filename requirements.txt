@@ -12,3 +12,4 @@ astropy
 pyistp
 astroquery
 tqdm
+matplotlib
