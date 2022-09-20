@@ -2,17 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `amda` package."""
-import logging
-import unittest
-from ddt import ddt, data, unpack
 import os
+import unittest
 from datetime import datetime, timezone
+
+from ddt import data, ddt, unpack
+
 import speasy as spz
-from speasy.webservices.amda.utils import load_csv
-from speasy.webservices.amda import ProductType
-from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
-from speasy.webservices.amda.exceptions import MissingCredentials
 from speasy.inventories import flat_inventories
+from speasy.webservices.amda import ProductType
+from speasy.webservices.amda.exceptions import MissingCredentials
+from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
+from speasy.webservices.amda.utils import load_csv
 
 
 def has_amda_creds() -> bool:
@@ -192,6 +193,7 @@ class AMDAModule(unittest.TestCase):
             flat_inventories.amda.parameters.clear()
             flat_inventories.amda.datasets.clear()
             root = AmdaXMLParser.parse(obs_xml.read(), is_public=True)
+            self.assertIsNotNone(root)
             # grep -o -i '<parameter ' obsdatatree.xml | wc -l
             self.assertEqual(len(spz.amda.list_parameters()), 4696)
             # grep -o -i '<dataset ' obsdatatree.xml | wc -l

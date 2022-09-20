@@ -18,8 +18,10 @@ class ParameterRequests(unittest.TestCase):
     def setUp(self):
         self.start = datetime(2000, 1, 1, 1, 1)
         self.stop = datetime(2000, 1, 1, 1, 2)
-        self.data = spz.amda.get_parameter("imf", self.start, self.stop)
-        self.dataset = spz.amda.get_dataset("ace-imf-all", self.start, self.stop)
+        self.data = spz.amda.get_parameter(
+            "imf", self.start, self.stop, disable_proxy=True, disable_cache=True)
+        self.dataset = spz.amda.get_dataset(
+            "ace-imf-all", self.start, self.stop, disable_proxy=True, disable_cache=True)
 
     def tearDown(self):
         pass
