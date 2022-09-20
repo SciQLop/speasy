@@ -7,7 +7,6 @@ requests
 packaging
 numpy
 python_dateutil
-typing
 astropy
 ddt
 pytest

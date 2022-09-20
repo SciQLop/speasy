@@ -6,7 +6,6 @@ requests
 packaging
 numpy
 python_dateutil
-typing
 python-dateutil
 astropy
 pyistp
