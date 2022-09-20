@@ -1,29 +1,28 @@
 """
 """
 
-from enum import Enum
-from .utils import get_parameter_args
-from .inventory import to_xmlid, to_parameter_index, to_dataset_index
-from ...core.inventory.indexes import SpeasyIndex, TimetableIndex, CatalogIndex, DatasetIndex, ParameterIndex, \
-    ComponentIndex
-
-from ._impl import is_public, is_private
-
+import logging
 from datetime import datetime
-from typing import Optional, List, Dict, Union
+from enum import Enum
+from typing import Dict, List, Optional, Union
 
-# General modules
-from ...core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from ...config import amda as amda_cfg
-from ...core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
+from ...core import AllowedKwargs, make_utc_datetime
+from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
+from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
+                                  ParameterRangeCheck)
 from ...core.datetime_range import DateTimeRange
-from ...core import make_utc_datetime, AllowedKwargs
-from ...products.variable import SpeasyVariable
+from ...core.inventory.indexes import (CatalogIndex, ComponentIndex,
+                                       DatasetIndex, ParameterIndex,
+                                       SpeasyIndex, TimetableIndex)
+from ...core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
+from ...products.catalog import Catalog
 from ...products.dataset import Dataset
 from ...products.timetable import TimeTable
-from ...products.catalog import Catalog
-from ...core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-import logging
+from ...products.variable import SpeasyVariable
+from ._impl import is_private, is_public
+from .inventory import to_xmlid
+from .utils import get_parameter_args
 
 log = logging.getLogger(__name__)
 
