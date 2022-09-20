@@ -1,9 +1,11 @@
 """Base inventory tree management
 """
-from ...core import fix_name
 import xml.etree.ElementTree as Et
-from speasy.core.inventory.indexes import CatalogIndex, ParameterIndex, TimetableIndex, DatasetIndex, ComponentIndex, \
-    SpeasyIndex
+
+from ...core import fix_name
+from ...core.inventory.indexes import (CatalogIndex, ComponentIndex,
+                                       DatasetIndex, ParameterIndex,
+                                       SpeasyIndex, TimetableIndex)
 from ...inventories import flat_inventories
 
 

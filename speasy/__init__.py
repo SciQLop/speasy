@@ -24,7 +24,7 @@ def find_product(name: str) -> List[str]:
     pass
 
 
-def update_inventories(disable_cache=False, force_refresh=False):
+def update_inventories():
     from .core.dataprovider import PROVIDERS
     for provider in PROVIDERS.values():
-        provider.update_inventory(disable_cache=disable_cache, force_refresh=force_refresh)
+        provider.update_inventory()

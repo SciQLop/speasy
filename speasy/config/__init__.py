@@ -144,11 +144,11 @@ def remove_entry(entry: ConfigEntry):
 # user can easily discover them with speasy.config.<completion>
 # ==========================================================================================
 proxy = ConfigSection("PROXY",
-                      enabled={"default": False,
+                      enabled={"default": True,
                                "description": """Enables or disables speasy proxy usage.
 Speasy proxy is an intermediary server which helps by caching requests among several users.""",
                                "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
-                      url={"default": "",
+                      url={"default": "http://sciqlop.lpp.polytechnique.fr/cache-dev",
                            "description": """Speasy proxy server URL, you can use http://sciqlop.lpp.polytechnique.fr/cache.
 Speasy proxy is an intermediary server which helps by caching requests among several users."""}
                       )

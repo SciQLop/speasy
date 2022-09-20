@@ -47,7 +47,6 @@ class DataProvider:
         PROVIDERS[provider_name] = self
 
     @Proxyfiable(request=GetInventory, arg_builder=_get_inventory_args)
-    @CacheCall(cache_retention=timedelta(days=inventories_cfg.cache_retention_days()), is_pure=True)
     def _inventory(self, provider_name):
         return self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
                                                 meta={'build_date': datetime.utcnow().isoformat()}))
@@ -56,12 +55,11 @@ class DataProvider:
         if hasattr(self, 'build_private_inventory'):
             return self.build_private_inventory(root)
 
-    def update_inventory(self, disable_cache=False, force_refresh=False):
+    def update_inventory(self):
         self.flat_inventory.clear()
         if self.provider_name in tree.__dict__:
             tree.__dict__[self.provider_name].clear()
-        tree.__dict__[self.provider_name] = self._inventory(provider_name=self.provider_name,
-                                                            disable_cache=disable_cache, force_refresh=force_refresh)
+        tree.__dict__[self.provider_name] = self._inventory(provider_name=self.provider_name)
         self._update_private_inventory(tree.__dict__[self.provider_name])
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
