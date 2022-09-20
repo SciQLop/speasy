@@ -87,12 +87,15 @@ class Proxyfiable(object):
         def wrapped(*args, **kwargs):
             disable_proxy = kwargs.pop("disable_proxy", False)
             if proxy_cfg.enabled() and not disable_proxy:
-                proxy_version = query_proxy_version()
-                if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:
-                    return self.request.get(**self.arg_builder(**kwargs))
-                else:
-                    log.warning(
-                        f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
+                try:
+                    proxy_version = query_proxy_version()
+                    if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:
+                        return self.request.get(**self.arg_builder(**kwargs))
+                    else:
+                        log.warning(
+                            f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
+                except:
+                    log.error(f"Can't get data from proxy server {proxy_cfg.url()}")
             return func(*args, **kwargs)
 
         return wrapped
