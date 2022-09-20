@@ -36,3 +36,4 @@ homepage = "https://github.com/SciQLop/speasy"
 
 [project.optional-dependencies]
 zstd = ["zstd"]
+
