@@ -119,14 +119,17 @@ class AMDA_Webservice(DataProvider):
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.
+        
         Parameters
         ----------
         parameter_id: str or ParameterIndex
             parameter id
+            
         Returns
         -------
         Optional[DateTimeRange]
             Data time range
+            
         Examples
         --------
         >>> import speasy as spz
@@ -137,14 +140,17 @@ class AMDA_Webservice(DataProvider):
 
     def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
         """Get product time range.
+        
         Parameters
         ----------
         dataset_id: str or DatasetIndex
             parameter id
+            
         Returns
         -------
         Optional[DateTimeRange]
             Data time range
+            
         Examples
         --------
         >>> import speasy as spz
