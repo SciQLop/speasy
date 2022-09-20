@@ -1,21 +1,19 @@
-from types import SimpleNamespace
-
-from . import rest_client
-from speasy.core.inventory.indexes import SpeasyIndex
-from .utils import load_csv, load_timetable, load_catalog
-from .inventory import AmdaXMLParser
-from .rest_client import auth_args
-from .exceptions import MissingCredentials
-
+import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from types import SimpleNamespace
+from typing import Dict, Optional
 
 # General modules
 from ...config import amda as amda_cfg
-from ...products.variable import SpeasyVariable, merge
-from ...inventories import data_tree, flat_inventories
 from ...core.cache import CacheCall
-import logging
+from ...core.inventory.indexes import SpeasyIndex
+from ...inventories import flat_inventories
+from ...products.variable import SpeasyVariable, merge
+from . import rest_client
+from .exceptions import MissingCredentials
+from .inventory import AmdaXMLParser
+from .rest_client import auth_args
+from .utils import load_catalog, load_csv, load_timetable
 
 log = logging.getLogger(__name__)
 

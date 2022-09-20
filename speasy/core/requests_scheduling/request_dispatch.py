@@ -1,12 +1,17 @@
-from typing import overload, Optional, Union, Iterable, Tuple, Mapping, List
-from ...products import *
-from .. import is_collection, all_of_type, progress_bar
-from ..datetime_range import DateTimeRange
-from speasy.core.inventory.indexes import SpeasyIndex, CatalogIndex, TimetableIndex, DatasetIndex, ParameterIndex, \
-    ComponentIndex
-from ...webservices import SSC_Webservice, AMDA_Webservice, CDA_Webservice, CSA_Webservice
 from datetime import datetime
+from typing import Iterable, List, Optional, Tuple, Union, overload
+
 import numpy as np
+
+from ..inventory.indexes import (CatalogIndex, ComponentIndex,
+                                           DatasetIndex, ParameterIndex,
+                                           SpeasyIndex, TimetableIndex)
+
+from ...products import *
+from ...webservices import (AMDA_Webservice, CDA_Webservice, CSA_Webservice,
+                            SSC_Webservice)
+from .. import is_collection, progress_bar
+from ..datetime_range import DateTimeRange
 
 TimeT = Union[str, datetime, float, np.datetime64]
 TimeRangeT = Union[DateTimeRange, Tuple[TimeT, TimeT]]

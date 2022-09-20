@@ -19,7 +19,7 @@ class Plot:
     def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
         ax = self._get_ax(ax)
         ax.tick_params(axis='x', labelrotation = 45)
-        lines = ax.plot(x, y)
+        ax.plot(x, y)
         if labels is not None:
             ax.legend(labels)
         if units is not None and yaxis_label is not None:

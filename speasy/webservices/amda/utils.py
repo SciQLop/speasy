@@ -63,7 +63,7 @@ def load_csv(filename: str) -> SpeasyVariable:
         if y is None:
             axes = [time_axis]
         else:
-            axes = [time_axis, VariableAxis(name='y', values=y, is_time_dependent=False)]
+            axes = [time_axis, VariableAxis(name=y_label, values=y, is_time_dependent=False)]
         return SpeasyVariable(
             axes=axes,
             values=DataContainer(values=data, meta=meta),
