@@ -1,4 +1,3 @@
-import imp
 import operator
 import shutil
 import tempfile

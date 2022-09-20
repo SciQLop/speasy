@@ -4,10 +4,11 @@
 """Tests for `speasy` package."""
 import unittest
 from datetime import datetime, timezone
-from speasy.webservices import ssc
-from astropy import units
-from ddt import ddt, data
+
 import numpy as np
+from ddt import data, ddt
+
+from speasy.webservices import ssc
 
 
 @ddt
