@@ -1,0 +1,38 @@
+[build-system]
+build-backend = "flit_core.buildapi"
+requires = ["flit_core"]
+
+[project]
+name = 'speasy'
+version = "0.10.2"
+description = "A simple Python package to deal with main Space Physics WebServices (CDA, CSA, AMDA and SSC)."
+keywords= ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
+authors = [
+  {name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
+]
+
+maintainers = [
+  {name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
+]
+
+requires-python=">=3.7"
+license = {file="LICENSE"}
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+dependencies = ['requests', 'pandas', 'diskcache', 'appdirs', 'numpy', 'packaging', 'python-dateutil',
+                'astropy', 'astroquery', 'pyistp', 'tqdm', 'matplotlib']
+[project.urls]
+homepage = "https://github.com/SciQLop/speasy"
+
+[project.optional-dependencies]
+zstd = ["zstd"]
