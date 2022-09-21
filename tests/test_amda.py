@@ -182,14 +182,14 @@ class AMDAModule(unittest.TestCase):
         pass
 
     def test_loads_csv(self):
-        var = load_csv(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt')
+        var = load_csv(os.path.normpath(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt'))
         self.assertEqual(var.values.shape[0], len(var.time))
         self.assertEqual(var.values.shape[1], len(var.columns))
         self.assertGreater(len(var.time), 0)
         self.assertTrue('MISSION_ID' in var.meta)
 
     def test_load_obs_datatree(self):
-        with open(f'{os.path.dirname(os.path.abspath(__file__))}/resources/obsdatatree.xml') as obs_xml:
+        with open(os.path.normpath(f'{os.path.dirname(os.path.abspath(__file__))}/resources/obsdatatree.xml')) as obs_xml:
             flat_inventories.amda.parameters.clear()
             flat_inventories.amda.datasets.clear()
             root = AmdaXMLParser.parse(obs_xml.read(), is_public=True)

@@ -32,7 +32,7 @@ def load_csv(filename: str) -> SpeasyVariable:
         CSV contents
     """
     if '://' not in filename:
-        filename = f"file://{os.path.abspath(filename)}"
+        filename = f"file:///{os.path.abspath(filename)}"
     with urlopen(filename) as csv:
         line = csv.readline().decode()
         meta = {}

@@ -10,10 +10,11 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 4
+      fail-fast: false
+      max-parallel: 2
       matrix:
         python-version: ['3.7', '3.8', '3.9', '3.10']
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, windows-2019, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2

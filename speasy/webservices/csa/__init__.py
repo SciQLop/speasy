@@ -16,6 +16,7 @@ from speasy.core.datetime_range import DateTimeRange
 from speasy.core.requests_scheduling import SplitLargeRequests
 import tarfile
 import logging
+from io import BytesIO
 
 log = logging.getLogger(__name__)
 
@@ -100,16 +101,13 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-def _read_cdf(req: requests.Response, variable: str) -> SpeasyVariable:
-    with NamedTemporaryFile('wb') as tmp_tar:
-        tmp_tar.write(req.content)
-        tmp_tar.flush()
-        with tarfile.open(tmp_tar.name) as tar:
-            tarname = tar.getnames()
-            if len(tarname):
-                with TemporaryDirectory() as tmp_dir:
-                    tar.extractall(tmp_dir)
-                    return load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
+def _read_cdf(response: requests.Response, variable: str) -> SpeasyVariable:
+    with tarfile.open(fileobj=BytesIO(response.content)) as tar:
+        tarname = tar.getnames()
+        if len(tarname):
+            with TemporaryDirectory() as tmp_dir:
+                tar.extractall(tmp_dir)
+                return load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):

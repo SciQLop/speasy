@@ -176,5 +176,8 @@ class _CacheVersionTest(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
-del cache
-shutil.rmtree(dirpath)
+try:
+    del cache
+    shutil.rmtree(dirpath)
+except PermissionError:
+    print(f"Can't rm temporary cache folder {dirpath}")
