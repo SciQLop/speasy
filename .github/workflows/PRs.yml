@@ -33,18 +33,16 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: install texlive for Pandoc
-      run: sudo apt update && sudo apt install -y texlive pandoc && pip install wheel
     - name: Test with pytest
       if: matrix.python-version != '3.8' ||  matrix.os != 'ubuntu-latest'
       run: |
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
         pytest
-        make doctest
     - name: Test with pytest (coverage + long tests)
       if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
       run: |
+        sudo apt update && sudo apt install -y texlive pandoc
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
         SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS=25 SPEASY_LONG_TESTS="" pytest --cov=./ --cov-report=xml
