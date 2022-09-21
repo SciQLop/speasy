@@ -1,8 +1,10 @@
 from typing import Optional
-from .base_product import SpeasyProduct
+
 from speasy.core import all_of_type
-from speasy.products.variable import SpeasyVariable
 from speasy.core.datetime_range import DateTimeRange
+from speasy.products.variable import SpeasyVariable
+
+from .base_product import SpeasyProduct
 
 
 class Dataset(SpeasyProduct):
