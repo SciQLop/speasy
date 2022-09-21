@@ -8,11 +8,12 @@ jobs:
       SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
       SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 4
       matrix:
         python-version: ['3.7', '3.8', '3.9', '3.10']
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -35,27 +36,27 @@ jobs:
     - name: install texlive for Pandoc
       run: sudo apt update && sudo apt install -y texlive pandoc && pip install wheel
     - name: Test with pytest
-      if: matrix.python-version != '3.8'
+      if: matrix.python-version != '3.8' ||  matrix.os != 'ubuntu-latest'
       run: |
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
         pytest
         make doctest
     - name: Test with pytest (coverage + long tests)
-      if: matrix.python-version == '3.8'
+      if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
       run: |
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
         SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS=25 SPEASY_LONG_TESTS="" pytest --cov=./ --cov-report=xml
         make doctest
     - name: Check that release process is not broken
-      if: matrix.python-version == '3.7'
+      if: matrix.python-version == '3.7' && matrix.os == 'ubuntu-latest'
       run: |
         pip install build wheel twine
         python -m build .
         twine check dist/*
     - name: Upload coverage to Codecov
-      if: matrix.python-version == '3.8'
+      if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}

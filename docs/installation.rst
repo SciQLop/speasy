@@ -12,9 +12,9 @@ To install Space Physics WebServices Client, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install speasy
+    $ python -m pip install speasy
     # or
-    $ pip install --user speasy
+    $ python -m pip install --user speasy
 
 This is the preferred method to install Space Physics WebServices Client, as it will always install the most recent stable release.
 
@@ -46,7 +46,7 @@ Once you have a copy of the source, you can install it with:
 
 .. code-block:: console
 
-    $ python setup.py install
+    $ python -m pip install .
 
 
 .. _Github repo: https://github.com/SciQLop/speasy

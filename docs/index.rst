@@ -64,9 +64,9 @@ Installing Speasy with pip (:doc:`more details here <installation>`):
 
 .. code-block:: console
 
-    $ pip install speasy
+    $ python -m pip install speasy
     # or
-    $ pip install --user speasy
+    $ python -m pip install --user speasy
 
 Getting data is as simple as:
 
