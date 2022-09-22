@@ -209,6 +209,7 @@ class AMDA_Webservice(DataProvider):
                 return self.get_user_timetable(timetable_id=product, **kwargs)
             else:
                 return self.get_timetable(timetable_id=product, **kwargs)
+        raise ValueError(f"Unknown product: {product}")
 
     def get_user_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime or str,
                            stop_time: datetime or str) -> Optional[SpeasyVariable]:
