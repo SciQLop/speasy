@@ -226,7 +226,7 @@ class AMDAModule(unittest.TestCase):
         with self.assertRaises(TypeError):
             spz.amda.get_data('c1_b_gsm', "2018-01-01", "2018-01-02", **kwargs)
 
-    def test_raises_if_user_passes_unknown_product_kwargs_to_get_data(self, kwargs):
+    def test_raises_if_user_passes_unknown_product_kwargs_to_get_data(self):
         with self.assertRaises(ValueError):
             spz.get_data('amda/This_product_does_not_exist')
         with self.assertRaises(ValueError):
