@@ -50,10 +50,14 @@ jobs:
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.7' && matrix.os == 'ubuntu-latest'
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
       run: |
         pip install build wheel twine
         python -m build .
         twine check dist/*
+        twine upload --repository testpypi --skip-existing dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v1
