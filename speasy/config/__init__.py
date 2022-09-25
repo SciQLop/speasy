@@ -148,7 +148,7 @@ proxy = ConfigSection("PROXY",
                                "description": """Enables or disables speasy proxy usage.
 Speasy proxy is an intermediary server which helps by caching requests among several users.""",
                                "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
-                      url={"default": "http://sciqlop.lpp.polytechnique.fr/cache-dev",
+                      url={"default": "http://sciqlop.lpp.polytechnique.fr/cache",
                            "description": """Speasy proxy server URL, you can use http://sciqlop.lpp.polytechnique.fr/cache.
 Speasy proxy is an intermediary server which helps by caching requests among several users."""}
                       )

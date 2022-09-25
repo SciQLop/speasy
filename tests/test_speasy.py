@@ -147,3 +147,12 @@ class SpeasyModule(unittest.TestCase):
     def test_raises_if_product_is_worng_type(self):
         with self.assertRaises(TypeError):
             spz.get_data(None, datetime.now(), datetime.now())
+            
+    def test_warns_if_proxy_is_disabled(self):
+        import importlib
+        spz.config.proxy.enabled.set("false")
+        with self.assertWarns(UserWarning):
+            importlib.reload(spz.core.proxy)
+        spz.config.proxy.enabled.set("true")
+        importlib.reload(spz.core.proxy)
+        
