@@ -1,17 +1,30 @@
-from speasy.config import proxy as proxy_cfg
-from functools import wraps
-from .. import http
-from ...products.variable import from_dictionary as var_from_dict
-from ..inventory.indexes import from_dict as inventory_from_dict
-import pickle
 import logging
+import pickle
+from functools import wraps
+import warnings
+
 from packaging.version import Version
+
+from speasy.config import proxy as proxy_cfg
+
+from ...products.variable import from_dictionary as var_from_dict
+from .. import http
+from ..inventory.indexes import from_dict as inventory_from_dict
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
 MINIMUM_REQUIRED_PROXY_VERSION = Version("0.6.0")
 _CURRENT_PROXY_SERVER_VERSION = None
 
+if proxy_cfg.url() == "" or proxy_cfg.enabled() == False:
+    warnings.warn("""Proxy server is disabled you might want to use it both to improve Speasy performances and to reduce pressure on remote servers
+use the following python snippet to configure proxy server:
+===========================================================================
+import speasy as spz
+spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache")
+spz.config.proxy.enabled.set(True)
+===========================================================================
+            """,stacklevel=0)
 
 def query_proxy_version():
     global _CURRENT_PROXY_SERVER_VERSION
