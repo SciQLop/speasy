@@ -1,6 +1,5 @@
 pandas
 pytest-runner
-Click
 appdirs
 diskcache
 requests
