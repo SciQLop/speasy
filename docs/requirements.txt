@@ -1,3 +1,15 @@
+pandas
+appdirs
+diskcache
+requests
+packaging
+numpy
+python_dateutil
+astropy
+pyistp
+astroquery
+tqdm
+matplotlib
 sphinx-rtd-theme
 argh
 numpydoc
@@ -6,6 +18,4 @@ nbsphinx
 ipympl
 ipywidgets
 sphinx-codeautolink
-astropy
-pandas
 sphinxcontrib-apidoc
