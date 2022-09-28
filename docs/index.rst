@@ -1,5 +1,5 @@
 Space Physics made EASY
-================================
+=======================
 
 .. toctree::
    :titlesonly:
@@ -96,19 +96,30 @@ This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`_, you can easily d
     sscweb_tree = spz.inventory.data_tree.ssc
     solo = spz.get_data(sscweb_tree.Trajectories.solarorbiter, "2021-01-01", "2021-02-01")
 
+More complex requests like this one are supported:
+
+.. code-block:: python
+
+    import speasy as spz
+    products = [
+        spz.inventories.tree.amda.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_vth,
+        spz.inventories.tree.amda.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_pdyn,
+        spz.inventories.tree.amda.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_n,
+        spz.inventories.tree.cda.Wind.WIND.MFI.WI_H2_MFI.BGSE,
+        spz.inventories.tree.ssc.Trajectories.wind,
+    ]
+    intervals = [["2010-01-02", "2010-01-02T10"], ["2009-08-02", "2009-08-02T10"]]
+    data = spz.get_data(products, intervals)
+
 Features
 --------
 - Simple and intuitive API (spz.get_data to get them all)
 - Pandas DataFrame like interface for variables
 - Quick functions to convert a variable to a Pandas DataFrame
 - Local cache to avoid repeating twice the same request
-- Can take advantage of SciQLop dedicated poxy as a community backed ultra fast cache
-- Full support of `AMDA <http://amda.irap.omp.eu/>`_ API.
-- Can retrieve timeseries from:
- - AMDA
- - CDAWeb
- - CSA
- - SSCWeb
+- Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
+- Full support of `AMDA <http://amda.irap.omp.eu/>`_ API
+- Can retrieve timeseries from `AMDA <http://amda.irap.omp.eu/>`_, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`_, `CSA <https://csa.esac.esa.int/csa-web/>`_, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`_
 
 Examples
 ========

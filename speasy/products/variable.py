@@ -115,13 +115,32 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     def copy(self) -> "SpeasyVariable":
+        """Makes a deep copy the variable
+
+        Returns
+        -------
+        SpeasyVariable
+            deep copy the variable
+        """
         return SpeasyVariable(
             axes=deepcopy(self.__axes),
             values=deepcopy(self.__values_container),
             columns=deepcopy(self.columns),
         )
 
-    def filter_columns(self, columns: List[str]):
+    def filter_columns(self, columns: List[str]) -> "SpeasyVariable":
+        """Builds a SpeasyVariable with only selected columns
+
+        Parameters
+        ----------
+        columns : List[str]
+            list of column names to keep
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable with only selected columns
+        """
         indexes = list(map(lambda v: self.__columns.index(v), columns))
         return SpeasyVariable(
             axes=deepcopy(self.__axes),
@@ -159,13 +178,15 @@ class SpeasyVariable(SpeasyProduct):
     def __getitem__(self, key):
         if isinstance(key, slice):
             return self.view(
-                slice(_to_index(key.start, self.time), _to_index(key.stop, self.time))
+                slice(_to_index(key.start, self.time),
+                      _to_index(key.stop, self.time))
             )
         if type(key) in (list, tuple) and all(map(lambda v: type(v) is str, key)):
             return self.filter_columns(key)
         if type(key) is str and key in self.__columns:
             return self.filter_columns([key])
-        raise ValueError(f"No idea how to slice SpeasyVariable with given value: {key}")
+        raise ValueError(
+            f"No idea how to slice SpeasyVariable with given value: {key}")
 
     def __setitem__(self, k, v: "SpeasyVariable"):
         assert type(v) is SpeasyVariable
@@ -175,44 +196,125 @@ class SpeasyVariable(SpeasyProduct):
                 axis[k] = src_axis
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """SpeasyVariable name
+
+        Returns
+        -------
+        str
+            SpeasyVariable name
+        """
         return self.__values_container.name
 
     @property
-    def values(self):
+    def values(self) -> np.array:
+        """SpeasyVariable values
+
+        Returns
+        -------
+        np.array
+            SpeasyVariable values 
+        """
         return self.__values_container.values
 
     @property
     def time(self) -> np.array:
+        """Time axis values, equivalent to var.axes[0].values
+
+        Returns
+        -------
+        np.array
+            time axis values as numpy array of datetime64[ns]
+        """
         return self.__axes[0].values
 
     @property
     def meta(self) -> Dict:
+        """SpeasyVariable meta-data
+
+        Returns
+        -------
+        Dict
+            SpeasyVariable meta-data
+        """
         return self.__values_container.meta
 
     @property
     def axes(self) -> List[VariableTimeAxis or VariableAxis]:
+        """SpeasyVariable axes, axis 0 is always a VariableTimeAxis, there should be the same number of axes than values dimensions
+
+        Returns
+        -------
+        List[VariableTimeAxis or VariableAxis]
+            list of variable axes
+        """
         return self.__axes
 
     @property
     def axes_labels(self) -> List[str]:
+        """Axes names respecting axes order
+
+        Returns
+        -------
+        List[str]
+            list of axes names 
+        """
         return [axis.name for axis in self.__axes]
 
     @property
     def columns(self) -> List[str]:
+        """SpeasyVariable columns names when it makes sense
+
+        Returns
+        -------
+        List[str]
+            list of columns names
+        """
         return self.__columns
 
     @property
     def unit(self) -> str:
+        """SpeasyVariable unit if found in meta-data
+
+        Returns
+        -------
+        str
+            unit if found in meta-data
+        """
         return self.__values_container.unit
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
+        """SpeasyVariable's values and axes memory usage 
+
+        Returns
+        -------
+        int
+            number of bytes used to store values and axes
+        """
         return self.__values_container.nbytes + np.sum(
             list(map(lambda ax: ax.nbytes, self.__axes))
         )
 
     def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
+        """Returns a SpeasyVariable with given or automatically found unit applied to values
+
+        Parameters
+        ----------
+        unit : str or None, optional
+            Use given unit or gets one from variable metadata, by default None
+        copy : bool, optional
+            Preserves source variable and returns a modified copy if true, by default True
+
+        Returns
+        -------
+        SpeasyVariable
+            SpeasyVariable identic to source one with values converted to astropy.units.Quantity according to given or found unit
+
+        See Also
+        --------
+        unit: returns variable unit if found in meta-data
+        """
         if copy:
             axes = deepcopy(self.__axes)
             values = deepcopy(self.__values_container)
@@ -226,7 +328,7 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     def to_astropy_table(self) -> astropy.table.Table:
-        """Convert the variable to a astropy.Table object.
+        """Convert the variable to an astropy.Table object.
 
         Parameters
         ----------
@@ -237,6 +339,11 @@ class SpeasyVariable(SpeasyProduct):
         -------
         astropy.Table:
             Variable converted to astropy.Table
+
+        See Also
+        --------
+        from_dataframe: builds a SpeasyVariable from a pandas DataFrame
+        to_dataframe: exports a SpeasyVariable to a pandas DataFrame
         """
         try:
             units = astropy.units.Unit(self.meta["UNITS"])
@@ -248,13 +355,16 @@ class SpeasyVariable(SpeasyProduct):
 
     def to_dataframe(self) -> pds.DataFrame:
         """Convert the variable to a pandas.DataFrame object.
-
-        Parameters
-        ----------
+        
         Returns
         -------
         pandas.DataFrame:
             Variable converted to Pandas DataFrame
+
+        See Also
+        --------
+        from_dataframe: builds a SpeasyVariable from a pandas DataFrame
+        to_astropy_table: exports a SpeasyVariable to an astropy.Table object
         """
         if len(self.__values_container.shape) != 2:
             raise ValueError(
@@ -270,13 +380,18 @@ class SpeasyVariable(SpeasyProduct):
 
         Parameters
         ----------
-        dr: pandas.DataFrame
+        df: pandas.DataFrame
             Input DataFrame to convert
 
         Returns
         -------
         SpeasyVariable:
             Variable created from DataFrame
+
+        See Also
+        --------
+        to_dataframe: exports a SpeasyVariable to a pandas DataFrame
+        to_astropy_table: exports a SpeasyVariable to an astropy.Table object
         """
         if df.index.dtype == np.dtype("datetime64[ns]"):
             time = np.array(df.index)
@@ -285,7 +400,8 @@ class SpeasyVariable(SpeasyProduct):
                 [np.datetime64(d.timestamp() * 1e9, "ns") for d in df.index]
             )
         else:
-            raise ValueError("Can't convert DataFrame index to datetime64[ns] array")
+            raise ValueError(
+                "Can't convert DataFrame index to datetime64[ns] array")
         return SpeasyVariable(
             axes=[VariableTimeAxis(values=time, meta={})],
             values=DataContainer(values=df.values, meta={}, name="Unknown"),
@@ -293,6 +409,21 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+        """Converts SpeasyVariable to dictionary 
+
+        Parameters
+        ----------
+        array_to_list : bool, optional
+            Converts numpy arrays to Python Lists when true, by default False
+
+        Returns
+        -------
+        Dict[str, object]
+
+        See Also
+        --------
+        from_dictionary: builds variable from dictionary
+        """
         return {
             "axes": [
                 axis.to_dictionary(array_to_list=array_to_list) for axis in self.__axes
@@ -304,9 +435,17 @@ class SpeasyVariable(SpeasyProduct):
         }
 
     @staticmethod
-    def from_dictionary(
-        dictionary: Dict[str, object] or None
-    ) -> "SpeasyVariable" or None:
+    def from_dictionary(dictionary: Dict[str, object] or None) -> "SpeasyVariable" or None:
+        """Builds a SpeasyVariable from a well formed dictionary
+
+        Returns
+        -------
+        SpeasyVariable or None
+
+        See Also
+        --------
+        to_dictionary: exports SpeasyVariable to dictionary
+        """
         if dictionary is not None:
             axes = dictionary["axes"]
             axes = [VariableTimeAxis.from_dictionary(axes[0])] + [
@@ -323,9 +462,7 @@ class SpeasyVariable(SpeasyProduct):
 
     @property
     def plot(self, *args, **kwargs):
-        """Plot the variable.
-
-        See https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+        """Plot the variable, tries to do its best to detect variable type and to populate plot labels
 
         """
         return Plot(
@@ -333,6 +470,19 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     def replace_fillval_by_nan(self, inplace=False) -> "SpeasyVariable":
+        """Replaces fill values by NaN, non float values are automatically converted to float.
+        Fill value is taken from metadata field "FILLVAL"
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Modifies source variable when true else modifies and returns a copy, by default False
+
+        Returns
+        -------
+        SpeasyVariable
+            source variable or copy with fill values replaced by NaN
+        """
         if inplace:
             res = self
         else:
@@ -343,6 +493,20 @@ class SpeasyVariable(SpeasyProduct):
 
     @staticmethod
     def reserve_like(other: "SpeasyVariable", length: int = 0) -> "SpeasyVariable":
+        """Create a SpeasyVariable of given length and with the same properties than given variable but unset values
+
+        Parameters
+        ----------
+        other : SpeasyVariable
+            variable used as reference for shape and meta-data
+        length : int, optional
+            output variable length, by default 0
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable similar to given one of given length
+        """
         axes = []
         for axis in other.__axes:
             if axis.is_time_dependent:
@@ -351,11 +515,11 @@ class SpeasyVariable(SpeasyProduct):
             else:
                 axes.append(deepcopy(axis))
         return SpeasyVariable(
-            values=DataContainer.reserve_like(other.__values_container, length),
+            values=DataContainer.reserve_like(
+                other.__values_container, length),
             axes=axes,
             columns=other.columns,
         )
-
 
 
 def to_dictionary(var: SpeasyVariable, array_to_list=False) -> Dict[str, object]:
@@ -401,7 +565,8 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     """
     if len(variables) == 0:
         return None
-    sorted_var_list = [v for v in variables if (v is not None) and (len(v.time) > 0)]
+    sorted_var_list = [v for v in variables if (
+        v is not None) and (len(v.time) > 0)]
     sorted_var_list.sort(key=lambda v: v.time[0])
 
     # drop variables covered by previous ones
@@ -440,6 +605,6 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
 
     for r, overlap in zip(sorted_var_list, overlaps + [-1]):
         frag_len = len(r.time) if overlap == -1 else overlap
-        result[pos : (pos + frag_len)] = r[0:frag_len]
+        result[pos: (pos + frag_len)] = r[0:frag_len]
         pos += frag_len
     return result
