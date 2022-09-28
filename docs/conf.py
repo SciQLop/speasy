@@ -67,6 +67,7 @@ nbsphinx_thumbnails = {
     "examples/SSCWeb": "_static/SSCWEB_nb_thumbnail.png",
     "examples/Caches": "_static/Caches_nb_thumbnail.png",
     "examples/CDAWeb": "_static/CDAWeb_nb_thumbnail.png",
+    "examples/CompleteDemo": "_static/Demo_nb_thumbnail.png",
 }
 
 nbsphinx_prolog = r"""
@@ -224,7 +225,7 @@ texinfo_documents = [
 
 intersphinx_mapping = {'python3': ('https://docs.python.org/3', None),
                        'numpy': ('https://numpy.org/doc/stable/', None),
-                       'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+                       'scipy': ('https://docs.scipy.org/doc/scipy/', None),
                        'matplotlib': ('https://matplotlib.org/stable/', None),
                        'seaborn': ('https://seaborn.pydata.org/', None),
                        'astropy': ('https://docs.astropy.org/en/stable/', None),

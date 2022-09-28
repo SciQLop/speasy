@@ -13,3 +13,4 @@ Browse example folder on MyBinder:
    ./CDAWeb
    ./SSCWeb
    ./Caches
+   ./CompleteDemo
