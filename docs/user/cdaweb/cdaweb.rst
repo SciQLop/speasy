@@ -4,7 +4,7 @@ Coordinated Data Analysis Web (CDAWeb)
 .. toctree::
    :maxdepth: 1
 
-The `Coordinated Data Analysis Web (CDAWeb) <https://cdaweb.gsfc.nasa.gov/>`_ contains selected public non-solar heliophysics
+The `Coordinated Data Analysis Web (CDAWeb) <https://cdaweb.gsfc.nasa.gov/>`__ contains selected public non-solar heliophysics
 data from current and past heliophysics missions and projects. Many datasets from current missions are updated regularly
 (even daily), including reprocessing older time periods, and SPDF only preserves the latest version.
 
