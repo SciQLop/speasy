@@ -50,8 +50,8 @@ Space Physics made EASY
     :target: https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples
     :alt: Discover on MyBinder
 
-Speasy is an open source Python client for Space Physics web services such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`_
-or `AMDA <http://amda.irap.omp.eu/>`_.
+Speasy is an open source Python client for Space Physics web services such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`__
+or `AMDA <http://amda.irap.omp.eu/>`__.
 Most space physics data analysis starts with finding which server provides which dataset then figuring out how to download them.
 This can be difficult specially for students or newcomers, Speasy try to remove all difficulties by providing an unique and
 simple API to access them all.
@@ -88,7 +88,7 @@ Using the dynamic inventory this can be even simpler:
 Will produce the exact same result than previous example but has the advantage to be easier to manipulate since you can
 discover available data from your favourite Python environment completion such as IPython or notebooks (might not work from IDEs).
 
-This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`_, you can easily download trajectories:
+This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`__, you can easily download trajectories:
 
 .. code-block:: python
 
@@ -118,8 +118,8 @@ Features
 - Quick functions to convert a variable to a Pandas DataFrame
 - Local cache to avoid repeating twice the same request
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
-- Full support of `AMDA <http://amda.irap.omp.eu/>`_ API
-- Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`_, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`_, `CSA <https://csa.esac.esa.int/csa-web/>`_, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`_
+- Full support of `AMDA <http://amda.irap.omp.eu/>`__ API
+- Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__, `CSA <https://csa.esac.esa.int/csa-web/>`__, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__
 
 Examples
 ========

@@ -4,7 +4,7 @@ Automated Multi-Dataset Analysis (AMDA)
 .. toctree::
    :maxdepth: 1
 
-`AMDA <http://amda.irap.omp.eu/>`_ is one of the main data providers handled by speasy. All products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
+`AMDA <http://amda.irap.omp.eu/>`__ is one of the main data providers handled by speasy. All products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
 :meth:`speasy.get_data()` usage should be preferred over AMDA module methods since it is more flexible and it's interface is guaranteed to be more stable.
 The following documentation will focus on AMDA module specific usage.
 
@@ -12,10 +12,10 @@ The following documentation will focus on AMDA module specific usage.
 Basics: Getting data from AMDA
 ------------------------------
 
-`AMDA <http://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs. 
+`AMDA <http://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs.
 Speasy makes them accessible thanks to this module with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()`
 or their dedicated methods such as :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()`, :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_user_parameter()`,...
-Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`_ Workspace:
+Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`__ Workspace:
 
 .. image:: images/AMDA_workspace_collapsed.png
    :width: 32%
