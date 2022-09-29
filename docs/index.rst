@@ -16,7 +16,7 @@ Space Physics made EASY
 
 
 
-.. image:: https://matrix.to/img/matrix-badge.svg
+.. image:: https://img.shields.io/matrix/speasy:matrix.org
         :target: https://matrix.to/#/#speasy:matrix.org
         :alt: Chat on Matrix
 
@@ -119,7 +119,7 @@ Features
 - Local cache to avoid repeating twice the same request
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`_ API
-- Can retrieve timeseries from `AMDA <http://amda.irap.omp.eu/>`_, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`_, `CSA <https://csa.esac.esa.int/csa-web/>`_, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`_
+- Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`_, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`_, `CSA <https://csa.esac.esa.int/csa-web/>`_, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`_
 
 Examples
 ========
