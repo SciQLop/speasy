@@ -15,6 +15,8 @@ def _to_index(key, time):
         return np.searchsorted(time, np.datetime64(int(key * 1e9), 'ns'), side='left')
     if isinstance(key, datetime):
         return np.searchsorted(time, np.datetime64(key, 'ns'), side='left')
+    if isinstance(key, np.datetime64):
+        return np.searchsorted(time, key, side='left')
 
 
 class DataContainer(object):
@@ -79,7 +81,8 @@ class DataContainer(object):
     @staticmethod
     def reserve_like(other: 'DataContainer', length: int = 0) -> 'DataContainer':
         return DataContainer(name=other.__name, meta=other.__meta,
-                             values=np.empty((length,) + other.shape[1:], dtype=other.__values.dtype),
+                             values=np.empty(
+                                 (length,) + other.shape[1:], dtype=other.__values.dtype),
                              is_time_dependent=other.__is_time_dependent
                              )
 
@@ -95,10 +98,10 @@ class DataContainer(object):
 
     def __eq__(self, other: 'DataContainer') -> bool:
         return self.__meta == other.__meta and \
-               self.__name == other.__name and \
-               self.is_time_dependent == other.is_time_dependent and \
-               np.all(self.__values.shape == other.__values.shape) and \
-               np.all(self.__values == other.__values)
+            self.__name == other.__name and \
+            self.is_time_dependent == other.is_time_dependent and \
+            np.all(self.__values.shape == other.__values.shape) and \
+            np.array_equal(self.__values, other.__values, equal_nan=True)
 
     def replace_val_by_nan(self, val):
         if self.__values.dtype != np.float:
@@ -122,7 +125,8 @@ class VariableAxis(object):
         if data is not None:
             self.__data = data
         else:
-            self.__data = DataContainer(values=values, name=name, meta=meta, is_time_dependent=is_time_dependent)
+            self.__data = DataContainer(
+                values=values, name=name, meta=meta, is_time_dependent=is_time_dependent)
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
@@ -188,8 +192,10 @@ class VariableTimeAxis(object):
             self.__data = data
         else:
             if values.dtype != np.dtype('datetime64[ns]'):
-                raise ValueError(f"Please provide datetime64[ns] for time axis, got {values.dtype}")
-            self.__data = DataContainer(values=values, name='time', meta=meta, is_time_dependent=True)
+                raise ValueError(
+                    f"Please provide datetime64[ns] for time axis, got {values.dtype}")
+            self.__data = DataContainer(
+                values=values, name='time', meta=meta, is_time_dependent=True)
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
