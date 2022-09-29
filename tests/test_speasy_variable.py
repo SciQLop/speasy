@@ -18,6 +18,10 @@ from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       to_dataframe, to_dictionary)
 
 
+def epoch_to_datetime64_s(epoch):
+    return np.datetime64(int(epoch*1e9), 'ns')
+
+
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
     time = np.arange(start, stop, step)
     values = time * coef
@@ -47,7 +51,8 @@ def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
     y = np.arange(height)
     return SpeasyVariable(
-        axes=[VariableTimeAxis(values=epoch_to_datetime64(time)), VariableAxis(name='y', values=y)],
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(
+            time)), VariableAxis(name='y', values=y)],
         values=DataContainer(values, is_time_dependent=True), columns=["Values"])
 
 
@@ -67,11 +72,14 @@ class SpeasyVariableSlice(unittest.TestCase):
     def test_with_indexes(self, ctor):
         var = ctor(1., 10.)
         ref = ctor(3., 5.)
-        self.assertListEqual(var[2:4].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        self.assertListEqual(var[2:4].values.squeeze(
+        ).tolist(), ref.values.squeeze().tolist())
         ref = ctor(1., 5.)
-        self.assertListEqual(var[:4].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        self.assertListEqual(var[:4].values.squeeze(
+        ).tolist(), ref.values.squeeze().tolist())
         ref = ctor(3., 10.)
-        self.assertListEqual(var[2:].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        self.assertListEqual(var[2:].values.squeeze(
+        ).tolist(), ref.values.squeeze().tolist())
 
     @data(
         make_simple_var,
@@ -81,11 +89,31 @@ class SpeasyVariableSlice(unittest.TestCase):
     def test_with_epoch(self, ctor):
         var = ctor(1., 10.)
         ref = ctor(2., 4.)
-        self.assertListEqual(var[2.:4.].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        self.assertListEqual(var[2.:4.].values.squeeze(
+        ).tolist(), ref.values.squeeze().tolist())
         ref = ctor(1., 4.)
-        self.assertListEqual(var[:4.].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        self.assertListEqual(var[:4.].values.squeeze(
+        ).tolist(), ref.values.squeeze().tolist())
         ref = ctor(2., 10.)
-        self.assertListEqual(var[2.:].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        self.assertListEqual(var[2.:].values.squeeze(
+        ).tolist(), ref.values.squeeze().tolist())
+
+    @data(
+        make_simple_var,
+        make_2d_var,
+        make_2d_var_1d_y
+    )
+    def test_with_dt64(self, ctor):
+        var = ctor(1., 10.)
+        ref = ctor(2., 4.)
+        self.assertListEqual(var[epoch_to_datetime64_s(2.):epoch_to_datetime64_s(
+            4.)].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        ref = ctor(1., 4.)
+        self.assertListEqual(var[:epoch_to_datetime64_s(
+            4.)].values.squeeze().tolist(), ref.values.squeeze().tolist())
+        ref = ctor(2., 10.)
+        self.assertListEqual(var[epoch_to_datetime64_s(
+            2.):].values.squeeze().tolist(), ref.values.squeeze().tolist())
 
     def test_view_should_modify_it_source(self):
         var = make_simple_var(1., 10., 1., 1.)
@@ -127,7 +155,8 @@ class SpeasyVariableMerge(unittest.TestCase):
 
     def test_drops_empty(self):
         var = merge([make_simple_var(), make_simple_var()])
-        self.assertListEqual(var.time.tolist(), make_simple_var().time.tolist())
+        self.assertListEqual(
+            var.time.tolist(), make_simple_var().time.tolist())
 
     @data(
         make_simple_var,
@@ -162,7 +191,8 @@ class SpeasyVariableMerge(unittest.TestCase):
         var1 = ctor(1., 10., 1., 10.)
         var2 = ctor(10., 20., 1., 10.)
         var = merge([var1, var2])
-        self.assertListEqual(var.time.tolist(), var1.time.tolist() + var2.time.tolist())
+        self.assertListEqual(
+            var.time.tolist(), var1.time.tolist() + var2.time.tolist())
 
 
 @ddt
