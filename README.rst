@@ -3,7 +3,7 @@ Space Physics made EASY
 =======================
 
 
-.. image:: https://matrix.to/img/matrix-badge.svg
+.. image:: https://img.shields.io/matrix/speasy:matrix.org
         :target: https://matrix.to/#/#speasy:matrix.org
         :alt: Chat on Matrix
 
@@ -37,6 +37,10 @@ Space Physics made EASY
     :target: https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples
     :alt: Discover on MyBinder
 
+.. image:: https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70
+   :target: http://sciqlop.lpp.polytechnique.fr/cache
+   :alt: Speasy proxy uptime (30 days)
+
 Speasy is an open source Python client for Space Physics web services such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`_
 or `AMDA <http://amda.irap.omp.eu/>`_.
 Most space physics data analysis starts with finding which server provides which dataset then figuring out how to download them.
@@ -51,9 +55,9 @@ Installing Speasy with pip (`more details here <https://speasy.readthedocs.io/en
 
 .. code-block:: console
 
-    $ pip install speasy
+    $ python -m pip install speasy
     # or
-    $ pip install --user speasy
+    $ python -m pip install --user speasy
 
 Getting data is as simple as:
 
@@ -83,6 +87,21 @@ This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`_, you can easily d
     sscweb_tree = spz.inventory.data_tree.ssc
     solo = spz.get_data(sscweb_tree.Trajectories.solarorbiter, "2021-01-01", "2021-02-01")
 
+More complex requests like this one are supported:
+
+.. code-block:: python
+
+    import speasy as spz
+    products = [
+        spz.inventories.tree.amda.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_vth,
+        spz.inventories.tree.amda.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_pdyn,
+        spz.inventories.tree.amda.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_n,
+        spz.inventories.tree.cda.Wind.WIND.MFI.WI_H2_MFI.BGSE,
+        spz.inventories.tree.ssc.Trajectories.wind,
+    ]
+    intervals = [["2010-01-02", "2010-01-02T10"], ["2009-08-02", "2009-08-02T10"]]
+    data = spz.get_data(products, intervals)
+
 Documentation
 =============
 
@@ -94,8 +113,10 @@ Features
 - Pandas DataFrame like interface for variables
 - Quick functions to convert a variable to a Pandas DataFrame
 - Local cache to avoid repeating twice the same request
-- Can take advantage of SciQLop dedicated poxy as a community backed ultra fast cache
-- Full support of `AMDA <http://amda.irap.omp.eu/>`_ API.
+- Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
+- Full support of `AMDA <http://amda.irap.omp.eu/>`_ API
+- Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`_, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`_, `CSA <https://csa.esac.esa.int/csa-web/>`_, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`_
+
 
 Examples
 ========
