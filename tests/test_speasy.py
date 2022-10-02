@@ -129,13 +129,27 @@ class SpeasyModule(unittest.TestCase):
         self.assertGreaterEqual(
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
-    def test_can_update_inventories_all_at_once(self):
+    def test_can_update_inventories_all_at_once_from_proxy(self):
         for provider in PROVIDERS.keys():
             spz.inventories.flat_inventories.__dict__[
                 provider].parameters.clear()
 
         spz.update_inventories()
 
+        for provider in PROVIDERS.keys():
+            self.assertGreaterEqual(
+                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+    
+    def test_can_update_inventories_all_at_once_without_proxy(self):
+        if "SPEASY_INVENTORY_TESTS" not in os.environ:
+            self.skipTest("Inventory tests disabled")
+        for provider in PROVIDERS.keys():
+            spz.inventories.flat_inventories.__dict__[
+                provider].parameters.clear()
+
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        spz.update_inventories()
+        os.environ.pop(spz.config.proxy.enabled.env_var_name)
         for provider in PROVIDERS.keys():
             self.assertGreaterEqual(
                 len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)

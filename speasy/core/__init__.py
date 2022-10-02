@@ -272,6 +272,7 @@ def fix_name(name: str):
             if bad in name:
                 name = name.replace(bad, replacement)
         return name
+    raise ValueError("Got empty name")
 
 
 def progress_bar(leave=True, progress=False, desc=None, **kwargs):

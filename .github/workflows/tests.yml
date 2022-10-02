@@ -42,11 +42,15 @@ jobs:
         pytest
     - name: Test with pytest (coverage + long tests)
       if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
+      env:
+        SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS: "25"
+        SPEASY_LONG_TESTS: ""
+        SPEASY_INVENTORY_TESTS: ""
       run: |
         sudo apt update && sudo apt install -y texlive pandoc
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
-        SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS=25 SPEASY_LONG_TESTS="" pytest --cov=./ --cov-report=xml
+        pytest --cov=./ --cov-report=xml
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.7' && matrix.os == 'ubuntu-latest'
