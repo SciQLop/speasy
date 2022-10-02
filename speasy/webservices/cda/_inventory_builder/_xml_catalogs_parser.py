@@ -47,8 +47,9 @@ def register_dataset(inventory_tree, mission_group_node, observatory_node, instr
                                              uid=mission_group.get('serviceprovider_ID'), **mission_group)
     inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
                                          uid=observatory.get('serviceprovider_ID'), **observatory)
-    inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
-                                         uid=instrument_node.get('serviceprovider_ID'), **extract_node(instrument_node))
+    if instrument_node.attrib["serviceprovider_ID"] != "":
+        inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
+                                             uid=instrument_node.get('serviceprovider_ID'), **extract_node(instrument_node))
     inventory_tree = make_inventory_node(inventory_tree, DatasetIndex, provider="cda",
                                          uid=dataset_node.get('serviceprovider_ID'),
                                          **extract_node(dataset_node, is_dataset=True))
