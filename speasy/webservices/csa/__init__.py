@@ -7,10 +7,8 @@ from speasy.products.variable import SpeasyVariable
 from speasy.core import http, AllowedKwargs, fix_name
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.cdf import load_variable
-from ...inventories import flat_inventories
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
-from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.requests_scheduling import SplitLargeRequests
@@ -32,49 +30,49 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
     return parts[0], parts[1]
 
 
-def register_dataset(inventory_tree, dataset):
+def register_dataset(instruments, datasets, dataset):
     meta = {cname: dataset[cname] for cname in dataset.colnames}
     meta['stop_date'] = meta.pop('end_date')
     name = fix_name(meta['dataset_id'])
-    make_inventory_node(flat_inventories.csa.instruments[dataset['instruments']], DatasetIndex, name=name,
-                        provider="csa",
-                        uid=meta['dataset_id'], **meta)
+    node = make_inventory_node(instruments[dataset['instruments']], DatasetIndex, name=name,
+                               provider="csa",
+                               uid=meta['dataset_id'], **meta)
+    datasets[name] = node
 
 
-def register_observatory(inventory_tree, observatory):
+def register_observatory(observatories, missions, observatory):
     meta = {cname: observatory[cname] for cname in observatory.colnames}
     name = meta.pop('name')
-    node = make_inventory_node(flat_inventories.csa.missions[observatory['mission_name']], SpeasyIndex,
+    node = make_inventory_node(missions[observatory['mission_name']], SpeasyIndex,
                                name=fix_name(name),
                                provider="csa",
                                uid=name,
                                **meta)
-    flat_inventories.csa.observatories[name] = node
+    observatories[name] = node
 
 
-def register_mission(inventory_tree, mission):
+def register_mission(inventory_tree, missions, mission):
     meta = {cname: mission[cname] for cname in mission.colnames}
     name = meta.pop('name')
     node = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(name),
                                provider="csa",
                                uid=name, **meta)
-    flat_inventories.csa.missions[name] = node
+    missions[name] = node
 
 
-def register_instrument(inventory_tree, instrument):
+def register_instrument(observatories, instruments, instrument):
     meta = {cname: instrument[cname] for cname in instrument.colnames}
     name = meta.pop('name')
-    node = make_inventory_node(flat_inventories.csa.observatories.get(instrument['observatories'],
-                                                                      flat_inventories.csa.observatories['MULTIPLE']),
+    node = make_inventory_node(observatories.get(instrument['observatories'], observatories['MULTIPLE']),
                                SpeasyIndex, name=fix_name(name),
                                provider="csa",
                                uid=name, **meta)
-    flat_inventories.csa.instruments[name] = node
+    instruments[name] = node
 
 
-def register_param(parameter):
-    if parameter["dataset_id"] in flat_inventories.csa.datasets:
-        parent_dataset = flat_inventories.csa.datasets[parameter["dataset_id"]]
+def register_param(datasets, parameter):
+    parent_dataset = datasets.get(parameter["dataset_id"], None)
+    if parent_dataset is not None:
         meta = {cname: parameter[cname] for cname in parameter.colnames}
         meta['dataset'] = parameter["dataset_id"]
         meta['start_date'] = parent_dataset.start_date
@@ -91,12 +89,15 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     instruments_req = CSA.launch_job_async("SELECT * FROM csa.v_instrument")
     datasets_req = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true' AND is_istp='true'")
     parameters_req = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'")
-
-    list(map(lambda m: register_mission(root, m), missions_req.get_results()))
-    list(map(lambda o: register_observatory(root, o), observatories_req.get_results()))
-    list(map(lambda i: register_instrument(root, i), instruments_req.get_results()))
-    list(map(lambda d: register_dataset(root, d), datasets_req.get_results()))
-    list(map(lambda p: register_param(p), parameters_req.get_results()))
+    missions = {}
+    observatories = {}
+    instruments = {}
+    datasets = {}
+    list(map(lambda m: register_mission(root, missions, m), missions_req.get_results()))
+    list(map(lambda o: register_observatory(missions, observatories, o), observatories_req.get_results()))
+    list(map(lambda i: register_instrument(observatories, instruments, i), instruments_req.get_results()))
+    list(map(lambda d: register_dataset(instruments, datasets, d), datasets_req.get_results()))
+    list(map(lambda p: register_param(datasets, p), parameters_req.get_results()))
 
     return root
 

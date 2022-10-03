@@ -24,7 +24,8 @@ import speasy as spz
 spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache")
 spz.config.proxy.enabled.set(True)
 ===========================================================================
-            """,stacklevel=0)
+            """, stacklevel=0)
+
 
 def query_proxy_version():
     global _CURRENT_PROXY_SERVER_VERSION
@@ -82,7 +83,8 @@ class GetInventory:
         kwargs['provider'] = provider
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        resp = http.get(f"{url}/get_inventory?", params=kwargs)
+        #        "If-Modified-Since"
+        resp = http.get(f"{url}/get_inventory?", params=kwargs, headers={"If-Modified-Since": ""})
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             var = inventory_from_dict(pickle.loads(decompress(resp.content)))
@@ -107,8 +109,8 @@ class Proxyfiable(object):
                     else:
                         log.warning(
                             f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
-                except: # lgtm [py/catch-base-exception]
-                    log.error(f"Can't get data from proxy server {proxy_cfg.url()}") 
+                except:  # lgtm [py/catch-base-exception]
+                    log.error(f"Can't get data from proxy server {proxy_cfg.url()}")
             return func(*args, **kwargs)
 
         return wrapped

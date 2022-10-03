@@ -61,7 +61,7 @@ def build_inventory(root: SpeasyIndex = None, xml_catalog_url: str = "https://sp
     needs_rebuild |= update_master_cdf(masters_url)
     if needs_rebuild or not index.contains("cdaweb-inventory", "tree"):
         root = load_xml_catalog(xml_file_path=_XML_CATALOG_PATH, root=root)
-        update_tree(master_cdf_dir=_MASTERS_CDF_PATH)
+        update_tree(root=root, master_cdf_dir=_MASTERS_CDF_PATH)
         index.set("cdaweb-inventory", "tree", to_dict(root))
     else:
         t = from_dict(index.get("cdaweb-inventory", "tree"))
