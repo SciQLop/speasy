@@ -193,11 +193,13 @@ class AMDAModule(unittest.TestCase):
             flat_inventories.amda.parameters.clear()
             flat_inventories.amda.datasets.clear()
             root = AmdaXMLParser.parse(obs_xml.read(), is_public=True)
+            flat_inventories.amda.update(root)
             self.assertIsNotNone(root)
             # grep -o -i '<parameter ' obsdatatree.xml | wc -l
             self.assertEqual(len(spz.amda.list_parameters()), 4696)
             # grep -o -i '<dataset ' obsdatatree.xml | wc -l
             self.assertEqual(len(spz.amda.list_datasets()), 935)
+        spz.update_inventories()
 
     @data(
         (spz.amda.list_catalogs()[-1], ProductType.CATALOG),

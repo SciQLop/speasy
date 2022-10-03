@@ -1,6 +1,5 @@
 from typing import Optional
 import json
-from speasy.inventories import flat_inventories
 
 __INDEXES_TYPES__ = {}
 
@@ -17,6 +16,9 @@ class SpeasyIndex:
         self.__spz_name__ = name
         self.__spz_uid__ = uid
         self.__spz_type__ = self.__class__.__name__
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
     def clear(self):
         keys = list(self.__dict__.keys())
@@ -43,7 +45,6 @@ class SpeasyIndex:
 class TimetableIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
-        flat_inventories.__dict__[provider].timetables[uid] = self
 
     def __repr__(self):
         return f'<TimetableIndex: {self.spz_name()}>'
@@ -52,7 +53,6 @@ class TimetableIndex(SpeasyIndex):
 class CatalogIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
-        flat_inventories.__dict__[provider].catalogs[uid] = self
 
     def __repr__(self):
         return f'<CatalogIndex: {self.spz_name()}>'
@@ -61,7 +61,6 @@ class CatalogIndex(SpeasyIndex):
 class ComponentIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
-        flat_inventories.__dict__[provider].components[uid] = self
 
     def __repr__(self):
         return f'<ComponentIndex: {self.spz_name()}>'
@@ -70,7 +69,6 @@ class ComponentIndex(SpeasyIndex):
 class ParameterIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
-        flat_inventories.__dict__[provider].parameters[uid] = self
 
     def __repr__(self):
         return f'<ParameterIndex: {self.spz_name()}>'
@@ -87,7 +85,6 @@ class ParameterIndex(SpeasyIndex):
 class DatasetIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
-        flat_inventories.__dict__[provider].datasets[uid] = self
 
     def __repr__(self):
         return f'<DatasetIndex: {self.spz_name()}>'
@@ -122,8 +119,8 @@ def from_dict(inventory_tree: dict or str):
     return root
 
 
-def to_json(inventory_tree: SpeasyIndex):
-    return json.dumps(to_dict(inventory_tree))
+def to_json(inventory_tree: SpeasyIndex, sort_keys=True):
+    return json.dumps(to_dict(inventory_tree), sort_keys=sort_keys)
 
 
 def from_json(inventory_tree: str):
@@ -134,3 +131,13 @@ def make_inventory_node(parent, ctor, name, provider, uid, **meta):
     if name not in parent.__dict__:
         parent.__dict__[name] = ctor(name=name, provider=provider, uid=uid, meta=meta)
     return parent.__dict__[name]
+
+
+def inventory_has_changed(orig, new):
+    for orig_key, orig_value in orig.__dict__.items():
+        if orig_key != 'build_date':
+            if orig_key not in new.__dict__:
+                return True
+            if orig.__dict__[orig_key] != new.__dict__[orig_key]:
+                return True
+    return False

@@ -81,4 +81,4 @@ def load_xml_catalog(xml_file_path: str, root: SpeasyIndex or None = None):
             if site.attrib['ID'] == 'CDAWeb_HTTPS':
                 for node in site.iter('{cdas}dataset'):
                     parse_dataset(inventory_tree, node)
-                return inventory_tree
+        return inventory_tree

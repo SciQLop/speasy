@@ -6,7 +6,7 @@ from typing import Callable, List, Optional
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
-                                           SpeasyIndex)
+                                           SpeasyIndex, inventory_has_changed)
 from speasy.core.proxy import GetInventory, Proxyfiable
 from speasy.inventories import flat_inventories, tree
 
@@ -47,7 +47,7 @@ class DataProvider:
         PROVIDERS[provider_name] = self
 
     @Proxyfiable(request=GetInventory, arg_builder=_get_inventory_args)
-    def _inventory(self, provider_name):
+    def _inventory(self, provider_name)->SpeasyIndex:
         return self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
                                                 meta={'build_date': datetime.utcnow().isoformat()}))
 
@@ -56,11 +56,14 @@ class DataProvider:
             return self.build_private_inventory(root)
 
     def update_inventory(self):
-        self.flat_inventory.clear()
-        if self.provider_name in tree.__dict__:
-            tree.__dict__[self.provider_name].clear()
-        tree.__dict__[self.provider_name] = self._inventory(provider_name=self.provider_name)
+        new_inventory = self._inventory(provider_name=self.provider_name)
+        if inventory_has_changed(tree.__dict__.get(self.provider_name, SpeasyIndex("", "", "")), new_inventory):
+            if self.provider_name in tree.__dict__:
+                tree.__dict__[self.provider_name].clear()
+            tree.__dict__[self.provider_name] = new_inventory
         self._update_private_inventory(tree.__dict__[self.provider_name])
+        self.flat_inventory.clear()
+        self.flat_inventory.update(tree.__dict__[self.provider_name])
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
         if type(index_or_str) is str:

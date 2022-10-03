@@ -1,8 +1,9 @@
 import os.path
 import logging
+from typing import List
 import pyistp
 from speasy.inventories import flat_inventories
-from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex
+from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex
 
 log = logging.getLogger(__name__)
 
@@ -49,9 +50,23 @@ def load_master_cdf(path, dataset: DatasetIndex):
     return skip_count
 
 
-def update_tree(master_cdf_dir):
+def _extract_datasets(root: SpeasyIndex):
+    def extract_datasets(node: SpeasyIndex, datasets: List):
+        if isinstance(node, DatasetIndex):
+            datasets.append(node)
+        elif isinstance(node, SpeasyIndex):
+            for child in node.__dict__.values():
+                extract_datasets(child, datasets)
+
+    datasets = []
+    extract_datasets(root, datasets)
+    return datasets
+
+
+def update_tree(root: SpeasyIndex, master_cdf_dir):
     skip_count = 0
-    for dataset in flat_inventories.cda.datasets.values():
+    datasets = _extract_datasets(root)
+    for dataset in datasets:
         master_cdf_fname = dataset.mastercdf.split('/')[-1]
         full_path = os.path.join(master_cdf_dir, master_cdf_fname)
         if os.path.exists(full_path):

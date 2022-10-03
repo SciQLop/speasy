@@ -124,7 +124,7 @@ class SpeasyModule(unittest.TestCase):
     @data(*[(provider,) for provider in PROVIDERS.keys()])
     @unpack
     def test_can_update_inventories(self, provider):
-        spz.inventories.flat_inventories.__dict__[provider].parameters.clear()
+        spz.__dict__[provider].flat_inventory.clear()
         spz.__dict__[provider].update_inventory()
         self.assertGreaterEqual(
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
@@ -139,7 +139,7 @@ class SpeasyModule(unittest.TestCase):
         for provider in PROVIDERS.keys():
             self.assertGreaterEqual(
                 len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
-    
+
     def test_can_update_inventories_all_at_once_without_proxy(self):
         if "SPEASY_INVENTORY_TESTS" not in os.environ:
             self.skipTest("Inventory tests disabled")
@@ -161,7 +161,7 @@ class SpeasyModule(unittest.TestCase):
     def test_raises_if_product_is_worng_type(self):
         with self.assertRaises(TypeError):
             spz.get_data(None, datetime.now(), datetime.now())
-            
+
     def test_warns_if_proxy_is_disabled(self):
         import importlib
         spz.config.proxy.enabled.set("false")
@@ -169,4 +169,4 @@ class SpeasyModule(unittest.TestCase):
             importlib.reload(spz.core.proxy)
         spz.config.proxy.enabled.set("true")
         importlib.reload(spz.core.proxy)
-        
+
