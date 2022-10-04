@@ -5,7 +5,6 @@
 
 import unittest
 import speasy as spz
-from speasy.core.datetime_range import DateTimeRange
 
 
 class CatalogRequests(unittest.TestCase):

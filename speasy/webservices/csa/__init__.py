@@ -40,7 +40,7 @@ def register_dataset(instruments, datasets, dataset):
     datasets[name] = node
 
 
-def register_observatory(observatories, missions, observatory):
+def register_observatory(missions, observatories, observatory):
     meta = {cname: observatory[cname] for cname in observatory.colnames}
     name = meta.pop('name')
     node = make_inventory_node(missions[observatory['mission_name']], SpeasyIndex,

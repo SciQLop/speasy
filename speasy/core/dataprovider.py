@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from functools import wraps
 from typing import Callable, List, Optional
+from threading import Lock
 
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
@@ -56,14 +57,16 @@ class DataProvider:
             return self.build_private_inventory(root)
 
     def update_inventory(self):
+        lock = Lock()
         new_inventory = self._inventory(provider_name=self.provider_name)
-        if inventory_has_changed(tree.__dict__.get(self.provider_name, SpeasyIndex("", "", "")), new_inventory):
-            if self.provider_name in tree.__dict__:
-                tree.__dict__[self.provider_name].clear()
-            tree.__dict__[self.provider_name] = new_inventory
-        self._update_private_inventory(tree.__dict__[self.provider_name])
-        self.flat_inventory.clear()
-        self.flat_inventory.update(tree.__dict__[self.provider_name])
+        with lock:
+            if inventory_has_changed(tree.__dict__.get(self.provider_name, SpeasyIndex("", "", "")), new_inventory):
+                if self.provider_name in tree.__dict__:
+                    tree.__dict__[self.provider_name].clear()
+                tree.__dict__[self.provider_name] = new_inventory
+            self._update_private_inventory(tree.__dict__[self.provider_name])
+            self.flat_inventory.clear()
+            self.flat_inventory.update(tree.__dict__[self.provider_name])
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
         if type(index_or_str) is str:
