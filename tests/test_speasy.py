@@ -91,7 +91,7 @@ class SpeasyGetData(unittest.TestCase):
         }
     )
     def test_get_data(self, kw):
-        if "GITHUB_ACTION" in os.environ  and os.environ.get("RUNNER_OS")=="Windows":
+        if "GITHUB_ACTION" in os.environ and os.environ.get("RUNNER_OS") == "Windows":
             self.skipTest("skip weirdly failing tests on windows")
         result = spz.get_data(**kw,
                               disable_cache=True)
@@ -101,7 +101,7 @@ class SpeasyGetData(unittest.TestCase):
     def test_get_several_product_on_several_ranges(self):
         result = spz.get_data(
             [spz.inventories.data_tree.ssc.Trajectories.ace,
-                "cda/THA_L2_FGM/tha_fgl_gsm"],
+             "cda/THA_L2_FGM/tha_fgl_gsm"],
             [['2018-06-01', '2018-06-01T01'], ['2018-06-03', '2018-06-03T01']]
         )
         self.assertIsNotNone(result)
@@ -125,14 +125,21 @@ class SpeasyModule(unittest.TestCase):
     @unpack
     def test_can_update_inventories(self, provider):
         spz.__dict__[provider].flat_inventory.clear()
+        spz.inventories.tree.__dict__[provider].clear()
+        self.assertEqual(
+            len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
         spz.__dict__[provider].update_inventory()
         self.assertGreaterEqual(
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
     def test_can_update_inventories_all_at_once_from_proxy(self):
         for provider in PROVIDERS.keys():
-            spz.inventories.flat_inventories.__dict__[
-                provider].parameters.clear()
+            spz.__dict__[provider].flat_inventory.clear()
+            spz.inventories.tree.__dict__[provider].clear()
+
+        for provider in PROVIDERS.keys():
+            self.assertEqual(
+                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
 
         spz.update_inventories()
 
@@ -148,7 +155,17 @@ class SpeasyModule(unittest.TestCase):
                 provider].parameters.clear()
 
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+
+        for provider in PROVIDERS.keys():
+            spz.__dict__[provider].flat_inventory.clear()
+            spz.inventories.tree.__dict__[provider].clear()
+
+        for provider in PROVIDERS.keys():
+            self.assertEqual(
+                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
+
         spz.update_inventories()
+
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
         for provider in PROVIDERS.keys():
             self.assertGreaterEqual(
@@ -169,4 +186,3 @@ class SpeasyModule(unittest.TestCase):
             importlib.reload(spz.core.proxy)
         spz.config.proxy.enabled.set("true")
         importlib.reload(spz.core.proxy)
-

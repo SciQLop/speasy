@@ -2,7 +2,6 @@ import os.path
 import logging
 from typing import List
 import pyistp
-from speasy.inventories import flat_inventories
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex
 
 log = logging.getLogger(__name__)
