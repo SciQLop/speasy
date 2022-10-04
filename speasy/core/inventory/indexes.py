@@ -134,6 +134,8 @@ def make_inventory_node(parent, ctor, name, provider, uid, **meta):
 
 
 def inventory_has_changed(orig, new):
+    if orig.__dict__.keys() != new.__dict__.keys():
+        return True
     for orig_key, orig_value in orig.__dict__.items():
         if orig_key != 'build_date':
             if orig_key not in new.__dict__:
