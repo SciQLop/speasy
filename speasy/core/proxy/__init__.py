@@ -4,12 +4,15 @@ from functools import wraps
 import warnings
 
 from packaging.version import Version
+from dateutil import parser
 
 from speasy.config import proxy as proxy_cfg
+from ... import SpeasyIndex
 
 from ...products.variable import from_dictionary as var_from_dict
 from .. import http
 from ..inventory.indexes import from_dict as inventory_from_dict
+from ..index import index
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
@@ -83,12 +86,18 @@ class GetInventory:
         kwargs['provider'] = provider
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        #        "If-Modified-Since"
-        resp = http.get(f"{url}/get_inventory?", params=kwargs, headers={"If-Modified-Since": ""})
+        saved_inventory: SpeasyIndex = index.get("proxy_inventories", provider, None)
+        headers = {}
+        if saved_inventory is not None:
+            headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
+        resp = http.get(f"{url}/get_inventory?", params=kwargs, headers=headers)
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
-            var = inventory_from_dict(pickle.loads(decompress(resp.content)))
-            return var
+            inventory = inventory_from_dict(pickle.loads(decompress(resp.content)))
+            index.set("proxy_inventories", provider, inventory)
+            return inventory
+        if resp.status_code == 304:
+            return saved_inventory
         return None
 
 
