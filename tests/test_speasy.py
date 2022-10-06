@@ -15,13 +15,12 @@ from speasy.core.dataprovider import PROVIDERS
 @ddt
 class SpeasyGetData(unittest.TestCase):
     def setUp(self):
-        self.proxy_state = spz.config.proxy.enabled()
-        spz.config.proxy.enabled.set("true")
-        spz.config.proxy.url.set(
-            "http://sciqlop.lpp.polytechnique.fr/cache-dev")
+        os.environ[spz.config.proxy.enabled.env_var_name] = "True"
+        os.environ[spz.config.proxy.url.env_var_name] = "http://sciqlop.lpp.polytechnique.fr/cache"
 
     def tearDown(self):
-        spz.config.proxy.enabled.set(self.proxy_state)
+        os.environ.pop(spz.config.proxy.enabled.env_var_name)
+        os.environ.pop(spz.config.proxy.url.env_var_name)
 
     @data(
         {
@@ -181,8 +180,8 @@ class SpeasyModule(unittest.TestCase):
 
     def test_warns_if_proxy_is_disabled(self):
         import importlib
-        spz.config.proxy.enabled.set("false")
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
         with self.assertWarns(UserWarning):
             importlib.reload(spz.core.proxy)
-        spz.config.proxy.enabled.set("true")
+        os.environ.pop(spz.config.proxy.enabled.env_var_name)
         importlib.reload(spz.core.proxy)

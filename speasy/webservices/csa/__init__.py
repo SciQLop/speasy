@@ -37,7 +37,7 @@ def register_dataset(instruments, datasets, dataset):
     node = make_inventory_node(instruments[dataset['instruments']], DatasetIndex, name=name,
                                provider="csa",
                                uid=meta['dataset_id'], **meta)
-    datasets[name] = node
+    datasets[meta['dataset_id']] = node
 
 
 def register_observatory(missions, observatories, observatory):
