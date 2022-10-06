@@ -2,6 +2,15 @@
 History
 =======
 
+1.0.1 (2022-10-06)
+------------------
+
+* several documentation improvements
+* SpeasyVaraible can be sliced with numpy.datetime64
+* comparing SpeasyVaraible with NaNs works as expected now (ignore NaNs)
+* fixes cda inventory issue where some datasets were missing
+* speasy loading time reduction by only downloading inventory from proxy if it has changed
+
 1.0.0 (2022-09-25)
 ------------------
 
@@ -20,7 +29,7 @@ Since last release, a lot of new features has landed:
 * SpeasyVariable object has been rewritten to better handle ND data and provide nice slicing features
 
 From now upcoming releases will mostly fix bugs, extend plotting API and follow web-services evolution.
-  
+
 0.10.0 (2022-02-03)
 -------------------
 
@@ -29,10 +38,10 @@ From now upcoming releases will mostly fix bugs, extend plotting API and follow 
 * Adds dynamic inventory for AMDA and SSC
 * Adds possibility to set config values from ENV
 * Drops Python 3.6 support and adds 3.10
-* New API documentation using numpydoc 
+* New API documentation using numpydoc
 * New user documentation using numpydoc
 * Most code examples are tested with doctest
-* Renames SSCWeb module get_orbit to get_trajectory 
+* Renames SSCWeb module get_orbit to get_trajectory
 
 0.9.1 (2021-11-25)
 ------------------
