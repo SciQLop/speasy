@@ -9,7 +9,7 @@
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '1.0.1'
-__all__ = ['amda', 'cda', 'ssc', 'get_data', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
+__all__ = ['amda', 'cda', 'ssc', 'csa', 'get_data', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 
 from speasy.core.inventory.indexes import SpeasyIndex

@@ -13,10 +13,8 @@ import speasy as spz
 @ddt
 class SimpleRequest(unittest.TestCase):
     def setUp(self):
-        if "GITHUB_ACTION" in os.environ  and os.environ.get("RUNNER_OS")=="Windows":
+        if "GITHUB_ACTION" in os.environ and os.environ.get("RUNNER_OS") == "Windows":
             self.skipTest("skip weirdly failing tests on windows")
-
-
 
     @data(
         {
@@ -115,6 +113,16 @@ class SimpleRequest(unittest.TestCase):
         with self.assertRaises(TypeError):
             spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fgl_gsm", start_time="2018-01-01",
                                  stop_time="2018-01-02", **kwargs)
+
+    def test_can_get_full_inventory_without_proxy(self):
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        spz.core.index.index.set("cdaweb-inventory", "masters-last-modified", "")
+        spz.core.index.index.set("cdaweb-inventory", "xml_catalog-last-modified", "")
+        if spz.core.index.index.contains("cdaweb-inventory", "tree"):
+            spz.core.index.index.pop("cdaweb-inventory", "tree")
+        spz.cda.update_inventory()
+        os.environ.pop(spz.config.proxy.enabled.env_var_name)
+        self.assertGreaterEqual(len(spz.inventories.flat_inventories.cda.parameters), 47712)
 
 
 class ConcurrentRequests(unittest.TestCase):

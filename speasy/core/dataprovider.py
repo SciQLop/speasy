@@ -48,7 +48,7 @@ class DataProvider:
         PROVIDERS[provider_name] = self
 
     @Proxyfiable(request=GetInventory, arg_builder=_get_inventory_args)
-    def _inventory(self, provider_name)->SpeasyIndex:
+    def _inventory(self, provider_name) -> SpeasyIndex:
         return self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
                                                 meta={'build_date': datetime.utcnow().isoformat()}))
 
@@ -58,8 +58,8 @@ class DataProvider:
 
     def update_inventory(self):
         lock = Lock()
-        new_inventory = self._inventory(provider_name=self.provider_name)
         with lock:
+            new_inventory = self._inventory(provider_name=self.provider_name)
             if inventory_has_changed(tree.__dict__.get(self.provider_name, SpeasyIndex("", "", "")), new_inventory):
                 if self.provider_name in tree.__dict__:
                     tree.__dict__[self.provider_name].clear()

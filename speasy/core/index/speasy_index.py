@@ -13,5 +13,8 @@ class SpeasyIndex:
     def set(self, module, key, value):
         self._index[f'{module}/{key}'] = value
 
+    def pop(self, module, key):
+        return self._index.pop(f'{module}/{key}')
+
     def contains(self, module, key):
         return f'{module}/{key}' in self._index
