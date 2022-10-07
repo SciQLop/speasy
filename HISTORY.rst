@@ -2,6 +2,12 @@
 History
 =======
 
+1.0.2 (2022-10-07)
+------------------
+
+* fixes regression on CSA inventory
+* fixes rare issue on variable merge
+
 1.0.1 (2022-10-06)
 ------------------
 
