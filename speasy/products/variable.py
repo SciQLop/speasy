@@ -213,7 +213,7 @@ class SpeasyVariable(SpeasyProduct):
         Returns
         -------
         np.array
-            SpeasyVariable values 
+            SpeasyVariable values
         """
         return self.__values_container.values
 
@@ -257,7 +257,7 @@ class SpeasyVariable(SpeasyProduct):
         Returns
         -------
         List[str]
-            list of axes names 
+            list of axes names
         """
         return [axis.name for axis in self.__axes]
 
@@ -285,7 +285,7 @@ class SpeasyVariable(SpeasyProduct):
 
     @property
     def nbytes(self) -> int:
-        """SpeasyVariable's values and axes memory usage 
+        """SpeasyVariable's values and axes memory usage
 
         Returns
         -------
@@ -355,7 +355,7 @@ class SpeasyVariable(SpeasyProduct):
 
     def to_dataframe(self) -> pds.DataFrame:
         """Convert the variable to a pandas.DataFrame object.
-        
+
         Returns
         -------
         pandas.DataFrame:
@@ -409,7 +409,7 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
-        """Converts SpeasyVariable to dictionary 
+        """Converts SpeasyVariable to dictionary
 
         Parameters
         ----------
@@ -580,7 +580,10 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
             sorted_var_list.remove(current)
 
     if len(sorted_var_list) == 0:
-        return SpeasyVariable.reserve_like(variables[0], length=0)
+        for v in variables:
+            if v is not None:
+                return SpeasyVariable.reserve_like(v, length=0)
+        return None
 
     overlaps = [
         np.where(current.time >= nxt.time[0])[0][0]
