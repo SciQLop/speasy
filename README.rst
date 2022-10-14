@@ -84,7 +84,7 @@ This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`__, you can easily 
 .. code-block:: python
 
     import speasy as spz
-    sscweb_tree = spz.inventory.data_tree.ssc
+    sscweb_tree = spz.inventories.data_tree.ssc
     solo = spz.get_data(sscweb_tree.Trajectories.solarorbiter, "2021-01-01", "2021-02-01")
 
 More complex requests like this one are supported:
