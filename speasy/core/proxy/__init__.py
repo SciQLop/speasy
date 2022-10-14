@@ -1,12 +1,14 @@
 import logging
 import pickle
 from functools import wraps
+from datetime import datetime, timedelta
 import warnings
 
 from packaging.version import Version
 from dateutil import parser
 
 from speasy.config import proxy as proxy_cfg
+from speasy.config import inventories as inventories_cfg
 from ... import SpeasyIndex
 
 from ...products.variable import from_dictionary as var_from_dict
@@ -82,11 +84,15 @@ class GetProduct:
 class GetInventory:
     @staticmethod
     def get(provider: str, **kwargs):
+        saved_inventory: SpeasyIndex = index.get("proxy_inventories", provider, None)
+        saved_inventory_dt: datetime = index.get("proxy_inventories_save_date", provider, datetime.utcfromtimestamp(0))
+        if saved_inventory_dt + timedelta(days=inventories_cfg.cache_retention_days.get()) > datetime.utcnow():
+            return saved_inventory
+
         url = proxy_cfg.url()
         kwargs['provider'] = provider
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        saved_inventory: SpeasyIndex = index.get("proxy_inventories", provider, None)
         headers = {}
         if saved_inventory is not None:
             headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
@@ -95,6 +101,7 @@ class GetInventory:
         if resp.status_code == 200:
             inventory = inventory_from_dict(pickle.loads(decompress(resp.content)))
             index.set("proxy_inventories", provider, inventory)
+            index.set("proxy_inventories_save_date", provider, datetime.utcnow())
             return inventory
         if resp.status_code == 304:
             return saved_inventory
