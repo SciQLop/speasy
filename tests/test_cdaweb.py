@@ -122,7 +122,7 @@ class SimpleRequest(unittest.TestCase):
             spz.core.index.index.pop("cdaweb-inventory", "tree")
         spz.cda.update_inventory()
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
-        self.assertGreaterEqual(len(spz.inventories.flat_inventories.cda.parameters), 47712)
+        self.assertGreaterEqual(len(spz.inventories.flat_inventories.cda.parameters), 47000)
 
 
 class ConcurrentRequests(unittest.TestCase):
