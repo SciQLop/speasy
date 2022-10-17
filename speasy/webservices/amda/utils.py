@@ -6,6 +6,7 @@ import datetime
 import os
 from typing import Dict, List
 from urllib.request import urlopen
+import tempfile
 
 import numpy as np
 import pandas as pds
@@ -33,23 +34,26 @@ def load_csv(filename: str) -> SpeasyVariable:
     """
     if '://' not in filename:
         filename = f"file:///{os.path.abspath(filename)}"
-    with urlopen(filename) as csv:
-        line = csv.readline().decode()
-        meta = {}
-        y = None
-        y_label = None
-        while len(line) > 0 and line[0] == '#':
-            if ':' in line:
-                key, value = line[1:].split(':', 1)
-                meta[key.strip()] = value.strip()
-            line = csv.readline().decode()
-        columns = [col.strip()
-                   for col in meta.get('DATA_COLUMNS', "").split(', ')[:]]
-        meta["UNITS"] = meta.get("PARAMETER_UNITS")
-        with urlopen(filename) as f:
-            data = pds.read_csv(f, comment='#', delim_whitespace=True,
+    with urlopen(filename, timeout=10.) as csv:
+        with tempfile.TemporaryFile() as fd:
+            fd.write(csv.read())
+            fd.seek(0)
+            line = fd.readline().decode()
+            meta = {}
+            y = None
+            y_label = None
+            while len(line) > 0 and line[0] == '#':
+                if ':' in line:
+                    key, value = line[1:].split(':', 1)
+                    meta[key.strip()] = value.strip()
+                line = fd.readline().decode()
+            columns = [col.strip()
+                       for col in meta.get('DATA_COLUMNS', "").split(', ')[:]]
+            meta["UNITS"] = meta.get("PARAMETER_UNITS")
+            fd.seek(0)
+            data = pds.read_csv(fd, comment='#', delim_whitespace=True,
                                 header=None, names=columns).values.transpose()
-        time, data = epoch_to_datetime64(data[0]), data[1:].transpose()
+            time, data = epoch_to_datetime64(data[0]), data[1:].transpose()
 
         if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
             min_v = np.array(
@@ -106,7 +110,7 @@ def load_timetable(filename: str) -> TimeTable:
         from astropy.io.votable import parse as parse_votable
         votable = parse_votable(io.BytesIO(votable.read()))
         name = next(filter(lambda e: 'Name' in e,
-                    votable.description.split(';\n'))).split(':')[-1]
+                           votable.description.split(';\n'))).split(':')[-1]
         # convert astropy votable structure to SpeasyVariable
         tab = votable.get_first_table()
         # prepare data
@@ -144,7 +148,7 @@ def load_catalog(filename: str) -> Catalog:
         # convert astropy votable structure to SpeasyVariable
         tab = votable.get_first_table()
         name = next(filter(lambda e: 'Name' in e,
-                    votable.description.split(';\n'))).split(':')[-1]
+                           votable.description.split(';\n'))).split(':')[-1]
         colnames = list(map(lambda f: f.name, tab.fields))
         data = tab.array.tolist()
         events = [_build_event(line, colnames) for line in data]
