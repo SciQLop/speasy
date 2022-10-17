@@ -45,7 +45,7 @@ class Plot:
     def line(self, *args, backend=None, **kwargs):
         units = self.values.unit
         yaxis_label = self.values.name
-        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values, labels=self.columns_names,
+        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values.values, labels=self.columns_names,
                                                units=units,
                                                xaxis_label=self.axes[0].name,
                                                yaxis_label=yaxis_label, *args,
