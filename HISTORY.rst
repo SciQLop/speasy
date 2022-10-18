@@ -1,6 +1,15 @@
 =======
 History
 =======
+1.0.3 (2022-10-18)
+------------------
+
+* correct typo in README.rst
+* uses cache setting also when loading inventory from proxy
+* Matplotlib was accidentally working with DataContainer instead of Numpy array
+* Amda csv read hardening
+* also replace comma in dynamic inventory names
+
 
 1.0.2 (2022-10-07)
 ------------------
