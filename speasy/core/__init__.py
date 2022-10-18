@@ -190,14 +190,14 @@ def epoch_to_datetime64(epoch_array: np.array) -> np.array:
     -------
     np.array
         Output array of datetime64[ns]
-        
+
     Examples
     --------
     >>> epoch_to_datetime64(np.arange(2))
     array(['1970-01-01T00:00:00.000000000', '1970-01-01T00:00:01.000000000'],
           dtype='datetime64[ns]')
 
-    
+
     """
     return (epoch_array * 1e9).astype("datetime64[ns]")
 
@@ -263,7 +263,8 @@ def fix_name(name: str):
         ('}', ''),
         ('(', ''),
         ('⊙', 'o'),
-        (';', '_')
+        (';', '_'),
+        (',', '_')
     )
     if len(name):
         if name[0].isnumeric():
