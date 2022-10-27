@@ -9,7 +9,6 @@ __version__ = '0.1.0'
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
-from urllib.request import urlopen
 
 from speasy.core import AllowedKwargs, http
 from speasy.core.cache import _cache  # _cache is used for tests (hack...)
@@ -22,6 +21,7 @@ from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
+from speasy.core.http import urlopen_with_retry
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class CdaWebException(BaseException):
 
 
 def _read_cdf(url: str, variable: str) -> SpeasyVariable:
-    with urlopen(url) as remote_cdf:
+    with urlopen_with_retry(url) as remote_cdf:
         return load_variable(buffer=remote_cdf.read(), variable=variable)
 
 
