@@ -41,7 +41,7 @@ class ProductType(Enum):
 def _is_user_prod(product_id: str or SpeasyIndex, collection: Dict):
     xmlid = to_xmlid(product_id)
     if xmlid in collection:
-        return not collection[xmlid].is_public
+        return is_private(collection[xmlid])
     return False
 
 
@@ -119,17 +119,17 @@ class AMDA_Webservice(DataProvider):
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.
-        
+
         Parameters
         ----------
         parameter_id: str or ParameterIndex
             parameter id
-            
+
         Returns
         -------
         Optional[DateTimeRange]
             Data time range
-            
+
         Examples
         --------
         >>> import speasy as spz
@@ -140,17 +140,17 @@ class AMDA_Webservice(DataProvider):
 
     def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
         """Get product time range.
-        
+
         Parameters
         ----------
         dataset_id: str or DatasetIndex
             parameter id
-            
+
         Returns
         -------
         Optional[DateTimeRange]
             Data time range
-            
+
         Examples
         --------
         >>> import speasy as spz
