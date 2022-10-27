@@ -95,3 +95,9 @@ def urlopen_with_retry(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None
             if retrycount > DEFAULT_RETRY_COUNT:
                 raise e
             sleep(DEFAULT_DELAY)
+        except URLError as e:
+            log.debug(f"Got {e.reason} error, will sleep for {delay} seconds")
+            retrycount += 1
+            if retrycount > DEFAULT_RETRY_COUNT:
+                raise e
+            sleep(DEFAULT_DELAY)
