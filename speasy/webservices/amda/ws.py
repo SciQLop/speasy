@@ -160,8 +160,8 @@ class AMDA_Webservice(DataProvider):
 
         return self._dataset_range(dataset_id)
 
-    def get_data(self, product, start_time=None, stop_time=None, **kwargs) -> Optional[Union[
-        SpeasyVariable, TimeTable, Catalog, Dataset]]:
+    def get_data(self, product, start_time=None, stop_time=None,
+                 **kwargs) -> Optional[Union[SpeasyVariable, TimeTable, Catalog, Dataset]]:
         """Get product data by id.
 
         Parameters
@@ -317,9 +317,8 @@ class AMDA_Webservice(DataProvider):
     @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_parameter(self, product, start_time, stop_time, extra_http_headers: Dict or None = None, **kwargs) -> \
-    Optional[
-        SpeasyVariable]:
+    def get_parameter(self, product, start_time, stop_time,
+                      extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
         """Get parameter data.
 
         Parameters
@@ -618,8 +617,7 @@ class AMDA_Webservice(DataProvider):
         """
         return list(filter(is_public, self.flat_inventory.datasets.values()))
 
-    def _find_parent_dataset(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> \
-        Optional[str]:
+    def _find_parent_dataset(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> Optional[str]:
 
         product_id = to_xmlid(product_id)
         product_type = self.product_type(product_id)

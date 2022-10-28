@@ -24,6 +24,28 @@ log = logging.getLogger(__name__)
 DATA_CHUNK_SIZE = 10485760
 
 
+def _copy_data(csv, fd):
+    content_length = 0
+    chunk_size = -1
+    if hasattr(csv, 'getheader'):
+        content_length = csv.getheader('content-length')
+        if content_length:
+            content_length = int(content_length)
+            chunk_size = DATA_CHUNK_SIZE
+    size = 0
+    while True:
+        chunk = csv.read(chunk_size)
+        if not chunk:
+            break
+        fd.write(chunk)
+        size += len(chunk)
+        if content_length:
+            percent = int((size / content_length)*100)
+            log.debug(f"Download data: {percent}%")
+    fd.seek(0)
+    return fd
+
+
 def load_csv(filename: str) -> SpeasyVariable:
     """Load a CSV file
 
@@ -41,24 +63,7 @@ def load_csv(filename: str) -> SpeasyVariable:
         filename = f"file:///{os.path.abspath(filename)}"
     with urlopen_with_retry(filename) as csv:
         with tempfile.TemporaryFile() as fd:
-            content_length = csv.getheader('content-length')
-            if content_length:
-                content_length = int(content_length)
-                chunk_size = DATA_CHUNK_SIZE
-            else:
-                content_length = 0
-                chunk_size = -1
-            size = 0
-            while True:
-                chunk = csv.read(chunk_size)
-                if not chunk:
-                    break
-                fd.write(chunk)
-                size += len(chunk)
-                if content_length:
-                    percent = int((size / content_length)*100)
-                    log.debug(f"Download: {percent}% {filename}")
-            fd.seek(0)
+            _copy_data(csv, fd)
             line = fd.readline().decode()
             meta = {}
             y = None

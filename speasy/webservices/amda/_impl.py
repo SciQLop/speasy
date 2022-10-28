@@ -92,8 +92,7 @@ class AmdaImpl:
         return root
 
     def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                           extra_http_headers: Dict or None = None, **kwargs) -> Optional[
-        SpeasyVariable]:
+                           extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
         url = rest_client.get_parameter(server_url=self.server_url, startTime=start_time.timestamp(),
                                         stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
                                         extra_http_headers=extra_http_headers, **kwargs)
@@ -102,15 +101,15 @@ class AmdaImpl:
             var = load_csv(url)
             if len(var):
                 log.debug(
-                    f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, data stop time = {var.time[-1]}')
+                    f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, \
+                            data stop time = {var.time[-1]}')
             else:
                 log.debug('Loaded var: Empty var')
             return var
         return None
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                     extra_http_headers: Dict or None = None, **kwargs) -> Optional[
-        SpeasyVariable]:
+                     extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
         dt = timedelta(days=amda_cfg.max_chunk_size_days())
 
         if stop_time - start_time > dt:
@@ -129,8 +128,8 @@ class AmdaImpl:
             return self.dl_parameter_chunk(start_time, stop_time, parameter_id, extra_http_headers=extra_http_headers,
                                            **kwargs)
 
-    def dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str, **kwargs) -> Optional[
-        SpeasyVariable]:
+    def dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
+                          **kwargs) -> Optional[SpeasyVariable]:
         username, password = _get_credentials()
         return self.dl_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time,
                                  **auth_args(username=username, password=password), **kwargs)
