@@ -12,6 +12,7 @@ from typing import Dict
 
 log = logging.getLogger(__name__)
 
+AMDA_BATCH_MODE_TIME = 240  # seconds
 
 class Endpoint(Enum):
     """AMDA_Webservice REST API endpoints.
@@ -76,9 +77,9 @@ def token(server_url: str = "http://amda.irap.omp.eu") -> str:
         raise RuntimeError("Failed to get auth token")
 
 
-def send_request(endpoint: Endpoint, params: dict = None, n_try: int = 3,
+def send_request(endpoint: Endpoint, params: dict = None, timeout: int = http.DEFAULT_TIMEOUT,
                  server_url: str = "http://amda.irap.omp.eu") -> str or None:
-    """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. Retry up to :data:`n_try` times upon failure.
+    """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
 
     Parameters
     ----------
@@ -86,8 +87,8 @@ def send_request(endpoint: Endpoint, params: dict = None, n_try: int = 3,
         target API endpoint on which the request will be performed
     params: dict
         request parameters
-    n_try: int
-        the number of retry in case of failure
+    timeout: int
+        request timeout
     server_url: str
         the base server URL
 
@@ -100,18 +101,11 @@ def send_request(endpoint: Endpoint, params: dict = None, n_try: int = 3,
     url = request_url(endpoint, server_url=server_url)
     params = params or {}
     params['token'] = token(server_url=server_url)
-    for _ in [None] * n_try:  # in case of failure
-        # add token now ? does it change
-        log.debug(f"Send request on AMDA_Webservice server {url}")
-        r = http.get(url, params=params)
-        if r is None:
-            # try again
-            continue
-        return r.text.strip()
+    r = http.get(url, params=params, timeout=timeout)
     return None
 
 
-def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try: int = 3,
+def send_indirect_request(endpoint: Endpoint, params: dict = None, timeout: int = http.DEFAULT_TIMEOUT,
                           server_url: str = "http://amda.irap.omp.eu") -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. The request is special in that the result
     is the URL to an XML file containing the actual data we are interested in. That is why
@@ -123,8 +117,8 @@ def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try: int = 
         target API endpoint on which the request will be performed
     params: dict
         request parameters
-    n_try: int
-        the number of retry in case of failure
+    timeout: int
+        request timeout
     server_url: str
         the base server URL
 
@@ -134,16 +128,16 @@ def send_indirect_request(endpoint: Endpoint, params: dict = None, n_try: int = 
         request result text, stripped of spaces and newlines
 
     """
-    next_url = send_request(endpoint=endpoint, params=params, n_try=n_try, server_url=server_url)
+    next_url = send_request(endpoint=endpoint, params=params, timeout=timeout, server_url=server_url)
     if '<' in next_url and '>' in next_url:
         next_url = next_url.split(">")[1].split("<")[0]
-    r = http.get(next_url)
+    r = http.get(next_url, timeout=timeout)
     if r.status_code == 200:
         return r.text.strip()
     return None
 
 
-def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
+def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = http.DEFAULT_TIMEOUT,
                       server_url: str = "http://amda.irap.omp.eu",
                       extra_http_headers: Dict or None = None) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters. We expect the result to be JSON data.
@@ -154,8 +148,8 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
         target API endpoint on which the request will be performed
     params: dict
         request parameters
-    n_try: int
-        the number of retry in case of failure
+    timeout: int
+        request timeout
     server_url: str
         the base server URL
 
@@ -169,33 +163,28 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, n_try: int = 3,
     params = params or {}
     http_headers = extra_http_headers or {}
     params['token'] = token(server_url=server_url)
-    for _ in [None] * n_try:  # in case of failure
-        # add token now ? does it change
-        log.debug(f"Send request on AMDA_Webservice server {url}")
-        r = http.get(url, params=params, headers=http_headers)
-        js = r.json()
-        if 'success' in js and \
-            js['success'] is True and \
-            'dataFileURLs' in js:
-            log.debug(f"success: {js['dataFileURLs']}")
-            return js['dataFileURLs']
-        elif "success" in js and \
-            js["success"] is True and \
-            "status" in js and \
-            js["status"] == "in progress":
-            log.warning("This request duration is too long, consider reducing time range")
-            while True:
-                default_sleep_time = 10.
-                time.sleep(default_sleep_time)
-                url = request_url(Endpoint.GETSTATUS, server_url=server_url)
+    r = http.get(url, params=params, headers=http_headers, timeout=timeout)
+    js = r.json()
+    if 'success' in js and \
+        js['success'] is True and \
+        'dataFileURLs' in js:
+        log.debug(f"success: {js['dataFileURLs']}")
+        return js['dataFileURLs']
+    elif "success" in js and \
+        js["success"] is True and \
+        "status" in js and \
+        js["status"] == "in progress":
+        log.warning("This request duration is too long, consider reducing time range")
+        while True:
+            default_sleep_time = 10.
+            time.sleep(default_sleep_time)
+            url = request_url(Endpoint.GETSTATUS, server_url=server_url)
 
-                status = http.get(url, params=js, headers=http_headers).json()
-                if status is not None and status["status"] == "done":
-                    return status["dataFileURLs"]
-
-
-        else:
-            log.debug(f"Failed: {r.text}")
+            status = http.get(url, params=js, headers=http_headers).json()
+            if status is not None and status["status"] == "done":
+                return status["dataFileURLs"]
+    else:
+        log.debug(f"Failed: {r.text}")
     return None
 
 
@@ -372,7 +361,7 @@ def get_parameter(server_url: str = "http://amda.irap.omp.eu", extra_http_header
     str or None
         request result, XML formatted text
     """
-    return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url,
+    return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url, timeout=AMDA_BATCH_MODE_TIME+10,
                              extra_http_headers=extra_http_headers)
 
 

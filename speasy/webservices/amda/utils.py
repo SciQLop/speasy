@@ -2,6 +2,7 @@
 conversion procedures for parsing CSV and VOTable data.
 
 """
+import logging
 import datetime
 import os
 from typing import Dict, List
@@ -17,6 +18,10 @@ from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableAxis, VariableTimeAxis)
+
+log = logging.getLogger(__name__)
+
+DATA_CHUNK_SIZE = 10485760
 
 
 def load_csv(filename: str) -> SpeasyVariable:
@@ -36,7 +41,23 @@ def load_csv(filename: str) -> SpeasyVariable:
         filename = f"file:///{os.path.abspath(filename)}"
     with urlopen_with_retry(filename) as csv:
         with tempfile.TemporaryFile() as fd:
-            fd.write(csv.read())
+            content_length = csv.getheader('content-length')
+            if content_length:
+                content_length = int(content_length)
+                chunk_size = DATA_CHUNK_SIZE
+            else:
+                content_length = 0
+                chunk_size = -1
+            size = 0
+            while True:
+                chunk = csv.read(chunk_size)
+                if not chunk:
+                    break
+                fd.write(chunk)
+                size += len(chunk)
+                if content_length:
+                    percent = int((size / content_length)*100)
+                    log.debug(f"Download: {percent}% {filename}")
             fd.seek(0)
             line = fd.readline().decode()
             meta = {}

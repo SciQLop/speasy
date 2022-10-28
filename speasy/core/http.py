@@ -41,7 +41,7 @@ def quote(*args, **kwargs):
     return _quote(*args, **kwargs)
 
 
-def get(url, headers: dict = None, params: dict = None):
+def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
     # cf. https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
@@ -51,7 +51,7 @@ def get(url, headers: dict = None, params: dict = None):
         status_forcelist=STATUS_FORCE_LIST,
         allowed_methods=["HEAD", "GET", "OPTIONS"]
     )
-    adapter = TimeoutHTTPAdapter(max_retries=retry_strategy)
+    adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=timeout)
     http = requests.Session()
     http.mount("https://", adapter)
     http.mount("http://", adapter)
