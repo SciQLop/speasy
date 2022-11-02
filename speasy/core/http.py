@@ -41,7 +41,7 @@ def quote(*args, **kwargs):
     return _quote(*args, **kwargs)
 
 
-def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
+def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT, head_only: bool = False):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
     # cf. https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
@@ -55,7 +55,10 @@ def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_T
     http = requests.Session()
     http.mount("https://", adapter)
     http.mount("http://", adapter)
-    resp = http.get(url, headers=headers, params=params)
+    if head_only:
+        resp = http.head(url, headers=headers, params=params)
+    else:
+        resp = http.get(url, headers=headers, params=params)
     while resp.status_code == 429:  # Honor "Retry-After"
         try:
             delay = float(resp.headers['Retry-After'])
