@@ -69,16 +69,16 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_get_variable_long_request(self):
-        if "SPEASY_LONG_TESTS" not in os.environ:
-            self.skipTest("Long tests disabled")
-        with self.assertLogs('speasy.webservices.amda.rest_client', level='WARNING') as cm:
-            start_date = datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-            stop_date = datetime(2021, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
-            parameter_id = "mms1_b_gse"
-            result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
-            self.assertIsNotNone(result)
-            self.assertTrue(
-                any(["This request duration is too long, consider reducing time range" in line for line in cm.output]))
+        #if "SPEASY_LONG_TESTS" not in os.environ:
+        self.skipTest("Long tests disabled")
+        #with self.assertLogs('speasy.webservices.amda.rest_client', level='WARNING') as cm:
+        #    start_date = datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        #    stop_date = datetime(2021, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
+        #    parameter_id = "mms1_b_gse"
+        #    result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
+        #    self.assertIsNotNone(result)
+        #    self.assertTrue(
+        #        any(["This request duration is too long, consider reducing time range" in line for line in cm.output]))
 
     def test_returns_none_for_a_request_outside_of_range(self):
         with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
