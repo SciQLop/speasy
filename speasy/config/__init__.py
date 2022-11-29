@@ -181,7 +181,9 @@ amda = ConfigSection("AMDA",
                      max_chunk_size_days={
                          "default": 10,
                          "description": "Maximum request duration in days, any request over a longer period will be split into smaller ones.",
-                         "type_ctor": int}
+                         "type_ctor": int},
+                     entry_point={
+                         "default": "http://amda.irap.omp.eu"}
                      )
 
 inventories = ConfigSection("INVENTORIES",

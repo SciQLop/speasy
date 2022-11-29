@@ -40,7 +40,7 @@ def is_private(node):
 
 
 class AmdaImpl:
-    def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
+    def __init__(self, server_url: str = amda_cfg.entry_point()):
         self.server_url = server_url
 
     def _update_private_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
