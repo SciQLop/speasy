@@ -163,7 +163,7 @@ class PrivateProductsRequests(unittest.TestCase):
 
     def test_get_user_parameters(self):
         for method in (spz.amda.get_user_parameter, spz.amda.get_data):
-            result = spz.amda.method(spz.amda.list_user_parameters()[0], start_time="2016-06-01",
+            result = method(spz.amda.list_user_parameters()[0], start_time="2016-06-01",
                                      stop_time="2016-06-01T12:00:00")
             self.assertIsNotNone(result)
             self.assertTrue(len(result) != 0)
