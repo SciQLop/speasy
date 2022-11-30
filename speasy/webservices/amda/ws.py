@@ -78,7 +78,7 @@ class AMDA_Webservice(DataProvider):
 
     """
 
-    def __init__(self, server_url: str = "http://amda.irap.omp.eu"):
+    def __init__(self, server_url: str = amda_cfg.entry_point()):
         from ._impl import AmdaImpl
         self._impl = AmdaImpl(server_url=server_url)
         DataProvider.__init__(self, provider_name='amda')

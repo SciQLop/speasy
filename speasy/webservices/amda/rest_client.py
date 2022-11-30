@@ -57,7 +57,7 @@ def request_url(endpoint: Endpoint, server_url: str) -> str:
         raise TypeError(f"You must provide an {Endpoint} instead of {type(endpoint)}")
 
 
-def token(server_url: str = "http://amda.irap.omp.eu") -> str:
+def token(server_url: str = amda_cfg.entry_point()) -> str:
     """Returns authentication token.
 
     Parameters
@@ -79,7 +79,7 @@ def token(server_url: str = "http://amda.irap.omp.eu") -> str:
 
 
 def send_request(endpoint: Endpoint, params: dict = None, timeout: int = http.DEFAULT_TIMEOUT,
-                 server_url: str = "http://amda.irap.omp.eu") -> str or None:
+                 server_url: str = amda_cfg.entry_point()) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
 
     Parameters
@@ -110,7 +110,7 @@ def send_request(endpoint: Endpoint, params: dict = None, timeout: int = http.DE
 
 def send_indirect_request(endpoint: Endpoint, params: dict = None,
                           timeout: int = http.DEFAULT_TIMEOUT,
-                          server_url: str = "http://amda.irap.omp.eu") -> str or None:
+                          server_url: str = amda_cfg.entry_point()) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
     The request is special in that the result is the URL to an XML file containing
     the actual data we are interested in. That is why we call :data:`requests.get()` twice in a row.
@@ -142,7 +142,7 @@ def send_indirect_request(endpoint: Endpoint, params: dict = None,
 
 
 def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = http.DEFAULT_TIMEOUT,
-                      server_url: str = "http://amda.irap.omp.eu",
+                      server_url: str = amda_cfg.entry_point(),
                       extra_http_headers: Dict or None = None) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
     We expect the result to be JSON data.
@@ -194,7 +194,7 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = ht
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_timetables_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
+def get_timetables_xml_tree(server_url: str = amda_cfg.entry_point(), **kwargs: Dict) -> str or None:
     """Get list of timetables.
 
     Parameters
@@ -214,7 +214,7 @@ def get_timetables_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwarg
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_catalogs_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
+def get_catalogs_xml_tree(server_url: str = amda_cfg.entry_point(), **kwargs: Dict) -> str or None:
     """Get list of catalogs.
 
     Parameters
@@ -233,7 +233,7 @@ def get_catalogs_xml_tree(server_url: str = "http://amda.irap.omp.eu", **kwargs:
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_user_timetables_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
+def get_user_timetables_xml_tree(username: str, password: str, server_url: str = amda_cfg.entry_point(),
                                  **kwargs: Dict) -> str or None:
     """Get private list of timetables.
 
@@ -257,7 +257,7 @@ def get_user_timetables_xml_tree(username: str, password: str, server_url: str =
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_user_catalogs_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
+def get_user_catalogs_xml_tree(username: str, password: str, server_url: str = amda_cfg.entry_point(),
                                **kwargs: Dict) -> str or None:
     """Get private list of catalogs.
 
@@ -281,7 +281,7 @@ def get_user_catalogs_xml_tree(username: str, password: str, server_url: str = "
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_user_parameters_xml_tree(username: str, password: str, server_url: str = "http://amda.irap.omp.eu",
+def get_user_parameters_xml_tree(username: str, password: str, server_url: str = amda_cfg.entry_point(),
                                  **kwargs: Dict) -> str or None:
     """Get private list of parameters.
 
@@ -310,7 +310,7 @@ def get_user_parameters_xml_tree(username: str, password: str, server_url: str =
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_timetable(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
+def get_timetable(server_url: str = amda_cfg.entry_point(), **kwargs: Dict) -> str or None:
     """Get timetable request.
 
     Parameters
@@ -329,7 +329,7 @@ def get_timetable(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -
 
 
 @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-def get_catalog(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> str or None:
+def get_catalog(server_url: str = amda_cfg.entry_point(), **kwargs: Dict) -> str or None:
     """Get catalog request.
 
     Parameters
@@ -348,7 +348,7 @@ def get_catalog(server_url: str = "http://amda.irap.omp.eu", **kwargs: Dict) -> 
     return send_request(Endpoint.GETCAT, params=kwargs, server_url=server_url)
 
 
-def get_parameter(server_url: str = "http://amda.irap.omp.eu", extra_http_headers: Dict or None = None,
+def get_parameter(server_url: str = amda_cfg.entry_point(), extra_http_headers: Dict or None = None,
                   **kwargs: Dict) -> str or None:
     """Get parameter request.
 
@@ -371,7 +371,7 @@ def get_parameter(server_url: str = "http://amda.irap.omp.eu", extra_http_header
 
 
 @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
-def get_obs_data_tree(server_url: str = "http://amda.irap.omp.eu") -> str or None:
+def get_obs_data_tree(server_url: str = amda_cfg.entry_point()) -> str or None:
     """Get observatory data tree.
 
     Parameters
