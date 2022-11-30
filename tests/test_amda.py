@@ -69,9 +69,9 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_get_variable_long_request(self):
-        #if "SPEASY_LONG_TESTS" not in os.environ:
+        # if "SPEASY_LONG_TESTS" not in os.environ:
         self.skipTest("Long tests disabled")
-        #with self.assertLogs('speasy.webservices.amda.rest_client', level='WARNING') as cm:
+        # with self.assertLogs('speasy.webservices.amda.rest_client', level='WARNING') as cm:
         #    start_date = datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         #    stop_date = datetime(2021, 1, 30, 0, 0, 0, tzinfo=timezone.utc)
         #    parameter_id = "mms1_b_gse"

@@ -41,6 +41,17 @@ def quote(*args, **kwargs):
     return _quote(*args, **kwargs)
 
 
+def apply_delay(headers: dict = None):
+    delay = DEFAULT_DELAY
+    try:
+        if headers and ('Retry-After' in headers):
+            delay = float(headers['Retry-After'])
+    except ValueError:
+        pass
+    log.debug(f"Will sleep for {delay} seconds")
+    sleep(delay)
+
+
 def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT, head_only: bool = False):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
@@ -49,24 +60,22 @@ def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_T
         total=DEFAULT_RETRY_COUNT,
         backoff_factor=1,
         status_forcelist=STATUS_FORCE_LIST,
-        allowed_methods=["HEAD", "GET", "OPTIONS"]
+        allowed_methods=["HEAD", "GET"]
     )
     adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=timeout)
     http = requests.Session()
     http.mount("https://", adapter)
     http.mount("http://", adapter)
-    if head_only:
-        resp = http.head(url, headers=headers, params=params)
-    else:
-        resp = http.get(url, headers=headers, params=params)
-    while resp.status_code == 429:  # Honor "Retry-After"
-        try:
-            delay = float(resp.headers['Retry-After'])
-        except ValueError:
-            delay = DEFAULT_DELAY
-        log.debug(f"Got {resp.status_code} response, will sleep for {delay} seconds")
-        sleep(delay)
-        resp = http.get(url, headers=headers, params=params)
+    while True:
+        if head_only:
+            resp = http.head(url, headers=headers, params=params)
+        else:
+            resp = http.get(url, headers=headers, params=params)
+        if resp.status_code == 429:  # Honor "Retry-After"
+            log.debug(f"Got {resp.status_code} response")
+            apply_delay(resp.headers)
+        else:
+            break
     return resp
 
 
@@ -75,34 +84,28 @@ def urlopen_with_retry(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None
     headers['User-Agent'] = USER_AGENT
     req = Request(url, headers=headers)
     retrycount = 0
-    s = None
-    delay = DEFAULT_DELAY
-    while s is None:
+    while True:
         try:
             resp = urlopen(req, timeout=timeout)
             return resp
         except HTTPError as e:
             if isinstance(e.reason, socket.timeout):
-                log.debug(f"Timeout exception during urlopen request, will sleep for {delay} seconds")
+                log.debug("Timeout exception during urlopen request")
             elif e.code in STATUS_FORCE_LIST:
-                log.debug(f"HTTP Error Got {e.code} response, will sleep for {delay} seconds")
+                log.debug(f"HTTP Error Got {e.code} response")
             elif e.code == 429:  # Honor "Retry-After"
-                try:
-                    delay = float(resp.headers['Retry-After'])
-                except ValueError:
-                    pass
-                log.debug(f"Got {e.code} response, will sleep for {delay} seconds")
-                sleep(delay)
+                log.debug(f"Got {e.code} response")
+                apply_delay(resp.headers)
                 return urlopen_with_retry(url, timeout=timeout, headers=headers)
             else:
                 raise e
             retrycount += 1
             if retrycount > DEFAULT_RETRY_COUNT:
                 raise e
-            sleep(DEFAULT_DELAY)
+            apply_delay()
         except URLError as e:
-            log.debug(f"Got {e.reason} error, will sleep for {delay} seconds")
+            log.debug(f"Got {e.reason} error")
             retrycount += 1
             if retrycount > DEFAULT_RETRY_COUNT:
                 raise e
-            sleep(DEFAULT_DELAY)
+            apply_delay()
