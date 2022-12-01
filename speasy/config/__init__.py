@@ -143,6 +143,13 @@ def remove_entry(entry: ConfigEntry):
 #                           ADD HERE CONFIG ENTRIES
 # user can easily discover them with speasy.config.<completion>
 # ==========================================================================================
+core = ConfigSection("CORE",
+                     disabled_providers={"default": set(),
+                                         "description": """A comma separated list of providers you want to disable.
+The main benefit of disabling providers is to speedup speasy loading.""",
+                                         "type_ctor": lambda x: set(x.split(','))}
+                     )
+
 proxy = ConfigSection("PROXY",
                       enabled={"default": True,
                                "description": """Enables or disables speasy proxy usage.
