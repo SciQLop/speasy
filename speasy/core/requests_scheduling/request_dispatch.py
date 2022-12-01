@@ -1,36 +1,51 @@
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
-
+import sys
 import numpy as np
 
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
-                                           DatasetIndex, ParameterIndex,
-                                           SpeasyIndex, TimetableIndex)
+                                 DatasetIndex, ParameterIndex,
+                                 SpeasyIndex, TimetableIndex)
 
 from ...products import *
 from ...webservices import (AMDA_Webservice, CDA_Webservice, CSA_Webservice,
                             SSC_Webservice)
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
+from ...config import core as core_cfg
 
 TimeT = Union[str, datetime, float, np.datetime64]
 TimeRangeT = Union[DateTimeRange, Tuple[TimeT, TimeT]]
 TimeSerieIndexT = Union[ParameterIndex, ComponentIndex]
 TimeRangeCollectionT = Union[TimetableIndex, CatalogIndex, Iterable[Iterable[Union[TimeT]]]]
 
-amda = AMDA_Webservice()
-cda = CDA_Webservice()
-ssc = SSC_Webservice()
-csa = CSA_Webservice()
+PROVIDERS = {}
+amda = None
+csa = None
+cda = None
+ssc = None
 
-PROVIDERS = {
-    'amda': amda,
-    'cdaweb': cda,
-    'cda': cda,
-    'sscweb': ssc,
-    'ssc': ssc,
-    'csa': csa
-}
+if 'amda' not in core_cfg.disabled_providers():
+    amda = AMDA_Webservice()
+    sys.modules[__name__].amda = amda
+    PROVIDERS['amda'] = amda
+
+if 'csa' not in core_cfg.disabled_providers():
+    csa = CSA_Webservice()
+    sys.modules[__name__].csa = csa
+    PROVIDERS['csa'] = csa
+
+if not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
+    cda = CDA_Webservice()
+    sys.modules[__name__].cda = cda
+    PROVIDERS['cda'] = cda
+    PROVIDERS['cdaweb'] = cda
+
+if not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
+    ssc = SSC_Webservice()
+    sys.modules[__name__].ssc = ssc
+    PROVIDERS['ssc'] = ssc
+    PROVIDERS['sscweb'] = ssc
 
 
 def list_providers() -> List[str]:
