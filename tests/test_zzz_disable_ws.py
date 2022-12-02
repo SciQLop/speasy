@@ -1,14 +1,14 @@
 import unittest
-
+import importlib
 import os
 import sys
 
 
-def _drop_all_speazy_mods():
+def _reload_all_speazy_mods():
     keys = list(sys.modules.keys())
     for name in keys:
-        if 'speasy' in name:
-            sys.modules.pop(name)
+        if any(map(name.startswith, ('speasy', 'diskcache', 'pickle'))):
+            sys.modules[name] = importlib.reload(sys.modules[name])
 
 
 class DisableWS(unittest.TestCase):
@@ -16,11 +16,12 @@ class DisableWS(unittest.TestCase):
         pass
 
     def tearDown(self):
-        pass
+        os.environ.pop("SPEASY_CORE_DISABLED_PROVIDERS")
+        _reload_all_speazy_mods()
 
     def test_disable_amda(self):
         os.environ["SPEASY_CORE_DISABLED_PROVIDERS"] = "amda"
-        _drop_all_speazy_mods()
+        _reload_all_speazy_mods()
         import speasy as spz
         self.assertNotIn("amda", spz.inventories.tree.__dict__)
         self.assertIsNone(spz.amda)
@@ -29,7 +30,7 @@ class DisableWS(unittest.TestCase):
 
     def test_disable_ssc_and_cda(self):
         os.environ["SPEASY_CORE_DISABLED_PROVIDERS"] = "ssc,cda"
-        _drop_all_speazy_mods()
+        _reload_all_speazy_mods()
         import speasy as spz
         self.assertNotIn("ssc", spz.inventories.tree.__dict__)
         self.assertIsNone(spz.ssc)
