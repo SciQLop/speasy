@@ -140,5 +140,13 @@ class ConcurrentRequests(unittest.TestCase):
             self.assertIsNotNone(result)
 
 
+class SpecificNonRegression(unittest.TestCase):
+
+    def test_broken_var_saved_into_cache(self):
+        for i in range(2):
+            v = spz.get_data(spz.inventories.tree.cda.ACE.MAG.AC_H2_MFI.BGSEc, "2018-01-01", "2018-01-02")
+            self.assertIsNotNone(v)
+
+
 if __name__ == '__main__':
     unittest.main()
