@@ -19,7 +19,9 @@ DEFAULT_DELAY = 5  # seconds
 
 DEFAULT_RETRY_COUNT = 5
 
-STATUS_FORCE_LIST = [500, 502, 503, 504]  # Note: Specific treatment for 429 error code (see below)
+STATUS_FORCE_LIST = [500, 502, 504]
+
+RETRY_AFTER_LIST = [429, 503] # Note: Specific treatment for 429 & 503 error codes (see below)
 
 
 class TimeoutHTTPAdapter(HTTPAdapter):
@@ -71,7 +73,7 @@ def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_T
             resp = http.head(url, headers=headers, params=params)
         else:
             resp = http.get(url, headers=headers, params=params)
-        if resp.status_code == 429:  # Honor "Retry-After"
+        if resp.status_code in RETRY_AFTER_LIST:  # Honor "Retry-After"
             log.debug(f"Got {resp.status_code} response")
             apply_delay(resp.headers)
         else:
@@ -93,7 +95,7 @@ def urlopen_with_retry(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None
                 log.debug("Timeout exception during urlopen request")
             elif e.code in STATUS_FORCE_LIST:
                 log.debug(f"HTTP Error Got {e.code} response")
-            elif e.code == 429:  # Honor "Retry-After"
+            elif e.code in RETRY_AFTER_LIST:  # Honor "Retry-After"
                 log.debug(f"Got {e.code} response")
                 apply_delay(resp.headers)
                 return urlopen_with_retry(url, timeout=timeout, headers=headers)
