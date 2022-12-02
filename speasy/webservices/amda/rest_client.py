@@ -171,14 +171,14 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = ht
     r = http.get(url, params=params, headers=http_headers, timeout=timeout)
     js = r.json()
     if 'success' in js and \
-       js['success'] is True and \
-       'dataFileURLs' in js:
+        js['success'] is True and \
+        'dataFileURLs' in js:
         log.debug(f"success: {js['dataFileURLs']}")
         return js['dataFileURLs']
     elif "success" in js and \
-         js["success"] is True and \
-         "status" in js and \
-         js["status"] == "in progress":
+        js["success"] is True and \
+        "status" in js and \
+        js["status"] == "in progress":
         log.warning("This request duration is too long, consider reducing time range")
         while True:
             default_sleep_time = 10.
@@ -366,7 +366,7 @@ def get_parameter(server_url: str = amda_cfg.entry_point(), extra_http_headers: 
     str or None
         request result, XML formatted text
     """
-    return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url, timeout=AMDA_BATCH_MODE_TIME+10,
+    return send_request_json(Endpoint.GETPARAM, params=kwargs, server_url=server_url, timeout=AMDA_BATCH_MODE_TIME + 10,
                              extra_http_headers=extra_http_headers)
 
 

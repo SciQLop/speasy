@@ -313,12 +313,13 @@ class AMDA_Webservice(DataProvider):
         catalog_id = to_xmlid(catalog_id)
         return self._impl.dl_user_catalog(catalog_id=catalog_id)
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format'])
     @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time,
-                      extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
+                      extra_http_headers: Dict or None = None, output_format: str = 'csv', **kwargs) -> Optional[
+        SpeasyVariable]:
         """Get parameter data.
 
         Parameters
@@ -331,6 +332,8 @@ class AMDA_Webservice(DataProvider):
             desired data stop time
         extra_http_headers: dict
             reserved for internal use
+        output_format: str
+            request output format in case of success, allowed values are ASCII and CDF
 
         Returns
         -------
@@ -351,7 +354,7 @@ class AMDA_Webservice(DataProvider):
         """
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product,
-                                       extra_http_headers=extra_http_headers)
+                                       extra_http_headers=extra_http_headers, output_format=output_format)
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
                     **kwargs) -> Dataset or None:
@@ -617,7 +620,8 @@ class AMDA_Webservice(DataProvider):
         """
         return list(filter(is_public, self.flat_inventory.datasets.values()))
 
-    def _find_parent_dataset(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> Optional[str]:
+    def _find_parent_dataset(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> Optional[
+        str]:
 
         product_id = to_xmlid(product_id)
         product_type = self.product_type(product_id)
