@@ -21,22 +21,17 @@ DEFAULT_RETRY_COUNT = 5
 
 STATUS_FORCE_LIST = [500, 502, 504]
 
-RETRY_AFTER_LIST = [429, 503] # Note: Specific treatment for 429 & 503 error codes (see below)
+RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error codes (see below)
 
 
 class TimeoutHTTPAdapter(HTTPAdapter):
-    def __init__(self, *args, **kwargs):
-        self.timeout = DEFAULT_TIMEOUT
-        if "timeout" in kwargs:
-            self.timeout = kwargs["timeout"]
-            del kwargs["timeout"]
+    def __init__(self, *args, timeout=DEFAULT_TIMEOUT, **kwargs):
+        self.timeout = timeout
         super().__init__(*args, **kwargs)
 
     def send(self, request, **kwargs):
-        timeout = kwargs.get("timeout")
-        if timeout is None:
-            kwargs["timeout"] = self.timeout
-        return super().send(request, **kwargs)
+        kwargs.pop('timeout', None)
+        return super().send(request, timeout=self.timeout, **kwargs)
 
 
 def quote(*args, **kwargs):
