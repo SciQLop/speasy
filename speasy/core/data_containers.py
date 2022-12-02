@@ -74,9 +74,14 @@ class DataContainer(object):
 
     @staticmethod
     def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float) -> "DataContainer":
-        return DataContainer(values=np.array(dictionary["values"], dtype=dtype), meta=dictionary["meta"],
-                             name=dictionary["name"],
-                             is_time_dependent=dictionary["is_time_dependent"])
+        try:
+            return DataContainer(values=np.array(dictionary["values"], dtype=dtype), meta=dictionary["meta"],
+                                 name=dictionary["name"],
+                                 is_time_dependent=dictionary["is_time_dependent"])
+        except ValueError:
+            return DataContainer(values=np.array(dictionary["values"]), meta=dictionary["meta"],
+                                 name=dictionary["name"],
+                                 is_time_dependent=dictionary["is_time_dependent"])
 
     @staticmethod
     def reserve_like(other: 'DataContainer', length: int = 0) -> 'DataContainer':
@@ -98,10 +103,10 @@ class DataContainer(object):
 
     def __eq__(self, other: 'DataContainer') -> bool:
         return self.__meta == other.__meta and \
-            self.__name == other.__name and \
-            self.is_time_dependent == other.is_time_dependent and \
-            np.all(self.__values.shape == other.__values.shape) and \
-            np.array_equal(self.__values, other.__values, equal_nan=True)
+               self.__name == other.__name and \
+               self.is_time_dependent == other.is_time_dependent and \
+               np.all(self.__values.shape == other.__values.shape) and \
+               np.array_equal(self.__values, other.__values, equal_nan=True)
 
     def replace_val_by_nan(self, val):
         if self.__values.dtype != np.float:
