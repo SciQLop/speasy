@@ -109,7 +109,11 @@ class _Cacheable:
         entry = self.get_cache_entry(fragment, product, **kwargs)
         if entry is not None:
             if is_up_to_date(entry, version):
-                return from_dictionary(entry.data)
+                try:
+                    return from_dictionary(entry.data)
+                except Exception as e:
+                    log.warning(f"got an exception {e} while loading fragment {fragment} for {product}")
+                    return None
             log.debug(f"Cache entry is outdated")
         return None
 
@@ -205,7 +209,11 @@ class UnversionedProviderCache(object):
             if entry is None:
                 missing_fragments.append(fragment)
             elif (entry.version + self.cache_retention) > datetime.utcnow():
-                data_chunks.append(from_dictionary(entry.data))
+                try:
+                    data_chunks.append(from_dictionary(entry.data))
+                except Exception as e:
+                    missing_fragments.append(fragment)
+                    log.warning(f"got an exception {e} while loading fragment {fragment} for {product}")
             else:
                 maybe_outdated_fragments.append((fragment, entry))
 
