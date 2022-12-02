@@ -28,16 +28,14 @@ def _clean_master_cdf_folder():
 
 def _download_and_extract_master_cdf(masters_url: str):
     with NamedTemporaryFile('wb') as master_archive:
-        r = http.get(masters_url)
-        master_archive.write(r.content)
+        master_archive.write(http.get(masters_url).content)
         master_archive.flush()
         tar = tarfile.open(master_archive.name)
         tar.extractall(_MASTERS_CDF_PATH)
 
 
 def update_master_cdf(masters_url: str = "https://spdf.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/master.tar"):
-    r = http.get(masters_url, head_only=True)
-    last_modified = r.headers['last-modified']
+    last_modified = http.get(masters_url, head_only=True).headers['last-modified']
     if index.get("cdaweb-inventory", "masters-last-modified", "") != last_modified:
         _clean_master_cdf_folder()
         _download_and_extract_master_cdf(masters_url)
@@ -47,13 +45,11 @@ def update_master_cdf(masters_url: str = "https://spdf.gsfc.nasa.gov/pub/softwar
 
 
 def update_xml_catalog(xml_catalog_url: str = "https://spdf.gsfc.nasa.gov/pub/catalogs/all.xml"):
-    r = http.get(xml_catalog_url, head_only=True)
-    last_modified = r.headers['last-modified']
+    last_modified = http.get(xml_catalog_url, head_only=True).headers['last-modified']
     if index.get("cdaweb-inventory", "xml_catalog-last-modified", "") != last_modified:
         _ensure_path_exists(_XML_CATALOG_PATH)
         with open(_XML_CATALOG_PATH, 'w') as f:
-            r = http.get(xml_catalog_url)
-            f.write(r.text)
+            f.write(http.get(xml_catalog_url).text)
             index.set("cdaweb-inventory", "xml_catalog-last-modified", last_modified)
             return True
     return False
