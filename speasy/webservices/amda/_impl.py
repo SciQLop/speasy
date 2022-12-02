@@ -6,7 +6,9 @@ from typing import Dict, Optional
 # General modules
 from ...config import amda as amda_cfg
 from ...core.cache import CacheCall
+from ...core.http import urlopen_with_retry
 from ...core.inventory.indexes import SpeasyIndex
+from ...core.cdf import load_variable as load_cdf
 from ...inventories import flat_inventories
 from ...products.variable import SpeasyVariable, merge
 from . import rest_client
@@ -92,13 +94,19 @@ class AmdaImpl:
         return root
 
     def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                           extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
+                           extra_http_headers: Dict or None = None, output_format: str = 'ASCII', **kwargs) -> Optional[
+        SpeasyVariable]:
         url = rest_client.get_parameter(server_url=self.server_url, startTime=start_time.timestamp(),
                                         stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
-                                        extra_http_headers=extra_http_headers, **kwargs)
+                                        extra_http_headers=extra_http_headers, outputFormat=output_format, **kwargs)
         # check status until done
         if url is not None:
-            var = load_csv(url)
+            if output_format == "CDF_ISTP":
+                if url is not None:
+                    with urlopen_with_retry(url) as remote_cdf:
+                        var = load_cdf(buffer=remote_cdf.read(), variable=parameter_id)
+            else:
+                var = load_csv(url)
             if len(var):
                 log.debug(
                     f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, \
@@ -109,7 +117,8 @@ class AmdaImpl:
         return None
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                     extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
+                     extra_http_headers: Dict or None = None, output_format: str = 'ASCII', **kwargs) -> Optional[
+        SpeasyVariable]:
         dt = timedelta(days=amda_cfg.max_chunk_size_days())
 
         if stop_time - start_time > dt:
@@ -118,15 +127,17 @@ class AmdaImpl:
             while curr_t < stop_time:
                 if curr_t + dt < stop_time:
                     var = merge([var, self.dl_parameter_chunk(curr_t, curr_t + dt, parameter_id,
-                                                              extra_http_headers=extra_http_headers, **kwargs)])
+                                                              extra_http_headers=extra_http_headers,
+                                                              output_format=output_format, **kwargs)])
                 else:
                     var = merge([var, self.dl_parameter_chunk(curr_t, stop_time, parameter_id,
-                                                              extra_http_headers=extra_http_headers, **kwargs)])
+                                                              extra_http_headers=extra_http_headers,
+                                                              output_format=output_format, **kwargs)])
                 curr_t += dt
             return var
         else:
             return self.dl_parameter_chunk(start_time, stop_time, parameter_id, extra_http_headers=extra_http_headers,
-                                           **kwargs)
+                                           output_format=output_format, **kwargs)
 
     def dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                           **kwargs) -> Optional[SpeasyVariable]:
