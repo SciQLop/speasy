@@ -2,21 +2,48 @@
 conversion procedures for parsing CSV and VOTable data.
 
 """
+import logging
 import datetime
 import os
 from typing import Dict, List
-from urllib.request import urlopen
 import tempfile
 
 import numpy as np
 import pandas as pds
 
 from speasy.core import epoch_to_datetime64
+from speasy.core.http import urlopen_with_retry
 from speasy.core.datetime_range import DateTimeRange
 from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableAxis, VariableTimeAxis)
+
+log = logging.getLogger(__name__)
+
+DATA_CHUNK_SIZE = 10485760
+
+
+def _copy_data(csv, fd):
+    content_length = 0
+    chunk_size = -1
+    if hasattr(csv, 'getheader'):
+        content_length = csv.getheader('content-length')
+        if content_length:
+            content_length = int(content_length)
+            chunk_size = DATA_CHUNK_SIZE
+    size = 0
+    while True:
+        chunk = csv.read(chunk_size)
+        if not chunk:
+            break
+        fd.write(chunk)
+        size += len(chunk)
+        if content_length:
+            percent = int((size / content_length)*100)
+            log.debug(f"Download data: {percent}%")
+    fd.seek(0)
+    return fd
 
 
 def load_csv(filename: str) -> SpeasyVariable:
@@ -34,10 +61,9 @@ def load_csv(filename: str) -> SpeasyVariable:
     """
     if '://' not in filename:
         filename = f"file:///{os.path.abspath(filename)}"
-    with urlopen(filename, timeout=10.) as csv:
+    with urlopen_with_retry(filename) as csv:
         with tempfile.TemporaryFile() as fd:
-            fd.write(csv.read())
-            fd.seek(0)
+            _copy_data(csv, fd)
             line = fd.readline().decode()
             meta = {}
             y = None
@@ -102,7 +128,7 @@ def load_timetable(filename: str) -> TimeTable:
     """
     if '://' not in filename:
         filename = f"file://{os.path.abspath(filename)}"
-    with urlopen(filename) as votable:
+    with urlopen_with_retry(filename) as votable:
         # save the timetable as a dataframe, speasy.common.SpeasyVariable
         # get header data first
         import io
@@ -138,7 +164,7 @@ def load_catalog(filename: str) -> Catalog:
     """
     if '://' not in filename:
         filename = f"file://{os.path.abspath(filename)}"
-    with urlopen(filename) as votable:
+    with urlopen_with_retry(filename) as votable:
         # save the timetable as a dataframe, speasy.common.SpeasyVariable
         # get header data first
         import io

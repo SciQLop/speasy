@@ -15,7 +15,8 @@ from speasy.products.dataset import Dataset
 
 
 class ParameterRequests(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.start = datetime(2000, 1, 1, 1, 1)
         self.stop = datetime(2000, 1, 1, 1, 2)
         self.data = spz.amda.get_parameter(
@@ -23,7 +24,8 @@ class ParameterRequests(unittest.TestCase):
         self.dataset = spz.amda.get_dataset(
             "ace-imf-all", self.start, self.stop, disable_proxy=True, disable_cache=True)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         pass
 
     def test_data_not_none(self):
