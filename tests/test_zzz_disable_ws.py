@@ -3,12 +3,16 @@ import importlib
 import os
 import sys
 
+base_modules = sys.modules.keys()
 
-def _reload_all_speazy_mods():
+
+def _drop_all_speasy_mods():
     keys = list(sys.modules.keys())
-    for name in keys:
-        if any(map(name.startswith, ('speasy', 'diskcache', 'pickle'))):
-            sys.modules[name] = importlib.reload(sys.modules[name])
+    for module in ('pickle', 'sqlite3', 'diskcache', 'speasy'):
+        for name in keys:
+            if name.startswith(module) or (name not in base_modules):
+                if name in sys.modules:
+                    sys.modules.pop(name)
 
 
 class DisableWS(unittest.TestCase):
@@ -17,11 +21,11 @@ class DisableWS(unittest.TestCase):
 
     def tearDown(self):
         os.environ.pop("SPEASY_CORE_DISABLED_PROVIDERS")
-        _reload_all_speazy_mods()
+        _drop_all_speasy_mods()
 
     def test_disable_amda(self):
         os.environ["SPEASY_CORE_DISABLED_PROVIDERS"] = "amda"
-        _reload_all_speazy_mods()
+        _drop_all_speasy_mods()
         import speasy as spz
         self.assertNotIn("amda", spz.inventories.tree.__dict__)
         self.assertIsNone(spz.amda)
@@ -30,7 +34,7 @@ class DisableWS(unittest.TestCase):
 
     def test_disable_ssc_and_cda(self):
         os.environ["SPEASY_CORE_DISABLED_PROVIDERS"] = "ssc,cda"
-        _reload_all_speazy_mods()
+        _drop_all_speasy_mods()
         import speasy as spz
         self.assertNotIn("ssc", spz.inventories.tree.__dict__)
         self.assertIsNone(spz.ssc)
