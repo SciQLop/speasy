@@ -1,6 +1,16 @@
 =======
 History
 =======
+
+1.0.4 (2022-12-05)
+------------------
+
+* [AMDA] Fix broken user product detection
+* [AMDA] Add WS entry point in config
+* Add tolerance for network failures
+* Add option to disable webservices
+* Fix cache issue with some CDF files
+
 1.0.3 (2022-10-18)
 ------------------
 
