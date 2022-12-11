@@ -1,7 +1,15 @@
 from typing import Union
 import datetime
 import dateutil
-from packaging.version import Version, parse, LegacyVersion
+from packaging.version import Version, parse, InvalidVersion
+
+
+def _str_to_version_datetime(v: str) -> datetime.datetime or None:
+    try:
+        version = dateutil.parser.parse(v)
+    except ValueError:
+        version = None
+    return version
 
 
 def str_to_version(v: str) -> Version or datetime.datetime or None:
@@ -31,12 +39,12 @@ def str_to_version(v: str) -> Version or datetime.datetime or None:
     --------
     version_to_str
     """
-    version = parse(v)
-    if type(version) is LegacyVersion:
-        try:
-            version = dateutil.parser.parse(v)
-        except ValueError:
-            version = None
+    try:
+        version = parse(v)
+        if "LegacyVersion" in str(type(version)):
+            return _str_to_version_datetime(v)
+    except InvalidVersion:
+        return _str_to_version_datetime(v)
     return version
 
 
