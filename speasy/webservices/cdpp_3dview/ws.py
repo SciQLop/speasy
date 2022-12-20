@@ -1,8 +1,12 @@
 import zeep
+import numpy as np
+
 from astropy.io import votable
-from typing import List, Dict
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Collection
 from ...config import cdpp_3dview as _cfg
 from ...core.cache import CacheCall
+from ...products import SpeasyVariable, VariableTimeAxis, DataContainer
 
 
 class Body:
@@ -57,15 +61,53 @@ class Body:
         return self._preferred_star_subset
 
 
+class Frame:
+    __slots__ = ['_ws_object']
+
+    def __init__(self, ws_object):
+        self._ws_object = ws_object
+
+    @property
+    def name(self):
+        return self._ws_object.name
+
+    @property
+    def id(self):
+        return self._ws_object.id
+
+    @property
+    def description(self):
+        return self._ws_object.desc
+
+    @property
+    def ws_object(self):
+        return self._ws_object
+
+
+def _make_time_vector(start: datetime, stop: datetime) -> List[datetime]:
+    start = start.replace(second=0, minute=(start.minute % 5) * 5)
+    stop = stop.replace(second=0, minute=(stop.minute % 5) * 5) + timedelta(minutes=5)
+    assert start <= stop
+    return [start + timedelta(minutes=m) for m in range(0, int((stop - start).total_seconds() / 60), 5)]
+
+
+def _to_datetime(dt: str) -> np.datetime64:
+    return np.datetime64(dt, 'ns')
+
+
+def _to_datetime_array(time_vec: Collection[str]) -> np.ndarray:
+    return np.array(list(map(_to_datetime, time_vec)))
+
+
 class _WS_impl:
     def __init__(self, wsdl: str = None):
         wsdl = wsdl or _cfg.wsld_url()
         self._client = zeep.Client(wsdl=wsdl)
+        self._frames = self.get_frame_list()
 
     @CacheCall(cache_retention=_cfg.cache_retention())
     def _get_bodies(self, body_type) -> List[Body]:
-        bodies = self._client.service.listBodies(pType=body_type)
-        return list(map(lambda b: Body(**b.__dict__["__values__"]), bodies))
+        return list(map(lambda b: Body(**b.__dict__["__values__"]), self._client.service.listBodies(pType=body_type)))
 
     def get_spacecraft_list(self) -> List[Body]:
         return self._get_bodies(body_type="SPACECRAFT")
@@ -81,3 +123,33 @@ class _WS_impl:
 
     def get_asteroid_list(self) -> List[Body]:
         return self._get_bodies(body_type="ASTEROID")
+
+    @CacheCall(cache_retention=_cfg.cache_retention())
+    def get_frame_list(self) -> List[Frame]:
+        return list(map(Frame, self._client.service.listFrames2()))
+
+    def get_orbit_data(self, body: Body, start_time: datetime, stop_time: datetime, frame: Optional[Frame] = None) -> \
+        Optional[SpeasyVariable]:
+        if frame is None:
+            frame = self._frames[int(body.preferred_frame)]
+        resp = self._client.service.listOrbData2(
+            pBodyId=body.naif_id,
+            pFrame=frame.ws_object,
+            pCenterId=frame.ws_object.center[0].naifId,
+            pTimes=_make_time_vector(start_time, stop_time),
+            pTimeFiles=self._client.service.listFiles(
+                pBodyId=body.naif_id,
+                pStartTime=start_time,
+                pStopTime=stop_time
+            ),
+        )
+        traj = votable.parse_single_table(f"{self._client.wsdl.location.rsplit('/', 1)[0]}{resp[0]}").to_table()
+        if traj and len(traj):
+            arr = np.empty((len(traj), 3))
+            arr[:, 0] = traj['col2']
+            arr[:, 1] = traj['col3']
+            arr[:, 2] = traj['col4']
+            return SpeasyVariable(axes=[VariableTimeAxis(values=_to_datetime_array(traj['col1']))],
+                                  values=DataContainer(values=arr, meta={'UNITS': 'km'}),
+                                  columns=["x", "y", "z"])
+        return None

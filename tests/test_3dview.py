@@ -4,7 +4,7 @@
 """Tests for `cdpp_3dview` package."""
 import os
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from ddt import data, ddt, unpack
 
@@ -31,3 +31,13 @@ class CDPP_3DViewModule(unittest.TestCase):
     @unpack
     def test_can_list_bodies(self, bodies, min_expected_size):
         self.assertGreaterEqual(len(bodies), min_expected_size)
+
+    def test_can_list_frames(self):
+        self.assertGreaterEqual(len(_ws.get_frame_list()), 76)
+
+    def test_can_get_trajectory(self):
+        traj = _ws.get_orbit_data(body=_ws.get_spacecraft_list()[0],
+                                  start_time=datetime(2010, 1, 1, tzinfo=timezone.utc),
+                                  stop_time=datetime(2010, 1, 2, tzinfo=timezone.utc))
+        self.assertIsNotNone(traj)
+        self.assertGreater(len(traj), timedelta(days=1).total_seconds() / (5 * 60))
