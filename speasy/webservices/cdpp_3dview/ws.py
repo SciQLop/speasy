@@ -1,9 +1,10 @@
-import zeep
-import numpy as np
-
-from astropy.io import votable
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Collection
+from typing import List, Optional, Collection
+
+import numpy as np
+import zeep
+from astropy.io import votable
+
 from ...config import cdpp_3dview as _cfg
 from ...core.cache import CacheCall
 from ...products import SpeasyVariable, VariableTimeAxis, DataContainer
@@ -23,6 +24,21 @@ class Body:
         self._preferred_frame = kwargs['prefFrame']
         self._preferred_center = kwargs['prefCenter']
         self._preferred_star_subset = kwargs['prefStarSubset']
+
+    def __repr__(self):
+        return f"""
+++++++++++++++++++++++++++++++++++++++++++++++++
+Body: {self.name}
+naif_id: {self.naif_id}
+model_id: {self.model_id}
+body_type: {self.body_type}
+size: {self.size}
+coverage: {self.coverage}
+preferred_frame: {self.preferred_frame}
+preferred_center: {self.preferred_center}
+preferred_star_subset: {self.preferred_star_subset}
+------------------------------------------------
+        """
 
     @property
     def naif_id(self):
@@ -85,10 +101,10 @@ class Frame:
 
 
 def _make_time_vector(start: datetime, stop: datetime) -> List[datetime]:
-    start = start.replace(second=0, minute=(start.minute % 5) * 5)
-    stop = stop.replace(second=0, minute=(stop.minute % 5) * 5) + timedelta(minutes=5)
+    start = start.replace(second=0, minute=start.minute)
+    stop = stop.replace(second=0, minute=stop.minute + 1)
     assert start <= stop
-    return [start + timedelta(minutes=m) for m in range(0, int((stop - start).total_seconds() / 60), 5)]
+    return [start + timedelta(minutes=m) for m in range(0, int((stop - start).total_seconds() / 60), 1)]
 
 
 def _to_datetime(dt: str) -> np.datetime64:
@@ -143,13 +159,15 @@ class _WS_impl:
                 pStopTime=stop_time
             ),
         )
-        traj = votable.parse_single_table(f"{self._client.wsdl.location.rsplit('/', 1)[0]}{resp[0]}").to_table()
-        if traj and len(traj):
-            arr = np.empty((len(traj), 3))
-            arr[:, 0] = traj['col2']
-            arr[:, 1] = traj['col3']
-            arr[:, 2] = traj['col4']
-            return SpeasyVariable(axes=[VariableTimeAxis(values=_to_datetime_array(traj['col1']))],
-                                  values=DataContainer(values=arr, meta={'UNITS': 'km'}),
-                                  columns=["x", "y", "z"])
+        print(resp)
+        if len(resp) == 1:
+            traj = votable.parse_single_table(f"{self._client.wsdl.location.rsplit('/', 1)[0]}{resp[0]}").to_table()
+            if traj and len(traj):
+                arr = np.empty((len(traj), 3))
+                arr[:, 0] = traj['col2']
+                arr[:, 1] = traj['col3']
+                arr[:, 2] = traj['col4']
+                return SpeasyVariable(axes=[VariableTimeAxis(values=_to_datetime_array(traj['col1']))],
+                                      values=DataContainer(values=arr, meta={'UNITS': 'km'}),
+                                      columns=["x", "y", "z"])
         return None

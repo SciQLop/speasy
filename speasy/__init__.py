@@ -15,7 +15,7 @@ __docformat__ = "numpy"
 from speasy.core.inventory.indexes import SpeasyIndex
 from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
 from typing import List
-from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc
+from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, cdpp3dview
 
 
 # @TODO implement me, this function should be able to look inside all servers

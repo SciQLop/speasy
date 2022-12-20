@@ -9,10 +9,8 @@ __version__ = '0.1.0'
 import logging
 from typing import List, Dict
 
-from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
-                                      ParameterRangeCheck)
+from speasy.core.dataprovider import (DataProvider)
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
-
 from .ws import _WS_impl, Body
 
 log = logging.getLogger(__name__)
@@ -35,7 +33,7 @@ def _to_indexes(provider_name: str, bodies: List[Body]) -> Dict[str, ParameterIn
 class CDPP_3DView_Webservice(DataProvider):
     def __init__(self):
         self._impl = _WS_impl()
-        DataProvider.__init__(self, provider_name='3DView', provider_alt_names=['CDPP_3DView'])
+        DataProvider.__init__(self, provider_name='CDPP_3DView', provider_alt_names=['3DView'])
 
     def build_inventory(self, root: SpeasyIndex):
         root.Asteroids = SpeasyIndex(name='Asteroids', provider=self.provider_name, uid='Asteroids',

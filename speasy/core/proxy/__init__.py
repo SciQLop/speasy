@@ -18,7 +18,7 @@ from ..index import index
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
-MINIMUM_REQUIRED_PROXY_VERSION = Version("0.8.0")
+MINIMUM_REQUIRED_PROXY_VERSION = Version("0.9.0")
 _CURRENT_PROXY_SERVER_VERSION = None
 
 if proxy_cfg.url() == "" or proxy_cfg.enabled() == False:

@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime
 from functools import wraps
-from typing import Callable, List, Optional
 from threading import Lock
+from typing import Callable, List, Optional
 
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
