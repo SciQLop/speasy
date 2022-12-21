@@ -73,7 +73,7 @@ class DataContainer(object):
         }
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float) -> "DataContainer":
+    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float64) -> "DataContainer":
         try:
             return DataContainer(values=np.array(dictionary["values"], dtype=dtype), meta=dictionary["meta"],
                                  name=dictionary["name"],
@@ -109,8 +109,8 @@ class DataContainer(object):
                np.array_equal(self.__values, other.__values, equal_nan=True)
 
     def replace_val_by_nan(self, val):
-        if self.__values.dtype != np.float:
-            self.__values = self.__values.astype(np.float)
+        if self.__values.dtype != np.float64:
+            self.__values = self.__values.astype(np.float64)
         self.__values[self.__values == val] = np.nan
 
     @property
