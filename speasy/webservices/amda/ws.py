@@ -27,6 +27,14 @@ from .utils import get_parameter_args
 log = logging.getLogger(__name__)
 
 
+def _amda_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
+    output_format: str = kwargs.get('output_format', 'csv')
+    if output_format.lower() == 'cdf_istp':
+        return f"{prefix}/{product}-cdf_istp/{start_time}"
+    else:
+        return f"{prefix}/{product}/{start_time}"
+
+
 class ProductType(Enum):
     """Enumeration of the type of products available in AMDA_Webservice.
     """
@@ -315,10 +323,10 @@ class AMDA_Webservice(DataProvider):
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format'])
     @ParameterRangeCheck()
-    @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12)
+    @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12, entry_name=_amda_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time,
-                      extra_http_headers: Dict or None = None, output_format: str = 'csv', **kwargs) -> Optional[
+                      extra_http_headers: Dict or None = None, output_format: str = 'ASCII', **kwargs) -> Optional[
         SpeasyVariable]:
         """Get parameter data.
 
@@ -333,7 +341,7 @@ class AMDA_Webservice(DataProvider):
         extra_http_headers: dict
             reserved for internal use
         output_format: str
-            request output format in case of success, allowed values are ASCII and CDF
+            request output format in case of success, allowed values are ASCII and CDF_ISTP
 
         Returns
         -------
