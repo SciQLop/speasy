@@ -37,6 +37,10 @@ Space Physics made EASY
     :target: https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples
     :alt: Discover on MyBinder
 
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+    :target: https://colab.research.google.com/github/SciQLop/speasy
+    :alt: Discover on Google Colab
+
 .. image:: https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70
    :target: http://sciqlop.lpp.polytechnique.fr/cache
    :alt: Speasy proxy uptime (30 days)

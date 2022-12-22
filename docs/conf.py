@@ -84,7 +84,8 @@ nbsphinx_prolog = r"""
         <a class="reference external" href="https://github.com/SciQLop/speasy/{{ nb_base|e }}/{{ nb_where|e }}/{{ docname|e }}">{{ docname|e }}</a>.
         <br>
         Interactive online version:
-        <a href="https://mybinder.org/v2/gh/SciQLop/speasy/{{ nb_where|e }}/?labpath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.
+        <a href="https://mybinder.org/v2/gh/SciQLop/speasy/{{ nb_where|e }}/?labpath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>
+        <a href="https://colab.research.google.com/github/SciQLop/speasy/blob/{{ nb_where|e }}/{{ docname|e }}"><img alt="Google Colab badge" src="https://colab.research.google.com/assets/colab-badge.svg" style="vertical-align:text-bottom"></a>
       </p>
     </div>
 
