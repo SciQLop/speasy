@@ -8,7 +8,7 @@
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 __all__ = ['amda', 'cda', 'ssc', 'csa', 'get_data', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 

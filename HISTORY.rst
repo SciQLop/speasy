@@ -2,6 +2,12 @@
 History
 =======
 
+1.0.5 (2022-12-22)
+------------------
+
+* Drop LegacyVersion usage, fixes #78 by @jeandet in https://github.com/SciQLop/speasy/pull/79
+* Replaces np.float by np.float64 since it was removed in numpy 1.24 by @jeandet in https://github.com/SciQLop/speasy/pull/81
+
 1.0.4 (2022-12-05)
 ------------------
 
