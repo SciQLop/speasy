@@ -99,6 +99,12 @@ class PublicProductsRequests(unittest.TestCase):
         r = spz.amda.get_parameter("imf", start, stop, disable_cache=True)
         self.assertIsNotNone(r)
 
+    def test_get_parameter_as_cdf(self):
+        self.skipTest("AMDA main instance doesn't provide ISTP compliant CDF files yet")
+        start, stop = datetime(2000, 1, 1), datetime(2000, 1, 2)
+        r = spz.amda.get_parameter("imf", start, stop, disable_cache=True, disable_proxy=True, output_format="CDF_ISTP")
+        self.assertIsNotNone(r)
+
     def test_list_datasets(self):
         result = spz.amda.list_datasets()
         self.assertTrue(len(result) != 0)
@@ -158,7 +164,7 @@ class PrivateProductsRequests(unittest.TestCase):
     def test_get_user_parameters(self):
         for method in (spz.amda.get_user_parameter, spz.amda.get_data):
             result = method(spz.amda.list_user_parameters()[0], start_time="2016-06-01",
-                                     stop_time="2016-06-01T12:00:00")
+                            stop_time="2016-06-01T12:00:00")
             self.assertIsNotNone(result)
             self.assertTrue(len(result) != 0)
 
