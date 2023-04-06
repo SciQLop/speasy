@@ -10,6 +10,7 @@ from ddt import data, ddt, unpack
 
 import speasy as spz
 from speasy.inventories import flat_inventories
+from speasy.products import SpeasyVariable
 from speasy.webservices.amda import ProductType
 from speasy.webservices.amda.exceptions import MissingCredentials
 from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
@@ -100,9 +101,12 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertIsNotNone(r)
 
     def test_get_parameter_as_cdf(self):
-        self.skipTest("AMDA main instance doesn't provide ISTP compliant CDF files yet")
         start, stop = datetime(2000, 1, 1), datetime(2000, 1, 2)
-        r = spz.amda.get_parameter("imf", start, stop, disable_cache=True, disable_proxy=True, output_format="CDF_ISTP")
+        r: SpeasyVariable = spz.amda.get_parameter("imf", start, stop, disable_cache=True, disable_proxy=True,
+                                                   output_format="CDF_ISTP")
+        self.assertEqual(r.name, "imf")
+        self.assertEqual(r.columns, ['bx', 'by', 'bz'])
+        self.assertEqual(r.unit, "nT")
         self.assertIsNotNone(r)
 
     def test_list_datasets(self):

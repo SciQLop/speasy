@@ -2,18 +2,18 @@
 conversion procedures for parsing CSV and VOTable data.
 
 """
-import logging
 import datetime
+import logging
 import os
-from typing import Dict, List
 import tempfile
+from typing import Dict, List
 
 import numpy as np
 import pandas as pds
 
 from speasy.core import epoch_to_datetime64
-from speasy.core.http import urlopen_with_retry
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.http import urlopen_with_retry
 from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
 from speasy.products.variable import (DataContainer, SpeasyVariable,
@@ -40,7 +40,7 @@ def _copy_data(csv, fd):
         fd.write(chunk)
         size += len(chunk)
         if content_length:
-            percent = int((size / content_length)*100)
+            percent = int((size / content_length) * 100)
             log.debug(f"Download data: {percent}%")
     fd.seek(0)
     return fd
@@ -200,4 +200,4 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
         parameter arguments in dictionary
     """
     return {'path': f"amda/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}'}
+            'stop_time': f'{stop_time.isoformat()}', 'output_format': kwargs.get('output_format', 'ASCII')}
