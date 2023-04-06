@@ -1,15 +1,16 @@
-from speasy import SpeasyVariable
-from .cache import CacheItem
-from typing import List, Tuple
-from speasy.core.datetime_range import DateTimeRange
-from speasy.core import progress_bar
-from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
-from speasy.core.inventory.indexes import ParameterIndex
-from datetime import datetime, timedelta
-from functools import wraps
 import logging
 import math
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import List, Tuple
+
+from speasy import SpeasyVariable
+from speasy.core import progress_bar
+from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory.indexes import ParameterIndex
+from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
 from ._instance import _cache
+from .cache import CacheItem
 
 log = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class _Cacheable:
                 self.set_cache_entry(fragment, product,
                                      CacheItem(to_dictionary(
                                          variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))]),
-                                         version))
+                                         version), **kwargs)
         return variable
 
     def set_cache_entry(self, fragment, product: str, entry, **kwargs):
