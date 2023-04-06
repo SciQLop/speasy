@@ -6,6 +6,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Union
 
+from ._impl import is_private, is_public
+from .inventory import to_xmlid
+from .utils import get_parameter_args
 from ...config import amda as amda_cfg
 from ...core import AllowedKwargs, make_utc_datetime
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
@@ -20,9 +23,6 @@ from ...products.catalog import Catalog
 from ...products.dataset import Dataset
 from ...products.timetable import TimeTable
 from ...products.variable import SpeasyVariable
-from ._impl import is_private, is_public
-from .inventory import to_xmlid
-from .utils import get_parameter_args
 
 log = logging.getLogger(__name__)
 
@@ -326,7 +326,7 @@ class AMDA_Webservice(DataProvider):
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12, entry_name=_amda_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time,
-                      extra_http_headers: Dict or None = None, output_format: str = 'ASCII', **kwargs) -> Optional[
+                      extra_http_headers: Dict or None = None, output_format: str or None = None, **kwargs) -> Optional[
         SpeasyVariable]:
         """Get parameter data.
 
@@ -362,7 +362,8 @@ class AMDA_Webservice(DataProvider):
         """
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product,
-                                       extra_http_headers=extra_http_headers, output_format=output_format)
+                                       extra_http_headers=extra_http_headers,
+                                       output_format=output_format or amda_cfg.output_format())
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
                     **kwargs) -> Dataset or None:
@@ -406,7 +407,8 @@ class AMDA_Webservice(DataProvider):
         meta = {k: v for k, v in self.flat_inventory.datasets[dataset_id].__dict__.items() if
                 not isinstance(v, SpeasyIndex)}
         parameters = self.list_parameters(dataset_id)
-        return Dataset(name=name, variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
+        return Dataset(name=name,
+                       variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
                        meta=meta)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention())
