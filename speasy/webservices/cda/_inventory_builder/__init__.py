@@ -1,13 +1,14 @@
-from ._xml_catalogs_parser import load_xml_catalog
-from ._cdf_masters_parser import update_tree
-from ....core.index import index
-from speasy.core import http 
-from ....core.inventory.indexes import SpeasyIndex, to_dict, from_dict
-from ....config import cdaweb as cda_cfg
-from tempfile import NamedTemporaryFile
-import tarfile
 import os
+import tarfile
 from glob import glob
+from tempfile import TemporaryDirectory
+
+from speasy.core import http
+from ._cdf_masters_parser import update_tree
+from ._xml_catalogs_parser import load_xml_catalog
+from ....config import cdaweb as cda_cfg
+from ....core.index import index
+from ....core.inventory.indexes import SpeasyIndex, to_dict, from_dict
 
 _MASTERS_CDF_PATH = f"{cda_cfg.inventory_data_path()}/masters_cdf/"
 _XML_CATALOG_PATH = f"{cda_cfg.inventory_data_path()}/all.xml"
@@ -27,11 +28,12 @@ def _clean_master_cdf_folder():
 
 
 def _download_and_extract_master_cdf(masters_url: str):
-    with NamedTemporaryFile('wb') as master_archive:
-        master_archive.write(http.get(masters_url).content)
-        master_archive.flush()
-        tar = tarfile.open(master_archive.name)
+    with TemporaryDirectory() as tmp_path:
+        with open(f"{tmp_path}/masters.tar", 'wb') as master_archive:
+            master_archive.write(http.get(masters_url).content)
+        tar = tarfile.open(f"{tmp_path}/masters.tar")
         tar.extractall(_MASTERS_CDF_PATH)
+        tar.close()
 
 
 def update_master_cdf(masters_url: str = "https://spdf.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/master.tar"):
