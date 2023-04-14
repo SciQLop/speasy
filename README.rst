@@ -1,3 +1,9 @@
+.. raw:: html
+
+    <h1 align="center">
+    <img src="https://raw.githubusercontent.com/SciQLop/speasy/main/logo/logo_speasy.svg" width="300">
+    </h1><br>
+
 =======================
 Space Physics made EASY
 =======================
