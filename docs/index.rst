@@ -1,3 +1,9 @@
+.. raw:: html
+
+    <h1 align="center">
+    <img src="https://raw.githubusercontent.com/SciQLop/speasy/main/logo/logo_speasy.svg" width="300">
+    </h1><br>
+
 Space Physics made EASY
 =======================
 
@@ -34,13 +40,9 @@ Space Physics made EASY
         :target: https://codecov.io/gh/SciQLop/speasy/branch/main
         :alt: Coverage Status
 
-.. image:: https://img.shields.io/lgtm/alerts/g/SciQLop/speasy.svg?logo=lgtm&logoWidth=18
-        :target: https://lgtm.com/projects/g/SciQLop/speasy/alerts/
-        :alt: Total alerts
-
-.. image:: https://img.shields.io/lgtm/grade/python/g/SciQLop/speasy.svg?logo=lgtm&logoWidth=18
-        :target: https://lgtm.com/projects/g/SciQLop/speasy/context:python
-        :alt: Language grade: Python
+.. image:: https://github.com/SciQLop/speasy/actions/workflows/codeql.yml/badge.svg
+        :target: https://github.com/SciQLop/speasy/actions/workflows/codeql.yml
+        :alt: CodeQL
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg
    :target: https://doi.org/10.5281/zenodo.4118780
