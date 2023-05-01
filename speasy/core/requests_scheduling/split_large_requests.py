@@ -1,12 +1,14 @@
-from typing import Callable
-from speasy.core.datetime_range import DateTimeRange
 from datetime import timedelta
 from functools import wraps
+from typing import Callable
+
+from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory.indexes import ParameterIndex
 from speasy.products.variable import merge as var_merge
 
 
 class SplitLargeRequests(object):
-    def __init__(self, threshold: Callable[[], timedelta]):
+    def __init__(self, threshold: Callable[[ParameterIndex or str], timedelta]):
         self.threshold = threshold
 
     def __call__(self, get_data: Callable):
@@ -14,7 +16,7 @@ class SplitLargeRequests(object):
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
             range = DateTimeRange(start_time, stop_time)
             duration = range.duration
-            max_range_per_request = self.threshold()
+            max_range_per_request = self.threshold(product)
             if duration <= max_range_per_request:
                 return get_data(wrapped_self, product=product, start_time=start_time, stop_time=stop_time, **kwargs)
             else:

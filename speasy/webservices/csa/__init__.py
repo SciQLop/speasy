@@ -1,20 +1,22 @@
+import logging
+import tarfile
+from datetime import datetime, timedelta
+from io import BytesIO
+from tempfile import TemporaryDirectory
+from typing import Optional, Tuple, Dict
+
 import requests
 from astroquery.utils.tap.core import TapPlus
-from typing import Optional, Tuple, Dict
-from datetime import datetime, timedelta
-from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
-from speasy.products.variable import SpeasyVariable
+
 from speasy.core import http, AllowedKwargs, fix_name
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
+from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.cdf import load_variable
-from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
-from tempfile import TemporaryDirectory
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
+from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.requests_scheduling import SplitLargeRequests
-import tarfile
-import logging
-from io import BytesIO
+from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
 
@@ -223,7 +225,7 @@ class CSA_Webservice(DataProvider):
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)
     @ParameterRangeCheck()
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
-    @SplitLargeRequests(threshold=lambda: timedelta(days=7))
+    @SplitLargeRequests(threshold=lambda x: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime,
                  extra_http_headers: Dict[str, str] or None = None):
