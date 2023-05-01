@@ -34,6 +34,12 @@ class SimpleRequest(unittest.TestCase):
             "variable": "C/O_ratio",
             "start_time": datetime(1996, 8, 1, 20, tzinfo=timezone.utc),
             "stop_time": datetime(1996, 8, 1, 23, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "MMS1_SCM_BRST_L2_SCB",
+            "variable": "mms1_scm_acb_gse_scb_brst_l2",
+            "start_time": datetime(2020, 1, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2020, 1, 1, 2, tzinfo=timezone.utc)
         }
     )
     def test_get_variable(self, kw):
