@@ -148,7 +148,7 @@ class CDA_Webservice(DataProvider):
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than'])
     @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
-    @SplitLargeRequests(threshold=lambda: timedelta(days=7))
+    @SplitLargeRequests(threshold=lambda x: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
                  extra_http_headers: Dict or None = None):

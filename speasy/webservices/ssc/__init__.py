@@ -6,20 +6,20 @@ __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
-from typing import Optional, Dict
+import logging
 from datetime import datetime, timedelta
+from typing import Optional, Dict
+
+import numpy as np
+
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
-from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
-from ...core import http, AllowedKwargs, deprecation
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
-from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.requests_scheduling import SplitLargeRequests
-import numpy as np
-from astropy import units
-
-import logging
+from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
+from ...core import http, AllowedKwargs
 
 log = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ class SSC_Webservice(DataProvider):
                                                                                  'debug'])
     @ParameterRangeCheck()
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
-    @SplitLargeRequests(threshold=lambda: timedelta(days=60))
+    @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                    debug=False, extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
