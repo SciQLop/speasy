@@ -1,5 +1,5 @@
-from typing import Optional
 import json
+from typing import Optional
 
 __INDEXES_TYPES__ = {}
 
@@ -78,8 +78,12 @@ class ParameterIndex(SpeasyIndex):
 
     def __contains__(self, item: str or ComponentIndex):
         if type(item) is ComponentIndex:
-            item = item.name()
-        return item in self.__dict__
+            item = item.spz_uid()
+        for member in self.__dict__.values():
+            if isinstance(member, ComponentIndex):
+                if member.spz_uid() == item:
+                    return True
+        return False
 
 
 class DatasetIndex(SpeasyIndex):
@@ -94,8 +98,12 @@ class DatasetIndex(SpeasyIndex):
 
     def __contains__(self, item: str or ParameterIndex):
         if type(item) is ParameterIndex:
-            item = item.name()
-        return item in self.__dict__
+            item = item.spz_uid()
+        for member in self.__dict__.values():
+            if isinstance(member, ParameterIndex):
+                if member.spz_uid() == item:
+                    return True
+        return False
 
 
 def to_dict(inventory_tree: SpeasyIndex or str):
