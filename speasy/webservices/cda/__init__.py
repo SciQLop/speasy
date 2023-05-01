@@ -7,24 +7,46 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 from speasy.core import AllowedKwargs, http
-from speasy.core.cache import _cache  # _cache is used for tests (hack...)
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
 from speasy.core.cdf import load_variable
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck)
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.http import urlopen_with_retry
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.core.http import urlopen_with_retry
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
+
+_burst_regex = re.compile("(.*MMS.*FPI.*BRST.*|.*MMS.*SCM.*BRST.*)")
+
+
+def _is_burst_product(product: ParameterIndex or str) -> bool:
+    if isinstance(product, ParameterIndex):
+        product = product.spz_uid()
+    return bool(_burst_regex.match(str(product)))
+
+
+def _large_request_max_duration(product):
+    if _is_burst_product(product):
+        return timedelta(hours=2)
+    else:
+        return timedelta(days=7)
+
+
+def _cache_fragment_size(product):
+    if _is_burst_product(product):
+        return 2
+    else:
+        return 12
 
 
 class CdaWebException(BaseException):
@@ -147,8 +169,8 @@ class CDA_Webservice(DataProvider):
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than'])
     @ParameterRangeCheck()
-    @UnversionedProviderCache(prefix="cda", fragment_hours=lambda x: 12, cache_retention=timedelta(days=7))
-    @SplitLargeRequests(threshold=lambda x: timedelta(days=7))
+    @UnversionedProviderCache(prefix="cda", fragment_hours=_cache_fragment_size, cache_retention=timedelta(days=7))
+    @SplitLargeRequests(threshold=_large_request_max_duration)
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
                  extra_http_headers: Dict or None = None):
