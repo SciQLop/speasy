@@ -192,7 +192,16 @@ class AMDAModule(unittest.TestCase):
         self.assertEqual(var.values.shape[0], len(var.time))
         self.assertEqual(var.values.shape[1], len(var.columns))
         self.assertGreater(len(var.time), 0)
-        self.assertTrue('MISSION_ID' in var.meta)
+        self.assertIn('MISSION_ID', var.meta)
+        self.assertEqual(var.unit, '1/cm#u2#d/sec/ster/keV')
+
+    def test_loads_csv_derived_param(self):
+        var = load_csv(
+            os.path.normpath(f'{os.path.dirname(os.path.abspath(__file__))}/resources/derived_param.txt'))
+        self.assertEqual(var.values.shape[0], len(var.time))
+        self.assertEqual(var.values.shape[1], len(var.columns))
+        self.assertGreater(len(var.time), 0)
+        self.assertEqual(var.unit, 'AU')
 
     def test_load_obs_datatree(self):
         with open(
