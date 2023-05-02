@@ -5,9 +5,8 @@ from datetime import datetime, timedelta, timezone
 from multiprocessing import dummy
 
 import numpy as np
-from ddt import data, ddt
-
 import speasy as spz
+from ddt import data, ddt
 
 
 @ddt
@@ -40,6 +39,12 @@ class SimpleRequest(unittest.TestCase):
             "variable": "mms1_scm_acb_gse_scb_brst_l2",
             "start_time": datetime(2020, 1, 1, tzinfo=timezone.utc),
             "stop_time": datetime(2020, 1, 1, 2, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "ERG_ORB_L3",
+            "variable": "pos_eq_op",
+            "start_time": datetime(2018, 1, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2018, 1, 1, 2, tzinfo=timezone.utc)
         }
     )
     def test_get_variable(self, kw):
@@ -49,6 +54,7 @@ class SimpleRequest(unittest.TestCase):
         result = spz.cda.get_variable(**kw, disable_proxy=True, disable_cache=False)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
+        self.assertEqual(len(result.columns), result.values.shape[1])
 
     def test_get_simple_vector(self):
         logging.root.addHandler(logging.StreamHandler())
