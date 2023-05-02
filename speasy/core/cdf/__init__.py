@@ -1,4 +1,5 @@
 import pyistp
+
 from ...products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 
 
@@ -26,6 +27,16 @@ def _make_axis(axis, time_axis_name):
                         is_time_dependent=is_time_dependent)
 
 
+def _build_labels(variable: pyistp.loader.DataVariable):
+    if len(variable.values.shape) != 2:
+        return variable.labels
+    if type(variable.labels) is list and len(variable.labels) == variable.values.shape[1]:
+        return variable.labels
+    if type(variable.labels) is list and len(variable.labels) == 1:
+        return [f"{variable.labels[0]}[{i}]" for i in range(variable.values.shape[1])]
+    return [f"component_{i}" for i in range(variable.values.shape[1])]
+
+
 def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None:
     istp = pyistp.load(file=file, buffer=buffer)
     if istp:
@@ -46,5 +57,5 @@ def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None
                 values=DataContainer(values=var.values.copy(), meta=_fix_attributes_types(var.attributes),
                                      name=var.name,
                                      is_time_dependent=True),
-                columns=var.labels)
+                columns=_build_labels(var))
     return None
