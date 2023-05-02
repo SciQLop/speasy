@@ -70,8 +70,9 @@ def load_csv(filename: str) -> SpeasyVariable:
             y_label = None
             while len(line) > 0 and line[0] == '#':
                 if ':' in line:
-                    key, value = line[1:].split(':', 1)
-                    meta[key.strip()] = value.strip()
+                    key, value = [v.strip() for v in line[1:].split(':', 1)]
+                    if key not in meta:
+                        meta[key] = value
                 line = fd.readline().decode()
             columns = [col.strip()
                        for col in meta.get('DATA_COLUMNS', "").split(', ')[:]]
