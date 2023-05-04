@@ -47,7 +47,8 @@ def _copy_data(csv, fd):
     return fd
 
 
-_parameters_header_blocks_regex = re.compile("(# *PARAMETER_ID : ([^\n]+)\n(# *[A-Z_]+ : [^\n]+\n)+)+")
+_parameters_header_blocks_regex = re.compile(
+    f"(# *PARAMETER_ID : ([^{os.linesep}]+){os.linesep}(# *[A-Z_]+ : [^{os.linesep}]+{os.linesep})+)+")
 
 
 def _parse_header(fd, expected_parameter: str):
