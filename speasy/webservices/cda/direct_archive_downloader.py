@@ -30,5 +30,5 @@ def get_product(url_pattern: str, split_rule: str, variable: str, start_time, st
     v = merge(list(map(lambda date: _read_cdf(_build_url(url_pattern, date), variable=variable),
                        _split_request(split_rule=split_rule, start_time=start_time, stop_time=stop_time))))
     if v is not None:
-        return v[start_time:stop_time]
+        return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
     return None
