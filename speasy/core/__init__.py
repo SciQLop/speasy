@@ -10,11 +10,13 @@ import warnings
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from functools import wraps
-from typing import Any, Dict, List, Sequence, Type
+from typing import Any, Dict, List, Sequence, Type, Union
 
 import numpy as np
 from dateutil.parser import parse
 from tqdm.auto import tqdm
+
+AnyDateTimeType = Union[str, datetime, np.float64, float, np.datetime64]
 
 
 def deprecation(message: str) -> None:
@@ -141,7 +143,7 @@ def listify(obj: Any) -> List:
         return [obj]
 
 
-def make_utc_datetime(input_dt: str or datetime or np.float64 or float or np.datetime64) -> datetime:
+def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     """Makes UTC datetime from given input.
 
     Parameters
