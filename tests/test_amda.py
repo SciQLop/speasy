@@ -16,6 +16,8 @@ from speasy.webservices.amda.exceptions import MissingCredentials
 from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
 from speasy.webservices.amda.utils import load_csv
 
+_HERE_ = os.path.dirname(os.path.abspath(__file__))
+
 
 def has_amda_creds() -> bool:
     return spz.config.amda.username() != "" and spz.config.amda.password() != ""
@@ -186,26 +188,27 @@ class AMDAModule(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_loads_csv(self):
-        var = load_csv(
-            os.path.normpath(f'{os.path.dirname(os.path.abspath(__file__))}/resources/amda_sample_spectro.txt'))
+    @data(
+        ("resources/amda_sample_spectro.txt", "mvn-sep1-clb", '1/cm#u2#d/sec/ster/keV', {'MISSION_ID': 'MAVEN'}),
+        ("resources/derived_param.txt", "bepi_xyz_hee", 'AU', {'MISSION_ID': 'NONE'}),
+        ("resources/derived_param2.txt", "mms1_fast_jgse", 'A/m**2',
+         {'MISSION_ID': 'NONE', 'PARAMETER_SHORT_NAME': 'j_gse', 'DATASET_ID': 'mms1-fpi-dismoms',
+          'INTERVAL_START': '2019-11-08T00:00:00.000',
+          'PARAMETER_PROCESS_INFO': "Derived parameter from expression '1.6e-10*(#sampling_under_refparam($mms1_des_ne;mms1_des_ne)+#sampling_under_refparam($mms1_dis_ni;mms1_des_ne))*0.5*(#sampling_under_refparam($mms1_dis_vgse;mms1_des_ne)-#sampling_under_refparam($mms1_des_vgse;mms1_des_ne))'"})
+    )
+    @unpack
+    def test_loads_csv(self, fname, expected_parameter, unit, attributes):
+        var = load_csv(os.path.normpath(f'{_HERE_}/{fname}'), expected_parameter=expected_parameter)
         self.assertEqual(var.values.shape[0], len(var.time))
         self.assertEqual(var.values.shape[1], len(var.columns))
         self.assertGreater(len(var.time), 0)
-        self.assertIn('MISSION_ID', var.meta)
-        self.assertEqual(var.unit, '1/cm#u2#d/sec/ster/keV')
-
-    def test_loads_csv_derived_param(self):
-        var = load_csv(
-            os.path.normpath(f'{os.path.dirname(os.path.abspath(__file__))}/resources/derived_param.txt'))
-        self.assertEqual(var.values.shape[0], len(var.time))
-        self.assertEqual(var.values.shape[1], len(var.columns))
-        self.assertGreater(len(var.time), 0)
-        self.assertEqual(var.unit, 'AU')
+        self.assertEqual(var.unit, unit)
+        for k, v in attributes.items():
+            self.assertIn(k, var.meta)
+            self.assertEqual(v, var.meta.get(k))
 
     def test_load_obs_datatree(self):
-        with open(
-            os.path.normpath(f'{os.path.dirname(os.path.abspath(__file__))}/resources/obsdatatree.xml')) as obs_xml:
+        with open(os.path.normpath(f'{_HERE_}/resources/obsdatatree.xml')) as obs_xml:
             flat_inventories.amda.parameters.clear()
             flat_inventories.amda.datasets.clear()
             root = AmdaXMLParser.parse(obs_xml.read(), is_public=True)

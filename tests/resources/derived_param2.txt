@@ -1,0 +1,128 @@
+# -----------
+# AMDA INFO :
+# -----------
+# AMDA_ABOUT : Created by AMDA
+# AMDA_VERSION : 3.6.5
+# AMDA_ACKNOWLEDGEMENT : CDPP/AMDA Team
+#
+# --------------
+# REQUEST INFO :
+# --------------
+# REQUEST_STRUCTURE : all-in-one-file-refparam
+# REQUEST_TIME_FORMAT : Seconds from 1970, milliseconds
+# REQUEST_OUTPUT_PARAMS : mms1_fast_jgse
+#
+# --------------------
+# DERIVED PARAMETERS :
+# --------------------
+#
+# PARAMETER_ID : sampling_under_refparam_6474261044550000668
+# PARAMETER_NAME : mms1_dis_vgse
+# PARAMETER_SHORT_NAME : v_gse
+# PARAMETER_UNITS : km/s
+# PARAMETER_PROCESS_INFO : Resampling of 'mms1_fpi_dismoms_mms1_dis_bulkv_gse_fast' under times list of 'mms1_fpi_desmoms_mms1_des_numberdensity_fast'
+# PARAMETER_LINKED_PARAMS : mms1_fpi_dismoms_mms1_dis_bulkv_gse_fast
+#
+#
+# PARAMETER_ID : sampling_under_refparam_4907928269817716892
+# PARAMETER_NAME : mms1_dis_ni
+# PARAMETER_SHORT_NAME : density
+# PARAMETER_UNITS : cm^-3
+# PARAMETER_PROCESS_INFO : Resampling of 'mms1_fpi_dismoms_mms1_dis_numberdensity_fast' under times list of 'mms1_fpi_desmoms_mms1_des_numberdensity_fast'
+# PARAMETER_LINKED_PARAMS : mms1_fpi_dismoms_mms1_dis_numberdensity_fast
+#
+#
+# PARAMETER_ID : sampling_under_refparam_3838272296942193163
+# PARAMETER_NAME : mms1_des_ne
+# PARAMETER_SHORT_NAME : density
+# PARAMETER_UNITS : cm^-3
+# PARAMETER_PROCESS_INFO : Resampling of 'mms1_fpi_desmoms_mms1_des_numberdensity_fast' under times list of 'mms1_fpi_desmoms_mms1_des_numberdensity_fast'
+# PARAMETER_LINKED_PARAMS : mms1_fpi_desmoms_mms1_des_numberdensity_fast
+#
+#
+# PARAMETER_ID : sampling_under_refparam_12014654095256152599
+# PARAMETER_NAME : mms1_des_vgse
+# PARAMETER_SHORT_NAME : v_gse
+# PARAMETER_UNITS : km/s
+# PARAMETER_PROCESS_INFO : Resampling of 'mms1_fpi_desmoms_mms1_des_bulkv_gse_fast' under times list of 'mms1_fpi_desmoms_mms1_des_numberdensity_fast'
+# PARAMETER_LINKED_PARAMS : mms1_fpi_desmoms_mms1_des_bulkv_gse_fast
+#
+#
+# PARAMETER_ID : mms1_fast_jgse
+# PARAMETER_NAME : mms1_fast_jgse
+# PARAMETER_SHORT_NAME : j_gse
+# PARAMETER_UNITS : A/m**2
+# PARAMETER_PROCESS_INFO : Derived parameter from expression '1.6e-10*(#sampling_under_refparam($mms1_des_ne;mms1_des_ne)+#sampling_under_refparam($mms1_dis_ni;mms1_des_ne))*0.5*(#sampling_under_refparam($mms1_dis_vgse;mms1_des_ne)-#sampling_under_refparam($mms1_des_vgse;mms1_des_ne))'
+# PARAMETER_PROCESS_DESC : 1.6e-10*(#sampling_under_refparam($mms1_des_ne;mms1_des_ne)+#sampling_under_refparam($mms1_dis_ni;mms1_des_ne))*0.5*(#sampling_under_refparam($mms1_dis_vgse;mms1_des_ne)-#sampling_under_refparam($mms1_des_vgse;mms1_des_ne))
+# PARAMETER_LINKED_PARAMS : sampling_under_refparam_12014654095256152599,sampling_under_refparam_3838272296942193163,sampling_under_refparam_4907928269817716892,sampling_under_refparam_6474261044550000668
+#
+#
+# -----------------
+# BASE PARAMETERS :
+# -----------------
+#
+# MISSION_ID : NONE
+#
+#   INSTRUMENT_ID : NONE
+#
+#     DATASET_ID : mms1-fpi-dismoms
+#     DATASET_NAME : mms1:fpi:dismoms
+#     DATASET_SOURCE : CDPP/DDServer
+#     DATASET_GLOBAL_START : 2015-07-15T15:11:27.381
+#     DATASET_GLOBAL_STOP : 2023-04-01T10:45:11.388
+#     DATASET_MIN_SAMPLING : 4
+#     DATASET_MAX_SAMPLING : 4
+#
+#       PARAMETER_ID : mms1_dis_ni
+#       PARAMETER_NAME : mms1_dis_ni
+#       PARAMETER_SHORT_NAME : density
+#       PARAMETER_UNITS : cm^-3
+#       PARAMETER_TENSOR_ORDER : 0
+#       PARAMETER_FILL_VALUE : nan
+#
+#       PARAMETER_ID : mms1_dis_vgse
+#       PARAMETER_NAME : mms1_dis_vgse
+#       PARAMETER_SHORT_NAME : v_gse
+#       PARAMETER_COMPONENTS : vx,vy,vz
+#       PARAMETER_UNITS : km/s
+#       PARAMETER_COORDINATE_SYSTEM : GSE
+#       PARAMETER_TENSOR_ORDER : 0
+#       PARAMETER_FILL_VALUE : nan
+#
+#     DATASET_ID : mms1-fpi-desmoms
+#     DATASET_NAME : mms1:fpi:desmoms
+#     DATASET_SOURCE : CDPP/DDServer
+#     DATASET_GLOBAL_START : 2015-07-15T15:11:27.381
+#     DATASET_GLOBAL_STOP : 2023-04-01T10:45:11.388
+#     DATASET_MIN_SAMPLING : 4
+#     DATASET_MAX_SAMPLING : 4
+#
+#       PARAMETER_ID : mms1_des_ne
+#       PARAMETER_NAME : mms1_des_ne
+#       PARAMETER_SHORT_NAME : density
+#       PARAMETER_UNITS : cm^-3
+#       PARAMETER_TENSOR_ORDER : 0
+#       PARAMETER_FILL_VALUE : nan
+#
+#       PARAMETER_ID : mms1_des_vgse
+#       PARAMETER_NAME : mms1_des_vgse
+#       PARAMETER_SHORT_NAME : v_gse
+#       PARAMETER_COMPONENTS : vx,vy,vz
+#       PARAMETER_UNITS : km/s
+#       PARAMETER_COORDINATE_SYSTEM : GSE
+#       PARAMETER_TENSOR_ORDER : 0
+#       PARAMETER_FILL_VALUE : nan
+#
+#
+# ---------------
+# INTERVAL INFO :
+# ---------------
+# INTERVAL_START : 2019-11-08T00:00:00.000
+# INTERVAL_STOP : 2019-11-08T00:10:00.000
+#
+# ------
+# DATA :
+# ------
+# DATA_COLUMNS : SECS FROM 1970-01-01, mms1_fast_jgse[0], mms1_fast_jgse[1], mms1_fast_jgse[2]
+#
+ 1.573171200119e+09  1.77979e-08 -4.50421e-08  1.34063e-08

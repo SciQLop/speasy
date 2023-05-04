@@ -5,6 +5,7 @@ conversion procedures for parsing CSV and VOTable data.
 import datetime
 import logging
 import os
+import re
 import tempfile
 from typing import Dict, List
 
@@ -46,7 +47,32 @@ def _copy_data(csv, fd):
     return fd
 
 
-def load_csv(filename: str) -> SpeasyVariable:
+_parameters_header_blocks_regex = re.compile("(# *PARAMETER_ID : ([^\n]+)\n(# *[A-Z_]+ : [^\n]+\n)+)+")
+
+
+def _parse_header(fd, expected_parameter: str):
+    line = fd.readline().decode()
+    header = ""
+    meta = {}
+    while len(line) and line[0] == '#':
+        header += line
+        if ':' in line:
+            key, value = [v.strip() for v in line[1:].split(':', 1)]
+            if key not in meta:
+                meta[key] = value
+        line = fd.readline().decode()
+    parameters_header_blocks = _parameters_header_blocks_regex.findall(header)
+    for block in parameters_header_blocks:
+        if block[1] == expected_parameter:
+            for line in block[0].split('\n'):
+                if ':' in line:
+                    key, value = [v.strip() for v in line[1:].split(':', 1)]
+                    meta[key] = value
+            break
+    return meta
+
+
+def load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
     """Load a CSV file
 
     Parameters
@@ -68,12 +94,7 @@ def load_csv(filename: str) -> SpeasyVariable:
             meta = {}
             y = None
             y_label = None
-            while len(line) > 0 and line[0] == '#':
-                if ':' in line:
-                    key, value = [v.strip() for v in line[1:].split(':', 1)]
-                    if key not in meta:
-                        meta[key] = value
-                line = fd.readline().decode()
+            meta = _parse_header(fd, expected_parameter)
             columns = [col.strip()
                        for col in meta.get('DATA_COLUMNS', "").split(', ')[:]]
             meta["UNITS"] = meta.get("PARAMETER_UNITS")

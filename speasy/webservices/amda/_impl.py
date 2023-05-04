@@ -3,19 +3,19 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Dict, Optional
 
-# General modules
-from ...config import amda as amda_cfg
-from ...core.cache import CacheCall
-from ...core.http import urlopen_with_retry
-from ...core.inventory.indexes import SpeasyIndex
-from ...core.cdf import load_variable as load_cdf
-from ...inventories import flat_inventories
-from ...products.variable import SpeasyVariable, merge
 from . import rest_client
 from .exceptions import MissingCredentials
 from .inventory import AmdaXMLParser
 from .rest_client import auth_args
 from .utils import load_catalog, load_csv, load_timetable
+# General modules
+from ...config import amda as amda_cfg
+from ...core.cache import CacheCall
+from ...core.cdf import load_variable as load_cdf
+from ...core.http import urlopen_with_retry
+from ...core.inventory.indexes import SpeasyIndex
+from ...inventories import flat_inventories
+from ...products.variable import SpeasyVariable, merge
 
 log = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class AmdaImpl:
                     with urlopen_with_retry(url) as remote_cdf:
                         var = load_cdf(buffer=remote_cdf.read(), variable=parameter_id)
             else:
-                var = load_csv(url)
+                var = load_csv(url, parameter_id)
             if len(var):
                 log.debug(
                     f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, \
