@@ -118,7 +118,7 @@ def _to_datetime_array(time_vec: Collection[str]) -> np.ndarray:
 class _WS_impl:
     def __init__(self, wsdl: str = None):
         wsdl = wsdl or _cfg.wsld_url()
-        self._client = zeep.Client(wsdl=wsdl)
+        self._client = zeep.Client(wsdl=wsdl, settings=zeep.Settings(strict=False))
         self._frames = self.get_frame_list()
 
     @CacheCall(cache_retention=_cfg.cache_retention())
@@ -157,7 +157,7 @@ class _WS_impl:
                 pBodyId=body.naif_id,
                 pStartTime=start_time,
                 pStopTime=stop_time
-            ),
+            )[0:1],
         )
         print(resp)
         if len(resp) == 1:
