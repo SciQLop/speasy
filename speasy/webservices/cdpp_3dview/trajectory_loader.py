@@ -1,12 +1,8 @@
-from datetime import datetime, timedelta
-from typing import List, Optional, Collection
+from typing import Optional, Collection
 
 import numpy as np
-import zeep
 from astropy.io import votable
 
-from ...config import cdpp_3dview as _cfg
-from ...core.cache import CacheCall
 from ...products import SpeasyVariable, VariableTimeAxis, DataContainer
 
 
