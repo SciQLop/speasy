@@ -6,6 +6,7 @@ import os
 import unittest
 from datetime import timedelta
 
+import numpy as np
 from ddt import data, ddt, unpack
 
 import speasy as spz
@@ -67,15 +68,36 @@ class CDPP_3DViewModule(unittest.TestCase):
         v = load_trajectory(f'{os.path.dirname(os.path.abspath(__file__))}/resources/3DViewSampleTrajectory.vot.gz')
         self.assertIsNotNone(v)
 
-    def test_compare_ssc_trajectory(self):
-        start_time = spz.core.make_utc_datetime("2018-01-01")
-        stop_time = spz.core.make_utc_datetime("2018-01-05")
-        ace_ssc_gse = spz.get_data(spz.inventories.tree.ssc.Trajectories.ace, start_time, stop_time,
-                                   coordinate_system="GSE")
+    @data((spz.inventories.tree.ssc.Trajectories.ace, "GSE"),
+          (spz.inventories.tree.ssc.Trajectories.mms1, "GSE"),
+          #(spz.inventories.tree.ssc.Trajectories.mms1, "GSM"),
+          (spz.inventories.tree.ssc.Trajectories.themisa, "GSM"),
+          (spz.inventories.tree.ssc.Trajectories.bepicolombo, "GSE"),
+          )
+    @unpack
+    def test_compare_ssc_trajectory(self, ssc_index, coordinate_system):
+        start_time = spz.core.make_utc_datetime("2021-01-01")
+        stop_time = spz.core.make_utc_datetime("2021-01-05")
+        ssc_data = spz.get_data(ssc_index, start_time, stop_time,
+                                coordinate_system=coordinate_system)
+        self.assertIsNotNone(ssc_data)
+        ssc_data = ssc_data.to_dataframe()
 
-        ace_3DView_gse = _ws.get_orbit_data(body=find_body('ace'),
-                                            start_time=start_time,
-                                            stop_time=stop_time, frame=find_frame('GSE'))
+        cdpp_3DView_data = _ws.get_orbit_data(body=find_body(ssc_index.Id),
+                                              start_time=start_time,
+                                              stop_time=stop_time,
+                                              frame=find_frame(coordinate_system),
+                                              time_vector=list(
+                                                  map(spz.core.make_utc_datetime, ssc_data.index.to_pydatetime())))
 
-        self.assertIsNotNone(ace_ssc_gse)
-        self.assertIsNotNone(ace_3DView_gse)
+        self.assertIsNotNone(cdpp_3DView_data)
+
+        cdpp_3DView_data = cdpp_3DView_data.to_dataframe()
+
+        ssc_data.columns = cdpp_3DView_data.columns
+        abs_error = abs(ssc_data - cdpp_3DView_data)
+        percent_error = 100 * abs((ssc_data - cdpp_3DView_data) / ssc_data)
+        self.assertLess(percent_error.median().max(), 0.5)
+        self.assertTrue(np.all(abs(abs_error.loc[percent_error.x > 0.5].x) < 200))
+        self.assertTrue(np.all(abs(abs_error.loc[percent_error.y > 0.5].y) < 200))
+        self.assertTrue(np.all(abs(abs_error.loc[percent_error.z > 0.5].z) < 200))

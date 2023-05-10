@@ -152,10 +152,10 @@ class _WS_impl:
     def get_frame_list(self) -> List[Frame]:
         return list(map(Frame, self._client.service.listFrames2()))
 
-    def get_orbit_data(self, body: Body, start_time: datetime, stop_time: datetime, frame: Optional[Frame] = None) -> \
-        Optional[SpeasyVariable]:
-        if frame is None:
-            frame = self._frames[int(body.preferred_frame)]
+    def get_orbit_data(self, body: Body, start_time: datetime, stop_time: datetime, frame: Optional[Frame] = None,
+                       time_vector: Optional[List[datetime]] = None) -> Optional[SpeasyVariable]:
+        frame = frame or self._frames[int(body.preferred_frame)]
+        time_vector = time_vector if time_vector is not None else _make_time_vector(start_time, stop_time)
         kernels = self._client.service.listFiles(
             pBodyId=body.naif_id,
             pStartTime=start_time,
@@ -165,7 +165,7 @@ class _WS_impl:
             pBodyId=body.naif_id,
             pFrame=frame.ws_object,
             pCenterId=frame.ws_object.center[0].naifId,
-            pTimes=_make_time_vector(start_time, stop_time),
+            pTimes=time_vector,
             pTimeFiles=_wrap_first_into_list(kernels),
         )
         print(resp)
