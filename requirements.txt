@@ -10,4 +10,4 @@ pyistp
 astroquery
 tqdm
 matplotlib
-zeep
+suds

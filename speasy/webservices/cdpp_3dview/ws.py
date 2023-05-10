@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Collection
+from functools import lru_cache
+from typing import List, Optional
 
-import numpy as np
-import zeep
-from astropy.io import votable
+from suds.client import Client
 
+from .trajectory_loader import load_trajectory
 from ...config import cdpp_3dview as _cfg
-from ...core.cache import CacheCall
-from ...products import SpeasyVariable, VariableTimeAxis, DataContainer
+from ...products import SpeasyVariable
 
 
 class Body:
@@ -99,6 +98,23 @@ class Frame:
     def ws_object(self):
         return self._ws_object
 
+    def __repr__(self):
+        return f"""
+++++++++++++++++++++++++++++++++++++++++++++++++
+Frame: {self.name}
+id: {self.id}
+------------------------------------------------
+        """
+
+
+def _wrap_first_into_list(list_or_object):
+    if type(list_or_object) is list:
+        if len(list_or_object):
+            return [list_or_object[0]]
+        else:
+            return []
+    return [list_or_object]
+
 
 def _make_time_vector(start: datetime, stop: datetime) -> List[datetime]:
     start = start.replace(second=0, minute=start.minute)
@@ -107,23 +123,15 @@ def _make_time_vector(start: datetime, stop: datetime) -> List[datetime]:
     return [start + timedelta(minutes=m) for m in range(0, int((stop - start).total_seconds() / 60), 1)]
 
 
-def _to_datetime(dt: str) -> np.datetime64:
-    return np.datetime64(dt, 'ns')
-
-
-def _to_datetime_array(time_vec: Collection[str]) -> np.ndarray:
-    return np.array(list(map(_to_datetime, time_vec)))
-
-
 class _WS_impl:
     def __init__(self, wsdl: str = None):
         wsdl = wsdl or _cfg.wsld_url()
-        self._client = zeep.Client(wsdl=wsdl, settings=zeep.Settings(strict=False))
+        self._client = Client(wsdl)
         self._frames = self.get_frame_list()
 
-    @CacheCall(cache_retention=_cfg.cache_retention())
+    @lru_cache
     def _get_bodies(self, body_type) -> List[Body]:
-        return list(map(lambda b: Body(**b.__dict__["__values__"]), self._client.service.listBodies(pType=body_type)))
+        return list(map(lambda b: Body(**b.__dict__), self._client.service.listBodies(pType=body_type)))
 
     def get_spacecraft_list(self) -> List[Body]:
         return self._get_bodies(body_type="SPACECRAFT")
@@ -140,7 +148,7 @@ class _WS_impl:
     def get_asteroid_list(self) -> List[Body]:
         return self._get_bodies(body_type="ASTEROID")
 
-    @CacheCall(cache_retention=_cfg.cache_retention())
+    @lru_cache
     def get_frame_list(self) -> List[Frame]:
         return list(map(Frame, self._client.service.listFrames2()))
 
@@ -148,26 +156,19 @@ class _WS_impl:
         Optional[SpeasyVariable]:
         if frame is None:
             frame = self._frames[int(body.preferred_frame)]
+        kernels = self._client.service.listFiles(
+            pBodyId=body.naif_id,
+            pStartTime=start_time,
+            pStopTime=stop_time
+        )
         resp = self._client.service.listOrbData2(
             pBodyId=body.naif_id,
             pFrame=frame.ws_object,
             pCenterId=frame.ws_object.center[0].naifId,
             pTimes=_make_time_vector(start_time, stop_time),
-            pTimeFiles=self._client.service.listFiles(
-                pBodyId=body.naif_id,
-                pStartTime=start_time,
-                pStopTime=stop_time
-            )[0:1],
+            pTimeFiles=_wrap_first_into_list(kernels),
         )
         print(resp)
         if len(resp) == 1:
-            traj = votable.parse_single_table(f"{self._client.wsdl.location.rsplit('/', 1)[0]}{resp[0]}").to_table()
-            if traj and len(traj):
-                arr = np.empty((len(traj), 3))
-                arr[:, 0] = traj['col2']
-                arr[:, 1] = traj['col3']
-                arr[:, 2] = traj['col4']
-                return SpeasyVariable(axes=[VariableTimeAxis(values=_to_datetime_array(traj['col1']))],
-                                      values=DataContainer(values=arr, meta={'UNITS': 'km'}),
-                                      columns=["x", "y", "z"])
+            return load_trajectory(f"{self._client.wsdl.url.rsplit('/', 1)[0]}{resp[0]}")
         return None
