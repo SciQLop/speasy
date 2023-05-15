@@ -17,10 +17,20 @@ _ws = _WS_impl()
 
 
 def find_body(name: str):
-    bodies = _ws.get_spacecraft_list()
-    for body in bodies:
-        if body.name == name or body.name.lower() == name.lower():
-            return body
+    if name:
+        bodies = _ws.get_spacecraft_list()
+        for body in bodies:
+            if body.name == name or body.name.lower() == name.lower():
+                return body
+    return None
+
+
+def find_planet(name: str):
+    if name:
+        bodies = _ws.get_planet_list()
+        for body in bodies:
+            if body.name == name or body.name.lower() == name.lower():
+                return body
     return None
 
 
@@ -65,30 +75,33 @@ class CDPP_3DViewModule(unittest.TestCase):
         self.assertGreater(len(traj), timedelta(days=1).total_seconds() / 60)
 
     def test_loads_a_valid_trajectory_votable(self):
-        v = load_trajectory(f'{os.path.dirname(os.path.abspath(__file__))}/resources/3DViewSampleTrajectory.vot.gz')
+        v = load_trajectory(
+            f'file://{os.path.dirname(os.path.abspath(__file__))}/resources/3DViewSampleTrajectory.vot.gz')
         self.assertIsNotNone(v)
 
-    @data((spz.inventories.tree.ssc.Trajectories.ace, "GSE"),
-          (spz.inventories.tree.ssc.Trajectories.mms1, "GSE"),
-          #(spz.inventories.tree.ssc.Trajectories.mms1, "GSM"),
-          (spz.inventories.tree.ssc.Trajectories.themisa, "GSM"),
-          (spz.inventories.tree.ssc.Trajectories.bepicolombo, "GSE"),
+    @data((spz.inventories.tree.ssc.Trajectories.ace, "GSE", "GSE"),
+          (spz.inventories.tree.ssc.Trajectories.mms1, "GSE", "GSE"),
+          # (spz.inventories.tree.ssc.Trajectories.mms1, "GSM"),
+          (spz.inventories.tree.ssc.Trajectories.themisa, "GSM", "GSM"),
+          (spz.inventories.tree.ssc.Trajectories.bepicolombo, "GSE", "GSE"),
+          (spz.inventories.tree.ssc.Trajectories.mms1, "geij2000", "J2000", "earth")
           )
     @unpack
-    def test_compare_ssc_trajectory(self, ssc_index, coordinate_system):
+    def test_compare_ssc_trajectory(self, ssc_index, ssc_coordinate_system, cdpp_coordinate_system, center=None):
         start_time = spz.core.make_utc_datetime("2021-01-01")
         stop_time = spz.core.make_utc_datetime("2021-01-05")
         ssc_data = spz.get_data(ssc_index, start_time, stop_time,
-                                coordinate_system=coordinate_system)
+                                coordinate_system=ssc_coordinate_system)
         self.assertIsNotNone(ssc_data)
         ssc_data = ssc_data.to_dataframe()
 
         cdpp_3DView_data = _ws.get_orbit_data(body=find_body(ssc_index.Id),
                                               start_time=start_time,
                                               stop_time=stop_time,
-                                              frame=find_frame(coordinate_system),
+                                              frame=find_frame(cdpp_coordinate_system),
                                               time_vector=list(
-                                                  map(spz.core.make_utc_datetime, ssc_data.index.to_pydatetime())))
+                                                  map(spz.core.make_utc_datetime, ssc_data.index.to_pydatetime())),
+                                              center=find_planet(center))
 
         self.assertIsNotNone(cdpp_3DView_data)
 
