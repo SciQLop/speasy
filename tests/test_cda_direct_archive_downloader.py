@@ -3,7 +3,7 @@ import unittest
 
 from ddt import ddt
 
-from speasy.webservices.cda.direct_archive_downloader import get_product
+from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product
 
 
 @ddt
