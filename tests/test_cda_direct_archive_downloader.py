@@ -3,6 +3,7 @@ import unittest
 
 from ddt import ddt
 
+from speasy.core.cdf.inventory_extractor import extract_parameters
 from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product
 
 
@@ -18,3 +19,15 @@ class CDADirectArchiveDownloader(unittest.TestCase):
             split_rule="daily",
             variable="ne_mgf", start_time="2018-02-01", stop_time="2018-02-02")
         self.assertIsNotNone(data)
+
+    def test_build_inventory_from_remote_cdf(self):
+        parameters = extract_parameters(
+            url="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/2018/erg_pwe_hfa_l3_1min_20180102_v03_05.cdf",
+            provider="test")
+        self.assertGreater(len(parameters), 0)
+
+    def test_build_inventory_from_remote_master_cdf(self):
+        parameters = extract_parameters(
+            url="https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_orb_l3_t89_00000000_v01.cdf",
+            provider="test")
+        self.assertGreater(len(parameters), 0)
