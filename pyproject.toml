@@ -6,17 +6,17 @@ requires = ["flit_core"]
 name = 'speasy'
 version = "1.1.2"
 description = "A simple Python package to deal with main Space Physics WebServices (CDA, CSA, AMDA and SSC)."
-keywords= ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
+keywords = ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
 authors = [
-  {name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
+    { name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
 ]
 
 maintainers = [
-  {name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
+    { name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
 ]
 
-requires-python=">=3.7"
-license = {file="LICENSE"}
+requires-python = ">=3.7"
+license = { file = "LICENSE" }
 readme = "README.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -31,12 +31,10 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
 ]
 dependencies = ['requests', 'pandas', 'diskcache', 'appdirs', 'numpy', 'packaging', 'python-dateutil',
-                'astropy', 'astroquery', 'pyistp', 'tqdm', 'matplotlib', 'urllib3>=1.26.0', "PyYAML"]
+    'astropy', 'astroquery', 'pyistp', 'tqdm', 'matplotlib', 'urllib3>=1.26.0', "PyYAML"]
 [project.urls]
 homepage = "https://github.com/SciQLop/speasy"
 
 [project.optional-dependencies]
 zstd = ["zstd"]
 
-[tool.flit.external-data]
-directory = "data"
