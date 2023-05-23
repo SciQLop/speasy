@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime
 from functools import wraps
-from typing import Callable, List, Optional
 from threading import Lock
+from typing import Callable, List, Optional
 
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
@@ -37,8 +37,9 @@ def _get_inventory_args(provider_name, **kwargs):
 
 
 class DataProvider:
-    def __init__(self, provider_name: str, provider_alt_names: List or None = None):
+    def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False):
         self.provider_name = provider_name
+        self._inventory_disable_proxy = inventory_disable_proxy
         self.provider_alt_names = provider_alt_names or []
         self.flat_inventory = ProviderInventory()
         flat_inventories.__dict__[provider_name] = self.flat_inventory
@@ -59,7 +60,8 @@ class DataProvider:
     def update_inventory(self):
         lock = Lock()
         with lock:
-            new_inventory = self._inventory(provider_name=self.provider_name)
+            new_inventory = self._inventory(provider_name=self.provider_name,
+                                            disable_proxy=self._inventory_disable_proxy)
             if inventory_has_changed(tree.__dict__.get(self.provider_name, SpeasyIndex("", "", "")), new_inventory):
                 if self.provider_name in tree.__dict__:
                     tree.__dict__[self.provider_name].clear()
