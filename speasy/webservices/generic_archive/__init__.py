@@ -22,9 +22,8 @@ log = logging.getLogger(__name__)
 
 
 def _global_inventory_dir():
-    from importlib import resources
     import os
-    return os.path.join(str(resources.files('speasy')), "data/archive")
+    return os.path.join(os.path.dirname(__file__), "../../data/archive")
 
 
 def get_or_make_node(path: str, root: SpeasyIndex) -> SpeasyIndex:
