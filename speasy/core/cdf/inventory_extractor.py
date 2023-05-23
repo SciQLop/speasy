@@ -43,5 +43,5 @@ def extract_parameters(url: str, provider: str, uid_fmt: str = "{var_name}") -> 
                                    cdf.data_variables())))
 
     except RuntimeError:
-        print(f"Issue loading {path}")
+        print(f"Issue loading {url}")
     return indexes
