@@ -1,13 +1,16 @@
-from speasy import __version__
+import logging
 import platform
-import requests
 import socket
-from requests.utils import quote as _quote
+from time import sleep
+from urllib.parse import urlparse, urlunparse
+from urllib.request import Request, urlopen, HTTPError, URLError
+
+import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from urllib.request import Request, urlopen, HTTPError, URLError
-from time import sleep
-import logging
+from requests.utils import quote as _quote
+
+from speasy import __version__
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +25,13 @@ DEFAULT_RETRY_COUNT = 5
 STATUS_FORCE_LIST = [500, 502, 504]
 
 RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error codes (see below)
+
+
+def ensure_url_scheme(url: str):
+    parsed = urlparse(url)
+    if parsed.scheme == '':
+        return urlunparse(parsed._replace(scheme='file'))
+    return url
 
 
 class TimeoutHTTPAdapter(HTTPAdapter):
@@ -79,7 +89,7 @@ def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_T
 def urlopen_with_retry(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
-    req = Request(url, headers=headers)
+    req = Request(ensure_url_scheme(url), headers=headers)
     retrycount = 0
     while True:
         try:
