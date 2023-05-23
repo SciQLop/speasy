@@ -1,0 +1,11 @@
+---
+erg_lepe_l3_pa:
+    url_template: "https://cdaweb.gsfc.nasa.gov/pub/data/arase/lepe/l3/pa/{Y}/erg_lepe_l3_pa_{Y}{M:02d}{D:02d}_v03_01.cdf"
+    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_lepe_l3_pa_00000000_v01.cdf"
+    inventory_path: 'cda/Arase_ERG/LEPE'
+    split_rule: "daily"
+erg_pwe_hfa_l3_1min:
+    url_template: "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v03_06.cdf"
+    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_pwe_hfa_l3_1min_00000000_v01.cdf"
+    inventory_path: 'cda/Arase_ERG/PWE/HFA'
+    split_rule: "daily"

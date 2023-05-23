@@ -31,10 +31,12 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
 ]
 dependencies = ['requests', 'pandas', 'diskcache', 'appdirs', 'numpy', 'packaging', 'python-dateutil',
-                'astropy', 'astroquery', 'pyistp', 'tqdm', 'matplotlib', 'urllib3>=1.26.0']
+                'astropy', 'astroquery', 'pyistp', 'tqdm', 'matplotlib', 'urllib3>=1.26.0', "PyYAML"]
 [project.urls]
 homepage = "https://github.com/SciQLop/speasy"
 
 [project.optional-dependencies]
 zstd = ["zstd"]
 
+[tool.flit.external-data]
+directory = "data"

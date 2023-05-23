@@ -196,6 +196,12 @@ amda = ConfigSection("AMDA",
                          "default": "ASCII"}
                      )
 
+archive = ConfigSection("ARCHIVE",
+                        extra_inventory_lookup_dirs={"default": set(),
+                                                     "description": """A comma separated list of directory path Archive provider will scann for YAML inventory files.""",
+                                                     "type_ctor": lambda x: set(x.split(','))}
+                        )
+
 inventories = ConfigSection("INVENTORIES",
                             cache_retention_days={
                                 "default": 2,

@@ -14,3 +14,4 @@ pyistp
 astroquery
 tqdm
 matplotlib
+PyYAML
