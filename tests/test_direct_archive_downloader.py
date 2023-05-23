@@ -3,6 +3,7 @@ import unittest
 
 from ddt import ddt, data, unpack
 
+import speasy as spz
 from speasy.core.cdf.inventory_extractor import extract_parameters
 from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product
 
@@ -39,3 +40,12 @@ class DirectArchiveDownloader(unittest.TestCase):
             url=url,
             provider="test")
         self.assertGreater(len(parameters), 0)
+
+    @data(
+        spz.inventories.data_tree.archive.cda.Arase_ERG.PWE.HFA.erg_pwe_hfa_l3_1min.ne_mgf,
+        "archive/cda/Arase_ERG/PWE/HFA/erg_pwe_hfa_l3_1min/ne_mgf"
+
+    )
+    def test_get_data(self, product):
+        v = spz.get_data(product, "2018-01-06T10", "2018-01-06T12")
+        self.assertIsNotNone(v)
