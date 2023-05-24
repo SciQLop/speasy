@@ -118,7 +118,7 @@ class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
         self.assertListEqual(
-            sorted(l), sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa']))
+            sorted(l), sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive']))
 
     @data(*[(provider,) for provider in PROVIDERS.keys()])
     @unpack
