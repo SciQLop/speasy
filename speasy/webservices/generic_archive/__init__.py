@@ -38,16 +38,17 @@ def get_or_make_node(path: str, root: SpeasyIndex) -> SpeasyIndex:
 
 def load_inventory_file(file: str, root: SpeasyIndex):
     import yaml
-    entries = yaml.safe_load(open(file, 'r'))
-    for name, entry in entries.items():
-        path = f"{entry['inventory_path']}/{name}"
-        parent = get_or_make_node(entry['inventory_path'], root)
-        entry_meta = {f"spz_{key}": value for key, value in entry.items()}
-        entry_meta['spz_use_file_list'] = entry_meta.get('spz_use_file_list', False)
-        dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive', meta=entry_meta,
-                                     params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
-        if dataset:
-            parent.__dict__[dataset.spz_name()] = dataset
+    with open(file, 'r') as f:
+        entries = yaml.safe_load(f)
+        for name, entry in entries.items():
+            path = f"{entry['inventory_path']}/{name}"
+            parent = get_or_make_node(entry['inventory_path'], root)
+            entry_meta = {f"spz_{key}": value for key, value in entry.items()}
+            entry_meta['spz_use_file_list'] = entry_meta.get('spz_use_file_list', False)
+            dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive', meta=entry_meta,
+                                         params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
+            if dataset:
+                parent.__dict__[dataset.spz_name()] = dataset
 
 
 class GenericArchive(DataProvider):
