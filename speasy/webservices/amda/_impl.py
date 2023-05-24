@@ -12,7 +12,7 @@ from .utils import load_catalog, load_csv, load_timetable
 from ...config import amda as amda_cfg
 from ...core.cache import CacheCall
 from ...core.cdf import load_variable as load_cdf
-from ...core.http import urlopen_with_retry
+from ...core.file_access import urlopen_with_retry
 from ...core.inventory.indexes import SpeasyIndex
 from ...inventories import flat_inventories
 from ...products.variable import SpeasyVariable, merge

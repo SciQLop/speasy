@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Dict
 import requests
 from astroquery.utils.tap.core import TapPlus
 
-from speasy.core import http, AllowedKwargs, fix_name
+from speasy.core import file_access, AllowedKwargs, fix_name
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.cdf import load_variable
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
@@ -141,7 +141,7 @@ class CSA_Webservice(DataProvider):
         headers = {}
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        resp = http.get(self.__url, params={
+        resp = file_access.get(self.__url, params={
             "RETRIEVAL_TYPE": "product",
             "DATASET_ID": dataset,
             "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),

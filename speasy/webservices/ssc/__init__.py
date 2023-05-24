@@ -19,7 +19,7 @@ from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
-from ...core import http, AllowedKwargs
+from ...core import file_access, AllowedKwargs
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class SSC_Webservice(DataProvider):
 
     @CacheCall(cache_retention=7 * 24 * 60 * 60, is_pure=True)
     def get_observatories(self):
-        res = http.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
+        res = file_access.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
         if not res.ok:
             return None
         return res.json()['Observatory'][1]
@@ -135,7 +135,7 @@ class SSC_Webservice(DataProvider):
         headers = {"Accept": "application/json"}
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        res = http.get(url, headers=headers)
+        res = file_access.get(url, headers=headers)
         orbit = res.json()
         if res.ok and _is_valid(orbit):
             return _variable(orbit)[start_time:stop_time]

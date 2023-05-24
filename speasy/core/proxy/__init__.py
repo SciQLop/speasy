@@ -1,20 +1,19 @@
 import logging
 import pickle
-from functools import wraps
-from datetime import datetime, timedelta
 import warnings
+from datetime import datetime, timedelta
+from functools import wraps
 
-from packaging.version import Version
 from dateutil import parser
+from packaging.version import Version
 
-from speasy.config import proxy as proxy_cfg
 from speasy.config import inventories as inventories_cfg
-from ... import SpeasyIndex
-
-from ...products.variable import from_dictionary as var_from_dict
-from .. import http
-from ..inventory.indexes import from_dict as inventory_from_dict
+from speasy.config import proxy as proxy_cfg
+from .. import file_access
 from ..index import index
+from ..inventory.indexes import from_dict as inventory_from_dict
+from ... import SpeasyIndex
+from ...products.variable import from_dictionary as var_from_dict
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
@@ -37,7 +36,7 @@ def query_proxy_version():
     if _CURRENT_PROXY_SERVER_VERSION is None:
         url = proxy_cfg.url()
         if url != "":
-            resp = http.get(f"{url}/get_version?")
+            resp = file_access.get(f"{url}/get_version?")
             if resp.status_code == 200:
                 _CURRENT_PROXY_SERVER_VERSION = Version(resp.text.strip())
                 return _CURRENT_PROXY_SERVER_VERSION
@@ -73,7 +72,7 @@ class GetProduct:
         kwargs['stop_time'] = stop_time
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        resp = http.get(f"{url}/get_data?", params=kwargs)
+        resp = file_access.get(f"{url}/get_data?", params=kwargs)
         log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             var = var_from_dict(pickle.loads(decompress(resp.content)))
@@ -96,7 +95,7 @@ class GetInventory:
         headers = {}
         if saved_inventory is not None:
             headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
-        resp = http.get(f"{url}/get_inventory?", params=kwargs, headers=headers)
+        resp = file_access.get(f"{url}/get_inventory?", params=kwargs, headers=headers)
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             inventory = inventory_from_dict(pickle.loads(decompress(resp.content)))

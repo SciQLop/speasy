@@ -15,8 +15,10 @@ __docformat__ = "numpy"
 from typing import List
 
 from speasy.core.inventory.indexes import SpeasyIndex
-from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive
 from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
+
+# keep this import last
+from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive
 
 
 # @TODO implement me, this function should be able to look inside all servers

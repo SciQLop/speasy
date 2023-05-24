@@ -4,7 +4,7 @@ from typing import List, Optional
 import pyistp
 from pyistp.loader import DataVariable, ISTPLoader
 
-from speasy.core.http import urlopen_with_retry
+from speasy.core.file_access import urlopen_with_retry
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex
 
 log = logging.getLogger(__name__)

@@ -11,13 +11,13 @@ import re
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
-from speasy.core import AllowedKwargs, http
+from speasy.core import AllowedKwargs
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
 from speasy.core.cdf import load_variable
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck)
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core.http import urlopen_with_retry
+from speasy.core import  file_access
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
@@ -55,7 +55,7 @@ class CdaWebException(BaseException):
 
 
 def _read_cdf(url: str, variable: str) -> SpeasyVariable:
-    with urlopen_with_retry(url) as remote_cdf:
+    with file_access.urlopen_with_retry(url) as remote_cdf:
         return load_variable(buffer=remote_cdf.read(), variable=variable)
 
 
@@ -148,13 +148,13 @@ class CDA_Webservice(DataProvider):
 
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         fmt = "cdf"
-        url = f"{self.__url}/dataviews/sp_phys/datasets/{http.quote(dataset, safe='')}/data/{start_time},{stop_time}/{http.quote(variable, safe='')}?format={fmt}"
+        url = f"{self.__url}/dataviews/sp_phys/datasets/{file_access.quote(dataset, safe='')}/data/{start_time},{stop_time}/{file_access.quote(variable, safe='')}?format={fmt}"
         headers = {"Accept": "application/json"}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        resp = http.get(url, headers=headers)
+        resp = file_access.get(url, headers=headers)
         log.debug(resp.url)
         if resp.status_code == 200 and 'FileDescription' in resp.json():
             return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
