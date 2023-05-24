@@ -3,12 +3,14 @@ from datetime import timedelta, datetime
 from typing import Optional
 
 from speasy.core import make_utc_datetime, AnyDateTimeType
+from speasy.core.cache import CacheCall
 from speasy.core.cdf import load_variable
 from speasy.core.file_access import urlopen_with_retry, list_files
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
 
 
+@CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
 def _read_cdf(url: str, variable: str) -> SpeasyVariable:
     with urlopen_with_retry(url) as remote_cdf:
         return load_variable(buffer=remote_cdf.read(), variable=variable)
