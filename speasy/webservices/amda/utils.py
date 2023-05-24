@@ -14,7 +14,7 @@ import pandas as pds
 from speasy.config import amda as amda_cfg
 from speasy.core import epoch_to_datetime64
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core.http import urlopen_with_retry
+from speasy.core.file_access import urlopen_with_retry
 from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
 from speasy.products.variable import (DataContainer, SpeasyVariable,

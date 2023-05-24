@@ -43,6 +43,7 @@ def load_inventory_file(file: str, root: SpeasyIndex):
         path = f"{entry['inventory_path']}/{name}"
         parent = get_or_make_node(entry['inventory_path'], root)
         entry_meta = {f"spz_{key}": value for key, value in entry.items()}
+        entry_meta['spz_use_file_list'] = entry_meta.get('spz_use_file_list', False)
         dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive', meta=entry_meta,
                                      params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
         if dataset:
@@ -82,4 +83,5 @@ class GenericArchive(DataProvider):
     def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType) -> Optional[
         SpeasyVariable]:
         return get_product(url_pattern=product.spz_url_template, split_rule=product.spz_split_rule,
-                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time)
+                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time,
+                           use_file_list=product.spz_use_file_list)
