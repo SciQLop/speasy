@@ -27,7 +27,7 @@ DEFAULT_DELAY = 5  # seconds
 
 DEFAULT_RETRY_COUNT = 5
 
-STATUS_FORCE_LIST = [500, 502, 504]
+STATUS_FORCE_LIST = [500, 502, 504, 413, 429, 503]
 
 RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error codes (see below)
 
@@ -77,31 +77,31 @@ def apply_delay(headers: dict = None):
     sleep(delay)
 
 
-def get(url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT, head_only: bool = False):
-    headers = {} if headers is None else headers
-    headers['User-Agent'] = USER_AGENT
-    # cf. https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
-    retry_strategy = Retry(
-        total=DEFAULT_RETRY_COUNT,
-        backoff_factor=1,
-        status_forcelist=STATUS_FORCE_LIST,
-        allowed_methods=["HEAD", "GET"]
-    )
-    adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=timeout)
-    http = requests.Session()
-    http.mount("https://", adapter)
-    http.mount("http://", adapter)
-    while True:
-        if head_only:
-            resp = http.head(url, headers=headers, params=params)
-        else:
-            resp = http.get(url, headers=headers, params=params)
-        if resp.status_code in RETRY_AFTER_LIST:  # Honor "Retry-After"
-            log.debug(f"Got {resp.status_code} response")
-            apply_delay(resp.headers)
-        else:
-            break
-    return resp
+class _HttpVerb:
+    def __init__(self, head_or_get):
+        # cf. https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
+        retry_strategy = Retry(
+            total=DEFAULT_RETRY_COUNT,
+            backoff_factor=1,
+            status_forcelist=STATUS_FORCE_LIST,
+            allowed_methods=["HEAD", "GET"],
+            respect_retry_after_header=True
+        )
+        self._adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=DEFAULT_TIMEOUT)
+        self._http = requests.Session()
+        self._http.mount("https://", self._adapter)
+        self._http.mount("http://", self._adapter)
+        self._verb = getattr(self._http, head_or_get)
+
+    def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
+        self._adapter.timeout = timeout
+        headers = headers or {}
+        headers['User-Agent'] = USER_AGENT
+        return self._verb(url, headers=headers, params=params)
+
+
+get = _HttpVerb("get")
+head = _HttpVerb("head")
 
 
 def urlopen_with_retry(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None):
