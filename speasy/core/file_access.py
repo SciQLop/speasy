@@ -54,8 +54,8 @@ def ensure_url_scheme(url: str) -> str:
 
 class TimeoutHTTPAdapter(HTTPAdapter):
     def __init__(self, *args, timeout=DEFAULT_TIMEOUT, **kwargs):
-        self.timeout = timeout
         super().__init__(*args, **kwargs)
+        self.timeout = timeout
 
     def send(self, request, **kwargs):
         kwargs.pop('timeout', None)
@@ -72,7 +72,7 @@ def apply_delay(headers: dict = None):
         if headers and ('Retry-After' in headers):
             delay = float(headers['Retry-After'])
     except ValueError:
-        pass
+        delay = DEFAULT_DELAY
     log.debug(f"Will sleep for {delay} seconds")
     sleep(delay)
 
