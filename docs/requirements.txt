@@ -2,6 +2,7 @@ pandas
 appdirs
 diskcache
 requests
+urllib3>=1.26.0
 packaging
 numpy
 python_dateutil

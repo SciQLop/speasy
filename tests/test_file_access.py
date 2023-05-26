@@ -6,7 +6,7 @@ import unittest
 
 from ddt import ddt, data
 
-from speasy.core.file_access import get, head
+from speasy.core.http import get, head
 
 
 @ddt

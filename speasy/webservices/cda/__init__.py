@@ -12,12 +12,12 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 from speasy.core import AllowedKwargs
+from speasy.core import any_files, http, url_utils
+from speasy.core import cdf
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
-from speasy.core.cdf import load_variable
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck)
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core import  file_access
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
@@ -52,11 +52,6 @@ def _cache_fragment_size(product):
 class CdaWebException(BaseException):
     def __init__(self, text):
         super(CdaWebException, self).__init__(text)
-
-
-def _read_cdf(url: str, variable: str) -> SpeasyVariable:
-    with file_access.urlopen_with_retry(url) as remote_cdf:
-        return load_variable(buffer=remote_cdf.read(), variable=variable)
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -148,16 +143,16 @@ class CDA_Webservice(DataProvider):
 
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         fmt = "cdf"
-        url = f"{self.__url}/dataviews/sp_phys/datasets/{file_access.quote(dataset, safe='')}/data/{start_time},{stop_time}/{file_access.quote(variable, safe='')}?format={fmt}"
+        url = f"{self.__url}/dataviews/sp_phys/datasets/{url_utils.quote(dataset, safe='')}/data/{start_time},{stop_time}/{url_utils.quote(variable, safe='')}?format={fmt}"
         headers = {"Accept": "application/json"}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        resp = file_access.get(url, headers=headers)
+        resp = http.get(url, headers=headers)
         log.debug(resp.url)
         if resp.status_code == 200 and 'FileDescription' in resp.json():
-            return _read_cdf(resp.json()['FileDescription'][0]['Name'], variable)
+            return cdf.load_variable(file=resp.json()['FileDescription'][0]['Name'], variable=variable)
         elif not resp.ok:
             if resp.status_code == 404 and "No data available" in resp.json().get('Message', [""])[0]:
                 log.warning(f"Got 404 'No data available' from CDAWeb with {url}")

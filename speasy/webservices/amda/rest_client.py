@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Dict
 
 from speasy.config import amda as amda_cfg
-from speasy.core import file_access, pack_kwargs
+from speasy.core import pack_kwargs, http
 from speasy.core.cache import CacheCall
 
 log = logging.getLogger(__name__)
@@ -69,14 +69,14 @@ def token(server_url: str = amda_cfg.entry_point()) -> str:
         the generated token
     """
     # url = "{0}/php/rest/auth.php?".format(self.server_url)
-    r = file_access.get(request_url(Endpoint.AUTH, server_url=server_url))
+    r = http.get(request_url(Endpoint.AUTH, server_url=server_url))
     if r.status_code == 200:
         return r.text.strip()
     else:
         raise RuntimeError("Failed to get auth token")
 
 
-def send_request(endpoint: Endpoint, params: dict = None, timeout: int = file_access.DEFAULT_TIMEOUT,
+def send_request(endpoint: Endpoint, params: dict = None, timeout: int = http.DEFAULT_TIMEOUT,
                  server_url: str = amda_cfg.entry_point()) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
 
@@ -100,14 +100,14 @@ def send_request(endpoint: Endpoint, params: dict = None, timeout: int = file_ac
     url = request_url(endpoint, server_url=server_url)
     params = params or {}
     params['token'] = token(server_url=server_url)
-    r = file_access.get(url, params=params, timeout=timeout)
+    r = http.get(url, params=params, timeout=timeout)
     if r.status_code == 200:
         return r.text.strip()
     return None
 
 
 def send_indirect_request(endpoint: Endpoint, params: dict = None,
-                          timeout: int = file_access.DEFAULT_TIMEOUT,
+                          timeout: int = http.DEFAULT_TIMEOUT,
                           server_url: str = amda_cfg.entry_point()) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
     The request is special in that the result is the URL to an XML file containing
@@ -133,13 +133,13 @@ def send_indirect_request(endpoint: Endpoint, params: dict = None,
     next_url = send_request(endpoint=endpoint, params=params, timeout=timeout, server_url=server_url)
     if '<' in next_url and '>' in next_url:
         next_url = next_url.split(">")[1].split("<")[0]
-    r = file_access.get(next_url, timeout=timeout)
+    r = http.get(next_url, timeout=timeout)
     if r.status_code == 200:
         return r.text.strip()
     return None
 
 
-def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = file_access.DEFAULT_TIMEOUT,
+def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = http.DEFAULT_TIMEOUT,
                       server_url: str = amda_cfg.entry_point(),
                       extra_http_headers: Dict or None = None) -> str or None:
     """Send a request on the AMDA_Webservice REST service to the given endpoint with given parameters.
@@ -166,7 +166,7 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = fi
     params = params or {}
     http_headers = extra_http_headers or {}
     params['token'] = token(server_url=server_url)
-    r = file_access.get(url, params=params, headers=http_headers, timeout=timeout)
+    r = http.get(url, params=params, headers=http_headers, timeout=timeout)
     js = r.json()
     if 'success' in js and \
         js['success'] is True and \
@@ -183,7 +183,7 @@ def send_request_json(endpoint: Endpoint, params: Dict = None, timeout: int = fi
             time.sleep(default_sleep_time)
             url = request_url(Endpoint.GETSTATUS, server_url=server_url)
 
-            status = file_access.get(url, params=js, headers=http_headers).json()
+            status = http.get(url, params=js, headers=http_headers).json()
             if status is not None and status["status"] == "done":
                 return status["dataFileURLs"]
     else:
@@ -303,7 +303,7 @@ def get_user_parameters_xml_tree(username: str, password: str, server_url: str =
                             server_url=server_url).strip()
     node = Et.fromstring(f'<root>{xml_resp}</root>').find("UserDefinedParameters")
     if node is not None:
-        return file_access.get(node.text).text
+        return http.get(node.text).text
     return None
 
 
