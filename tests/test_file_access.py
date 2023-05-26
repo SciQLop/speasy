@@ -2,33 +2,53 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `speasy.common` package."""
+import re
 import unittest
-
+import os
 from ddt import ddt, data
 
-from speasy.core.http import get, head
+from speasy.core.any_files import any_loc_open, list_files
+
+_HERE_ = os.path.dirname(os.path.abspath(__file__))
 
 
 @ddt
 class FileAccess(unittest.TestCase):
     def setUp(self):
-        self.skipTest('Needs testable urls')
+        pass
 
     def tearDown(self):
         pass
 
-    @data(
-        'http://amdadev.irap.omp.eu/php/rest/test.php?type=429',
-        'http://amdadev.irap.omp.eu/php/rest/test.php?type=429&delay=5',
-        'http://amdadev.irap.omp.eu/php/rest/test.php?type=503&delay=5'
-    )
-    def test_get_retry(self, url):
-        self.assertIsNotNone(get(url))
+    def test_simple_remote_txt_file(self):
+        f = any_loc_open("http://sciqlop.lpp.polytechnique.fr/cache", mode='r')
+        self.assertIsNotNone(f)
+        self.assertIn('<title>SPEASY proxy</title>', f.read())
+
+    def test_simple_remote_bin_file(self):
+        f = any_loc_open("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw", mode='rb')
+        self.assertIsNotNone(f)
+        self.assertEquals(b'\x7fELF', f.read(4))
 
     @data(
-        'http://amdadev.irap.omp.eu/php/rest/test.php?type=429',
-        'http://amdadev.irap.omp.eu/php/rest/test.php?type=429&delay=5',
-        'http://amdadev.irap.omp.eu/php/rest/test.php?type=503&delay=5'
+        f"{_HERE_}/resources/derived_param.txt",
+        f"file://{_HERE_}/resources/derived_param.txt"
     )
-    def test_head_retry(self, url):
-        self.assertIsNotNone(head(url))
+    def test_simple_local_txt_file(self, url):
+        f = any_loc_open(url, mode='r')
+        self.assertIsNotNone(f)
+        self.assertIn('AMDA INFO', f.read(100))
+
+    def test_list_remote_files(self):
+        flist = list_files(url='https://hephaistos.lpp.polytechnique.fr/data/', file_regex=re.compile(r'\w+\.webm'))
+        self.assertGreaterEqual(len(flist), 9)
+        self.assertIn('plasmaSpeaker1.webm', flist)
+
+    @data(
+        f"{_HERE_}/resources/",
+        f"file://{_HERE_}/resources/"
+    )
+    def test_list_local_files(self, url):
+        flist = list_files(url=url, file_regex=re.compile(r'\w+\.(txt|xml)'))
+        self.assertGreaterEqual(len(flist), 4)
+        self.assertIn('obsdatatree.xml', flist)
