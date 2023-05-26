@@ -2,7 +2,6 @@ import io
 import logging
 import tarfile
 from datetime import datetime, timedelta
-from io import BytesIO
 from tempfile import TemporaryDirectory
 from typing import Optional, Tuple, Dict
 

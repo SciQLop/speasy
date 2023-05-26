@@ -1,13 +1,11 @@
 import io
 import logging
 import os
-import platform
 import re
 from datetime import timedelta
 from typing import List
 from .url_utils import is_local_file
 
-from speasy import __version__
 from speasy.core.cache import CacheCall
 from . import http
 
