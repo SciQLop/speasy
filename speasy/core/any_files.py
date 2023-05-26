@@ -5,26 +5,13 @@ import platform
 import re
 from datetime import timedelta
 from typing import List
-from urllib.parse import urlparse
+from .url_utils import is_local_file
 
 from speasy import __version__
 from speasy.core.cache import CacheCall
 from . import http
 
 log = logging.getLogger(__name__)
-
-USER_AGENT = f'Speasy/{__version__} {platform.uname()} (SciQLop project)'
-
-DEFAULT_TIMEOUT = 60  # seconds
-
-DEFAULT_DELAY = 5  # seconds
-
-DEFAULT_RETRY_COUNT = 5
-
-STATUS_FORCE_LIST = [500, 502, 504, 413, 429, 503]
-
-RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error codes (see below)
-
 _HREF_REGEX = re.compile(' href="([A-Za-z0-9.-_]+)">')
 
 
@@ -52,15 +39,17 @@ class AnyFile(io.IOBase):
     def status_code(self):
         return self._status
 
+    def __del__(self):
+        if not self._file_impl.closed:
+            self.close()
+
     def __getattr__(self, item):
         return getattr(self._file_impl, item)
 
 
-
-def any_loc_open(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
-    split_url = urlparse(url)
-    if split_url.scheme in ('', 'file'):
-        return AnyFile(url, open(split_url.path, mode=mode))
+def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
+    if is_local_file(url):
+        return AnyFile(url, open(url.replace('file://', ''), mode=mode))
     else:
         resp = http.urlopen(url=url, headers=headers, timeout=timeout)
         if 'b' in mode:
@@ -96,9 +85,8 @@ def list_files(url: str, file_regex: re.Pattern) -> List[str]:
     List[str]
         matching remote or local files
     """
-    split_url = urlparse(url)
-    if split_url.scheme in ('', 'file'):
-        files = _list_local_files(split_url.path)
+    if is_local_file(url):
+        files = _list_local_files(url.replace('file://', ''))
     else:
         files = _list_remote_files(url)
     return list(filter(file_regex.match, files))
