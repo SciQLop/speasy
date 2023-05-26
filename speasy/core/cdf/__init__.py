@@ -70,3 +70,8 @@ def load_variable(variable, file: bytes or str or io.IOBase, urlopen_kwargs=None
         if is_local_file(file):
             return _load_variable(variable=variable, file=urlparse(url=file).path)
         return _load_variable(variable=variable, buffer=urlopen(file, **(urlopen_kwargs or {})).bytes)
+    if type(file) is bytes:
+        return _load_variable(variable=variable, buffer=bytes)
+    if hasattr(file, 'read'):
+        return _load_variable(variable=variable, buffer=file.read())
+    return None

@@ -1,3 +1,4 @@
+import io
 import logging
 import tarfile
 from datetime import datetime, timedelta
@@ -104,13 +105,13 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-def _read_cdf(response, variable: str) -> SpeasyVariable:
-    with tarfile.open(fileobj=BytesIO(response.read())) as tar:
+def _load_variable(archive: io.BytesIO, variable: str) -> SpeasyVariable:
+    with tarfile.open(fileobj=archive) as tar:
         tarname = tar.getnames()
         if len(tarname):
             with TemporaryDirectory() as tmp_dir:
                 tar.extractall(tmp_dir)
-                return load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
+                return cdf.load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -141,16 +142,18 @@ class CSA_Webservice(DataProvider):
         headers = {}
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        return cdf.load_variable(variable,
-                                 build_url(base=self.__url, parameters={
-                                     "RETRIEVAL_TYPE": "product",
-                                     "DATASET_ID": dataset,
-                                     "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                                     "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                                     "DELIVERY_FORMAT": "CDF_ISTP",
-                                     "DELIVERY_INTERVAL": "all"
-                                 }),
-                                 urlopen_kwargs={'headers': headers})
+        return _load_variable(
+            any_files.any_loc_open(
+                build_url(base=self.__url, parameters={
+                    "RETRIEVAL_TYPE": "product",
+                    "DATASET_ID": dataset,
+                    "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "DELIVERY_FORMAT": "CDF_ISTP",
+                    "DELIVERY_INTERVAL": "all"
+                }),
+                headers=headers),
+            variable)
 
     @staticmethod
     def build_inventory(root: SpeasyIndex):
