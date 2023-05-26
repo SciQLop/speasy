@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pds
 from speasy.config import amda as amda_cfg
 from speasy.core import epoch_to_datetime64
+from speasy.core.any_files import any_loc_open
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core.file_access import urlopen_with_retry
 from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
 from speasy.products.variable import (DataContainer, SpeasyVariable,
@@ -88,9 +88,11 @@ def load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
     """
     if '://' not in filename:
         filename = f"file:///{os.path.abspath(filename)}"
-    with urlopen_with_retry(filename) as csv:
+    with any_loc_open(filename, mode='rb') as csv:
         with tempfile.TemporaryFile() as fd:
-            _copy_data(csv, fd)
+            # _copy_data(csv, fd)
+            fd.write(csv.read())
+            fd.seek(0)
             line = fd.readline().decode()
             meta = {}
             y = None
@@ -151,13 +153,12 @@ def load_timetable(filename: str) -> TimeTable:
     """
     if '://' not in filename:
         filename = f"file://{os.path.abspath(filename)}"
-    with urlopen_with_retry(filename) as votable:
+    with any_loc_open(filename) as votable:
         # save the timetable as a dataframe, speasy.common.SpeasyVariable
         # get header data first
-        import io
 
         from astropy.io.votable import parse as parse_votable
-        votable = parse_votable(io.BytesIO(votable.read()))
+        votable = parse_votable(votable)
         name = next(filter(lambda e: 'Name' in e,
                            votable.description.split(';\n'))).split(':')[-1]
         # convert astropy votable structure to SpeasyVariable
@@ -187,13 +188,12 @@ def load_catalog(filename: str) -> Catalog:
     """
     if '://' not in filename:
         filename = f"file://{os.path.abspath(filename)}"
-    with urlopen_with_retry(filename) as votable:
+    with any_loc_open(filename) as votable:
         # save the timetable as a dataframe, speasy.common.SpeasyVariable
         # get header data first
-        import io
 
         from astropy.io.votable import parse as parse_votable
-        votable = parse_votable(io.BytesIO(votable.read()))
+        votable = parse_votable(votable)
         # convert astropy votable structure to SpeasyVariable
         tab = votable.get_first_table()
         name = next(filter(lambda e: 'Name' in e,

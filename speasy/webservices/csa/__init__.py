@@ -5,12 +5,12 @@ from io import BytesIO
 from tempfile import TemporaryDirectory
 from typing import Optional, Tuple, Dict
 
-import requests
 from astroquery.utils.tap.core import TapPlus
 
-from speasy.core import file_access, AllowedKwargs, fix_name
+from speasy.core.url_utils import build_url
+from speasy.core import any_files, AllowedKwargs, fix_name
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
-from speasy.core.cdf import load_variable
+from speasy.core import cdf
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
@@ -104,8 +104,8 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-def _read_cdf(response: requests.Response, variable: str) -> SpeasyVariable:
-    with tarfile.open(fileobj=BytesIO(response.content)) as tar:
+def _read_cdf(response, variable: str) -> SpeasyVariable:
+    with tarfile.open(fileobj=BytesIO(response.read())) as tar:
         tarname = tar.getnames()
         if len(tarname):
             with TemporaryDirectory() as tmp_dir:
@@ -141,20 +141,16 @@ class CSA_Webservice(DataProvider):
         headers = {}
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        resp = file_access.get(self.__url, params={
-            "RETRIEVAL_TYPE": "product",
-            "DATASET_ID": dataset,
-            "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-            "DELIVERY_FORMAT": "CDF_ISTP",
-            "DELIVERY_INTERVAL": "all"
-        }, headers=headers)
-        log.debug(f"{resp.url}")
-        if resp.status_code != 200:
-            raise RuntimeError(f'Failed to get data with request: {resp.url}, got {resp.status_code} HTTP response')
-        if not resp.ok:
-            return None
-        return _read_cdf(resp, variable)
+        return cdf.load_variable(variable,
+                                 build_url(base=self.__url, parameters={
+                                     "RETRIEVAL_TYPE": "product",
+                                     "DATASET_ID": dataset,
+                                     "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                                     "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                                     "DELIVERY_FORMAT": "CDF_ISTP",
+                                     "DELIVERY_INTERVAL": "all"
+                                 }),
+                                 urlopen_kwargs={'headers': headers})
 
     @staticmethod
     def build_inventory(root: SpeasyIndex):

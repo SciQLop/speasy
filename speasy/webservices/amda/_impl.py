@@ -10,9 +10,9 @@ from .rest_client import auth_args
 from .utils import load_catalog, load_csv, load_timetable
 # General modules
 from ...config import amda as amda_cfg
+from ...core.any_files import any_loc_open
 from ...core.cache import CacheCall
-from ...core.cdf import load_variable as load_cdf
-from ...core.file_access import urlopen_with_retry
+from ...core.cdf import load_variable as cdf_load_variable
 from ...core.inventory.indexes import SpeasyIndex
 from ...inventories import flat_inventories
 from ...products.variable import SpeasyVariable, merge
@@ -103,8 +103,7 @@ class AmdaImpl:
         if url is not None:
             if output_format == "CDF_ISTP":
                 if url is not None:
-                    with urlopen_with_retry(url) as remote_cdf:
-                        var = load_cdf(buffer=remote_cdf.read(), variable=parameter_id)
+                    var = cdf_load_variable(variable=parameter_id, file=url)
             else:
                 var = load_csv(url, parameter_id)
             if len(var):

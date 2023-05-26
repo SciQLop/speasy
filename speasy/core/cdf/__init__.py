@@ -1,6 +1,10 @@
+import io
+
 import pyistp
 
 from ...products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
+from ..http import urlopen
+from ..url_utils import urlparse, is_local_file
 
 
 def _fix_value_type(value):
@@ -37,7 +41,7 @@ def _build_labels(variable: pyistp.loader.DataVariable):
     return [f"component_{i}" for i in range(variable.values.shape[1])]
 
 
-def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None:
+def _load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None:
     istp = pyistp.load(file=file, buffer=buffer)
     if istp:
         if variable in istp.data_variables():
@@ -59,3 +63,10 @@ def load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None
                                      is_time_dependent=True),
                 columns=_build_labels(var))
     return None
+
+
+def load_variable(variable, file: bytes or str or io.IOBase, urlopen_kwargs=None) -> SpeasyVariable or None:
+    if type(file) is str:
+        if is_local_file(file):
+            return _load_variable(variable=variable, file=urlparse(url=file).path)
+        return _load_variable(variable=variable, buffer=urlopen(file, **(urlopen_kwargs or {})).bytes)
