@@ -11,14 +11,8 @@ from speasy.products.variable import merge
 
 
 @CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
-def _load_cdf(url: str) -> bytes:
-    with any_loc_open(url) as remote_cdf:
-        return remote_cdf.read()
-
-
-@CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
 def _read_cdf(url: str, variable: str) -> SpeasyVariable:
-    return load_variable(buffer=_load_cdf(url), variable=variable)
+    return load_variable(file=url, variable=variable)
 
 
 def _split_request(split_rule: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType):
