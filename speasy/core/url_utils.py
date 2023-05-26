@@ -20,14 +20,14 @@ def ensure_url_scheme(url: str) -> str:
         url with 'file:' scheme added when none was provided else input url
     """
     parsed = urlparse(url)
-    if parsed.scheme == '':
-        return urlunparse(parsed._replace(scheme='file'))
+    if parsed.scheme != 'file' and parsed.netloc == '':
+        return f"file://{url}"
     return url
 
 
 def is_local_file(url):
     split_url = urlparse(url)
-    return split_url.scheme in ('', 'file')
+    return split_url.scheme in ('', 'file') or split_url.netloc == ''
 
 
 def build_url(base: str, parameters: Dict) -> str:
