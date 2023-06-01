@@ -11,7 +11,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pds
-
+from speasy.config import amda as amda_cfg
 from speasy.core import epoch_to_datetime64
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.http import urlopen_with_retry
@@ -223,4 +223,5 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
         parameter arguments in dictionary
     """
     return {'path': f"amda/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}', 'output_format': kwargs.get('output_format', 'ASCII')}
+            'stop_time': f'{stop_time.isoformat()}',
+            'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}

@@ -6,9 +6,10 @@ import os
 import unittest
 from datetime import datetime, timezone
 
-from ddt import data, ddt, unpack
-
+import numpy as np
 import speasy as spz
+from ddt import data, ddt, unpack
+from speasy.config import amda as amda_cfg
 from speasy.inventories import flat_inventories
 from speasy.products import SpeasyVariable
 from speasy.webservices.amda import ProductType
@@ -252,6 +253,16 @@ class AMDAModule(unittest.TestCase):
             spz.get_data('amda/This_product_does_not_exist')
         with self.assertRaises(ValueError):
             spz.get_data('amda/This_product_does_not_exist', "2018-01-01", "2018-01-02")
+
+    def test_non_regression_CDF_ISTP_with_proxy_and_config(self):
+        ref = spz.get_data(spz.inventories.tree.amda.Parameters.MMS.MMS1.FPI.fast_mode.mms1_fpi_dismoms.mms1_dis_omni,
+                           "2021-06-01", "2021-06-08T02", output_format='CDF_ISTP')
+        os.environ[amda_cfg.output_format.env_var_name] = 'CDF_ISTP'
+        var = spz.get_data(spz.inventories.tree.amda.Parameters.MMS.MMS1.FPI.fast_mode.mms1_fpi_dismoms.mms1_dis_omni,
+                           "2021-06-01", "2021-06-08T02")
+        self.assertTrue(len(ref.axes), 2)
+        self.assertTrue(len(var.axes), 2)
+        self.assertTrue(np.all(var.axes[1].values == ref.axes[1].values))
 
 
 if __name__ == '__main__':
