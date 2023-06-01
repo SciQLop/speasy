@@ -2,6 +2,20 @@
 History
 =======
 
+
+1.1.1 (2023-04-06)
+------------------
+
+* Fixes bug in v1.1.0 where AMDA CDF requests were not correctly written in cache.
+
+
+1.1.0 (2023-04-06)
+------------------
+
+* Adds badges and links to Google Colab by @jeandet in https://github.com/SciQLop/speasy/pull/82
+* better figure by @nicolasaunai in https://github.com/SciQLop/speasy/pull/83
+* Adds bits for CDF support with AMDA server by @jeandet in https://github.com/SciQLop/speasy/pull/77
+
 1.0.5 (2022-12-22)
 ------------------
 
