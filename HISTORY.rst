@@ -2,6 +2,15 @@
 History
 =======
 
+1.1.2 (2023-06-01)
+------------------
+
+* New Speasy logo! by @jeandet in https://github.com/SciQLop/speasy/pull/84
+* Switches readme to Markdown and removes lgtm badges (deprecated) by @jeandet in https://github.com/SciQLop/speasy/pull/85
+* Reduces requests size for MMS big burst products on CDAWeb by @jeandet in https://github.com/SciQLop/speasy/pull/86
+* Handles cases where labels are missing in CDAWeb generated files by @jeandet in https://github.com/SciQLop/speasy/pull/88
+* Fixes AMDA CSV parser where derived parameters attributes gets overwritten by base param by @jeandet in https://github.com/SciQLop/speasy/pull/87
+* Fixes #90: Uses output format value from config as fallback when requesting data from proxy for AMDA by @jeandet in https://github.com/SciQLop/speasy/pull/91
 
 1.1.1 (2023-04-06)
 ------------------
