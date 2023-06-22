@@ -36,7 +36,7 @@ def query_proxy_version():
     if _CURRENT_PROXY_SERVER_VERSION is None:
         url = proxy_cfg.url()
         if url != "":
-            resp = http.get(f"{url}/get_version?")
+            resp = http.get(f"{url}/get_version")
             if resp.status_code == 200:
                 _CURRENT_PROXY_SERVER_VERSION = Version(resp.text.strip())
                 return _CURRENT_PROXY_SERVER_VERSION
@@ -72,7 +72,7 @@ class GetProduct:
         kwargs['stop_time'] = stop_time
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        resp = http.get(f"{url}/get_data?", params=kwargs)
+        resp = http.get(f"{url}/get_data", params=kwargs)
         log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             var = var_from_dict(pickle.loads(decompress(resp.content)))
@@ -95,7 +95,7 @@ class GetInventory:
         headers = {}
         if saved_inventory is not None:
             headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
-        resp = http.get(f"{url}/get_inventory?", params=kwargs, headers=headers)
+        resp = http.get(f"{url}/get_inventory", params=kwargs, headers=headers)
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.request.headers}")
         if resp.status_code == 200:
             inventory = inventory_from_dict(pickle.loads(decompress(resp.content)))
