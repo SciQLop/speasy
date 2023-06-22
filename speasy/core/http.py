@@ -71,20 +71,20 @@ class Response:
 
 
 class _HttpVerb:
-    def __init__(self, head_or_get):
+    def __init__(self, verb):
         # cf. https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
         retry_strategy = Retry(
             total=DEFAULT_RETRY_COUNT,
             backoff_factor=1,
             status_forcelist=STATUS_FORCE_LIST,
-            allowed_methods=["HEAD", "GET"],
+            allowed_methods=[verb],
             respect_retry_after_header=True
         )
         # self._adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=DEFAULT_TIMEOUT)
         # self._http = requests.Session()
         # self._http.mount("https://", self._adapter)
         # self._http.mount("http://", self._adapter)
-        self._verb = partial(pool.request, method=head_or_get, retries=retry_strategy)
+        self._verb = partial(pool.request, method=verb, retries=retry_strategy)
 
     def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
         # self._adapter.timeout = timeout
