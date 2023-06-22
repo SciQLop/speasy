@@ -86,8 +86,6 @@ def load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
     SpeasyVariable
         CSV contents
     """
-    if '://' not in filename:
-        filename = f"file:///{os.path.abspath(filename)}"
     with any_loc_open(filename, mode='rb') as csv:
         with tempfile.TemporaryFile() as fd:
             # _copy_data(csv, fd)
