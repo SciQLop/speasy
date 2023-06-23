@@ -138,9 +138,10 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertIsNotNone(r)
 
     def test_get_multidimensional_data(self):
-        r = spz.amda.get_data("psp_spe_EvsEvspa", "2021-07-30T00:00:00", "2021-07-30T00:05:00")
-        self.assertIsNotNone(r)
-        self.assertIsNotNone(r.values)
+        for f in ("ASCII", "CDF_ISTP"):
+            r = spz.amda.get_data("psp_spe_EvsE", "2021-07-30T00:00:00", "2021-07-30T00:05:00", output_format=f)
+            self.assertIsNotNone(r)
+            self.assertIsNotNone(r.values)
 
 
 class PrivateProductsRequests(unittest.TestCase):
