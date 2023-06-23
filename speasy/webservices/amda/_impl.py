@@ -106,12 +106,15 @@ class AmdaImpl:
                     var = cdf_load_variable(variable=parameter_id, file=url)
             else:
                 var = load_csv(url, parameter_id)
-            if len(var):
-                log.debug(
-                    f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, \
-                            data stop time = {var.time[-1]}')
+            if var is not None:
+                if len(var):
+                    log.debug(
+                        f'Loaded var: data shape = {var.values.shape}, data start time = {var.time[0]}, \
+                                data stop time = {var.time[-1]}')
+                else:
+                    log.debug('Loaded var: Empty var')
             else:
-                log.debug('Loaded var: Empty var')
+                log.debug(f'Failed to load file f{url}')
             return var
         return None
 
@@ -124,14 +127,9 @@ class AmdaImpl:
             var = None
             curr_t = start_time
             while curr_t < stop_time:
-                if curr_t + dt < stop_time:
-                    var = merge([var, self.dl_parameter_chunk(curr_t, curr_t + dt, parameter_id,
-                                                              extra_http_headers=extra_http_headers,
-                                                              output_format=output_format, **kwargs)])
-                else:
-                    var = merge([var, self.dl_parameter_chunk(curr_t, stop_time, parameter_id,
-                                                              extra_http_headers=extra_http_headers,
-                                                              output_format=output_format, **kwargs)])
+                var = merge([var, self.dl_parameter_chunk(curr_t, min(curr_t + dt, stop_time), parameter_id,
+                                                          extra_http_headers=extra_http_headers,
+                                                          output_format=output_format, **kwargs)])
                 curr_t += dt
             return var
         else:
