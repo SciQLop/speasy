@@ -82,6 +82,9 @@ class Cache:
     def get(self, key, default_value=None):
         return self._data.get(key, default_value)
 
+    def drop(self, key):
+        self._data.delete(key)
+
     def transact(self):
         if self.cache_type != 'Fanout':
             return self._data.transact()

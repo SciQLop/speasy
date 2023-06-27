@@ -3,10 +3,11 @@ import logging
 import os
 import re
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 from .url_utils import is_local_file
 
 from speasy.core.cache import CacheCall
+from speasy.core.cache import get_item, add_item, CacheItem
 from . import http
 
 log = logging.getLogger(__name__)
@@ -45,15 +46,44 @@ class AnyFile(io.IOBase):
         return getattr(self._file_impl, item)
 
 
-def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
+def _remote_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
+    resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+    if 'b' in mode:
+        return AnyFile(url, io.BytesIO(resp.bytes))
+    else:
+        return AnyFile(url, io.StringIO(resp.text))
+
+
+def _make_file_from_cache_entry(entry: CacheItem, url: str, mode: str) -> AnyFile:
+    if 'b' in mode:
+        return AnyFile(url, io.BytesIO(entry.data))
+    else:
+        return AnyFile(url, io.StringIO(entry.data))
+
+
+def _cache_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb') -> AnyFile:
+    resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+    if 'b' in mode:
+        entry = CacheItem(data=resp.bytes, version=resp.headers['last-modified'])
+    else:
+        entry = CacheItem(data=resp.text, version=resp.headers['last-modified'])
+    add_item(key=url, item=entry)
+    return _make_file_from_cache_entry(entry, url, mode)
+
+
+def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb', cache_remote_files=False):
     if is_local_file(url):
         return AnyFile(url, open(url.replace('file://', ''), mode=mode))
     else:
-        resp = http.urlopen(url=url, headers=headers, timeout=timeout)
-        if 'b' in mode:
-            return AnyFile(url, io.BytesIO(resp.bytes))
+        if cache_remote_files:
+            last_modified = http.head(url).headers['last-modified']
+            cache_item: Optional[CacheItem] = get_item(url)
+            if cache_item is None or last_modified != cache_item.version:
+                return _cache_remote_file(url, timeout=timeout, headers=headers, mode=mode)
+            else:
+                return _make_file_from_cache_entry(cache_item, url, mode)
         else:
-            return AnyFile(url, io.StringIO(resp.text))
+            return _remote_open(url, timeout=timeout, headers=headers, mode=mode)
 
 
 def _list_local_files(path: str) -> List[str]:
