@@ -24,5 +24,9 @@ def add_item(key, item, expires=None):
     _cache.set(key, item, expires)
 
 
+def drop_item(key):
+    _cache.drop(key)
+
+
 def get_item(key, default_value=None):
     return _cache.get(key, default_value)
