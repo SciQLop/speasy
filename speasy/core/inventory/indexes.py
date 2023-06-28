@@ -74,10 +74,10 @@ class ParameterIndex(SpeasyIndex):
         return f'<ParameterIndex: {self.spz_name()}>'
 
     def __iter__(self):
-        return [v for v in self.__dict__.values() if type(v) is ComponentIndex].__iter__()
+        return [v for v in self.__dict__.values() if isinstance(v, ComponentIndex)].__iter__()
 
     def __contains__(self, item: str or ComponentIndex):
-        if type(item) is ComponentIndex:
+        if isinstance(item, ComponentIndex):
             item = item.spz_uid()
         for member in self.__dict__.values():
             if isinstance(member, ComponentIndex):
@@ -94,10 +94,10 @@ class DatasetIndex(SpeasyIndex):
         return f'<DatasetIndex: {self.spz_name()}>'
 
     def __iter__(self):
-        return [v for v in self.__dict__.values() if type(v) is ParameterIndex].__iter__()
+        return [v for v in self.__dict__.values() if isinstance(v, ParameterIndex)].__iter__()
 
     def __contains__(self, item: str or ParameterIndex):
-        if type(item) is ParameterIndex:
+        if isinstance(item, ParameterIndex):
             item = item.spz_uid()
         for member in self.__dict__.values():
             if isinstance(member, ParameterIndex):

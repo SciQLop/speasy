@@ -77,7 +77,7 @@ class DataProvider:
             else:
                 raise ValueError(f"Unknown dataset: {index_or_str}")
 
-        if type(index_or_str) is DatasetIndex:
+        if isinstance(index_or_str, DatasetIndex):
             return index_or_str
         else:
             raise TypeError(f"given dataset {index_or_str} of type {type(index_or_str)} is not a compatible index")
@@ -89,7 +89,7 @@ class DataProvider:
             else:
                 raise ValueError(f"Unknown parameter: {index_or_str}")
 
-        if type(index_or_str) is ParameterIndex:
+        if isinstance(index_or_str, ParameterIndex):
             return index_or_str
         else:
             raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")

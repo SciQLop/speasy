@@ -117,7 +117,7 @@ class CDA_Webservice(DataProvider):
 
     def _to_dataset_and_variable(self, index_or_str: ParameterIndex or str) -> Tuple[str, str]:
 
-        if type(index_or_str) is ParameterIndex:
+        if isinstance(index_or_str, ParameterIndex):
             index_or_str = index_or_str.spz_uid()
 
         if type(index_or_str) is str:

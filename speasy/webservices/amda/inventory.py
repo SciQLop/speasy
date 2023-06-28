@@ -27,7 +27,7 @@ def to_parameter_index(index_or_str) -> ParameterIndex:
         else:
             raise ValueError(f"Unknown parameter: {index_or_str}")
 
-    if type(index_or_str) is ParameterIndex:
+    if isinstance(index_or_str, ParameterIndex):
         return index_or_str
     else:
         raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
@@ -40,7 +40,7 @@ def to_dataset_index(index_or_str) -> DatasetIndex:
         else:
             raise ValueError(f"Unknown dataset: {index_or_str}")
 
-    if type(index_or_str) is DatasetIndex:
+    if isinstance(index_or_str, DatasetIndex):
         return index_or_str
     else:
         raise TypeError(f"given dataset {index_or_str} of type {type(index_or_str)} is not a compatible index")
@@ -91,7 +91,7 @@ class AmdaXMLParser:
     @staticmethod
     def make_parameter_node(parent, node, is_public=True):
         param = AmdaXMLParser.make_any_node(parent, node, ParameterIndex, is_public=is_public)
-        if type(parent) is DatasetIndex:
+        if isinstance(parent, DatasetIndex):
             param.start_date = parent.start_date
             param.stop_date = parent.stop_date
             param.dataset = parent.spz_uid()
@@ -106,7 +106,7 @@ class AmdaXMLParser:
     @staticmethod
     def make_component_node(parent, node, is_public=True):
         component = AmdaXMLParser.make_any_node(parent, node, ComponentIndex, is_public=is_public)
-        if type(parent) is ParameterIndex:
+        if isinstance(parent, ParameterIndex):
             component.start_date = parent.start_date
             component.stop_date = parent.stop_date
             component.dataset = parent.dataset
