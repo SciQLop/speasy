@@ -24,29 +24,6 @@ log = logging.getLogger(__name__)
 
 DATA_CHUNK_SIZE = 10485760
 
-
-def _copy_data(csv, fd):
-    content_length = 0
-    chunk_size = -1
-    if hasattr(csv, 'getheader'):
-        content_length = csv.getheader('content-length')
-        if content_length:
-            content_length = int(content_length)
-            chunk_size = DATA_CHUNK_SIZE
-    size = 0
-    while True:
-        chunk = csv.read(chunk_size)
-        if not chunk:
-            break
-        fd.write(chunk)
-        size += len(chunk)
-        if content_length:
-            percent = int((size / content_length) * 100)
-            log.debug(f"Download data: {percent}%")
-    fd.seek(0)
-    return fd
-
-
 _parameters_header_blocks_regex = re.compile(
     f"(# *PARAMETER_ID : ([^{os.linesep}]+){os.linesep}(# *[A-Z_]+ : [^{os.linesep}]+{os.linesep})+)+")
 
