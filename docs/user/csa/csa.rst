@@ -16,16 +16,18 @@ your product.
 Once you have found your product, then simply ask CSA module to get data for the provided time range:
 
     >>> import speasy as spz
-    >>> # Let's assume you wanted to get 'Cluster C3, Calibrated Magnetic Field WaveForm'
-    >>> c3_staff = spz.csa.get_data(spz.inventories.data_tree.csa.Cluster.Cluster_3.STAFF_SC3.C3_CP_STA_CWF_ISR2.B_vec_xyz_Instrument__C3_CP_STA_CWF_ISR2, "2018-01-01", "2018-01-01T01")
-    >>> c3_staff.columns
+    >>> # Let's assume you wanted to get 'Cluster C3, Magnetic Field Vector, spin resolution in GSE'
+    >>> c3_fgm_spin = spz.csa.get_data(spz.inventories.data_tree.csa.Cluster.Cluster_3.FGM3.C3_CP_FGM_SPIN.B_vec_xyz_gse__C3_CP_FGM_SPIN, "2018-01-01", "2018-01-01T01")
+    >>> c3_fgm_spin.columns
     ['Bx', 'By', 'Bz']
-    >>> c3_staff.values
-    array([[-0.27403101, -0.82174301,  0.92371303],
-           [-0.27723601, -1.32115996,  1.08062005],
-           [-0.13289499, -1.80436003,  0.579413  ],
+    >>> c3_fgm_spin.values
+    array([[  4.60300016,  13.44400024, -16.83200073],
+           [  4.68400002,  12.85200024, -16.70800018],
+           [  2.8599999 ,  12.79399967, -17.36199951],
            ...,
-           [-1.80206001,  2.71304011,  3.36619997],
-           [-1.84262002,  2.67682004,  3.2111001 ],
-           [-1.90382004,  2.64352989,  3.0192399 ]])
+           [ 20.58600044,  -4.40700006, -29.24699974],
+           [ 20.74099922,  -0.26800001, -29.07799911],
+           [ 20.3560009 ,   1.05200005, -27.90399933]])
+
+
 
