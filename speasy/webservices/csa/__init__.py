@@ -7,15 +7,15 @@ from typing import Optional, Tuple, Dict
 
 from astroquery.utils.tap.core import TapPlus
 
-from speasy.core.url_utils import build_url
 from speasy.core import any_files, AllowedKwargs, fix_name
-from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core import cdf
+from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.requests_scheduling import SplitLargeRequests
+from speasy.core.url_utils import build_url
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
     if type(index_or_str) is str:
         parts = index_or_str.split('/')
-    elif type(index_or_str) is ParameterIndex:
+    elif isinstance(index_or_str, ParameterIndex):
         parts = index_or_str.product.split('/')
     else:
         raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
