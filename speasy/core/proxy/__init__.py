@@ -73,9 +73,9 @@ class GetProduct:
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
         resp = http.get(f"{url}/get_data", params=kwargs)
-        log.debug(f"Asking data from proxy {resp.url}, {resp.request.headers}")
+        log.debug(f"Asking data from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
-            var = var_from_dict(pickle.loads(decompress(resp.content)))
+            var = var_from_dict(pickle.loads(decompress(resp.bytes)))
             return var
         return None
 
@@ -96,9 +96,9 @@ class GetInventory:
         if saved_inventory is not None:
             headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
         resp = http.get(f"{url}/get_inventory", params=kwargs, headers=headers)
-        log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.request.headers}")
+        log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
-            inventory = inventory_from_dict(pickle.loads(decompress(resp.content)))
+            inventory = inventory_from_dict(pickle.loads(decompress(resp.bytes)))
             index.set("proxy_inventories", provider, inventory)
             index.set("proxy_inventories_save_date", provider, datetime.utcnow())
             return inventory
