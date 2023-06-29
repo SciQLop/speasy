@@ -11,7 +11,7 @@ from speasy.core.cache import get_item, add_item, CacheItem
 from . import http
 
 log = logging.getLogger(__name__)
-_HREF_REGEX = re.compile(' href="([A-Za-z0-9.-_]+)">')
+_HREF_REGEX = re.compile(' href="([A-Za-z0-9-_.]+)">')
 
 
 class AnyFile(io.IOBase):
