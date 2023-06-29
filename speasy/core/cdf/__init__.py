@@ -2,9 +2,9 @@ import io
 
 import pyistp
 
-from ...products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
-from ..http import urlopen
+from ..any_files import any_loc_open
 from ..url_utils import urlparse, is_local_file
+from ...products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 
 
 def _fix_value_type(value):
@@ -65,11 +65,12 @@ def _load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or Non
     return None
 
 
-def load_variable(variable, file: bytes or str or io.IOBase, urlopen_kwargs=None) -> SpeasyVariable or None:
+def load_variable(variable, file: bytes or str or io.IOBase, cache_remote_files=True) -> SpeasyVariable or None:
     if type(file) is str:
         if is_local_file(file):
             return _load_variable(variable=variable, file=urlparse(url=file).path)
-        return _load_variable(variable=variable, buffer=urlopen(file, **(urlopen_kwargs or {})).bytes)
+        return _load_variable(variable=variable,
+                              buffer=any_loc_open(file, mode='rb', cache_remote_files=cache_remote_files).read())
     if type(file) is bytes:
         return _load_variable(variable=variable, buffer=bytes)
     if hasattr(file, 'read'):

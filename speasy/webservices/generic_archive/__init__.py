@@ -14,8 +14,7 @@ from speasy.core import AnyDateTimeType
 from speasy.core.cdf.inventory_extractor import make_dataset_index
 from speasy.core.dataprovider import DataProvider
 from speasy.core.direct_archive_downloader import get_product
-from speasy.core.inventory import ParameterIndex
-from speasy.core.inventory.indexes import SpeasyIndex
+from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
@@ -43,8 +42,8 @@ def load_inventory_file(file: str, root: SpeasyIndex):
         for name, entry in entries.items():
             path = f"{entry['inventory_path']}/{name}"
             parent = get_or_make_node(entry['inventory_path'], root)
-            entry_meta = {f"spz_{key}": value for key, value in entry.items()}
-            entry_meta['spz_use_file_list'] = entry_meta.get('spz_use_file_list', False)
+            entry_meta = {"spz_ga_cfg": entry}
+            entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
             dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive', meta=entry_meta,
                                          params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
             if dataset:
@@ -83,6 +82,6 @@ class GenericArchive(DataProvider):
 
     def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType) -> Optional[
         SpeasyVariable]:
-        return get_product(url_pattern=product.spz_url_template, split_rule=product.spz_split_rule,
-                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time,
-                           use_file_list=product.spz_use_file_list)
+        ga_cfg: dict = getattr(product, 'spz_ga_cfg')
+        return get_product(**ga_cfg,
+                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time)
