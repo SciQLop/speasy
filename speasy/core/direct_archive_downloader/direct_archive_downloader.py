@@ -61,7 +61,7 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
         start = start.replace(hour=0, minute=0, second=0, microsecond=0)
         return [start + timedelta(days=d) for d in range((stop - start).days + 1)]
     if split_frequency.lower() == "monthly":
-        start = start.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        start = start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         return [start + relativedelta(months=m) for m in range(relativedelta(stop, start).months + 1)]
     if split_frequency.lower() == "yearly":
         start = start.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -85,7 +85,8 @@ class RandomSplitDirectDownload:
                    **kwargs):
 
         keep = []
-        stop = make_utc_datetime(stop_time)
+        start_time = make_utc_datetime(start_time)
+        stop_time = make_utc_datetime(stop_time)
         for start in spilt_range(split_frequency, start_time, stop_time):
             base_ulr = url_pattern.format(Y=start.year, M=start.month, D=start.day, H=start.hour)
             folder_url, rx = base_ulr.rsplit('/', 1)
@@ -96,22 +97,23 @@ class RandomSplitDirectDownload:
             if len(files):
                 for index, file in enumerate(files[:-1]):
                     d = file.groupdict()
-                    if RandomSplitDirectDownload.overlaps_range(range_start=start, range_stop=stop, start=d['start'],
+                    if RandomSplitDirectDownload.overlaps_range(range_start=start_time, range_stop=stop_time,
+                                                                start=d['start'],
                                                                 stop=d.get('stop',
                                                                            files[index + 1].groupdict()['start'])):
                         keep.append(f'{folder_url}/{file.string}')
 
                 d = files[-1].groupdict()
-                if RandomSplitDirectDownload.overlaps_range(range_start=start, range_stop=stop, start=d['start'],
-                                                            stop=d.get('stop', max(make_utc_datetime(stop),
+                if RandomSplitDirectDownload.overlaps_range(range_start=start_time, range_stop=stop_time,
+                                                            start=d['start'],
+                                                            stop=d.get('stop', max(stop_time,
                                                                                    make_utc_datetime(d['start'])))):
                     keep.append(f'{folder_url}/{files[-1].string}')
         return keep
 
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                    fname_regex: str,
-                    split_frequency: str = "daily", **kwargs) -> Optional[SpeasyVariable]:
+                    fname_regex: str, split_frequency: str = "daily", **kwargs) -> Optional[SpeasyVariable]:
         v = merge(
             list(map(partial(_read_cdf, variable=variable),
                      RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
