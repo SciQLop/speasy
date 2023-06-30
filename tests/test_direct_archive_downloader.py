@@ -3,14 +3,50 @@ import unittest
 from ddt import ddt, data, unpack
 
 import speasy as spz
+from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
-from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product
+from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product, spilt_range
 
 
 @ddt
 class DirectArchiveDownloader(unittest.TestCase):
     def setUp(self):
         pass
+
+    def test_split_rules(self):
+        self.assertListEqual(spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-01'),
+                             [make_utc_datetime('2010-01-01')]
+                             )
+        self.assertListEqual(spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-01-01'),
+                             [make_utc_datetime('2010-01-01')]
+                             )
+        self.assertListEqual(spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2010-01-01'),
+                             [make_utc_datetime('2010-01-01')]
+                             )
+
+        self.assertListEqual(spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-02'),
+                             [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-01-02')]
+                             )
+        self.assertListEqual(spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-02-01'),
+                             [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-02-01')]
+                             )
+        self.assertListEqual(spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2011-01-01'),
+                             [make_utc_datetime('2010-01-01'), make_utc_datetime('2011-01-01')]
+                             )
+
+        self.assertListEqual(spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-02T01'),
+                             [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-01-02')]
+                             )
+        self.assertListEqual(spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-02-01T01'),
+                             [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-02-01')]
+                             )
+        self.assertListEqual(spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2011-01-01T01'),
+                             [make_utc_datetime('2010-01-01'), make_utc_datetime('2011-01-01')]
+                             )
+
+    def test_unknown_split_rules_raises(self):
+        with self.assertRaises(ValueError):
+            spilt_range(split_frequency='unknown', start_time='2010-01-01', stop_time='2011-01-01')
 
     @data(
         (
