@@ -10,6 +10,7 @@ erg_pwe_hfa_l3_1min:
     master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_pwe_hfa_l3_1min_00000000_v01.cdf"
     inventory_path: 'cda/Arase_ERG/PWE/HFA'
     split_rule: "regular"
+
 mms1_fpi_brst_l2_des_moms:
     url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms1/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms1_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
     use_file_list: true
@@ -19,3 +20,29 @@ mms1_fpi_brst_l2_des_moms:
     split_frequency: "monthly"
     fname_regex: 'mms1_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
 
+mms2_fpi_brst_l2_des_moms:
+    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms2/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms2_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
+    use_file_list: true
+    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms2_fpi_brst_l2_des-moms_00000000_v01.cdf"
+    inventory_path: 'cda/MMS/MMS2/FPI/BURST/MOMS'
+    split_rule: "random"
+    split_frequency: "monthly"
+    fname_regex: 'mms2_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
+
+mms3_fpi_brst_l2_des_moms:
+    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms3/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms3_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
+    use_file_list: true
+    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms3_fpi_brst_l2_des-moms_00000000_v01.cdf"
+    inventory_path: 'cda/MMS/MMS3/FPI/BURST/MOMS'
+    split_rule: "random"
+    split_frequency: "monthly"
+    fname_regex: 'mms3_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
+
+mms4_fpi_brst_l2_des_moms:
+    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms4/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms4_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
+    use_file_list: true
+    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms4_fpi_brst_l2_des-moms_00000000_v01.cdf"
+    inventory_path: 'cda/MMS/MMS4/FPI/BURST/MOMS'
+    split_rule: "random"
+    split_frequency: "monthly"
+    fname_regex: 'mms4_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'

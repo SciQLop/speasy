@@ -1,0 +1,385 @@
+tha_efi:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/efi/0000/tha_l2_efi_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/efi/{Y}/tha_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_esa:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/esa/0000/tha_l2_esa_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/esa/{Y}/tha_l2_esa_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_esd:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/esd/0000/tha_l2_esd_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/esd/{Y}/tha_l2_esd_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_fbk:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/fbk/0000/tha_l2_fbk_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fbk/{Y}/tha_l2_fbk_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_fft:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/fft/0000/tha_l2_fft_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fft/{Y}/tha_l2_fft_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_fgm:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/0000/tha_l2_fgm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/{Y}/tha_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_fit:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/fit/0000/tha_l2_fit_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fit/{Y}/tha_l2_fit_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_gmom:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/gmom/0000/tha_l2_gmom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/gmom/{Y}/tha_l2_gmom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_mom:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/mom/0000/tha_l2_mom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/mom/{Y}/tha_l2_mom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_scm:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/scm/0000/tha_l2_scm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/scm/{Y}/tha_l2_scm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+tha_sst:
+  inventory_path: cdpp/THEMIS/THA/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/sst/0000/tha_l2_sst_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/sst/{Y}/tha_l2_sst_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_efi:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/efi/0000/thb_l2_efi_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/efi/{Y}/thb_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_esa:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/esa/0000/thb_l2_esa_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/esa/{Y}/thb_l2_esa_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_esd:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/esd/0000/thb_l2_esd_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/esd/{Y}/thb_l2_esd_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_fbk:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/fbk/0000/thb_l2_fbk_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/fbk/{Y}/thb_l2_fbk_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_fft:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/fft/0000/thb_l2_fft_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/fft/{Y}/thb_l2_fft_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_fgm:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/fgm/0000/thb_l2_fgm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/fgm/{Y}/thb_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_fit:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/fit/0000/thb_l2_fit_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/fit/{Y}/thb_l2_fit_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_gmom:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/gmom/0000/thb_l2_gmom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/gmom/{Y}/thb_l2_gmom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_mom:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/mom/0000/thb_l2_mom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/mom/{Y}/thb_l2_mom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_scm:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/scm/0000/thb_l2_scm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/scm/{Y}/thb_l2_scm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thb_sst:
+  inventory_path: cdpp/THEMIS/THB/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thb/l2/sst/0000/thb_l2_sst_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thb/l2/sst/{Y}/thb_l2_sst_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_efi:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/efi/0000/thc_l2_efi_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/efi/{Y}/thc_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_esa:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/esa/0000/thc_l2_esa_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/esa/{Y}/thc_l2_esa_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_esd:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/esd/0000/thc_l2_esd_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/esd/{Y}/thc_l2_esd_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_fbk:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/fbk/0000/thc_l2_fbk_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/fbk/{Y}/thc_l2_fbk_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_fft:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/fft/0000/thc_l2_fft_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/fft/{Y}/thc_l2_fft_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_fgm:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/fgm/0000/thc_l2_fgm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/fgm/{Y}/thc_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_fit:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/fit/0000/thc_l2_fit_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/fit/{Y}/thc_l2_fit_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_gmom:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/gmom/0000/thc_l2_gmom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/gmom/{Y}/thc_l2_gmom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_mom:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/mom/0000/thc_l2_mom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/mom/{Y}/thc_l2_mom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_scm:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/scm/0000/thc_l2_scm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/scm/{Y}/thc_l2_scm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thc_sst:
+  inventory_path: cdpp/THEMIS/THC/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thc/l2/sst/0000/thc_l2_sst_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thc/l2/sst/{Y}/thc_l2_sst_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_efi:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/efi/0000/thd_l2_efi_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/efi/{Y}/thd_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_esa:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/esa/0000/thd_l2_esa_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/esa/{Y}/thd_l2_esa_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_esd:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/esd/0000/thd_l2_esd_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/esd/{Y}/thd_l2_esd_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_fbk:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/fbk/0000/thd_l2_fbk_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/fbk/{Y}/thd_l2_fbk_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_fft:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/fft/0000/thd_l2_fft_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/fft/{Y}/thd_l2_fft_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_fgm:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/fgm/0000/thd_l2_fgm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/fgm/{Y}/thd_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_fit:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/fit/0000/thd_l2_fit_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/fit/{Y}/thd_l2_fit_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_gmom:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/gmom/0000/thd_l2_gmom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/gmom/{Y}/thd_l2_gmom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_mom:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/mom/0000/thd_l2_mom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/mom/{Y}/thd_l2_mom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_scm:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/scm/0000/thd_l2_scm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/scm/{Y}/thd_l2_scm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+thd_sst:
+  inventory_path: cdpp/THEMIS/THD/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/thd/l2/sst/0000/thd_l2_sst_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/thd/l2/sst/{Y}/thd_l2_sst_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_efi:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/efi/0000/the_l2_efi_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/efi/{Y}/the_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_esa:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/esa/0000/the_l2_esa_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/esa/{Y}/the_l2_esa_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_esd:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/esd/0000/the_l2_esd_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/esd/{Y}/the_l2_esd_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_fbk:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/fbk/0000/the_l2_fbk_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/fbk/{Y}/the_l2_fbk_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_fft:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/fft/0000/the_l2_fft_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/fft/{Y}/the_l2_fft_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_fgm:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/fgm/0000/the_l2_fgm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/fgm/{Y}/the_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_fit:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/fit/0000/the_l2_fit_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/fit/{Y}/the_l2_fit_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_gmom:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/gmom/0000/the_l2_gmom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/gmom/{Y}/the_l2_gmom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_mom:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/mom/0000/the_l2_mom_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/mom/{Y}/the_l2_mom_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_scm:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/scm/0000/the_l2_scm_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/scm/{Y}/the_l2_scm_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
+the_sst:
+  inventory_path: cdpp/THEMIS/THE/L2
+  master_cdf: http://cdpp.irap.omp.eu/themisdata/the/l2/sst/0000/the_l2_sst_00000000_v01.cdf
+  split_frequency: daily
+  split_rule: regular
+  url_pattern: http://cdpp.irap.omp.eu/themisdata/the/l2/sst/{Y}/the_l2_sst_{Y}{M:02d}{D:02d}_v\d+.cdf
+  use_file_list: true
