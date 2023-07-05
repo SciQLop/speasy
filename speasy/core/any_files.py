@@ -2,13 +2,13 @@ import io
 import logging
 import os
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List, Optional
-from .url_utils import is_local_file
 
 from speasy.core.cache import CacheCall
 from speasy.core.cache import get_item, add_item, CacheItem
 from . import http
+from .url_utils import is_local_file
 
 log = logging.getLogger(__name__)
 _HREF_REGEX = re.compile(' href="([A-Za-z0-9-_.]+)">')
@@ -64,9 +64,9 @@ def _make_file_from_cache_entry(entry: CacheItem, url: str, mode: str) -> AnyFil
 def _cache_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb') -> AnyFile:
     resp = http.urlopen(url=url, headers=headers, timeout=timeout)
     if 'b' in mode:
-        entry = CacheItem(data=resp.bytes, version=resp.headers['last-modified'])
+        entry = CacheItem(data=resp.bytes, version=resp.getheader('last-modified', str(datetime.now())))
     else:
-        entry = CacheItem(data=resp.text, version=resp.headers['last-modified'])
+        entry = CacheItem(data=resp.text, version=resp.getheader('last-modified', str(datetime.now())))
     add_item(key=url, item=entry)
     return _make_file_from_cache_entry(entry, url, mode)
 
@@ -76,7 +76,7 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None,
         return AnyFile(url, open(url.replace('file://', ''), mode=mode))
     else:
         if cache_remote_files:
-            last_modified = http.head(url).headers['last-modified']
+            last_modified = http.head(url).getheader('last-modified', str(datetime.now()))
             cache_item: Optional[CacheItem] = get_item(url)
             if cache_item is None or last_modified != cache_item.version:
                 return _cache_remote_file(url, timeout=timeout, headers=headers, mode=mode)

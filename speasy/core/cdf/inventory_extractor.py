@@ -62,7 +62,7 @@ def extract_parameters(url: str, provider: str, uid_fmt: str = "{var_name}", met
 def make_dataset_index(url: str, name: str, provider: str, uid: str, meta=None,
                        params_uid_format: str = "{var_name}", params_meta=None) -> Optional[DatasetIndex]:
     try:
-        with any_loc_open(url) as remote_cdf:
+        with any_loc_open(url, cache_remote_files=True) as remote_cdf:
             meta = meta or {}
             params_meta = params_meta or {}
             cdf = pyistp.load(buffer=remote_cdf.read())
