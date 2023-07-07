@@ -9,6 +9,7 @@ __version__ = '0.1.0'
 import logging
 from typing import Optional
 
+from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
 from speasy.core import AnyDateTimeType
 from speasy.core.cdf.inventory_extractor import make_dataset_index
@@ -23,6 +24,11 @@ log = logging.getLogger(__name__)
 def _global_inventory_dir():
     import os
     return os.path.join(os.path.dirname(__file__), "../../data/archive")
+
+
+def user_inventory_dir():
+    import os
+    return os.path.join(SPEASY_CONFIG_DIR, "archive")
 
 
 def get_or_make_node(path: str, root: SpeasyIndex) -> SpeasyIndex:
@@ -59,6 +65,7 @@ class GenericArchive(DataProvider):
         from glob import glob
         lookup_dirs = cfg.extra_inventory_lookup_dirs.get()
         lookup_dirs.add(_global_inventory_dir())
+        lookup_dirs.add(user_inventory_dir())
         for lookup_dir in lookup_dirs:
             for file in glob(f"{lookup_dir}/*.y*ml"):
                 load_inventory_file(file, root)
