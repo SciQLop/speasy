@@ -1,10 +1,11 @@
 import logging
+from datetime import timedelta
 from typing import List, Optional
 
 import pyistp
 from pyistp.loader import DataVariable, ISTPLoader
-
 from speasy.core.any_files import any_loc_open
+from speasy.core.cache import CacheCall
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex
 
 log = logging.getLogger(__name__)
@@ -21,9 +22,16 @@ def filter_variable_meta(datavar: DataVariable) -> dict:
     return base
 
 
+def _attribute_value(attr):
+    if len(attr) == 1:
+        return attr[0]
+    else:
+        return list(attr)
+
+
 def filter_dataset_meta(dataset: ISTPLoader) -> dict:
     keep_list = ['Caveats', 'Rules_of_use']
-    return {key: dataset.attribute(key) for key in dataset.attributes() if key in keep_list}
+    return {key: _attribute_value(dataset.attribute(key)) for key in dataset.attributes() if key in keep_list}
 
 
 def extract_parameter(cdf: ISTPLoader, var_name: str, provider: str, uid_fmt: str = "{var_name}", meta=None) -> \
@@ -59,6 +67,7 @@ def extract_parameters(url: str, provider: str, uid_fmt: str = "{var_name}", met
     return indexes
 
 
+@CacheCall(cache_retention=timedelta(days=7), is_pure=True)
 def make_dataset_index(url: str, name: str, provider: str, uid: str, meta=None,
                        params_uid_format: str = "{var_name}", params_meta=None) -> Optional[DatasetIndex]:
     try:
