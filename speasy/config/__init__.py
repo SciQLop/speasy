@@ -13,8 +13,9 @@ import appdirs
 
 from ..core import mkdir
 
-_CONFIG_FNAME = str(appdirs.user_config_dir(
-    appname="speasy", appauthor="LPP")) + "/config.ini"
+SPEASY_CONFIG_DIR = str(appdirs.user_config_dir(appname="speasy", appauthor="LPP"))
+
+_CONFIG_FNAME = os.path.join(SPEASY_CONFIG_DIR, "/config.ini")
 mkdir(os.path.dirname(_CONFIG_FNAME))
 _config = configparser.ConfigParser()
 _config.read(_CONFIG_FNAME)
