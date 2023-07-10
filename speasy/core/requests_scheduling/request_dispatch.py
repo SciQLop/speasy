@@ -1,18 +1,18 @@
+import sys
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
-import sys
+
 import numpy as np
 
+from .. import is_collection, progress_bar
+from ..datetime_range import DateTimeRange
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  DatasetIndex, ParameterIndex,
                                  SpeasyIndex, TimetableIndex)
-
+from ...config import core as core_cfg
 from ...products import *
 from ...webservices import (AMDA_Webservice, CDA_Webservice, CSA_Webservice,
-                            SSC_Webservice)
-from .. import is_collection, progress_bar
-from ..datetime_range import DateTimeRange
-from ...config import core as core_cfg
+                            SSC_Webservice, CDPP_3DView_Webservice)
 
 TimeT = Union[str, datetime, float, np.datetime64]
 TimeRangeT = Union[DateTimeRange, Tuple[TimeT, TimeT]]
@@ -24,6 +24,7 @@ amda = None
 csa = None
 cda = None
 ssc = None
+cdpp3dview = None
 
 if 'amda' not in core_cfg.disabled_providers():
     amda = AMDA_Webservice()
@@ -46,6 +47,12 @@ if not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
     sys.modules[__name__].ssc = ssc
     PROVIDERS['ssc'] = ssc
     PROVIDERS['sscweb'] = ssc
+
+if not core_cfg.disabled_providers().intersection({'CDPP_3DView', '3DView'}):
+    cdpp3dview = CDPP_3DView_Webservice()
+    sys.modules[__name__].cdpp3dview = cdpp3dview
+    PROVIDERS['CDPP_3DView'] = cdpp3dview
+    PROVIDERS['3DView'] = cdpp3dview
 
 
 def list_providers() -> List[str]:

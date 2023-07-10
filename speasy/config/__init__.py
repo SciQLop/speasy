@@ -196,6 +196,15 @@ amda = ConfigSection("AMDA",
                          "default": "ASCII"}
                      )
 
+cdpp_3dview = ConfigSection("3DView",
+                            cache_retention={"default": 900,
+                                             "description": "3DView cache retention for non trajectories requests in seconds.",
+                                             "type_ctor": int
+                                             },
+                            wsld_url={
+                                "default": "http://3dview.irap.omp.eu/CdppServices?wsdl"}
+                            )
+
 inventories = ConfigSection("INVENTORIES",
                             cache_retention_days={
                                 "default": 2,
