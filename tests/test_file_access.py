@@ -45,7 +45,7 @@ class FileAccess(unittest.TestCase):
     def test_simple_remote_bin_file(self):
         f = any_loc_open("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw", mode='rb')
         self.assertIsNotNone(f)
-        self.assertEquals(b'\x7fELF', f.read(4))
+        self.assertEqual(b'\x7fELF', f.read(4))
 
     def test_cached_remote_bin_file(self):
         drop_item("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw")
@@ -53,11 +53,11 @@ class FileAccess(unittest.TestCase):
         f = any_loc_open("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw", mode='rb',
                          cache_remote_files=True)
         mid = datetime.now()
-        self.assertEquals(b'\x7fELF', f.read(4))
+        self.assertEqual(b'\x7fELF', f.read(4))
         f = any_loc_open("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw", mode='rb',
                          cache_remote_files=True)
         stop = datetime.now()
-        self.assertEquals(b'\x7fELF', f.read(4))
+        self.assertEqual(b'\x7fELF', f.read(4))
         self.assertIsNotNone(f)
         self.assertGreater(mid - start, stop - mid)
 
