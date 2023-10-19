@@ -11,7 +11,7 @@ astropy
 ddt
 pytest
 pytest-cov
-pyistp
+pyistp>=0.4.0
 astroquery
 tqdm
 matplotlib
