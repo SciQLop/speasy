@@ -32,7 +32,7 @@ class UrlUtils(unittest.TestCase):
     )
     @unpack
     def test_is_local_file(self, url, is_local):
-        self.assertEquals(is_local_file(url), is_local)
+        self.assertEqual(is_local_file(url), is_local)
 
     @data(
         ("/home/test/files.txt", "file:///home/test/files.txt"),
@@ -46,4 +46,4 @@ class UrlUtils(unittest.TestCase):
     )
     @unpack
     def test_ensure_url_scheme(self, url, expected_url):
-        self.assertEquals(ensure_url_scheme(url), expected_url)
+        self.assertEqual(ensure_url_scheme(url), expected_url)
