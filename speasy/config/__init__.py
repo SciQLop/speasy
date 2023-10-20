@@ -194,7 +194,7 @@ amda = ConfigSection("AMDA",
                          "default": "http://amda.irap.omp.eu"},
                      output_format={
                          "description": "File format requested to AMDA, either ASCII or CDF_ISTP",
-                         "default": "ASCII"}
+                         "default": "CDF_ISTP"}
                      )
 
 archive = ConfigSection("ARCHIVE",
