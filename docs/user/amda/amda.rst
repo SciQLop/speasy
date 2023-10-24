@@ -43,7 +43,7 @@ Let's start with a simple example, we want to download the first parameter avail
     <ParameterIndex: He flux>
     >>> first_param=amda.get_parameter(first_param_index, "2018-01-01", "2018-01-02T01")
     >>> first_param.columns
-    ['ace_epam_ca60_he[0]', 'ace_epam_ca60_he[1]']
+    ['He flux']
     >>> len(first_param.time)
     288
 
@@ -62,7 +62,7 @@ Then simply:
     >>> from speasy import amda
     >>> mms4_fgm_btot=amda.get_parameter('mms4_b_tot', "2018-01-01", "2018-01-01T01")
     >>> mms4_fgm_btot.columns
-    ['mms4_b_tot']
+    ['|b|']
     >>> len(mms4_fgm_btot.time)
     57600
 
@@ -75,7 +75,7 @@ AMDA products directly from your Python terminal or notebook:
     >>> amdatree = spz.inventories.tree.amda
     >>> mms4_fgm_btot=amda.get_parameter(amdatree.Parameters.MMS.MMS4.FGM.mms4_fgm_srvy.mms4_b_tot, "2018-01-01", "2018-01-01T01")
     >>> mms4_fgm_btot.columns
-    ['mms4_b_tot']
+    ['|b|']
     >>> len(mms4_fgm_btot.time)
     57600
 
