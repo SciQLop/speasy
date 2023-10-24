@@ -54,36 +54,41 @@ class Cache:
         return len(self._data)
 
     def __del__(self):
-        pass
+        self._data.close()
 
     def keys(self):
         return list(self._data)
 
     def __contains__(self, item):
-        if item in self._data:
-            self._hit += 1
-            return True
-        self._miss += 1
-        return False
+        with self.transact():
+            if item in self._data:
+                self._hit += 1
+                return True
+            self._miss += 1
+            return False
 
     def __getitem__(self, key):
-        if key in self._data:
-            self._hit += 1
-        else:
-            self._miss += 1
-        return self._data[key]
+        with self.transact():
+            if key in self._data:
+                self._hit += 1
+            else:
+                self._miss += 1
+            return self._data[key]
 
     def __setitem__(self, key, value):
         self._data[key] = value
 
     def set(self, key, value, expire=None):
-        self._data.set(key, value, expire=expire)
+        with self.transact():
+            self._data.set(key, value, expire=expire)
 
     def get(self, key, default_value=None):
-        return self._data.get(key, default_value)
+        with self.transact():
+            return self._data.get(key, default_value)
 
     def drop(self, key):
-        self._data.delete(key)
+        with self.transact():
+            self._data.delete(key)
 
     def transact(self):
         if self.cache_type != 'Fanout':
