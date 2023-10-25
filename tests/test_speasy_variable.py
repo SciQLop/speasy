@@ -19,7 +19,7 @@ from speasy.products.variable import (DataContainer, SpeasyVariable,
 
 
 def epoch_to_datetime64_s(epoch):
-    return np.datetime64(int(epoch*1e9), 'ns')
+    return np.datetime64(int(epoch * 1e9), 'ns')
 
 
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
@@ -43,7 +43,7 @@ def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: flo
     return SpeasyVariable(
         axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
               VariableAxis(name='y', values=y, is_time_dependent=True)],
-        values=DataContainer(values, is_time_dependent=True), columns=["Values"])
+        values=DataContainer(values, is_time_dependent=True, meta={"DISPLAY_TYPE": "spectrogram"}), columns=["Values"])
 
 
 def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
@@ -252,6 +252,9 @@ class ASpeasyVariable(unittest.TestCase):
         try:
             import matplotlib.pyplot as plt
             var = make_simple_var(1., 10., 1., 10.)
+            ax = var.plot()
+            self.assertIsNotNone(ax)
+            var = make_2d_var(1., 10., 1., 10., 128)
             ax = var.plot()
             self.assertIsNotNone(ax)
         except ImportError:

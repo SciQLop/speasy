@@ -38,7 +38,7 @@ class Plot:
         return new
 
     def _infer_plot_type(self):
-        if self.values.meta.get("DISPLAY_TYPE", "") == "spectrogram":
+        if self.values.meta.get("DISPLAY_TYPE", "").lower() == "spectrogram":
             return PlotType.SPECTRO
         return PlotType.LINE
 
