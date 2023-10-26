@@ -83,3 +83,7 @@ class FileAccess(unittest.TestCase):
         flist = list_files(url=url, file_regex=re.compile(r'\w+\.(txt|xml)'))
         self.assertGreaterEqual(len(flist), 4)
         self.assertIn('obsdatatree.xml', flist)
+
+
+if __name__ == '__main__':
+    unittest.main()

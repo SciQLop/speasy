@@ -53,3 +53,7 @@ class Indexes(unittest.TestCase):
 
         self.assertNotIn("random name that is not a parameter",
                          spz.inventories.tree.amda.Parameters.ACE.MFI.ace_imf_all)
+
+
+if __name__ == '__main__':
+    unittest.main()

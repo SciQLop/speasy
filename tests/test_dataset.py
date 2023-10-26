@@ -49,13 +49,13 @@ class SpeasyDataset(unittest.TestCase):
         self.assertEqual(len(ds), 3)
 
     def test_has_str_repr(self):
-        ds =make_simple_dataset()
+        ds = make_simple_dataset()
         repr = str(ds)
         self.assertIn('v1', repr)
         self.assertIn('v2', repr)
 
     def test_can_iterate_variables(self):
-        ds =make_simple_dataset()
+        ds = make_simple_dataset()
         var_list = [v for v in ds]
         self.assertListEqual(['v1', 'v2', 'v3'], var_list)
 
@@ -90,3 +90,7 @@ class SpeasyDataset(unittest.TestCase):
             self.assertIsNotNone(ax)
         except ImportError:
             self.skipTest("Can't import matplotlib")
+
+
+if __name__ == '__main__':
+    unittest.main()

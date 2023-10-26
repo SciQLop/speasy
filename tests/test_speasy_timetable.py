@@ -87,3 +87,7 @@ class ANonEmptySpeasyTimetable(unittest.TestCase):
         self.assertEqual(len(self.tt), prev_len + 1)
         self.tt.pop(-1)
         self.assertEqual(len(self.tt), prev_len)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -42,3 +42,7 @@ class DisableWS(unittest.TestCase):
         self.assertIsNone(spz.cda)
         self.assertIn("amda", spz.inventories.tree.__dict__)
         self.assertIsNotNone(spz.amda)
+
+
+if __name__ == '__main__':
+    unittest.main()

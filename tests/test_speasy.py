@@ -185,3 +185,7 @@ class SpeasyModule(unittest.TestCase):
             importlib.reload(spz.core.proxy)
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
         importlib.reload(spz.core.proxy)
+
+
+if __name__ == '__main__':
+    unittest.main()
