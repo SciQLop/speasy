@@ -4,14 +4,12 @@
 """Tests for `amda` package parameter getting functions."""
 
 import unittest
+from ddt import data, ddt
 from datetime import datetime
 
 import numpy as np
 
 import speasy as spz
-from speasy.products.variable import SpeasyVariable
-
-from speasy.products.dataset import Dataset
 
 
 class ParameterRequests(unittest.TestCase):
@@ -56,14 +54,52 @@ class ParameterRequests(unittest.TestCase):
         self.assertIsNotNone(self.dataset)
 
     def test_dataset_type(self):
-        self.assertTrue(isinstance(self.dataset, Dataset))
+        self.assertTrue(isinstance(self.dataset, spz.Dataset))
 
     def test_dataset_not_empty(self):
         self.assertTrue(len(self.dataset) > 0)
 
     def test_dataset_items_datatype(self):
         for item in self.dataset:
-            self.assertTrue(isinstance(self.dataset[item], SpeasyVariable))
+            self.assertTrue(isinstance(self.dataset[item], spz.SpeasyVariable))
+
+
+@ddt
+class AMDAParametersPlots(unittest.TestCase):
+    def setUp(self):
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            self.skipTest("Can't import matplotlib")
+
+    @data(
+        spz.inventories.tree.amda.Parameters.ACE.MFI.ace_imf_all.imf_mag,
+        spz.inventories.tree.amda.Parameters.MMS.MMS3.FPI.fast_mode.mms3_fpi_desmoms.mms3_des_tpara,
+        spz.inventories.tree.amda.Parameters.THEMIS.THEMIS_A.ESA.tha_peim_all.tha_n_peim
+    )
+    def test_parameter_line_plot(self, parameter):
+        values: spz.SpeasyVariable = spz.get_data(parameter, "2018-01-01", "2018-01-01T01")
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ax = values.plot()
+        self.assertIsNotNone(ax)
+        self.assertEqual(len(ax.lines), values.values.shape[1],
+                         "Number of lines in the plot should be equal to the number of columns in the data")
+        self.assertIn(values.unit, ax.get_ylabel(), "Units should be in the Y axis label")
+        for i, name in enumerate(values.columns):
+            self.assertIn(name, ax.get_legend().texts[i].get_text(), "Legend should contain the column names")
+
+    @data(
+        spz.inventories.tree.amda.Parameters.MMS.MMS1.FPI.fast_mode.mms1_fpi_desmoms.mms1_des_omni,
+        spz.inventories.tree.amda.Parameters.MAVEN.STATIC.mavpds_sta_c6.mav_sta_c6_energy
+    )
+    def test_parameter_colormap_lot(self, parameter):
+        values: spz.SpeasyVariable = spz.get_data(parameter, "2018-01-01", "2018-01-01T01")
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ax = values.plot()
+        self.assertIsNotNone(ax)
+        self.assertIn(values.axes[1].unit, ax.get_ylabel(), "Units should be in the Y axis label")
 
 
 if __name__ == '__main__':
