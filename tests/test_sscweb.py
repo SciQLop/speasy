@@ -86,3 +86,43 @@ class SscWeb(unittest.TestCase):
     def test_raises_if_user_passes_unexpected_kwargs_to_get_orbit(self, kwargs):
         with self.assertRaises(TypeError):
             self.ssc.get_data('moon', "2018-01-01", "2018-01-02", **kwargs)
+
+
+class SscWebTrajectoriesPlots(unittest.TestCase):
+    def setUp(self):
+        import speasy as spz
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            self.skipTest("Can't import matplotlib")
+        self.traj: spz.SpeasyVariable = spz.get_data(spz.inventories.data_tree.ssc.Trajectories.ace, "2018-01-01",
+                                                     "2018-01-02")
+
+    def tearDown(self):
+        pass
+
+    def test_should_be_able_to_plot_a_trajectory(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ax = self.traj.plot()
+        self.assertIsNotNone(ax)
+
+    def test_units_must_be_in_axis_label(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ax = self.traj.plot()
+        self.assertIsNotNone(ax)
+        self.assertIn("km", ax.get_ylabel())
+
+    def test_legend_is_set_with_variable_columns_names(self):
+        import matplotlib.pyplot as plt
+        plt.close('all')
+        ax = self.traj.plot()
+        self.assertIsNotNone(ax)
+        self.assertIn(self.traj.columns[0], ax.get_legend().texts[0].get_text())
+        self.assertIn(self.traj.columns[1], ax.get_legend().texts[1].get_text())
+        self.assertIn(self.traj.columns[2], ax.get_legend().texts[2].get_text())
+
+
+if __name__ == '__main__':
+    unittest.main()
