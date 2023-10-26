@@ -47,3 +47,7 @@ class UrlUtils(unittest.TestCase):
     @unpack
     def test_ensure_url_scheme(self, url, expected_url):
         self.assertEqual(ensure_url_scheme(url), expected_url)
+
+
+if __name__ == '__main__':
+    unittest.main()

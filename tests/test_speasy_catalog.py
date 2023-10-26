@@ -108,3 +108,7 @@ class ANonEmptySpeasyCatalog(unittest.TestCase):
         self.assertEqual(len(self.cat), prev_len + 1)
         self.cat.pop(-1)
         self.assertEqual(len(self.cat), prev_len)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -72,3 +72,7 @@ class ConfigModule(unittest.TestCase):
         self.assertEqual(os.environ[my_test_entry.env_var_name], "NEW VALUE")
         config.remove_entry(my_test_entry)
         os.environ.pop(my_test_entry.env_var_name)
+
+
+if __name__ == '__main__':
+    unittest.main()

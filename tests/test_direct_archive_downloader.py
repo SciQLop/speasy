@@ -96,3 +96,7 @@ class DirectArchiveDownloader(unittest.TestCase):
     def test_get_data(self, product, start, stop):
         v = spz.get_data(product, start, stop)
         self.assertIsNotNone(v)
+
+
+if __name__ == '__main__':
+    unittest.main()
