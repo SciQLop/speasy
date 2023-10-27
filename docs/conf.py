@@ -68,6 +68,8 @@ nbsphinx_thumbnails = {
     "examples/Caches": "_static/Caches_nb_thumbnail.png",
     "examples/CDAWeb": "_static/CDAWeb_nb_thumbnail.png",
     "examples/CompleteDemo": "_static/Demo_nb_thumbnail.png",
+    "examples/solo_epd": "_static/solo_epd_nb_thumbnail.png",
+    "examples/alfvenic_slow_solar_wind": "alfvenic_nb_thumbnail.png",
 }
 
 nbsphinx_prolog = r"""

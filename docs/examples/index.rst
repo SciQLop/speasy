@@ -19,3 +19,5 @@ Browse example folder on Google Colab:
    ./SSCWeb
    ./Caches
    ./CompleteDemo
+   ./solo_epd
+   ./alfvenic

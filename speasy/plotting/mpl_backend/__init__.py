@@ -18,7 +18,7 @@ class Plot:
 
     def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
         ax = self._get_ax(ax)
-        ax.tick_params(axis='x', labelrotation = 45)
+        ax.tick_params(axis='x', labelrotation=45)
         ax.plot(x, y, label=labels)
         if labels is not None:
             ax.legend()
@@ -31,7 +31,7 @@ class Plot:
     def colormap(self, x, y, z, xaxis_label=None, yaxis_label=None, yaxis_units=None, zaxis_label=None,
                  zaxis_units=None, ax=None,
                  cmap=None, logy=True,
-                 logz=True, *args,
+                 logz=True, vmin=None, vmax=None, *args,
                  **kwargs):
         ax = self._get_ax(ax)
 
@@ -40,15 +40,17 @@ class Plot:
         if xaxis_label is not None:
             ax.set_xlabel(f"{xaxis_label}")
 
+        vmin = vmin or np.nanmin(z[np.nonzero(z)])
+        vmax = vmax or np.nanmax(z)
+
         if logy:
             ax.semilogy()
         if logz:
-            norm = colors.LogNorm(vmin=np.nanmin(z[np.nonzero(z)]),
-                                  vmax=np.nanmax(z))
+            norm = colors.LogNorm(vmin=vmin, vmax=vmax)
         else:
-            norm = None
+            norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
-        ax.tick_params(axis='x', labelrotation = 45)
+        ax.tick_params(axis='x', labelrotation=45)
         cm = ax.pcolormesh(x, y, z,
                            cmap=cmap or 'plasma',
                            norm=norm, *args, **kwargs)
