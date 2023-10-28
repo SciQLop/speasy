@@ -56,7 +56,7 @@ $ python -m pip install speasy
 $ python -m pip install --user speasy
 ```
 
-Getting data is as simple as:
+This simple code example shows how easy it is to get data using Speasy. The code imports the Speasy package and defines a variable named ace_mag. This variable stores the data for the ACE IMF product, for the time period from June 2, 2016 to June 5, 2016. The code then uses the Speasy plot() function to plot the data.
 
 
 ```python
@@ -90,22 +90,7 @@ ace_mag.plot();
     
 
 
-Many product are available you can really easilly build complete visualisations.
-
-This also works with [SSCWEB](https://sscweb.gsfc.nasa.gov/), you can
-easily download trajectories:
-
-
-```python
-spz.inventories.tree.cda.MMS.MMS1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_energyspectr_omni_fast
-```
-
-
-
-
-    <ParameterIndex: mms1_dis_energyspectr_omni_fast>
-
-
+This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values with NaNs. 
 
 
 ```python
@@ -138,7 +123,7 @@ plt.show()
 
 
     
-![png](README_files/README_7_0.png)
+![png](README_files/README_6_0.png)
     
 
 
@@ -162,16 +147,16 @@ data
 
 
 
-    [[<speasy.products.variable.SpeasyVariable at 0x7f0825392540>,
-      <speasy.products.variable.SpeasyVariable at 0x7f082537a080>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f08253799c0>,
-      <speasy.products.variable.SpeasyVariable at 0x7f08253729c0>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f08253708c0>,
-      <speasy.products.variable.SpeasyVariable at 0x7f0825373400>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f0825362880>,
-      <speasy.products.variable.SpeasyVariable at 0x7f0825362380>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f0825362480>,
-      <speasy.products.variable.SpeasyVariable at 0x7f0825350e00>]]
+    [[<speasy.products.variable.SpeasyVariable at 0x7fddf2168d00>,
+      <speasy.products.variable.SpeasyVariable at 0x7fddf2570ac0>],
+     [<speasy.products.variable.SpeasyVariable at 0x7fddf220bc00>,
+      <speasy.products.variable.SpeasyVariable at 0x7fddf2158780>],
+     [<speasy.products.variable.SpeasyVariable at 0x7fddf2176c00>,
+      <speasy.products.variable.SpeasyVariable at 0x7fddf2177500>],
+     [<speasy.products.variable.SpeasyVariable at 0x7fddf2185c80>,
+      <speasy.products.variable.SpeasyVariable at 0x7fddf2187cc0>],
+     [<speasy.products.variable.SpeasyVariable at 0x7fddf2187940>,
+      <speasy.products.variable.SpeasyVariable at 0x7fddf21905c0>]]
 
 
 
