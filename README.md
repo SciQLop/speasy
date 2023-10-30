@@ -16,25 +16,26 @@
 [![Speasy proxy uptime (30 days)](https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70)](http://sciqlop.lpp.polytechnique.fr/cache)
 
 Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
-online data sources, such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](http://amda.irap.omp.eu/). This can be difficult, especially for students and newcomers, who may not
-be familiar with all of the different data sources or how to access them. Speasy solves this problem by providing a single,
-easy-to-use interface to over 70 space missions and 65,000 products, including data from the Magnetospheric Multiscale Mission (MMS),
-the Advanced Composition Explorer (ACE), and the Van Allen Probes.
+data sources, whether it is online and public such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](http://amda.irap.omp.eu/),
+or any described archive, local or remote.
+This task, where any science project starts, would seem easy a priori but, considering the very
+diverse array of missions and instrument nowaday available, proves to be one of the major bottleneck,
+especially for students and newcomers.
+Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
 
 ## Main features
 
--   Simple and intuitive API (spz.get_data to get them all)
--   Pandas DataFrame like interface for variables
--   Quick functions to convert a variable to a Pandas DataFrame
--   Local cache to avoid repeating twice the same request
--   Takes advantage of SciQLop dedicated proxy as a community backed ultra fast cache
+-   Simple and intuitive API (`spz.get_data(...)` to get them all)
+-   Speasy variables are like Pandas DataFrame with seemless conversion to/from it.
+-   Local cache to avoid redundant downloads
+-   Uses the SciQLOP ultra fast community cache server
 -   Full support of [AMDA](http://amda.irap.omp.eu/) API
 -   Can retrieve time-series from [AMDA](http://amda.irap.omp.eu/),
     [CDAWeb](https://cdaweb.gsfc.nasa.gov/),
     [CSA](https://csa.esac.esa.int/csa-web/),
     [SSCWeb](https://sscweb.gsfc.nasa.gov/)
--   Archive module for accessing data from a local or remote archive without any webservice, using a simple YAML file to describe the archive file tree
-
+-   Support data access from any local or remote archives described by YAML file.
+  
 ## Help us improve Speasy!
 
 We want Speasy to be the best possible tool for space physics research. You can help us by:
@@ -166,9 +167,10 @@ Check out [Speasy documentation](https://speasy.readthedocs.io/en/stable/) and [
 
 ### Caveats
 
--   Speasy is not a plotting package, while it provides basic plot
-    features, it is not meant to produce publication ready figures.
-
+-   Speasy is not a plotting package.
+    basic plotting capabilities are here for illustration purposes and making quick-and-dirty plots.
+    It is not meant to produce publication ready figures, prefer using Matplotlib directly for example.
+    
 ### Credits
 
 The development of Speasy is supported by the [CDPP](http://www.cdpp.eu/).
