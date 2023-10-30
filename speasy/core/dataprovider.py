@@ -87,7 +87,11 @@ class DataProvider:
             if index_or_str in self.flat_inventory.parameters:
                 return self.flat_inventory.parameters[index_or_str]
             else:
-                raise ValueError(f"Unknown parameter: {index_or_str}")
+                if index_or_str in self.flat_inventory.datasets:
+                    raise ValueError(
+                        f"Can't directly download a whole dataset from {self.provider_name}, you need to download each parameter separately.")
+                else:
+                    raise ValueError(f"Unknown parameter: {index_or_str}")
 
         if isinstance(index_or_str, ParameterIndex):
             return index_or_str

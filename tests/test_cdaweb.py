@@ -159,6 +159,18 @@ class SpecificNonRegression(unittest.TestCase):
             v = spz.get_data(spz.inventories.tree.cda.ACE.MAG.AC_H2_MFI.BGSEc, "2018-01-01", "2018-01-02")
             self.assertIsNotNone(v)
 
+    def test_get_dataset_raises_an_understandable_error_message(self):
+        with self.assertRaises(ValueError) as cm:
+            solo_swa = spz.get_data(spz.inventories.tree.cda.Solar_Orbiter.SOLO.SWA_PAS.SOLO_L2_SWA_PAS_GRND_MOM,
+                                    "2021-11-3",
+                                    "2021-11-4")
+            self.assertIn("Can't directly download a whole dataset from cda", str(cm.exception))
+
+    def test_get_an_unknown_parameter_raises_the_right_error_message(self):
+        with self.assertRaises(ValueError) as cm:
+            solo_swa = spz.get_data("cda/wrong/data", "2021-11-3", "2021-11-4")
+            self.assertIn("Unknown parameter:", str(cm.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
