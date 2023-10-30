@@ -16,24 +16,25 @@
 [![Speasy proxy uptime (30 days)](https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70)](http://sciqlop.lpp.polytechnique.fr/cache)
 
 Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
-online data sources, such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](http://amda.irap.omp.eu/). This can be difficult, especially for students and newcomers, who may not
-be familiar with all of the different data sources or how to access them. Speasy solves this problem by providing a single,
-easy-to-use interface to over 70 space missions and 65,000 products, including data from the Magnetospheric Multiscale Mission (MMS),
-the Advanced Composition Explorer (ACE), and the Van Allen Probes.
+data sources, whether it is online and public such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](http://amda.irap.omp.eu/),
+or any described archive, local or remote.
+This task, where any science project starts, would seem easy a priori but, considering the very
+diverse array of missions and instrument nowaday available, proves to be one of the major bottleneck,
+especially for students and newcomers.
+Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
 
 ## Main features
 
--   Simple and intuitive API (spz.get_data to get them all)
--   Pandas DataFrame like interface for variables
--   Quick functions to convert a variable to a Pandas DataFrame
--   Local cache to avoid repeating twice the same request
--   Takes advantage of SciQLop dedicated proxy as a community backed ultra fast cache
+-   Simple and intuitive API (`spz.get_data(...)` to get them all)
+-   Speasy variables are like Pandas DataFrame with seemless conversion to/from it.
+-   Local cache to avoid redundant downloads
+-   Uses the SciQLOP ultra fast community cache server
 -   Full support of [AMDA](http://amda.irap.omp.eu/) API
 -   Can retrieve time-series from [AMDA](http://amda.irap.omp.eu/),
     [CDAWeb](https://cdaweb.gsfc.nasa.gov/),
     [CSA](https://csa.esac.esa.int/csa-web/),
     [SSCWeb](https://sscweb.gsfc.nasa.gov/)
--   Archive module for accessing data from a local or remote archive without any webservice, using a simple YAML file to describe the archive file tree
+-   Support data access from any local or remote archives described by YAML file.
 
 ## Help us improve Speasy!
 
@@ -42,6 +43,7 @@ We want Speasy to be the best possible tool for space physics research. You can 
 - Answering our user survey [here](https://docs.google.com/forms/d/e/1FAIpQLScV12kvETk8jc4Zc4sIsHiteMHRVo5I8DiSAE8RyVdVkUaxJA/viewform?usp=sf_link).
 - Reporting bugs or requesting features [here](https://github.com/SciQLop/speasy/issues/new).
 - Creating or participating in discussions [here](https://github.com/SciQLop/speasy/discussions).
+- Discussing with us on the [Speasy Matrix Channel]((https://matrix.to/#/#speasy:matrix.org).
 
 Your feedback is essential to making Speasy a better tool for everyone.
 
@@ -66,9 +68,9 @@ ace_mag.plot();
 ```
 
 
-    
+
 ![png](README_files/README_2_0.png)
-    
+
 
 
 Where amda is the webservice and imf is the product id you will get with
@@ -85,12 +87,12 @@ ace_mag.plot();
 ```
 
 
-    
+
 ![png](README_files/README_4_0.png)
-    
 
 
-This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values with NaNs. 
+
+This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values with NaNs.
 
 
 ```python
@@ -122,9 +124,9 @@ plt.show()
 ```
 
 
-    
+
 ![png](README_files/README_6_0.png)
-    
+
 
 
 More complex requests like this one are supported:
@@ -166,8 +168,11 @@ Check out [Speasy documentation](https://speasy.readthedocs.io/en/stable/) and [
 
 ### Caveats
 
--   Speasy is not a plotting package, while it provides basic plot
-    features, it is not meant to produce publication ready figures.
+-   Speasy is not a plotting package.
+    basic plotting capabilities are here for illustration purposes and making quick-and-dirty plots.
+    It is not (and will not be) meant to produce publication ready figures.
+    If you want to browse efficiently and graphically data, we recommand you check out [SciQLOP](https://github.com/SciQLop/SciQLop)
+    (which uses Speasy internally).
 
 ### Credits
 
