@@ -191,7 +191,7 @@ amda = ConfigSection("AMDA",
                          "description": "Maximum request duration in days, any request over a longer period will be split into smaller ones.",
                          "type_ctor": int},
                      entry_point={
-                         "default": "http://amda.irap.omp.eu"},
+                         "default": "https://amda.irap.omp.eu"},
                      output_format={
                          "description": "File format requested to AMDA, either ASCII or CDF_ISTP",
                          "default": "CDF_ISTP"}
