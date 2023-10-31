@@ -2,6 +2,20 @@
 History
 =======
 
+1.2.0 (2023-10-31)
+------------------
+
+* Fix old version code example in README.md by @jgieseler in https://github.com/SciQLop/speasy/pull/93
+* Cdaweb and others archives direct file access by @jeandet in https://github.com/SciQLop/speasy/pull/89
+* Drops Python 3.7 support and adds Python 3.11 by @jeandet in https://github.com/SciQLop/speasy/pull/97
+* Switch to PyCDFpp 0.6+ by @jeandet in https://github.com/SciQLop/speasy/pull/100
+* [AMDA] Uses CDF_ISTP as default by @jeandet in https://github.com/SciQLop/speasy/pull/101
+* [Cache] Always use with transact(): statement with by @jeandet in https://github.com/SciQLop/speasy/pull/102
+* Increase tests code coverage by @jeandet in https://github.com/SciQLop/speasy/pull/103
+* Make more obvious to user that Speasy doesn't support downloading a whole dataset at once with some WS by @jeandet in https://github.com/SciQLop/speasy/pull/106
+* [AMDA] Switch to https by @jeandet in https://github.com/SciQLop/speasy/pull/108
+* Readme improvments by @jeandet in https://github.com/SciQLop/speasy/pull/104
+
 1.1.2 (2023-06-01)
 ------------------
 
