@@ -22,13 +22,17 @@ def _fix_attributes_types(attributes: dict):
     return cleaned
 
 
-def _make_axis(axis, time_axis_name):
+def _is_time_dependent(axis, time_axis_name):
+    if axis.attributes.get('DEPEND_TIME', '') == time_axis_name:
+        return True
     if axis.attributes.get('DEPEND_0', '') == time_axis_name:
-        is_time_dependent = True
-    else:
-        is_time_dependent = False
+        return True
+    return False
+
+
+def _make_axis(axis, time_axis_name):
     return VariableAxis(values=axis.values.copy(), meta=_fix_attributes_types(axis.attributes), name=axis.name,
-                        is_time_dependent=is_time_dependent)
+                        is_time_dependent=_is_time_dependent(axis, time_axis_name))
 
 
 def _build_labels(variable: pyistp.loader.DataVariable):
