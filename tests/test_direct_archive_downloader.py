@@ -97,6 +97,12 @@ class DirectArchiveDownloader(unittest.TestCase):
         v = spz.get_data(product, start, stop)
         self.assertIsNotNone(v)
 
+    def test_axes_merging_across_files(self):
+        v = spz.get_data(spz.inventories.tree.archive.cdpp.THEMIS.THA.L2.tha_esa.tha_peif_en_eflux, "2018-01-05",
+                         "2018-01-07")
+        self.assertIsNotNone(v)
+        self.assertEqual(len(v), len(v.axes[1]))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -11,9 +11,9 @@ from typing import Optional
 
 from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
-from speasy.core import AnyDateTimeType
+from speasy.core import AnyDateTimeType, AllowedKwargs
 from speasy.core.cdf.inventory_extractor import make_dataset_index
-from speasy.core.dataprovider import DataProvider
+from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
 from speasy.products.variable import SpeasyVariable
@@ -82,6 +82,7 @@ class GenericArchive(DataProvider):
         else:
             raise ValueError(f"Got unexpected type {type(product)}, expecting str or ParameterIndex")
 
+    @AllowedKwargs(GET_DATA_ALLOWED_KWARGS)
     def get_data(self, product: str or ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                  **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_data(product=self._parameter_index(product), start_time=start_time, stop_time=stop_time)
