@@ -2,6 +2,16 @@
 History
 =======
 
+1.2.2 (2023-11-28)
+------------------
+
+* Fixes https://github.com/SciQLop/speasy/issues/110, returns None instead of crash when there is no file on server by @jeandet in https://github.com/SciQLop/speasy/pull/111
+
+1.2.1 (2023-11-07)
+------------------
+
+* Fixes non ISTP compliant files axis merging by @jeandet in https://github.com/SciQLop/speasy/pull/109
+
 1.2.0 (2023-10-31)
 ------------------
 
