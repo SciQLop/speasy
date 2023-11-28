@@ -1,4 +1,4 @@
-* Space Physics WebServices Client version:
+* Speasy version:
 * Python version:
 * Operating System:
 
