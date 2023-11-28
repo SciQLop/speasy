@@ -20,16 +20,21 @@ from speasy.products.variable import merge
 
 
 @CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
-def _read_cdf(url: str, variable: str) -> SpeasyVariable:
+def _read_cdf(url: Optional[str], variable: str) -> Optional[SpeasyVariable]:
+    if url is None:
+        return None
     return load_variable(file=url, variable=variable)
 
 
-def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> str:
+def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
     base_ulr = url_pattern.format(Y=date.year, M=date.month, D=date.day)
     if not use_file_list:
         return base_ulr
     folder_url, rx = base_ulr.rsplit('/', 1)
-    return '/'.join((folder_url, sorted(list_files(folder_url, re.compile(rx)))[-1]))
+    files = sorted(list_files(folder_url, re.compile(rx)))
+    if len(files):
+        return '/'.join((folder_url, files[-1]))
+    return None
 
 
 def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType):
