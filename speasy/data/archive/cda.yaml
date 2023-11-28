@@ -1,48 +1,100 @@
----
 erg_lepe_l3_pa:
-    url_pattern: "https://cdaweb.gsfc.nasa.gov/pub/data/arase/lepe/l3/pa/{Y}/erg_lepe_l3_pa_{Y}{M:02d}{D:02d}_v03_01.cdf"
-    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_lepe_l3_pa_00000000_v01.cdf"
-    inventory_path: 'cda/Arase_ERG/LEPE'
-    split_rule: "regular"
+  inventory_path: cda/Arase_ERG/LEPE
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_lepe_l3_pa_00000000_v01.cdf
+  split_rule: regular
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/arase/lepe/l3/pa/{Y}/erg_lepe_l3_pa_{Y}{M:02d}{D:02d}_v\d+_\d+.cdf
+  use_file_list: true
 erg_pwe_hfa_l3_1min:
-    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v\d+_\d+.cdf'
-    use_file_list: true
-    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_pwe_hfa_l3_1min_00000000_v01.cdf"
-    inventory_path: 'cda/Arase_ERG/PWE/HFA'
-    split_rule: "regular"
-
+  inventory_path: cda/Arase_ERG/PWE/HFA
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_pwe_hfa_l3_1min_00000000_v01.cdf
+  split_rule: regular
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v\d+_\d+.cdf
+  use_file_list: true
+mms1_fgm_srvy_l2:
+  inventory_path: cda/MMS/MMS1/FGM/SRVY
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms1_fgm_srvy_l2_00000000_v01.cdf
+  split_rule: regular
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms1/fgm/srvy/l2/{Y}/{M:02d}/mms1_fgm_srvy_l2_{Y}{M:02d}{D:02d}_v\d+.\d+.\d+.cdf
+  use_file_list: true
 mms1_fpi_brst_l2_des_moms:
-    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms1/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms1_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
-    use_file_list: true
-    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms1_fpi_brst_l2_des-moms_00000000_v01.cdf"
-    inventory_path: 'cda/MMS/MMS1/FPI/BURST/MOMS'
-    split_rule: "random"
-    split_frequency: "monthly"
-    fname_regex: 'mms1_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
-
+  fname_regex: mms1_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS1/FPI/BURST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms1_fpi_brst_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms1/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms1_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms1_fpi_fast_l2_des_moms:
+  fname_regex: mms1_fpi_fast_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS1/FPI/FAST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms1_fpi_fast_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms1/fpi/fast/l2/des-moms/{Y}/{M:02d}/mms1_fpi_fast_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms2_fgm_srvy_l2:
+  inventory_path: cda/MMS/MMS2/FGM/SRVY
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms2_fgm_srvy_l2_00000000_v01.cdf
+  split_rule: regular
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms2/fgm/srvy/l2/{Y}/{M:02d}/mms2_fgm_srvy_l2_{Y}{M:02d}{D:02d}_v\d+.\d+.\d+.cdf
+  use_file_list: true
 mms2_fpi_brst_l2_des_moms:
-    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms2/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms2_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
-    use_file_list: true
-    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms2_fpi_brst_l2_des-moms_00000000_v01.cdf"
-    inventory_path: 'cda/MMS/MMS2/FPI/BURST/MOMS'
-    split_rule: "random"
-    split_frequency: "monthly"
-    fname_regex: 'mms2_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
-
+  fname_regex: mms2_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS2/FPI/BURST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms2_fpi_brst_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms2/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms2_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms2_fpi_fast_l2_des_moms:
+  fname_regex: mms2_fpi_fast_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS2/FPI/FAST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms2_fpi_fast_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms2/fpi/fast/l2/des-moms/{Y}/{M:02d}/mms2_fpi_fast_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms3_fgm_srvy_l2:
+  inventory_path: cda/MMS/MMS3/FGM/SRVY
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms3_fgm_srvy_l2_00000000_v01.cdf
+  split_rule: regular
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms3/fgm/srvy/l2/{Y}/{M:02d}/mms3_fgm_srvy_l2_{Y}{M:02d}{D:02d}_v\d+.\d+.\d+.cdf
+  use_file_list: true
 mms3_fpi_brst_l2_des_moms:
-    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms3/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms3_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
-    use_file_list: true
-    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms3_fpi_brst_l2_des-moms_00000000_v01.cdf"
-    inventory_path: 'cda/MMS/MMS3/FPI/BURST/MOMS'
-    split_rule: "random"
-    split_frequency: "monthly"
-    fname_regex: 'mms3_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
-
+  fname_regex: mms3_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS3/FPI/BURST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms3_fpi_brst_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms3/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms3_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms3_fpi_fast_l2_des_moms:
+  fname_regex: mms3_fpi_fast_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS3/FPI/FAST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms3_fpi_fast_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms3/fpi/fast/l2/des-moms/{Y}/{M:02d}/mms3_fpi_fast_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms4_fgm_srvy_l2:
+  inventory_path: cda/MMS/MMS4/FGM/SRVY
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms4_fgm_srvy_l2_00000000_v01.cdf
+  split_rule: regular
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms4/fgm/srvy/l2/{Y}/{M:02d}/mms4_fgm_srvy_l2_{Y}{M:02d}{D:02d}_v\d+.\d+.\d+.cdf
+  use_file_list: true
 mms4_fpi_brst_l2_des_moms:
-    url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms4/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms4_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
-    use_file_list: true
-    master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms4_fpi_brst_l2_des-moms_00000000_v01.cdf"
-    inventory_path: 'cda/MMS/MMS4/FPI/BURST/MOMS'
-    split_rule: "random"
-    split_frequency: "monthly"
-    fname_regex: 'mms4_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
+  fname_regex: mms4_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS4/FPI/BURST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms4_fpi_brst_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms4/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms4_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
+mms4_fpi_fast_l2_des_moms:
+  fname_regex: mms4_fpi_fast_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf
+  inventory_path: cda/MMS/MMS4/FPI/FAST/MOMS
+  master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms4_fpi_fast_l2_des-moms_00000000_v01.cdf
+  split_frequency: monthly
+  split_rule: random
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms4/fpi/fast/l2/des-moms/{Y}/{M:02d}/mms4_fpi_fast_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf
+  use_file_list: true
