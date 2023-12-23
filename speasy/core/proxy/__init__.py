@@ -14,6 +14,7 @@ from ..index import index
 from ..inventory.indexes import from_dict as inventory_from_dict
 from ... import SpeasyIndex
 from ...products.variable import from_dictionary as var_from_dict
+from ..cache import CacheCall
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
@@ -58,6 +59,17 @@ except ImportError:
 
     def decompress(data):
         return data
+
+
+@CacheCall(cache_retention=timedelta(minutes=10), is_pure=True)
+def is_proxy_up() -> bool:
+    if http.is_server_up(proxy_cfg.url()):
+        try:
+            r = http.get(f"{proxy_cfg.url()}/get_inventory", params={"provider": "ssc"}, timeout=1)
+            return r.status_code == 200
+        except:  # lgtm [py/catch-base-exception]
+            pass
+    return False
 
 
 class GetProduct:
@@ -116,7 +128,7 @@ class Proxyfiable(object):
         @wraps(func)
         def wrapped(*args, **kwargs):
             disable_proxy = kwargs.pop("disable_proxy", False)
-            if proxy_cfg.enabled() and not disable_proxy:
+            if proxy_cfg.enabled() and not disable_proxy and is_proxy_up():
                 try:
                     proxy_version = query_proxy_version()
                     if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:

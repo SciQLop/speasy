@@ -69,8 +69,10 @@ def make_index(meta: Dict):
 
 
 class SSC_Webservice(DataProvider):
+    BASE_URL = "https://sscweb.gsfc.nasa.gov"
+
     def __init__(self):
-        self.__url = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
+        self.__url = f"{self.BASE_URL}/WS/sscr/2"
         DataProvider.__init__(self, provider_name='ssc', provider_alt_names=['sscweb'])
 
     def build_inventory(self, root: SpeasyIndex):

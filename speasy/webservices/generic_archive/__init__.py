@@ -8,6 +8,7 @@ __version__ = '0.1.0'
 
 import logging
 from typing import Optional
+from datetime import timedelta
 
 from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
@@ -16,7 +17,10 @@ from speasy.core.cdf.inventory_extractor import make_dataset_index
 from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
+from speasy.core.http import is_server_up
+from speasy.core.url_utils import host_and_port, is_local_file
 from speasy.products.variable import SpeasyVariable
+from speasy.core.cache import CacheCall
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +45,16 @@ def get_or_make_node(path: str, root: SpeasyIndex) -> SpeasyIndex:
     return get_or_make_node(parts[1], root.__dict__[name])
 
 
+@CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)
+def _is_up(host, port) -> bool:
+    return is_server_up(host=host, port=port)
+
+
+def _is_reachable(url: str) -> bool:
+    host, port = host_and_port(url)
+    return _is_up(host, port)
+
+
 def load_inventory_file(file: str, root: SpeasyIndex):
     import yaml
     with open(file, 'r') as f:
@@ -50,10 +64,14 @@ def load_inventory_file(file: str, root: SpeasyIndex):
             parent = get_or_make_node(entry['inventory_path'], root)
             entry_meta = {"spz_ga_cfg": entry}
             entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
-            dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive', meta=entry_meta,
-                                         params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
-            if dataset:
-                parent.__dict__[dataset.spz_name()] = dataset
+            if is_local_file(entry['master_cdf']) or _is_reachable(entry['master_cdf']):
+                dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive',
+                                             meta=entry_meta,
+                                             params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
+                if dataset:
+                    parent.__dict__[dataset.spz_name()] = dataset
+            else:
+                log.warning(f"Master CDF {entry['master_cdf']} is not available, skipping dataset {name}")
 
 
 class GenericArchive(DataProvider):

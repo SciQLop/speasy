@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple
 from urllib.parse import urlparse, urlencode
 
 
@@ -63,3 +63,27 @@ def is_local_file(url: str):
 
 def build_url(base: str, parameters: Dict) -> str:
     return base + '?' + urlencode(parameters)
+
+
+def host_and_port(url: str) -> Tuple[str, int]:
+    """Returns the host and port of an url
+
+    Parameters
+    ----------
+    url : str
+        url with or without scheme
+
+    Returns
+    -------
+    Tuple[str, str]
+        host and port of the url, defaults to 80 if no port or scheme is provided
+    """
+    parsed = urlparse(url)
+    if parsed.port is not None:
+        return parsed.hostname, parsed.port
+    elif parsed.scheme == 'http':
+        return parsed.hostname, 80
+    elif parsed.scheme == 'https':
+        return parsed.hostname, 443
+
+    return parsed.hostname, 80

@@ -7,7 +7,7 @@ import unittest
 import os
 from ddt import ddt, data, unpack
 
-from speasy.core.url_utils import ensure_url_scheme, is_local_file
+from speasy.core.url_utils import ensure_url_scheme, is_local_file, host_and_port
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -47,6 +47,23 @@ class UrlUtils(unittest.TestCase):
     @unpack
     def test_ensure_url_scheme(self, url, expected_url):
         self.assertEqual(ensure_url_scheme(url), expected_url)
+
+    @data(
+        ("http://somewhere.com", ("somewhere.com", 80)),
+        ("https://somewhere.com", ("somewhere.com", 443)),
+        ("https://somewhere.com/", ("somewhere.com", 443)),
+        ("https://somewhere.com/test", ("somewhere.com", 443)),
+        ("http://somewhere.com:8080", ("somewhere.com", 8080)),
+        ("https://somewhere.com:8080", ("somewhere.com", 8080)),
+        ("https://somewhere.com:8080/", ("somewhere.com", 8080)),
+        ("https://somewhere.com:8080/test", ("somewhere.com", 8080)),
+        ("http://129.104.27.7", ("129.104.27.7", 80)),
+        ("https://129.104.27.7", ("129.104.27.7", 443)),
+        ("https://129.104.27.7:8800", ("129.104.27.7", 8800)),
+    )
+    @unpack
+    def test_host_and_port(self, url, expected):
+        self.assertEqual(host_and_port(url), expected)
 
 
 if __name__ == '__main__':

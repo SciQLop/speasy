@@ -3,12 +3,14 @@ import logging
 import platform
 import re
 from functools import partial
+from typing import Optional
 
 import urllib3.response
 from urllib3 import PoolManager
 from urllib3.util.retry import Retry
 
 from speasy import __version__
+from .url_utils import host_and_port
 
 log = logging.getLogger(__name__)
 
@@ -101,3 +103,43 @@ def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
     return Response(pool.urlopen(method="GET", url=url, headers=headers, timeout=timeout))
+
+
+def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Optional[int] = None,
+                 timeout: int = 5) -> bool:
+    """Checks if a server is up and running.
+
+    Parameters
+    ----------
+    url : Optional[str]
+        url to check (scheme://host[:port]), if provided host and port are ignored
+    host : Optional[str]
+        host to check, if provided port must be provided as well
+    port : Optional[int]
+        port to check, if provided host must be provided as well
+    timeout : int
+        timeout in seconds
+
+    Returns
+    -------
+    bool
+        True if server is up and running, False otherwise
+
+    Raises
+    ------
+    ValueError
+        If neither url nor host and port are provided
+    """
+    if url is not None:
+        host, port = host_and_port(url)
+    elif host is None or port is None:
+        raise ValueError("Either url or host and port must be provided")
+    import socket
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((host, int(port)))
+        return result == 0
+    except Exception as e:
+        log.error(f"Error while checking server status: {e}")
+        return False

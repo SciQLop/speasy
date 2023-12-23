@@ -11,6 +11,7 @@ from .inventory import to_xmlid
 from .utils import get_parameter_args
 from ...config import amda as amda_cfg
 from ...core import AllowedKwargs, make_utc_datetime
+from ...core.http import is_server_up
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
 from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                   ParameterRangeCheck)
@@ -60,19 +61,30 @@ class AMDA_Webservice(DataProvider):
 
     Methods
     -------
+    is_server_up:
+        Check if AMDA Webservice is up.
     product_version:
+        Get date of last modification of dataset or parameter.
     get_data:
+        Get product data by id
     get_user_parameter:
+        Get user parameter. Raises an exception if user is not authenticated.
     get_user_timetable:
     get_user_catalog:
     get_parameter:
+        Get parameter data by id.
     get_dataset:
+        Get dataset contents. Returns list of SpeasyVariable objects, one for each parameter in the dataset.
     get_timetable:
+        Get timetable data by ID.
     get_catalog:
-        Retrieve catalog from given ID
+        Retrieve catalog from given ID.
     parameter_range:
+        Get product time range.
     list_parameters:
+        Get the list of parameter indexes available in AMDA_Webservice.
     list_catalogs:
+        Get the list of public catalog IDs.
     list_user_timetables:
     list_user_catalogs:
     list_user_parameters:
@@ -93,6 +105,24 @@ class AMDA_Webservice(DataProvider):
 
     def __del__(self):
         pass
+
+    @staticmethod
+    def is_server_up(server_url: str = amda_cfg.entry_point()) -> bool:
+        """Check if AMDA Webservice is up by sending a dummy request to the AMDA Webservice URL with a short timeout.
+
+        Parameters
+        ----------
+        server_url: str
+            AMDA Webservice URL, default is https://amda.irap.omp.eu
+
+        Returns
+        -------
+        bool
+            True if AMDA Webservice is up, False otherwise.
+
+        """
+        from ._impl import AmdaImpl
+        return AmdaImpl.is_server_up(server_url=server_url)
 
     def build_inventory(self, root: SpeasyIndex):
         return self._impl.build_inventory(root)
