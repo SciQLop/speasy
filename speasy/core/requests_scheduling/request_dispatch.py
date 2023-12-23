@@ -3,16 +3,20 @@ from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
 
 import numpy as np
+import logging
 
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  DatasetIndex, ParameterIndex,
                                  SpeasyIndex, TimetableIndex)
-from ...config import core as core_cfg
+from ...config import core as core_cfg, amda as amda_cfg
 from ...products import *
 from ...webservices import (AMDA_Webservice, CDA_Webservice, CSA_Webservice,
                             SSC_Webservice, GenericArchive)
+from ..http import is_server_up
+
+log = logging.getLogger(__name__)
 
 TimeT = Union[str, datetime, float, np.datetime64]
 TimeRangeT = Union[DateTimeRange, Tuple[TimeT, TimeT]]
@@ -27,26 +31,38 @@ ssc = None
 archive = None
 
 if 'amda' not in core_cfg.disabled_providers():
-    amda = AMDA_Webservice()
-    sys.modules[__name__].amda = amda
-    PROVIDERS['amda'] = amda
+    if AMDA_Webservice.is_server_up():
+        amda = AMDA_Webservice()
+        sys.modules[__name__].amda = amda
+        PROVIDERS['amda'] = amda
+    else:
+        log.warning(f"AMDA server {amda_cfg.entry_point()} is down, disabling AMDA provider")
 
 if 'csa' not in core_cfg.disabled_providers():
-    csa = CSA_Webservice()
-    sys.modules[__name__].csa = csa
-    PROVIDERS['csa'] = csa
+    if is_server_up(CSA_Webservice.BASE_URL):
+        csa = CSA_Webservice()
+        sys.modules[__name__].csa = csa
+        PROVIDERS['csa'] = csa
+    else:
+        log.warning(f"CSA server {CSA_Webservice.BASE_URL} is down, disabling CSA provider")
 
 if not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
-    cda = CDA_Webservice()
-    sys.modules[__name__].cda = cda
-    PROVIDERS['cda'] = cda
-    PROVIDERS['cdaweb'] = cda
+    if is_server_up(CDA_Webservice.BASE_URL):
+        cda = CDA_Webservice()
+        sys.modules[__name__].cda = cda
+        PROVIDERS['cda'] = cda
+        PROVIDERS['cdaweb'] = cda
+    else:
+        log.warning(f"CDA server {CDA_Webservice.BASE_URL} is down, disabling CDA provider")
 
 if not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
-    ssc = SSC_Webservice()
-    sys.modules[__name__].ssc = ssc
-    PROVIDERS['ssc'] = ssc
-    PROVIDERS['sscweb'] = ssc
+    if is_server_up(SSC_Webservice.BASE_URL):
+        ssc = SSC_Webservice()
+        sys.modules[__name__].ssc = ssc
+        PROVIDERS['ssc'] = ssc
+        PROVIDERS['sscweb'] = ssc
+    else:
+        log.warning(f"SSC server {SSC_Webservice.BASE_URL} is down, disabling SSC provider")
 
 if not core_cfg.disabled_providers().intersection({'archive', 'generic_archive'}):
     archive = GenericArchive()

@@ -119,9 +119,11 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 
 class CSA_Webservice(DataProvider):
+    BASE_URL = "https://csa.esac.esa.int"
+
     def __init__(self):
         DataProvider.__init__(self, provider_name='csa')
-        self.__url = "https://csa.esac.esa.int/csa-sl-tap/data"
+        self.__url = f"{self.BASE_URL}/csa-sl-tap/data"
 
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
         if type(dataset) is str:

@@ -78,6 +78,10 @@ class AmdaImpl:
         Catalogs.SharedCatalogs = SpeasyIndex(name='SharedCatalogs', provider='amda', uid='SharedCatalogs',
                                               meta=public_cat.catalogList.__dict__)
 
+    @staticmethod
+    def is_server_up(server_url: str = amda_cfg.entry_point()):
+        return rest_client.is_server_up(server_url=server_url)
+
     def build_inventory(self, root: SpeasyIndex):
         data = AmdaXMLParser.parse(rest_client.get_obs_data_tree(server_url=self.server_url))
         root.Parameters = SpeasyIndex(name='Parameters', provider='amda', uid='Parameters',

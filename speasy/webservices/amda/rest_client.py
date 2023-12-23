@@ -383,3 +383,23 @@ def get_obs_data_tree(server_url: str = amda_cfg.entry_point()) -> str or None:
         request result, XML formatted text
     """
     return send_indirect_request(Endpoint.OBSTREE, server_url=server_url)
+
+
+def is_server_up(server_url: str = amda_cfg.entry_point()) -> bool:
+    """Check if AMDA_Webservice server is up.
+
+    Parameters
+    ----------
+    server_url: str
+        the base server URL
+
+    Returns
+    -------
+    bool
+        True if server is up, False otherwise
+    """
+    try:
+        r = send_request(Endpoint.AUTH, server_url=server_url, timeout=1)
+        return r is not None
+    except:  # lgtm [py/catch-base-exception]
+        return False

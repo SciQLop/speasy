@@ -60,8 +60,10 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 
 class CDA_Webservice(DataProvider):
+    BASE_URL = "https://cdaweb.gsfc.nasa.gov"
+
     def __init__(self):
-        self.__url = "https://cdaweb.gsfc.nasa.gov/WS/cdasr/1"
+        self.__url = f"{self.BASE_URL}/WS/cdasr/1"
         DataProvider.__init__(self, provider_name='cda', provider_alt_names=['cdaweb'])
 
     def build_inventory(self, root: SpeasyIndex):
