@@ -15,10 +15,10 @@ from ..core import mkdir
 
 SPEASY_CONFIG_DIR = str(appdirs.user_config_dir(appname="speasy", appauthor="LPP"))
 
-_CONFIG_FNAME = os.path.join(SPEASY_CONFIG_DIR, "config.ini")
-mkdir(os.path.dirname(_CONFIG_FNAME))
+SPEASY_CONFIG_FILE = os.path.join(SPEASY_CONFIG_DIR, "config.ini")
+mkdir(os.path.dirname(SPEASY_CONFIG_FILE))
 _config = configparser.ConfigParser()
-_config.read(_CONFIG_FNAME)
+_config.read(SPEASY_CONFIG_FILE)
 
 _entries = {}
 
@@ -31,7 +31,7 @@ def show():
 
 
 def _save_changes():
-    with open(_CONFIG_FNAME, 'w') as f:
+    with open(SPEASY_CONFIG_FILE, 'w') as f:
         _config.write(f)
 
 
