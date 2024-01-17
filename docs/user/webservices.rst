@@ -22,3 +22,6 @@ Speasy provides access to the following Web Services:
 
 While you can download any data with :meth:`speasy.get_data`, each web service have specificities and might expose extra
 features through their dedicated modules.
+
+.. note::
+    At any time, you can disable a web service by adding it to the ``disabled_services`` list in your configuration file, see :ref:`disabling_providers`.

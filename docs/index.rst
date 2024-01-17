@@ -14,6 +14,7 @@ Space Physics made EASY
 
    installation
    user/webservices
+   user/configuration
    examples/index
    dev/index
    history
