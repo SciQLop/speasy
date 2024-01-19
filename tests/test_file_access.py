@@ -26,7 +26,7 @@ class FileAccess(unittest.TestCase):
     def test_simple_remote_txt_file(self):
         f = any_loc_open("http://sciqlop.lpp.polytechnique.fr/cache/", mode='r')
         self.assertIsNotNone(f)
-        self.assertIn('<title>SPEASY proxy</title>', f.read())
+        self.assertIn('<title>Speasy Cache Server</title>', f.read())
 
     def test_cached_remote_txt_file(self):
         drop_item("https://hephaistos.lpp.polytechnique.fr/data/jeandet/Vbias.html")
