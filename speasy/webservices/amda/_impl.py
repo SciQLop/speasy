@@ -123,10 +123,18 @@ class AmdaImpl:
         return None
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                     extra_http_headers: Dict or None = None, output_format: str = 'ASCII', **kwargs) -> Optional[
+                     extra_http_headers: Dict or None = None, output_format: str = 'ASCII', restricted_period=False,
+                     **kwargs) -> Optional[
         SpeasyVariable]:
         dt = timedelta(days=amda_cfg.max_chunk_size_days())
-
+        if restricted_period:
+            try:
+                username, password = _get_credentials()
+                kwargs['userID'] = username
+                kwargs['password'] = password
+            except MissingCredentials:
+                raise MissingCredentials(
+                    "Restricted period requested but no credentials provided, please add your AMDA credentials.")
         if stop_time - start_time > dt:
             var = None
             curr_t = start_time
