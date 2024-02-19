@@ -43,6 +43,7 @@ class SpanTransComparaisons(unittest.TestCase):
     @data(
         ([1., 1.], [1., 1.], True),
         ([1., 10.], [0., 10.], True),
+        ([0., 10.], [1., 10.], True),
         ([1., 10.], [20., 25.], False),
         ([20., 25.], [1., 10.], False)
     )

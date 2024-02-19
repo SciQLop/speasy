@@ -5,7 +5,7 @@
 
 import unittest
 from ddt import data, ddt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -62,6 +62,21 @@ class ParameterRequests(unittest.TestCase):
     def test_dataset_items_datatype(self):
         for item in self.dataset:
             self.assertTrue(isinstance(self.dataset[item], spz.SpeasyVariable))
+
+    def test_restricted_time_range(self):
+        from speasy.webservices.amda._impl import credential_are_valid
+        if credential_are_valid():
+            self.skipTest("Should only run when credentials are not valid")
+        dataset = None
+        for dataset in spz.inventories.flat_inventories.amda.datasets.values():
+            if hasattr(dataset, 'timeRestriction'):
+                break
+        if dataset is not None:
+            from speasy.webservices.amda.exceptions import MissingCredentials
+            from speasy.core import make_utc_datetime
+            with self.assertRaises(MissingCredentials):
+                spz.amda.get_dataset(dataset, make_utc_datetime(dataset.timeRestriction),
+                                     make_utc_datetime(dataset.timeRestriction) + timedelta(minutes=1))
 
 
 @ddt

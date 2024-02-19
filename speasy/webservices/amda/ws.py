@@ -139,6 +139,16 @@ class AMDA_Webservice(DataProvider):
     def is_user_parameter(self, parameter_id: str or ParameterIndex):
         return _is_user_prod(parameter_id, self.flat_inventory.parameters)
 
+    def has_time_restriction(self, product_id: str or SpeasyIndex, start_time: str or datetime,
+                             stop_time: str or datetime):
+        dataset = self._find_parent_dataset(product_id)
+        if dataset:
+            dataset = self.flat_inventory.datasets[dataset]
+            if hasattr(dataset, 'timeRestriction'):
+                return DateTimeRange(dataset.timeRestriction, dataset.stop_date).intersect(
+                    DateTimeRange(start_time, stop_time))
+        return False
+
     def product_version(self, parameter_id: str or ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
@@ -351,13 +361,28 @@ class AMDA_Webservice(DataProvider):
         catalog_id = to_xmlid(catalog_id)
         return self._impl.dl_user_catalog(catalog_id=catalog_id)
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format'])
-    @ParameterRangeCheck()
-    @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12, entry_name=_amda_cache_entry_name)
-    @Proxyfiable(GetProduct, get_parameter_args)
     def get_parameter(self, product, start_time, stop_time,
                       extra_http_headers: Dict or None = None, output_format: str or None = None, **kwargs) -> Optional[
         SpeasyVariable]:
+        if self.has_time_restriction(product, start_time, stop_time):
+            kwargs['disable_proxy'] = True
+            kwargs['restricted_period'] = True
+            return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
+                                       output_format=output_format or amda_cfg.output_format(), **kwargs)
+        else:
+            return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
+                                       output_format=output_format or amda_cfg.output_format(), **kwargs)
+
+    @AllowedKwargs(
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format', 'restricted_period'])
+    @ParameterRangeCheck()
+    @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12, entry_name=_amda_cache_entry_name)
+    @Proxyfiable(GetProduct, get_parameter_args)
+    def _get_parameter(self, product, start_time, stop_time,
+                       extra_http_headers: Dict or None = None, output_format: str or None = None,
+                       restricted_period=False, **kwargs) -> \
+        Optional[
+            SpeasyVariable]:
         """Get parameter data.
 
         Parameters
@@ -393,7 +418,8 @@ class AMDA_Webservice(DataProvider):
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         return self._impl.dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product,
                                        extra_http_headers=extra_http_headers,
-                                       output_format=output_format or amda_cfg.output_format())
+                                       output_format=output_format,
+                                       restricted_period=restricted_period)
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
                     **kwargs) -> Dataset or None:
@@ -671,6 +697,13 @@ class AMDA_Webservice(DataProvider):
             for dataset in self.flat_inventory.datasets.values():
                 if product_id in dataset:
                     return to_xmlid(dataset)
+
+    def _time_restriction_range(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> Optional[
+        DateTimeRange]:
+        dataset = self._find_parent_dataset(product_id)
+        if dataset and hasattr(dataset, 'timeRestriction'):
+            return DateTimeRange(dataset.timeRestriction, dataset.stop_date)
+        return None
 
     def product_type(self, product_id: str or SpeasyIndex) -> ProductType:
         """Returns product type for any known ADMA product from its index or ID.
