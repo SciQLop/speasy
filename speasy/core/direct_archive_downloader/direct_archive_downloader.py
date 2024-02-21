@@ -11,7 +11,7 @@ from typing import Optional, List
 from dateutil.relativedelta import relativedelta
 
 from speasy.core import make_utc_datetime, AnyDateTimeType
-from speasy.core.any_files import list_files
+from speasy.core.any_files import list_files, is_local_file
 from speasy.core.cache import CacheCall
 from speasy.core.cdf import load_variable
 from speasy.core.span_utils import intersects
@@ -19,11 +19,21 @@ from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
 
 
-@CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
-def _read_cdf(url: Optional[str], variable: str) -> Optional[SpeasyVariable]:
+def _read_cdf(url: Optional[str], variable: str, **kwargs) -> Optional[SpeasyVariable]:
     if url is None:
         return None
-    return load_variable(file=url, variable=variable)
+    if is_local_file(url):
+        return _local_read_cdf(file=url, variable=variable, **kwargs)
+    return _remote_read_cdf(url=url, variable=variable, **kwargs)
+
+
+def _local_read_cdf(file: str, variable: str, **kwargs) -> Optional[SpeasyVariable]:
+    return load_variable(file=file, variable=variable)
+
+
+@CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
+def _remote_read_cdf(url: str, variable: str, **kwargs) -> Optional[SpeasyVariable]:
+    return load_variable(file=url, variable=variable, cache_remote_files=False)
 
 
 def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
@@ -138,7 +148,7 @@ class RegularSplitDirectDownload:
         Optional[SpeasyVariable]:
         v = merge(
             list(map(lambda date: _read_cdf(_build_url(url_pattern, date, use_file_list=use_file_list),
-                                            variable=variable),
+                                            variable=variable, **kwargs),
                      spilt_range(split_frequency=split_frequency, start_time=start_time,
                                  stop_time=stop_time))))
         if v is not None:

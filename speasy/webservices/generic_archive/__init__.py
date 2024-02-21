@@ -20,7 +20,7 @@ from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
 from speasy.core.http import is_server_up
 from speasy.core.url_utils import host_and_port, is_local_file
 from speasy.products.variable import SpeasyVariable
-from speasy.core.cache import CacheCall
+from speasy.core.cache import CacheCall, CACHE_ALLOWED_KWARGS
 
 log = logging.getLogger(__name__)
 
@@ -100,14 +100,16 @@ class GenericArchive(DataProvider):
         else:
             raise ValueError(f"Got unexpected type {type(product)}, expecting str or ParameterIndex")
 
-    @AllowedKwargs(GET_DATA_ALLOWED_KWARGS)
+    @AllowedKwargs(GET_DATA_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['force_refresh'])
     def get_data(self, product: str or ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                  **kwargs) -> Optional[SpeasyVariable]:
-        var = self._get_data(product=self._parameter_index(product), start_time=start_time, stop_time=stop_time)
+        var = self._get_data(product=self._parameter_index(product), start_time=start_time, stop_time=stop_time,
+                             **kwargs)
         return var
 
-    def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType) -> Optional[
+    def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType, **kwargs) -> \
+    Optional[
         SpeasyVariable]:
         ga_cfg: dict = getattr(product, 'spz_ga_cfg')
         return get_product(**ga_cfg,
-                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time)
+                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
