@@ -1,7 +1,7 @@
 import io
 
 import pyistp
-
+import re
 from ..any_files import any_loc_open
 from ..url_utils import urlparse, is_local_file
 from ...products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
@@ -47,16 +47,18 @@ def _build_labels(variable: pyistp.loader.DataVariable):
 
 def _load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None:
     istp = pyistp.load(file=file, buffer=buffer)
-    if istp:
+    if istp is not None:
         if variable in istp.data_variables():
             var = istp.data_variable(variable)
         elif variable.replace('-', '_') in istp.data_variables():  # THX CSA/ISTP
             var = istp.data_variable(variable.replace('-', '_'))
-        elif variable.replace('/', '$') in istp.data_variables():  # CDA
-            var = istp.data_variable(variable.replace('/', '$'))
-        else:
-            return None
-        if var:
+        else:  # CDA https://cdaweb.gsfc.nasa.gov/WebServices/REST/#Get_Data_GET
+            alternative = re.sub("[\\\/.%!@#^&*()\-+=`~|?<> ]", "$", variable)
+            if alternative in istp.data_variables():
+                var = istp.data_variable(alternative)
+            else:
+                return None
+        if var is not None:
             time_axis_name = var.axes[0].name
             return SpeasyVariable(
                 axes=[VariableTimeAxis(values=var.axes[0].values.copy(),

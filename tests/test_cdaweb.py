@@ -154,6 +154,11 @@ class ConcurrentRequests(unittest.TestCase):
 
 class SpecificNonRegression(unittest.TestCase):
 
+    def test_dots_are_replaced_by_dollars(self):
+        result = spz.get_data("cda/WI_PLSP_3DP/MOM.P.MAGF", "2018-01-01", "2018-01-02", disable_proxy=True,
+                              disable_cache=True)
+        self.assertIsNotNone(result)
+
     def test_broken_var_saved_into_cache(self):
         for i in range(2):
             v = spz.get_data(spz.inventories.tree.cda.ACE.MAG.AC_H2_MFI.BGSEc, "2018-01-01", "2018-01-02")
