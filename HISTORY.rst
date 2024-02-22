@@ -2,6 +2,13 @@
 History
 =======
 
+1.2.3 (2024-02-22)
+------------------
+
+* Fixes https://github.com/SciQLop/speasy/issues/119 by @jeandet in https://github.com/SciQLop/speasy/pull/120
+* Add support for AMDA restricted products by @jeandet in https://github.com/SciQLop/speasy/pull/118
+* Automatically disable web services if they are not available by @jeandet in https://github.com/SciQLop/speasy/pull/112
+
 1.2.2 (2023-11-28)
 ------------------
 
