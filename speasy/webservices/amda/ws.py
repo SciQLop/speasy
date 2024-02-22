@@ -141,6 +141,22 @@ class AMDA_Webservice(DataProvider):
 
     def has_time_restriction(self, product_id: str or SpeasyIndex, start_time: str or datetime,
                              stop_time: str or datetime):
+        """Check if product is restricted for a given time range.
+
+        Parameters
+        ----------
+        product_id: str or SpeasyIndex
+            product id
+        start_time: str or datetime
+            desired data start time
+        stop_time: str or datetime
+            desired data stop time
+
+        Returns
+        -------
+        bool
+            True if product is restricted for the given time range, False otherwise.
+        """
         dataset = self._find_parent_dataset(product_id)
         if dataset:
             dataset = self.flat_inventory.datasets[dataset]
@@ -697,13 +713,6 @@ class AMDA_Webservice(DataProvider):
             for dataset in self.flat_inventory.datasets.values():
                 if product_id in dataset:
                     return to_xmlid(dataset)
-
-    def _time_restriction_range(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> Optional[
-        DateTimeRange]:
-        dataset = self._find_parent_dataset(product_id)
-        if dataset and hasattr(dataset, 'timeRestriction'):
-            return DateTimeRange(dataset.timeRestriction, dataset.stop_date)
-        return None
 
     def product_type(self, product_id: str or SpeasyIndex) -> ProductType:
         """Returns product type for any known ADMA product from its index or ID.
