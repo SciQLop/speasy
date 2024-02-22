@@ -21,4 +21,4 @@ Once you have found your product, then simply ask CDA module to get data for the
     >>> solo_mag_rtn.columns
     ['B_r', 'B_t', 'B_n']
     >>> solo_mag_rtn.values.shape
-    (1439, 3)
+    (1438, 3)
