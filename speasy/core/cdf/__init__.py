@@ -53,7 +53,7 @@ def _load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or Non
         elif variable.replace('-', '_') in istp.data_variables():  # THX CSA/ISTP
             var = istp.data_variable(variable.replace('-', '_'))
         else:  # CDA https://cdaweb.gsfc.nasa.gov/WebServices/REST/#Get_Data_GET
-            alternative = re.sub("[\\\/.%!@#^&*()\-+=`~|?<> ]", "$", variable)
+            alternative = re.sub(r"[\\/.%!@#^&*()\-+=`~|?<> ]", "$", variable)
             if alternative in istp.data_variables():
                 var = istp.data_variable(alternative)
             else:
