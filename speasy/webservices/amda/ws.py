@@ -161,8 +161,11 @@ class AMDA_Webservice(DataProvider):
         if dataset:
             dataset = self.flat_inventory.datasets[dataset]
             if hasattr(dataset, 'timeRestriction'):
-                return DateTimeRange(dataset.timeRestriction, dataset.stop_date).intersect(
-                    DateTimeRange(start_time, stop_time))
+                lower = make_utc_datetime(dataset.timeRestriction)
+                upper = make_utc_datetime(dataset.stop_date)
+                if lower < upper:
+                    return DateTimeRange(lower, upper).intersect(
+                        DateTimeRange(start_time, stop_time))
         return False
 
     def product_version(self, parameter_id: str or ParameterIndex):
