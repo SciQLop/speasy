@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 import speasy as spz
+from speasy.core import make_utc_datetime
 
 
 class ParameterRequests(unittest.TestCase):
@@ -77,6 +78,16 @@ class ParameterRequests(unittest.TestCase):
             with self.assertRaises(MissingCredentials):
                 spz.amda.get_dataset(dataset, make_utc_datetime(dataset.timeRestriction),
                                      make_utc_datetime(dataset.timeRestriction) + timedelta(minutes=1))
+
+    def test_restricted_time_range_after_stop_date(self):
+        dataset = None
+        for dataset in spz.inventories.flat_inventories.amda.datasets.values():
+            if hasattr(dataset, 'timeRestriction'):
+                if make_utc_datetime(dataset.timeRestriction) > make_utc_datetime(dataset.stop_date):
+                    break
+        if dataset is not None:
+            spz.amda.get_dataset(dataset, make_utc_datetime(dataset.timeRestriction) - timedelta(days=10),
+                                 make_utc_datetime(dataset.timeRestriction) - timedelta(days=10) + timedelta(minutes=1), disable_proxy=True, disable_cache=True)
 
 
 @ddt
