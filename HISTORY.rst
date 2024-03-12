@@ -2,6 +2,11 @@
 History
 =======
 
+1.2.4 (2024-03-12)
+------------------
+
+* [AMDA]Handles cases where timeRestriction is after stop_date by @jeandet in https://github.com/SciQLop/speasy/pull/124
+
 1.2.3 (2024-02-22)
 ------------------
 
