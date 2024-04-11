@@ -71,7 +71,8 @@ class ParameterRequests(unittest.TestCase):
         dataset = None
         for dataset in spz.inventories.flat_inventories.amda.datasets.values():
             if hasattr(dataset, 'timeRestriction'):
-                break
+                if (make_utc_datetime(dataset.timeRestriction) + timedelta(minutes=1))< make_utc_datetime(dataset.stop_date):
+                    break
         if dataset is not None:
             from speasy.webservices.amda.exceptions import MissingCredentials
             from speasy.core import make_utc_datetime
