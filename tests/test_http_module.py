@@ -22,7 +22,7 @@ class HttpTests(unittest.TestCase):
 
 
     @data(
-        ("http://somewhere.com", False),
+        ("http://somewhere-that-does-not-exist-404.com", False),
         ("https://hephaistos.lpp.polytechnique.fr", True),
         ("https://sciqlop.lpp.polytechnique.fr/", False),
     )
