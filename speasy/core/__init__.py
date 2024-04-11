@@ -169,12 +169,12 @@ def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
     """
     if type(input_dt) in (np.float64, float):
-        return datetime.utcfromtimestamp(input_dt)
+        return datetime.fromtimestamp(input_dt, tz=timezone.utc)
     if type(input_dt) is str:
         input_dt = parse(input_dt)
     if type(input_dt) is np.datetime64:
         if input_dt.dtype == np.dtype('datetime64[ns]'):
-            return datetime.utcfromtimestamp(input_dt.astype(np.int64) * 1e-9)
+            return datetime.fromtimestamp(input_dt.astype(np.int64) * 1e-9, tz=timezone.utc)
 
     return datetime(input_dt.year, input_dt.month, input_dt.day, input_dt.hour, input_dt.minute, input_dt.second,
                     input_dt.microsecond, tzinfo=timezone.utc)
