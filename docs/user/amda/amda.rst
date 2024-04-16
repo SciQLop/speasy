@@ -43,7 +43,7 @@ Let's start with a simple example, we want to download the first parameter avail
     <ParameterIndex: He flux>
     >>> first_param=amda.get_parameter(first_param_index, "2018-01-01", "2018-01-02T01")
     >>> first_param.columns
-    ['He flux']
+    ['He flux[0]', 'He flux[1]']
     >>> len(first_param.time)
     288
 
