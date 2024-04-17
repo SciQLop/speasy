@@ -2,6 +2,12 @@
 History
 =======
 
+1.2.5 (2024-04-17)
+------------------
+
+* Add python3.12 on ci by @jeandet in https://github.com/SciQLop/speasy/pull/126
+* If last cache fragment is None then don't slice it by @jeandet in https://github.com/SciQLop/speasy/pull/125
+
 1.2.4 (2024-03-12)
 ------------------
 
