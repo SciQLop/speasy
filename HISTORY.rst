@@ -2,6 +2,11 @@
 History
 =======
 
+1.2.6 (2024-04-17)
+------------------
+
+* Emergency release because sscweb Json schema has changed by @jeandet
+
 1.2.5 (2024-04-17)
 ------------------
 
