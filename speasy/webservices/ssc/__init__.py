@@ -21,6 +21,21 @@ from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
 from ...core import AllowedKwargs, http
 
+
+def _variable(orbit: dict) -> Optional[SpeasyVariable]:
+    data = orbit['Result'][1]['Data'][1][0][1]['Coordinates'][1][0][1]
+    time = orbit['Result'][1]['Data'][1][0][1]['Time'][1]
+    values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose()
+
+    # this is damn slow!
+    time_axis = np.array([_make_datetime(v[1]) for v in time])
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=time_axis)],
+        values=DataContainer(values, meta={'CoordinateSystem': data['CoordinateSystem'], 'UNITS': 'km'}),
+        columns=['X', 'Y', 'Z']
+    )
+
+
 log = logging.getLogger(__name__)
 
 
@@ -32,23 +47,8 @@ def _make_datetime(dt: str) -> np.datetime64:
     return np.datetime64(dt[:-6], 'ns')
 
 
-def _variable(orbit: dict) -> Optional[SpeasyVariable]:
-    data = orbit['Result']['Data'][1][0]['Coordinates'][1][0]
-    keys = list(data.keys())
-    keys.remove('CoordinateSystem')
-    values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose()
-    # this is damn slow!
-    time_axis = np.array([_make_datetime(v[1]) for v in
-                          orbit['Result']['Data'][1][0]['Time'][1]])
-    return SpeasyVariable(
-        axes=[VariableTimeAxis(values=time_axis)],
-        values=DataContainer(values, meta={'CoordinateSystem': data['CoordinateSystem'], 'UNITS': 'km'}),
-        columns=['X', 'Y', 'Z']
-    )
-
-
 def _is_valid(orbit: dict):
-    return orbit['Result']['StatusCode'] == 'SUCCESS' and orbit['Result']['StatusSubCode'] == 'SUCCESS'
+    return orbit['Result'][1]['StatusCode'] == 'SUCCESS' and orbit['Result'][1]['StatusSubCode'] == 'SUCCESS'
 
 
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
@@ -86,7 +86,7 @@ class SSC_Webservice(DataProvider):
         res = http.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
         if not res.ok:
             return None
-        return res.json()['Observatory'][1]
+        return list(map(lambda x: x[1], res.json()[1]['Observatory'][1]))
 
     def version(self, product):
         return 2
@@ -138,7 +138,7 @@ class SSC_Webservice(DataProvider):
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
         res = http.get(url, headers=headers)
-        orbit = res.json()
+        orbit = res.json()[1]
         if res.ok and _is_valid(orbit):
             return _variable(orbit)[start_time:stop_time]
         return None
