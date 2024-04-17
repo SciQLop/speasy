@@ -2,6 +2,11 @@
 History
 =======
 
+1.2.7 (2024-04-17)
+------------------
+
+* Always check if a cache entry is None before slicing it by @jeandet in https://github.com/SciQLop/speasy/pull/127
+
 1.2.6 (2024-04-17)
 ------------------
 
