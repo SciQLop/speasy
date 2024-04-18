@@ -82,8 +82,8 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 def make_index(meta: Dict):
     name = meta.pop('Name')
-    meta['start_date'] = meta.pop('StartTime')[1]
-    meta['stop_date'] = meta.pop('EndTime')[1]
+    meta['start_date'] = meta.pop('StartTime')
+    meta['stop_date'] = meta.pop('EndTime')
     node = ParameterIndex(name=name, provider="ssc", uid=meta['Id'], meta=meta)
     return node
 

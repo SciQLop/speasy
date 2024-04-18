@@ -5,7 +5,6 @@
 import os
 import unittest
 from datetime import datetime, timezone
-import json
 import numpy as np
 from ddt import data, ddt
 
@@ -24,34 +23,36 @@ class SscWeb(unittest.TestCase):
         pass
 
     def test_parses_xml_inventory(self):
-        inventory = ssc.parse_inventory(open(os.path.join(_HERE_, 'resources', 'sscweb_observatories.xml')).read())
-        self.assertIsNotNone(inventory)
-        self.assertGreater(len(inventory), 0)
-        for item in inventory:
-            self.assertIsInstance(item, dict)
-            self.assertIn('Id', item)
-            self.assertIsInstance(item['Id'], str)
-            self.assertIn('Name', item)
-            self.assertIsInstance(item['Name'], str)
-            self.assertIn('StartTime', item)
-            self.assertIsInstance(item['StartTime'], str)
-            self.assertIn('EndTime', item)
-            self.assertIsInstance(item['EndTime'], str)
-            self.assertIn('Resolution', item)
-            self.assertIsInstance(item['Resolution'], str)
+        with open(os.path.join(_HERE_, 'resources', 'sscweb_observatories.xml')) as f:
+            inventory = ssc.parse_inventory(f.read())
+            self.assertIsNotNone(inventory)
+            self.assertGreater(len(inventory), 0)
+            for item in inventory:
+                self.assertIsInstance(item, dict)
+                self.assertIn('Id', item)
+                self.assertIsInstance(item['Id'], str)
+                self.assertIn('Name', item)
+                self.assertIsInstance(item['Name'], str)
+                self.assertIn('StartTime', item)
+                self.assertIsInstance(item['StartTime'], str)
+                self.assertIn('EndTime', item)
+                self.assertIsInstance(item['EndTime'], str)
+                self.assertIn('Resolution', item)
+                self.assertIsInstance(item['Resolution'], str)
 
     def test_parses_xml_trajectory(self):
-        trajectory = ssc.parse_trajectory(open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')).read())
-        self.assertIsNotNone(trajectory)
-        self.assertGreater(len(trajectory), 0)
-        self.assertIsInstance(trajectory, SpeasyVariable)
-        self.assertIn('X', trajectory.columns)
-        self.assertIn('Y', trajectory.columns)
-        self.assertIn('Z', trajectory.columns)
-        self.assertIn('CoordinateSystem', trajectory.meta)
-        self.assertEqual(trajectory.meta['CoordinateSystem'], 'GSE')
-        self.assertEqual(trajectory.meta['UNITS'], 'km')
-        self.assertEqual(trajectory.time[0], np.datetime64('2006-01-08T01:00:00.000000000', 'ns'))
+        with open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')) as f:
+            trajectory = ssc.parse_trajectory(f.read())
+            self.assertIsNotNone(trajectory)
+            self.assertGreater(len(trajectory), 0)
+            self.assertIsInstance(trajectory, SpeasyVariable)
+            self.assertIn('X', trajectory.columns)
+            self.assertIn('Y', trajectory.columns)
+            self.assertIn('Z', trajectory.columns)
+            self.assertIn('CoordinateSystem', trajectory.meta)
+            self.assertEqual(trajectory.meta['CoordinateSystem'], 'GSE')
+            self.assertEqual(trajectory.meta['UNITS'], 'km')
+            self.assertEqual(trajectory.time[0], np.datetime64('2006-01-08T01:00:00.000000000', 'ns'))
 
     @data(
         {
