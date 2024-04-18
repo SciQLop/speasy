@@ -9,6 +9,7 @@ __version__ = '0.1.0'
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict
+import xml.etree.ElementTree as ET
 
 import numpy as np
 
@@ -22,33 +23,52 @@ from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataConta
 from ...core import AllowedKwargs, http
 
 
-def _variable(orbit: dict) -> Optional[SpeasyVariable]:
-    data = orbit['Result'][1]['Data'][1][0][1]['Coordinates'][1][0][1]
-    time = orbit['Result'][1]['Data'][1][0][1]['Time'][1]
-    values = np.array([data['X'][1], data['Y'][1], data['Z'][1]]).transpose()
+def drop_namespace(xml):
+    for elem in xml.iter():
+        tag_elements = elem.tag.split("}")
 
-    # this is damn slow!
-    time_axis = np.array([_make_datetime(v[1]) for v in time])
-    return SpeasyVariable(
-        axes=[VariableTimeAxis(values=time_axis)],
-        values=DataContainer(values, meta={'CoordinateSystem': data['CoordinateSystem'], 'UNITS': 'km'}),
-        columns=['X', 'Y', 'Z']
-    )
+        # Removing name spaces and attributes
+        elem.tag = tag_elements[1]
+        elem.attrib.clear()
+    return xml
+
+
+def parse_inventory(inventory: str):
+    xml = drop_namespace(ET.fromstring(inventory))
+    return [
+        {
+            item.tag: item.text
+            for item in obs
+        }
+        for obs in xml.findall('Observatory')
+    ]
 
 
 log = logging.getLogger(__name__)
 
 
-def _make_datetime(dt: str) -> np.datetime64:
-    '''
-        Hack to support python 3.6, once 3.6 support removed then go back to:
-        datetime.strptime(v[1], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp()
-    '''
-    return np.datetime64(dt[:-6], 'ns')
+def _is_valid(xml):
+    result = xml.find('Result')
+    return result.find('StatusCode').text.lower() == 'success' and result.find(
+        'StatusSubCode').text.lower() == 'success'
 
 
-def _is_valid(orbit: dict):
-    return orbit['Result'][1]['StatusCode'] == 'SUCCESS' and orbit['Result'][1]['StatusSubCode'] == 'SUCCESS'
+def parse_trajectory(trajectory: str) -> Optional[SpeasyVariable]:
+    xml = drop_namespace(ET.fromstring(trajectory))
+    if _is_valid(xml):
+        data = xml.find('Result').find('Data')
+        coordinates = data.find('Coordinates')
+        values = np.array(
+            [list(map(lambda v: v.text, coordinates.findall(axis))) for axis in ('X', 'Y', 'Z')]).transpose()
+        time_axis = np.array([np.datetime64(v.text[:-1], 'ns') for v in data.findall('Time')])
+        return SpeasyVariable(
+            axes=[VariableTimeAxis(values=time_axis)],
+            values=DataContainer(values,
+                                 meta={'CoordinateSystem': coordinates.find('CoordinateSystem').text.upper(),
+                                       'UNITS': 'km'}),
+            columns=['X', 'Y', 'Z']
+        )
+    return None
 
 
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
@@ -83,13 +103,13 @@ class SSC_Webservice(DataProvider):
 
     @CacheCall(cache_retention=7 * 24 * 60 * 60, is_pure=True)
     def get_observatories(self):
-        res = http.get(f"{self.__url}/observatories", headers={"Accept": "application/json"})
+        res = http.get(f"{self.__url}/observatories", headers={"Accept": "application/xml"})
         if not res.ok:
             return None
-        return list(map(lambda x: x[1], res.json()[1]['Observatory'][1]))
+        return parse_inventory(res.text)
 
     def version(self, product):
-        return 2
+        return 3
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.
@@ -132,13 +152,13 @@ class SSC_Webservice(DataProvider):
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
-        if debug:
-            print(url)
-        headers = {"Accept": "application/json"}
+        log.debug(f"Requesting {url}")
+        headers = {"Accept": "application/xml"}
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
         res = http.get(url, headers=headers)
-        orbit = res.json()[1]
-        if res.ok and _is_valid(orbit):
-            return _variable(orbit)[start_time:stop_time]
+        if res.ok:
+            maybe_var = parse_trajectory(res.text)
+            if maybe_var is not None:
+                return maybe_var[start_time:stop_time]
         return None
