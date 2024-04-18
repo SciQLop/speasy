@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
+import os
 import unittest
 from datetime import datetime, timezone
-
+import json
 import numpy as np
 from ddt import data, ddt
 
 from speasy.webservices import ssc
+from speasy.products import SpeasyVariable
+
+_HERE_ = os.path.dirname(os.path.abspath(__file__))
 
 
 @ddt
@@ -18,6 +22,36 @@ class SscWeb(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_parses_xml_inventory(self):
+        inventory = ssc.parse_inventory(open(os.path.join(_HERE_, 'resources', 'sscweb_observatories.xml')).read())
+        self.assertIsNotNone(inventory)
+        self.assertGreater(len(inventory), 0)
+        for item in inventory:
+            self.assertIsInstance(item, dict)
+            self.assertIn('Id', item)
+            self.assertIsInstance(item['Id'], str)
+            self.assertIn('Name', item)
+            self.assertIsInstance(item['Name'], str)
+            self.assertIn('StartTime', item)
+            self.assertIsInstance(item['StartTime'], str)
+            self.assertIn('EndTime', item)
+            self.assertIsInstance(item['EndTime'], str)
+            self.assertIn('Resolution', item)
+            self.assertIsInstance(item['Resolution'], str)
+
+    def test_parses_xml_trajectory(self):
+        trajectory = ssc.parse_trajectory(open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')).read())
+        self.assertIsNotNone(trajectory)
+        self.assertGreater(len(trajectory), 0)
+        self.assertIsInstance(trajectory, SpeasyVariable)
+        self.assertIn('X', trajectory.columns)
+        self.assertIn('Y', trajectory.columns)
+        self.assertIn('Z', trajectory.columns)
+        self.assertIn('CoordinateSystem', trajectory.meta)
+        self.assertEqual(trajectory.meta['CoordinateSystem'], 'GSE')
+        self.assertEqual(trajectory.meta['UNITS'], 'km')
+        self.assertEqual(trajectory.time[0], np.datetime64('2006-01-08T01:00:00.000000000', 'ns'))
 
     @data(
         {
@@ -77,9 +111,21 @@ class SscWeb(unittest.TestCase):
                 any(["outside of its definition range" in line for line in cm.output]))
 
     def test_get_observatories(self):
-        obs_list = self.ssc.get_observatories()
+        obs_list = self.ssc.get_observatories(force_refresh=True)
         self.assertIsNotNone(obs_list)
         self.assertGreater(len(obs_list), 10)  # it has to return few elements
+        for item in obs_list:
+            self.assertIsInstance(item, dict)
+            self.assertIn('Id', item)
+            self.assertIsInstance(item['Id'], str)
+            self.assertIn('Name', item)
+            self.assertIsInstance(item['Name'], str)
+            self.assertIn('StartTime', item)
+            self.assertIsInstance(item['StartTime'], str)
+            self.assertIn('EndTime', item)
+            self.assertIsInstance(item['EndTime'], str)
+            self.assertIn('Resolution', item)
+            self.assertIsInstance(item['Resolution'], str)
 
     @data({'sampling': '1'},
           {'unknown_arg': 10})
