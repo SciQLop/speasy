@@ -36,6 +36,14 @@ def make_simple_var_2cols(start: float = 0., stop: float = 0., step: float = 1.,
                           values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["x", "y"])
 
 
+def make_simple_var_3cols(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
+    time = np.arange(start, stop, step)
+    values = np.random.random((len(time), 3))
+    return SpeasyVariable(axes=[VariableTimeAxis(values=epoch_to_datetime64(time))],
+                          values=DataContainer(values=values, is_time_dependent=True, meta=meta),
+                          columns=["x", "y", "z"])
+
+
 def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
@@ -259,6 +267,58 @@ class ASpeasyVariable(unittest.TestCase):
             self.assertIsNotNone(ax)
         except ImportError:
             self.skipTest("Can't import matplotlib")
+
+
+class TestSpeasyVariableMath(unittest.TestCase):
+    def setUp(self):
+        self.var = make_simple_var(1., 10., 1., 10.)
+
+    def tearDown(self):
+        pass
+
+    def test_addition(self):
+        var = self.var + 1
+        self.assertTrue(np.all(var.values == self.var.values + 1))
+
+    def test_subtraction(self):
+        var = self.var - 1
+        self.assertTrue(np.all(var.values == self.var.values - 1))
+
+    def test_multiplication(self):
+        var = self.var * 2
+        self.assertTrue(np.all(var.values == self.var.values * 2))
+
+    def test_division(self):
+        var = self.var / 2
+        self.assertTrue(np.all(var.values == self.var.values / 2))
+
+
+class TestSpeasyVariableNumpyInterface(unittest.TestCase):
+    def setUp(self):
+        self.var = make_simple_var(1., 10., 1., 10.)
+        self.vector = make_simple_var_3cols(1., 10., 1., 10.)
+
+    def tearDown(self):
+        pass
+
+    def test_ufunc(self):
+        var = np.exp(self.var)
+        self.assertTrue(np.all(var.values == np.exp(self.var.values)))
+
+    def test_ufunc_inplace(self):
+        values = self.var.values.copy()
+        self.var += 1
+        self.assertTrue(np.all(self.var.values == values + 1))
+
+    def test_ufunc_inplace_with_output(self):
+        out = np.empty_like(self.var)
+        np.add(self.var, 1, out=out)
+        self.assertTrue(np.all(out.values == self.var.values + 1))
+
+    def test_ufunc_magnitude(self):
+        var = np.sqrt(np.sum(np.multiply(self.vector, self.vector), axis=1))
+        self.assertTrue(np.allclose(var.values, np.linalg.norm(self.vector.values, axis=1).reshape(-1, 1)))
+        self.assertTrue(np.allclose(var, np.linalg.norm(self.vector, axis=1)))
 
 
 class SpeasyVariableCompare(unittest.TestCase):

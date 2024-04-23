@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import astropy.table
 import astropy.units
@@ -15,6 +15,12 @@ from speasy.core.data_containers import (
 from speasy.plotting import Plot
 
 from .base_product import SpeasyProduct
+
+
+def _values(input: "SpeasyVariable" or Any) -> Any:
+    if isinstance(input, SpeasyVariable):
+        return input.values
+    return input
 
 
 class SpeasyVariable(SpeasyProduct):
@@ -83,11 +89,15 @@ class SpeasyVariable(SpeasyProduct):
             raise ValueError(
                 f"Time and data must have the same length, got time:{len(axes[0])} and data:{len(values)}"
             )
+        if not isinstance(values, DataContainer):
+            raise TypeError(
+                f"values must be a DataContainer instance, got {type(values)}"
+            )
 
         self.__columns = list(map(str.strip, columns or []))
-        if len(values.values.shape) == 1:
+        if values.ndim == 1:
             # to be consistent with pandas
-            values.reshape((values.shape[0], 1))
+            values = values.reshape((-1, 1))
 
         self.__values_container = values
         self.__axes = axes
@@ -194,6 +204,113 @@ class SpeasyVariable(SpeasyProduct):
         for axis, src_axis in zip(self.__axes, v.__axes):
             if axis.is_time_dependent:
                 axis[k] = src_axis
+
+    def __mul__(self, other):
+        if type(other) in (int, float):
+            res = self.copy()
+            np.multiply(self.__values_container.values, float(other), out=res.__values_container.values)
+            return res
+        raise TypeError(
+            f"Can't multiply SpeasyVariable by {type(other)}")
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __add__(self, other):
+        if type(other) is SpeasyVariable:
+            if self.__values_container.shape != other.__values_container.shape:
+                raise ValueError(
+                    f"Can't add variables with different shapes: {self.__values_container.shape} and {other.__values_container.shape}"
+                )
+            res = self.copy()
+            np.add(self.__values_container.values, other.__values_container.values, out=res.__values_container.values)
+            return res
+        elif type(other) in (int, float):
+            res = self.copy()
+            np.add(self.__values_container.values, float(other), out=res.__values_container.values)
+            return res
+        raise TypeError(
+            f"Can't add SpeasyVariable with {type(other)}"
+        )
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        if type(other) is SpeasyVariable:
+            if self.__values_container.shape != other.__values_container.shape:
+                raise ValueError(
+                    f"Can't subtract variables with different shapes: {self.__values_container.shape} and {other.__values_container.shape}"
+                )
+            res = self.copy()
+            np.subtract(self.__values_container.values, other.__values_container.values,
+                        out=res.__values_container.values)
+            return res
+        elif type(other) in (int, float):
+            res = self.copy()
+            np.subtract(self.__values_container.values, float(other), out=res.__values_container.values)
+            return res
+        raise TypeError(
+            f"Can't subtract SpeasyVariable with {type(other)}"
+        )
+
+    def __rsub__(self, other):
+        return -self.__sub__(other)
+
+    def __truediv__(self, other):
+        if type(other) in (int, float):
+            res = self.copy()
+            np.divide(self.__values_container.values, float(other), out=res.__values_container.values)
+            return res
+        raise TypeError(
+            f"Can't divide SpeasyVariable by {type(other)}")
+
+    def __array_function__(self, func, types, args, kwargs):
+        if func is np.empty_like:
+            return SpeasyVariable.reserve_like(self, length=len(self))
+        if 'out' in kwargs:
+            raise ValueError("out parameter is not supported")
+        f_args = [_values(arg) for arg in args]
+        f_kwargs = {name: _values(value) for name, value in kwargs.items()}
+        res = func(*f_args, **f_kwargs)
+        if type(res) is bool:
+            return res
+        n_cols = res.shape[1] if len(res.shape) > 1 else 1
+        return SpeasyVariable(
+            axes=deepcopy(self.__axes),
+            values=DataContainer(values=res, name=f"{func.__name__}_{self.__values_container.name}",
+                                 meta=deepcopy(self.__values_container.meta)),
+            columns=[f"column_{i}" for i in range(n_cols)],
+        )
+
+    def __array_ufunc__(self, ufunc, method, *inputs, out=None, **kwargs):
+        if out is not None:
+            _out = _values(out[0])
+        else:
+            _out = None
+        inputs = list(map(_values, inputs))
+        values = ufunc(*inputs, **{name: _values(value) for name, value in kwargs}, out=_out)
+        if out is not None:
+            return out
+        else:
+            return SpeasyVariable(
+                axes=deepcopy(self.__axes),
+                values=DataContainer(values=values, name=f"{ufunc.__name__}_{self.__values_container.name}",
+                                     meta=deepcopy(self.__values_container.meta)),
+                columns=[f"column_{i}" for i in range(values.shape[1])],
+            )
+
+    @property
+    def ndim(self):
+        return self.__values_container.ndim
+
+    @property
+    def shape(self):
+        return self.__values_container.shape
+
+    @property
+    def dtype(self):
+        return self.__values_container.dtype
 
     @property
     def name(self) -> str:

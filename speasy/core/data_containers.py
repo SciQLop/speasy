@@ -23,13 +23,16 @@ class DataContainer(object):
     __slots__ = ['__values', '__name', '__meta', '__is_time_dependent']
 
     def __init__(self, values: np.array, meta: Dict = None, name: str = None, is_time_dependent: bool = True):
+        if not isinstance(values, np.ndarray):
+            raise ValueError(f"values must be a numpy array, got {type(values)}")
         self.__values = values
         self.__is_time_dependent = is_time_dependent
         self.__name = name or ""
         self.__meta = meta or {}
 
-    def reshape(self, new_shape):
+    def reshape(self, new_shape) -> "DataContainer":
         self.__values = self.__values.reshape(new_shape)
+        return self
 
     @property
     def is_time_dependent(self) -> bool:
@@ -42,6 +45,14 @@ class DataContainer(object):
     @property
     def shape(self):
         return self.__values.shape
+
+    @property
+    def ndim(self):
+        return self.__values.ndim
+
+    @property
+    def dtype(self):
+        return self.__values.dtype
 
     @property
     def unit(self) -> str:
@@ -103,10 +114,10 @@ class DataContainer(object):
 
     def __eq__(self, other: 'DataContainer') -> bool:
         return self.__meta == other.__meta and \
-               self.__name == other.__name and \
-               self.is_time_dependent == other.is_time_dependent and \
-               np.all(self.__values.shape == other.__values.shape) and \
-               np.array_equal(self.__values, other.__values, equal_nan=True)
+            self.__name == other.__name and \
+            self.is_time_dependent == other.is_time_dependent and \
+            np.all(self.__values.shape == other.__values.shape) and \
+            np.array_equal(self.__values, other.__values, equal_nan=True)
 
     def replace_val_by_nan(self, val):
         if self.__values.dtype != np.float64:
