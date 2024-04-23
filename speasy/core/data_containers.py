@@ -102,6 +102,27 @@ class DataContainer(object):
                              is_time_dependent=other.__is_time_dependent
                              )
 
+    @staticmethod
+    def zeros_like(other: 'DataContainer') -> 'DataContainer':
+        return DataContainer(name=other.__name, meta=other.__meta,
+                             values=np.zeros_like(other.__values, dtype=other.__values.dtype),
+                             is_time_dependent=other.__is_time_dependent
+                             )
+
+    @staticmethod
+    def ones_like(other: 'DataContainer') -> 'DataContainer':
+        return DataContainer(name=other.__name, meta=other.__meta,
+                             values=np.ones_like(other.__values, dtype=other.__values.dtype),
+                             is_time_dependent=other.__is_time_dependent
+                             )
+
+    @staticmethod
+    def empty_like(other: 'DataContainer') -> 'DataContainer':
+        return DataContainer(name=other.__name, meta=other.__meta,
+                             values=np.empty_like(other.__values, dtype=other.__values.dtype),
+                             is_time_dependent=other.__is_time_dependent
+                             )
+
     def __len__(self):
         return len(self.__values)
 
