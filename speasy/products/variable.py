@@ -217,6 +217,11 @@ class SpeasyVariable(SpeasyProduct):
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    def __pow__(self, power, modulo=None):
+        res = self.copy()
+        np.power(self.__values_container.values, power, out=res.__values_container.values)
+        return res
+
     def __add__(self, other):
         if type(other) is SpeasyVariable:
             if self.__values_container.shape != other.__values_container.shape:
@@ -263,8 +268,23 @@ class SpeasyVariable(SpeasyProduct):
             res = self.copy()
             np.divide(self.__values_container.values, float(other), out=res.__values_container.values)
             return res
+        if type(other) is SpeasyVariable:
+            return np.divide(self, other)
         raise TypeError(
             f"Can't divide SpeasyVariable by {type(other)}")
+
+    def __rtruediv__(self, other):
+        if type(other) in (int, float):
+            res = self.copy()
+            np.divide(float(other), self.__values_container.values, out=res.__values_container.values)
+            return res
+        if type(other) is SpeasyVariable:
+            res = self.copy()
+            np.divide(other.__values_container.values, self.__values_container.values,
+                      out=res.__values_container.values)
+            return np.divide(other, self)
+        raise TypeError(
+            f"Can't divide {type(other)} by SpeasyVariable")
 
     def __array_function__(self, func, types, args, kwargs):
         if func.__name__ in SpeasyVariable.__LIKE_NP_FUNCTIONS__:
