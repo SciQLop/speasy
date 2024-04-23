@@ -48,23 +48,27 @@ class TestDownSampling(unittest.TestCase):
             axes=[VariableTimeAxis(values=generate_time_vector(cls.start, cls.stop, 1))],
             values=DataContainer(np.arange(60.).reshape(-1, 1))
         )
-        cls.resampled = resample(cls.data, 10)
+        cls.resampled = [resample(cls.data, 10)] + resample([cls.data * (i + 2) for i in range(3)], 10)
 
     @classmethod
     def tearDownClass(cls):
         pass
 
     def test_resampled_length(self):
-        self.assertEqual(len(self.resampled.time), 6)
+        for r in self.resampled:
+            self.assertEqual(len(r.time), 6)
 
     def test_resampled_time_step(self):
-        self.assertTrue(np.all(self.resampled.time[1:] - self.resampled.time[0:-1] == np.timedelta64(10, 's')))
+        for r in self.resampled:
+            self.assertTrue(np.all(r.time[1:] - r.time[0:-1] == np.timedelta64(10, 's')))
 
     def test_resampled_values_length(self):
-        self.assertEqual(len(self.resampled.values), 6)
+        for r in self.resampled:
+            self.assertEqual(len(r.values), 6)
 
     def test_resampled_values(self):
-        self.assertTrue(np.all(self.resampled.values == np.arange(0., 60., 10.).reshape(-1, 1)))
+        for i, r in enumerate(self.resampled):
+            self.assertTrue(np.allclose(r, (i + 1) * np.arange(0., 60., 10.).reshape(-1, 1)))
 
 
 class TestUpSamplingSimpleSlope(unittest.TestCase):
