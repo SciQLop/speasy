@@ -60,13 +60,13 @@ def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback
 def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Union[float, np.timedelta64],
              interpolate_callback: Optional[Callable] = None,
              *args, **kwargs) -> Union[SpeasyVariable, Collection[SpeasyVariable]]:
-    """Resample a variable to a new time step. The time vector will be generated from the start and stop times of the
+    """Resample a variable(s) to a new time step. The time vector will be generated from the start and stop times of the
     input variable. Uses :func:`numpy.interp` to do the resampling by default.
 
     Parameters
     ----------
     var: SpeasyVariable or Collection[SpeasyVariable]
-        The variable or a collection of variables to resample
+        The variable(s) to resample
     new_dt: float or np.timedelta64
         The new time step in seconds or as a numpy timedelta64
     interpolate_callback: Callable or None
@@ -75,7 +75,11 @@ def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Uni
     Returns
     -------
     SpeasyVariable or Collection[SpeasyVariable]
-        The resampled variable or a collection of resampled variables
+        The resampled variable(s) with all metadata preserved except for the new time axis
+
+    Notes
+    -----
+    It only supports 1D variables.
     """
     if type(var) in (list, tuple):
         return [resample(v, new_dt, interpolate_callback, *args, **kwargs) for v in var]
@@ -87,21 +91,26 @@ def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Uni
 def interpolate(ref: Union[np.ndarray, SpeasyVariable], var: Union[SpeasyVariable, Collection[SpeasyVariable]],
                 interpolate_callback: Optional[Callable] = None,
                 *args, **kwargs) -> Union[SpeasyVariable, Collection[SpeasyVariable]]:
-    """Interpolate a variable to a new time vector. The time vector will be taken from the reference variable. Uses :func:`numpy.interp` to do the resampling by default.
+    """Interpolate a variable(s) to a new time vector. The time vector will be taken from the reference variable.
+    Uses :func:`numpy.interp` to do the resampling by default.
 
     Parameters
     ----------
     ref: np.ndarray or SpeasyVariable
         The reference time vector
     var: SpeasyVariable or Collection[SpeasyVariable]
-        The variable or a collection of variables to interpolate
+        The variable(s) to interpolate
     interpolate_callback: Callable or None
         The interpolation function to use, defaults to :func:`numpy.interp` (Optional)
 
     Returns
     -------
     SpeasyVariable or Collection[SpeasyVariable]
-        The interpolated variable or a collection of interpolated variables
+        The interpolated variable(s) with all metadata preserved except for the new time axis
+
+    Notes
+    -----
+    It only supports 1D variables.
     """
     if isinstance(ref, SpeasyVariable):
         ref_time = ref.time
