@@ -1,6 +1,6 @@
 import numpy
 from scipy import signal
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Collection
 from speasy.products import SpeasyVariable
 import numpy as np
 from speasy.core import AnyDateTimeType, make_utc_datetime64, datetime64_to_epoch
@@ -43,7 +43,7 @@ class _NumpyInterpolator:
         return np.interp(new_x, self.x, self.y)
 
 
-def _interpolate(var: SpeasyVariable, ref_time: np.ndarray, interpolate_callback: Optional[Callable] = None, *args,
+def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback: Optional[Callable] = None, *args,
                  **kwargs) -> SpeasyVariable:
     res = SpeasyVariable.reserve_like(var, length=len(ref_time))
     res.time[:] = ref_time
@@ -78,28 +78,27 @@ def resample(var: SpeasyVariable, new_dt: Union[float, np.timedelta64], interpol
         The resampled variable
     """
     time = generate_time_vector(var.time[0], var.time[-1] + np.timedelta64(1, 'ns'), new_dt)
-    return _interpolate(var, time, interpolate_callback, *args, **kwargs)
+    return _interpolate(time, var, interpolate_callback, *args, **kwargs)
 
 
-def interpolate(var: SpeasyVariable, ref: Union[np.ndarray, SpeasyVariable],
+def interpolate(ref: Union[np.ndarray, SpeasyVariable], var: Union[SpeasyVariable, Collection[SpeasyVariable]],
                 interpolate_callback: Optional[Callable] = None,
-                *args, **kwargs) -> SpeasyVariable:
-    """Interpolate a variable to a new time vector or to the time vector of a reference variable. Uses :func:`numpy.interp` to do the resampling by default.
+                *args, **kwargs) -> Union[SpeasyVariable, Collection[SpeasyVariable]]:
+    """Interpolate a variable to a new time vector. The time vector will be taken from the reference variable. Uses :func:`numpy.interp` to do the resampling by default.
 
     Parameters
     ----------
-    var: SpeasyVariable
-        The variable to interpolate to a new time vector.
     ref: np.ndarray or SpeasyVariable
-        The reference time vector or variable to interpolate to.
+        The reference time vector
+    var: SpeasyVariable or Collection[SpeasyVariable]
+        The variable or a collection of variables to interpolate
     interpolate_callback: Callable or None
-        The interpolation function to use, defaults to :func:`numpy.interp`
-
+        The interpolation function to use, defaults to :func:`numpy.interp` (Optional)
 
     Returns
     -------
-    SpeasyVariable
-        The interpolated variable
+    SpeasyVariable or Collection[SpeasyVariable]
+        The interpolated variable or a collection of interpolated variables
     """
     if isinstance(ref, SpeasyVariable):
         ref_time = ref.time
@@ -107,4 +106,6 @@ def interpolate(var: SpeasyVariable, ref: Union[np.ndarray, SpeasyVariable],
         ref_time = ref
     else:
         raise ValueError("Invalid reference time vector, must be a numpy array of datetime64[ns] or a SpeasyVariable.")
-    return _interpolate(var, ref_time, interpolate_callback, *args, **kwargs)
+    if type(var) in (list, tuple):
+        return [_interpolate(ref_time, v, interpolate_callback, *args, **kwargs) for v in var]
+    return _interpolate(ref_time, var, interpolate_callback, *args, **kwargs)
