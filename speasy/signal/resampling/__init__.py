@@ -1,5 +1,4 @@
 import numpy
-from scipy import signal
 from typing import Callable, Optional, Union, Collection
 from speasy.products import SpeasyVariable
 import numpy as np
@@ -58,15 +57,16 @@ def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback
     return res
 
 
-def resample(var: SpeasyVariable, new_dt: Union[float, np.timedelta64], interpolate_callback: Optional[Callable] = None,
-             *args, **kwargs) -> SpeasyVariable:
+def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Union[float, np.timedelta64],
+             interpolate_callback: Optional[Callable] = None,
+             *args, **kwargs) -> Union[SpeasyVariable, Collection[SpeasyVariable]]:
     """Resample a variable to a new time step. The time vector will be generated from the start and stop times of the
     input variable. Uses :func:`numpy.interp` to do the resampling by default.
 
     Parameters
     ----------
-    var: SpeasyVariable
-        The variable to resample
+    var: SpeasyVariable or Collection[SpeasyVariable]
+        The variable or a collection of variables to resample
     new_dt: float or np.timedelta64
         The new time step in seconds or as a numpy timedelta64
     interpolate_callback: Callable or None
@@ -74,11 +74,14 @@ def resample(var: SpeasyVariable, new_dt: Union[float, np.timedelta64], interpol
 
     Returns
     -------
-    SpeasyVariable
-        The resampled variable
+    SpeasyVariable or Collection[SpeasyVariable]
+        The resampled variable or a collection of resampled variables
     """
-    time = generate_time_vector(var.time[0], var.time[-1] + np.timedelta64(1, 'ns'), new_dt)
-    return _interpolate(time, var, interpolate_callback, *args, **kwargs)
+    if type(var) in (list, tuple):
+        return [resample(v, new_dt, interpolate_callback, *args, **kwargs) for v in var]
+    else:
+        time = generate_time_vector(var.time[0], var.time[-1] + np.timedelta64(1, 'ns'), new_dt)
+        return _interpolate(time, var, interpolate_callback, *args, **kwargs)
 
 
 def interpolate(ref: Union[np.ndarray, SpeasyVariable], var: Union[SpeasyVariable, Collection[SpeasyVariable]],
