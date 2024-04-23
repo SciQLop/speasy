@@ -138,20 +138,24 @@ class TestInterpolateVariableOverAnotherVariable(unittest.TestCase):
             axes=[VariableTimeAxis(values=generate_time_vector(cls.start, cls.stop, 2))],
             values=DataContainer(np.arange(30.).reshape(-1, 1))
         )
-        cls.resampled = interpolate(cls.data, cls.ref_var)
+        cls.resampled = [interpolate(cls.ref_var, cls.data)] + interpolate(cls.ref_var,
+                                                                           [cls.data * 2, cls.data * 3, cls.data * 4])
 
     @classmethod
     def tearDownClass(cls):
         pass
 
     def test_resampled_length(self):
-        self.assertEqual(len(self.resampled.time), len(self.ref_var.time))
+        for r in self.resampled:
+            self.assertEqual(len(r.time), len(self.ref_var.time))
 
     def test_resampled_values_length(self):
-        self.assertEqual(len(self.resampled.values), len(self.ref_var.time))
+        for r in self.resampled:
+            self.assertEqual(len(r.values), len(self.ref_var.time))
 
     def test_resampled_values(self):
-        self.assertTrue(np.all(self.resampled.values == np.arange(0., 60., 2.).reshape(-1, 1)))
+        for i, r in enumerate(self.resampled):
+            self.assertTrue(np.allclose(r, (i + 1) * np.arange(0., 60., 2.).reshape(-1, 1)))
 
 
 class TestScipyInterpolator(unittest.TestCase):
