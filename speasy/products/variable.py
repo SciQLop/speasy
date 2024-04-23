@@ -73,6 +73,7 @@ class SpeasyVariable(SpeasyProduct):
     """
 
     __slots__ = ["__values_container", "__columns", "__axes"]
+    __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
     def __init__(
         self,
@@ -266,8 +267,8 @@ class SpeasyVariable(SpeasyProduct):
             f"Can't divide SpeasyVariable by {type(other)}")
 
     def __array_function__(self, func, types, args, kwargs):
-        if func is np.empty_like:
-            return SpeasyVariable.reserve_like(self, length=len(self))
+        if func.__name__ in SpeasyVariable.__LIKE_NP_FUNCTIONS__:
+            return SpeasyVariable.__dict__[func.__name__](self)
         if 'out' in kwargs:
             raise ValueError("out parameter is not supported")
         f_args = [_values(arg) for arg in args]
@@ -636,6 +637,66 @@ class SpeasyVariable(SpeasyProduct):
                 other.__values_container, length),
             axes=axes,
             columns=other.columns,
+        )
+
+    @staticmethod
+    def empty_like(other: "SpeasyVariable") -> "SpeasyVariable":
+        """Create a SpeasyVariable with the same properties than given variable but unset values
+
+        Parameters
+        ----------
+        other : SpeasyVariable
+            variable used as reference for shape and meta-data
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable similar to given one
+        """
+        return SpeasyVariable(
+            values=DataContainer.empty_like(other.__values_container),
+            axes=deepcopy(other.__axes),
+            columns=deepcopy(other.columns),
+        )
+
+    @staticmethod
+    def zeros_like(other: "SpeasyVariable") -> "SpeasyVariable":
+        """Create a SpeasyVariable with the same properties than given variable but filled with zeros
+
+        Parameters
+        ----------
+        other : SpeasyVariable
+            variable used as reference for shape and meta-data
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable similar to given one filled with zeros
+        """
+        return SpeasyVariable(
+            values=DataContainer.zeros_like(other.__values_container),
+            axes=deepcopy(other.__axes),
+            columns=deepcopy(other.columns),
+        )
+
+    @staticmethod
+    def ones_like(other: "SpeasyVariable") -> "SpeasyVariable":
+        """Create a SpeasyVariable with the same properties than given variable but filled with ones
+
+        Parameters
+        ----------
+        other : SpeasyVariable
+            variable used as reference for shape and meta-data
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable similar to given one filled with ones
+        """
+        return SpeasyVariable(
+            values=DataContainer.ones_like(other.__values_container),
+            axes=deepcopy(other.__axes),
+            columns=deepcopy(other.columns),
         )
 
 

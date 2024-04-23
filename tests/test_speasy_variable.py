@@ -320,6 +320,29 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
         self.assertTrue(np.allclose(var.values, np.linalg.norm(self.vector.values, axis=1).reshape(-1, 1)))
         self.assertTrue(np.allclose(var, np.linalg.norm(self.vector, axis=1)))
 
+    def test_zeros_like(self):
+        var = np.zeros_like(self.var)
+        self.assertEqual(self.var.shape, var.shape)
+        self.assertEqual(self.var.meta, var.meta)
+        self.assertTrue(np.all(var.values == 0))
+        self.assertListEqual(self.var.axes, var.axes)
+        self.assertListEqual(self.var.columns, var.columns)
+
+    def test_ones_like(self):
+        var = np.ones_like(self.var)
+        self.assertEqual(self.var.shape, var.shape)
+        self.assertEqual(self.var.meta, var.meta)
+        self.assertTrue(np.all(var.values == 1))
+        self.assertListEqual(self.var.axes, var.axes)
+        self.assertListEqual(self.var.columns, var.columns)
+
+    def test_empty_like(self):
+        var = np.empty_like(self.var)
+        self.assertEqual(self.var.shape, var.shape)
+        self.assertEqual(self.var.meta, var.meta)
+        self.assertListEqual(self.var.axes, var.axes)
+        self.assertListEqual(self.var.columns, var.columns)
+
 
 class SpeasyVariableCompare(unittest.TestCase):
     def setUp(self):
