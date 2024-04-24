@@ -5,8 +5,8 @@ import numpy as np
 
 
 def _apply_filter(filter_function: Callable, sos: np.ndarray, var: SpeasyVariable) -> SpeasyVariable:
-    res = SpeasyVariable.reserve_like(var)
-    res.values[:] = filter_function(sos, var.values, axis=0)
+    res = np.empty_like(var)
+    res.values[:] = filter_function(sos=sos, x=var.values, axis=0)
     return res
 
 
