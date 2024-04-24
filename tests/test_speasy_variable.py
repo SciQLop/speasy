@@ -292,6 +292,12 @@ class TestSpeasyVariableMath(unittest.TestCase):
         var = self.var / 2
         self.assertTrue(np.all(var.values == self.var.values / 2))
 
+    def test_time_shift(self):
+        for shift in (np.timedelta64(1, 'D'), -np.timedelta64(1, 'D')):
+            var = self.var + shift
+            self.assertTrue(np.all(var.values == self.var.values))
+            self.assertTrue(np.all(var.time == self.var.time + shift))
+
 
 class TestSpeasyVariableNumpyInterface(unittest.TestCase):
     def setUp(self):

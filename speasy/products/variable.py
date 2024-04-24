@@ -207,84 +207,45 @@ class SpeasyVariable(SpeasyProduct):
                 axis[k] = src_axis
 
     def __mul__(self, other):
-        if type(other) in (int, float):
-            res = self.copy()
-            np.multiply(self.__values_container.values, float(other), out=res.__values_container.values)
-            return res
-        raise TypeError(
-            f"Can't multiply SpeasyVariable by {type(other)}")
+        return np.multiply(self, other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __pow__(self, power, modulo=None):
-        res = self.copy()
-        np.power(self.__values_container.values, power, out=res.__values_container.values)
-        return res
+        return np.power(self, power)
 
     def __add__(self, other):
-        if type(other) is SpeasyVariable:
-            if self.__values_container.shape != other.__values_container.shape:
-                raise ValueError(
-                    f"Can't add variables with different shapes: {self.__values_container.shape} and {other.__values_container.shape}"
-                )
-            res = self.copy()
-            np.add(self.__values_container.values, other.__values_container.values, out=res.__values_container.values)
-            return res
-        elif type(other) in (int, float):
-            res = self.copy()
-            np.add(self.__values_container.values, float(other), out=res.__values_container.values)
-            return res
-        raise TypeError(
-            f"Can't add SpeasyVariable with {type(other)}"
-        )
+        if type(other) is np.timedelta64:
+            result = self.copy()
+            result.time[:] += other
+            return result
+        return np.add(self, other)
 
     def __radd__(self, other):
-        return self.__add__(other)
+        if type(other) is np.timedelta64:
+            raise ValueError(
+                "timedelta64 +  SpeasyVariable is not supported, only SpeasyVariable + timedelta64 is supported")
+        return np.add(other, self)
 
     def __sub__(self, other):
-        if type(other) is SpeasyVariable:
-            if self.__values_container.shape != other.__values_container.shape:
-                raise ValueError(
-                    f"Can't subtract variables with different shapes: {self.__values_container.shape} and {other.__values_container.shape}"
-                )
-            res = self.copy()
-            np.subtract(self.__values_container.values, other.__values_container.values,
-                        out=res.__values_container.values)
-            return res
-        elif type(other) in (int, float):
-            res = self.copy()
-            np.subtract(self.__values_container.values, float(other), out=res.__values_container.values)
-            return res
-        raise TypeError(
-            f"Can't subtract SpeasyVariable with {type(other)}"
-        )
+        if type(other) is np.timedelta64:
+            result = self.copy()
+            result.time[:] += other
+            return result
+        return np.subtract(self, other)
 
     def __rsub__(self, other):
-        return -self.__sub__(other)
+        if type(other) is np.timedelta64:
+            raise ValueError(
+                "timedelta64 -  SpeasyVariable is not supported, only SpeasyVariable - timedelta64 is supported")
+        return np.subtract(other, self)
 
     def __truediv__(self, other):
-        if type(other) in (int, float):
-            res = self.copy()
-            np.divide(self.__values_container.values, float(other), out=res.__values_container.values)
-            return res
-        if type(other) is SpeasyVariable:
-            return np.divide(self, other)
-        raise TypeError(
-            f"Can't divide SpeasyVariable by {type(other)}")
+        return np.divide(self, other)
 
     def __rtruediv__(self, other):
-        if type(other) in (int, float):
-            res = self.copy()
-            np.divide(float(other), self.__values_container.values, out=res.__values_container.values)
-            return res
-        if type(other) is SpeasyVariable:
-            res = self.copy()
-            np.divide(other.__values_container.values, self.__values_container.values,
-                      out=res.__values_container.values)
-            return np.divide(other, self)
-        raise TypeError(
-            f"Can't divide {type(other)} by SpeasyVariable")
+        return np.divide(other, self)
 
     def __array_function__(self, func, types, args, kwargs):
         if func.__name__ in SpeasyVariable.__LIKE_NP_FUNCTIONS__:
@@ -296,6 +257,10 @@ class SpeasyVariable(SpeasyProduct):
         res = func(*f_args, **f_kwargs)
         if type(res) is bool:
             return res
+        if isinstance(res, np.ndarray):
+            if len(res.shape) != self.shape and res.shape[0] != len(self.time):
+                return res
+
         n_cols = res.shape[1] if len(res.shape) > 1 else 1
         return SpeasyVariable(
             axes=deepcopy(self.__axes),
