@@ -21,3 +21,5 @@ Browse example folder on Google Colab:
    ./CompleteDemo
    ./solo_epd
    ./alfvenic
+   ./Filtering
+   ./Resampling

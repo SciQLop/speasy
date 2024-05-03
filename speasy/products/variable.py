@@ -249,7 +249,7 @@ class SpeasyVariable(SpeasyProduct):
 
     def __array_function__(self, func, types, args, kwargs):
         if func.__name__ in SpeasyVariable.__LIKE_NP_FUNCTIONS__:
-            return SpeasyVariable.__dict__[func.__name__](self)
+            return SpeasyVariable.__dict__[func.__name__].__func__(self)
         if 'out' in kwargs:
             raise ValueError("out parameter is not supported")
         f_args = [_values(arg) for arg in args]

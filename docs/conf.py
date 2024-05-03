@@ -20,6 +20,7 @@
 #
 import os
 import sys
+from glob import glob
 
 src_path = os.path.abspath('..')
 sys.path.insert(0, src_path)
@@ -62,14 +63,10 @@ nbsphinx_execute_arguments = [
 
 nbsphinx_execute = 'never'
 
+notebooks = list(map( lambda n: os.path.basename(n).split('.')[0] ,glob('./examples/*.ipynb')))
+
 nbsphinx_thumbnails = {
-    "examples/AMDA": "_static/AMDA_nb_thumbnail.png",
-    "examples/SSCWeb": "_static/SSCWEB_nb_thumbnail.png",
-    "examples/Caches": "_static/Caches_nb_thumbnail.png",
-    "examples/CDAWeb": "_static/CDAWeb_nb_thumbnail.png",
-    "examples/CompleteDemo": "_static/Demo_nb_thumbnail.png",
-    "examples/solo_epd": "_static/solo_epd_nb_thumbnail.png",
-    "examples/alfvenic_slow_solar_wind": "alfvenic_nb_thumbnail.png",
+    f"examples/{nb}": f"_static/{nb}_nb_thumbnail.png" for nb in notebooks
 }
 
 nbsphinx_prolog = r"""

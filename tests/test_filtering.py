@@ -10,7 +10,7 @@ from datetime import datetime
 import numpy as np
 
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
-from speasy.signal.filtering import apply_sos_filter, sosfiltfilt
+from speasy.signal.filtering import sosfiltfilt
 from speasy.signal.resampling import generate_time_vector
 from scipy.signal import iirfilter
 
