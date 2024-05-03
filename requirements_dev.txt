@@ -15,4 +15,5 @@ pyistp>=0.4.0
 astroquery
 tqdm
 matplotlib
+scipy
 PyYAML
