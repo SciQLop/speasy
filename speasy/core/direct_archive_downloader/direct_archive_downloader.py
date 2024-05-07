@@ -31,9 +31,9 @@ def _local_read_cdf(file: str, variable: str, **kwargs) -> Optional[SpeasyVariab
     return load_variable(file=file, variable=variable)
 
 
-@CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
+@CacheCall(cache_retention=timedelta(hours=6), is_pure=True)
 def _remote_read_cdf(url: str, variable: str, **kwargs) -> Optional[SpeasyVariable]:
-    return load_variable(file=url, variable=variable, cache_remote_files=False)
+    return load_variable(file=url, variable=variable, cache_remote_files=True)
 
 
 def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
