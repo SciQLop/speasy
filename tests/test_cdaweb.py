@@ -56,6 +56,44 @@ class SimpleRequest(unittest.TestCase):
         self.assertGreater(len(result), 0)
         self.assertEqual(len(result.columns), result.values.shape[1])
 
+    @data(
+        {
+            "dataset": "MMS2_SCM_SRVY_L2_SCSRVY",
+            "variable": "mms2_scm_acb_gse_scsrvy_srvy_l2",
+            "start_time": datetime(2016, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "THA_L2_FGM",
+            "variable": "tha_fgl_gsm",
+            "start_time": datetime(2014, 6, 1, 23, tzinfo=timezone.utc),
+            "stop_time": datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "WI_K0_SMS",
+            "variable": "C/O_ratio",
+            "start_time": datetime(1996, 8, 1, 20, tzinfo=timezone.utc),
+            "stop_time": datetime(1996, 8, 1, 23, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "MMS1_SCM_BRST_L2_SCB",
+            "variable": "mms1_scm_acb_gse_scb_brst_l2",
+            "start_time": datetime(2020, 1, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2020, 1, 1, 2, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "ERG_ORB_L3",
+            "variable": "pos_eq_op",
+            "start_time": datetime(2018, 1, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2018, 1, 1, 2, tzinfo=timezone.utc)
+        }
+    )
+    def test_a_simple_direct_archive_request(self, kwargs):
+        result = spz.cda.get_variable(**kwargs, disable_proxy=True,
+                                      disable_cache=True, method="FILE")
+        self.assertIsNotNone(result)
+        self.assertGreater(len(result), 0)
+
     def test_get_simple_vector(self):
         logging.root.addHandler(logging.StreamHandler())
         logging.root.setLevel(logging.DEBUG)

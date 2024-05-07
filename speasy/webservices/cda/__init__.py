@@ -12,8 +12,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 from speasy.core import AllowedKwargs
-from speasy.core import any_files, http, url_utils
+from speasy.core import http, url_utils
 from speasy.core import cdf
+from speasy.config import cdaweb as cda_cfg
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck)
@@ -22,11 +23,53 @@ from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
+from speasy.core.direct_archive_downloader import get_product
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
 
 _burst_regex = re.compile("(.*MMS.*FPI.*BRST.*|.*MMS.*SCM.*BRST.*)")
+
+
+def _cda_to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> Optional[Dict]:
+    if not file_naming.endswith('.cdf'):
+        return None
+
+    fname_regex = file_naming
+
+    if subdivided_by == "%Y":
+        split_frequency = "yearly"
+        subdivided_by = "{Y}"
+        file_naming = file_naming.replace('%Y', '{Y}').replace('%m', r'\d+').replace(
+            '%d', r'\d+').replace("%H", r"\d+").replace("%M", r"\d+").replace('%S', r'\d+').replace('%Q', r'v[\d\.?]+')
+    elif subdivided_by == "%Y/%m":
+        split_frequency = "monthly"
+        subdivided_by = "{Y}/{M:02d}"
+        file_naming = file_naming.replace('%Y', '{Y}').replace('%m', '{M:02d}').replace(
+            '%d', r'\d+').replace("%H", r"\d+").replace("%M", r"\d+").replace('%S', r'\d+').replace('%Q', r'v[\d\.?]+')
+    elif subdivided_by == "%Y/%m/%d":
+        split_frequency = "daily"
+        subdivided_by = "{Y}/{M:02d}/{D:02d}"
+        file_naming = file_naming.replace('%Y', '{Y}').replace('%m', '{M:02d}').replace(
+            '%d', r'{D:02d}').replace("%H", r"\d+").replace("%M", r"\d+").replace('%S', r'\d+').replace('%Q',
+                                                                                                        r'v[\d\.?]+')
+    else:
+        return None
+
+    for date_format in ('%Y%m%d%H%M%S', '%Y%m%d%H%M', '%Y%m%d%H', '%Y%m%d', '%Y%m', '%Y'):
+        if date_format in fname_regex:
+            fname_regex = fname_regex.replace(date_format, r"(?P<start>\d+)")
+            break
+    if '%Q' in fname_regex:
+        fname_regex = fname_regex.replace('%Q', r"v(?P<version>[\d\.?]+)")
+
+    return {
+        "url_pattern": f"{url}/{subdivided_by}/{file_naming}",
+        "split_rule": 'random',
+        "split_frequency": split_frequency,
+        "fname_regex": fname_regex,
+        "use_file_list": True
+    }
 
 
 def _is_burst_product(product: ParameterIndex or str) -> bool:
@@ -140,9 +183,7 @@ class CDA_Webservice(DataProvider):
     def _dl_variable(self,
                      dataset: str, variable: str,
                      start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
-                     extra_http_headers: Dict or None = None) -> Optional[
-        SpeasyVariable]:
-
+                     extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         fmt = "cdf"
         url = f"{self.__url}/dataviews/sp_phys/datasets/{url_utils.quote(dataset, safe='')}/data/{start_time},{stop_time}/{url_utils.quote(variable, safe='')}?format={fmt}"
@@ -163,17 +204,49 @@ class CDA_Webservice(DataProvider):
         else:
             return None
 
-    @AllowedKwargs(
-        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than'])
-    @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cda", fragment_hours=_cache_fragment_size, cache_retention=timedelta(days=7))
     @SplitLargeRequests(threshold=_large_request_max_duration)
     @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
-                 extra_http_headers: Dict or None = None):
+    def _get_data_with_ws(self, product, start_time: datetime, stop_time: datetime,
+                          if_newer_than: datetime or None = None,
+                          extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
         dataset, variable = self._to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
+
+    def _get_data_with_direct_archive(self, product, start_time: datetime, stop_time: datetime, mode_is_best: bool,
+                                      if_newer_than: datetime or None = None,
+                                      extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+
+        dataset, variable = self._to_dataset_and_variable(product)
+        dataset = self.flat_inventory.datasets[dataset]
+        archive_params = _cda_to_direct_archive_params(file_naming=dataset.filenaming,
+                                                       subdivided_by=dataset.subdividedby,
+                                                       url=dataset.url)
+        log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
+        if archive_params is not None:
+            return get_product(variable=variable, start_time=start_time, stop_time=stop_time, **archive_params)
+        else:
+            if not mode_is_best:
+                log.warning(f"Can't get {product} without web service, switching to web service")
+            return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
+                                          if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
+
+    @AllowedKwargs(
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than', 'method'])
+    @ParameterRangeCheck()
+    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
+                 extra_http_headers: Dict or None = None, method: Optional[str] = None, **kwargs) -> Optional[
+        SpeasyVariable]:
+        method = method or cda_cfg.preferred_access_method.get()
+        if method.upper() in ('FILE', 'BEST'):
+            return self._get_data_with_direct_archive(product=product, start_time=start_time, stop_time=stop_time,
+                                                      if_newer_than=if_newer_than,
+                                                      extra_http_headers=extra_http_headers,
+                                                      mode_is_best=method == 'best')
+        else:
+            return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
+                                          if_newer_than=if_newer_than, extra_http_headers=extra_http_headers, **kwargs)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \
