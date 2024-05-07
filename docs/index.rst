@@ -85,7 +85,7 @@ Using the dynamic inventory this can be even simpler:
 .. code-block:: python
 
     import speasy as spz
-    amda_tree = spz.inventory.data_tree.amda
+    amda_tree = spz.inventories.data_tree.amda
     ace_mag = spz.get_data(amda_tree.Parameters.ACE.MFI.ace_imf_all.imf, "2016-6-2", "2016-6-5")
 
 Will produce the exact same result than previous example but has the advantage to be easier to manipulate since you can
@@ -96,7 +96,7 @@ This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`__, you can easily 
 .. code-block:: python
 
     import speasy as spz
-    sscweb_tree = spz.inventory.data_tree.ssc
+    sscweb_tree = spz.inventories.data_tree.ssc
     solo = spz.get_data(sscweb_tree.Trajectories.solarorbiter, "2021-01-01", "2021-02-01")
 
 More complex requests like this one are supported:
