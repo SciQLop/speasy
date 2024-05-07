@@ -255,7 +255,7 @@ class SpeasyVariable(SpeasyProduct):
         f_args = [_values(arg) for arg in args]
         f_kwargs = {name: _values(value) for name, value in kwargs.items()}
         res = func(*f_args, **f_kwargs)
-        if type(res) is bool:
+        if np.isscalar(res):
             return res
         if isinstance(res, np.ndarray):
             if len(res.shape) != self.shape and res.shape[0] != len(self.time):

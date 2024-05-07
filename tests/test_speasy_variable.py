@@ -349,6 +349,15 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
         self.assertListEqual(self.var.axes, var.axes)
         self.assertListEqual(self.var.columns, var.columns)
 
+    def test_scalar_result(self):
+        for v in (self.var, self.vector):
+            self.assertIsInstance(np.sum(v), float)
+            self.assertIsInstance(np.mean(v), float)
+            self.assertIsInstance(np.std(v), float)
+            self.assertIsInstance(np.var(v), float)
+            self.assertIsInstance(np.max(v), float)
+            self.assertIsInstance(np.min(v), float)
+
 
 class SpeasyVariableCompare(unittest.TestCase):
     def setUp(self):
