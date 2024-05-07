@@ -174,7 +174,9 @@ index = ConfigSection("INDEX",
                       )
 cdaweb = ConfigSection("CDAWEB",
                        inventory_data_path={
-                           "default": f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory'}
+                           "default": f'{appdirs.user_data_dir("speasy", "LPP")}/cda_inventory'},
+                       preferred_access_method={"default": "BEST",
+                                                "description": "Preferred access method to CDAWeb, either REST API (API), dirtect files download (FILE) or BEST to let Speasy choose the fastest and most likely to work method based on the requested product."},
                        )
 
 amda = ConfigSection("AMDA",

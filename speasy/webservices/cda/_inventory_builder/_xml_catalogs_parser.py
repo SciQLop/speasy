@@ -1,6 +1,9 @@
 from speasy.core import fix_name
 from speasy.core.inventory.indexes import DatasetIndex, SpeasyIndex, make_inventory_node
 import xml.etree.ElementTree as Et
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def alias_rules(name):
@@ -36,6 +39,14 @@ def extract_node(node, is_dataset=False):
         master_cd_node = node.find('{cdas}mastercdf')
         if master_cd_node is not None:
             n["mastercdf"] = master_cd_node.attrib["serviceprovider_ID"]
+        access_node = node.find('{cdas}access')
+        if access_node is not None:
+            if 'filenaming' in access_node.attrib:
+                n["filenaming"] = access_node.attrib["filenaming"]
+                n["url"] = access_node.find("{cdas}URL").text
+                n["subdividedby"] = access_node.attrib["subdividedby"]
+            else:
+                log.debug(f'No filenaming for {name}')
     return n
 
 
@@ -49,7 +60,8 @@ def register_dataset(inventory_tree, mission_group_node, observatory_node, instr
                                          uid=observatory.get('serviceprovider_ID'), **observatory)
     if instrument_node.attrib["serviceprovider_ID"] != "":
         inventory_tree = make_inventory_node(inventory_tree, SpeasyIndex, provider="cda",
-                                             uid=instrument_node.get('serviceprovider_ID'), **extract_node(instrument_node))
+                                             uid=instrument_node.get('serviceprovider_ID'),
+                                             **extract_node(instrument_node))
     inventory_tree = make_inventory_node(inventory_tree, DatasetIndex, provider="cda",
                                          uid=dataset_node.get('serviceprovider_ID'),
                                          **extract_node(dataset_node, is_dataset=True))
