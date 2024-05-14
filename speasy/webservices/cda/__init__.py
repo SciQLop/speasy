@@ -25,51 +25,11 @@ from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.core.direct_archive_downloader import get_product
 from speasy.products.variable import SpeasyVariable
+from ._direct_archive import to_direct_archive_params
 
 log = logging.getLogger(__name__)
 
 _burst_regex = re.compile("(.*MMS.*FPI.*BRST.*|.*MMS.*SCM.*BRST.*)")
-
-
-def _cda_to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> Optional[Dict]:
-    if not file_naming.endswith('.cdf'):
-        return None
-
-    fname_regex = file_naming
-
-    if subdivided_by == "%Y":
-        split_frequency = "yearly"
-        subdivided_by = "{Y}"
-        file_naming = file_naming.replace('%Y', '{Y}').replace('%m', r'\d+').replace(
-            '%d', r'\d+').replace("%H", r"\d+").replace("%M", r"\d+").replace('%S', r'\d+').replace('%Q', r'v[\d\.?]+')
-    elif subdivided_by == "%Y/%m":
-        split_frequency = "monthly"
-        subdivided_by = "{Y}/{M:02d}"
-        file_naming = file_naming.replace('%Y', '{Y}').replace('%m', '{M:02d}').replace(
-            '%d', r'\d+').replace("%H", r"\d+").replace("%M", r"\d+").replace('%S', r'\d+').replace('%Q', r'v[\d\.?]+')
-    elif subdivided_by == "%Y/%m/%d":
-        split_frequency = "daily"
-        subdivided_by = "{Y}/{M:02d}/{D:02d}"
-        file_naming = file_naming.replace('%Y', '{Y}').replace('%m', '{M:02d}').replace(
-            '%d', r'{D:02d}').replace("%H", r"\d+").replace("%M", r"\d+").replace('%S', r'\d+').replace('%Q',
-                                                                                                        r'v[\d\.?]+')
-    else:
-        return None
-
-    for date_format in ('%Y%m%d%H%M%S', '%Y%m%d%H%M', '%Y%m%d%H', '%Y%m%d', '%Y%m', '%Y'):
-        if date_format in fname_regex:
-            fname_regex = fname_regex.replace(date_format, r"(?P<start>\d+)")
-            break
-    if '%Q' in fname_regex:
-        fname_regex = fname_regex.replace('%Q', r"v(?P<version>[\d\.?]+)")
-
-    return {
-        "url_pattern": f"{url}/{subdivided_by}/{file_naming}",
-        "split_rule": 'random',
-        "split_frequency": split_frequency,
-        "fname_regex": fname_regex,
-        "use_file_list": True
-    }
 
 
 def _is_burst_product(product: ParameterIndex or str) -> bool:
@@ -220,9 +180,9 @@ class CDA_Webservice(DataProvider):
 
         dataset, variable = self._to_dataset_and_variable(product)
         dataset = self.flat_inventory.datasets[dataset]
-        archive_params = _cda_to_direct_archive_params(file_naming=dataset.filenaming,
-                                                       subdivided_by=dataset.subdividedby,
-                                                       url=dataset.url)
+        archive_params = to_direct_archive_params(file_naming=dataset.filenaming,
+                                                  subdivided_by=dataset.subdividedby,
+                                                  url=dataset.url)
         log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
         if archive_params is not None:
             return get_product(variable=variable, start_time=start_time, stop_time=stop_time, **archive_params)

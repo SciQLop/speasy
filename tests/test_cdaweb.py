@@ -1,12 +1,15 @@
 import logging
 import os
+import re
 import unittest
 from datetime import datetime, timedelta, timezone
 from multiprocessing import dummy
 
 import numpy as np
 import speasy as spz
-from ddt import data, ddt
+from speasy.webservices.cda._direct_archive import to_direct_archive_params
+from speasy.core.direct_archive_downloader.direct_archive_downloader import apply_date_format
+from ddt import data, ddt, unpack
 
 
 @ddt
@@ -47,11 +50,11 @@ class SimpleRequest(unittest.TestCase):
             "stop_time": datetime(2018, 1, 1, 2, tzinfo=timezone.utc)
         }
     )
-    def test_get_variable(self, kw):
-        result = spz.cda.get_variable(**kw, disable_proxy=True, disable_cache=True)
+    def test_get_variable_ws(self, kw):
+        result = spz.cda.get_variable(**kw, disable_proxy=True, disable_cache=True, method="API")
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
-        result = spz.cda.get_variable(**kw, disable_proxy=True, disable_cache=False)
+        result = spz.cda.get_variable(**kw, disable_proxy=True, disable_cache=False, method="API")
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
         self.assertEqual(len(result.columns), result.values.shape[1])
@@ -100,28 +103,31 @@ class SimpleRequest(unittest.TestCase):
         result1 = spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
                                        start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
                                        stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
-                                       disable_cache=True)
+                                       disable_cache=True, method="API")
         self.assertIsNotNone(result1)
         self.assertGreater(len(result1), 0)
         result2 = spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
                                        start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
                                        stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
-                                       disable_cache=False)
+                                       disable_cache=False, method="API")
         self.assertIsNotNone(result2)
         self.assertTrue(np.all(result1.values == result2.values))
         result3 = spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
                                        start_time=datetime(2014, 6, 1, 10, tzinfo=timezone.utc),
                                        stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
-                                       disable_cache=False)
+                                       disable_cache=False, method="API")
         self.assertIsNotNone(result3)
         self.assertTrue(np.all(result2.values == result3.values))
 
-    def test_get_empty_vector(self):
+    def test_get_empty_vector(self, variable=spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
+                                                                  start_time=datetime(2014, 6, 1, 23,
+                                                                                      tzinfo=timezone.utc),
+                                                                  stop_time=datetime(2014, 6, 2, 0, 10,
+                                                                                     tzinfo=timezone.utc),
+                                                                  disable_proxy=True, disable_cache=True,
+                                                                  method="API")):
         # this used to fail because CDA returns at least a record but removes one dimension from data
-        result = spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
-                                      start_time=datetime(2014, 6, 1, 23, tzinfo=timezone.utc),
-                                      stop_time=datetime(2014, 6, 2, 0, 10, tzinfo=timezone.utc), disable_proxy=True,
-                                      disable_cache=True)
+        result = variable
         self.assertIsNone(result)
 
     def test_no_data_404_error(self):
@@ -129,14 +135,14 @@ class SimpleRequest(unittest.TestCase):
         result = spz.cda.get_variable(dataset="PSP_FLD_L2_DFB_DBM_SCM", variable="psp_fld_l2_dfb_dbm_scmlgu_rms",
                                       start_time="2020-01-01",
                                       stop_time="2020-01-01T09", disable_proxy=True,
-                                      disable_cache=True)
+                                      disable_cache=True, method="API")
         self.assertIsNone(result)
 
     def test_data_has_not_been_modified_since_a_short_period(self):
         result = spz.cda.get_variable(dataset='THA_L2_FGM', variable='tha_fgl_gsm',
                                       start_time=datetime(2014, 6, 1, tzinfo=timezone.utc),
                                       stop_time=datetime(2014, 6, 1, 1, 10, tzinfo=timezone.utc), disable_proxy=True,
-                                      disable_cache=True, if_newer_than=datetime.utcnow())
+                                      disable_cache=True, if_newer_than=datetime.utcnow(), method="API")
         self.assertIsNone(result)
 
     def test_data_must_have_been_modified_since_a_long_period(self):
@@ -213,6 +219,202 @@ class SpecificNonRegression(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             solo_swa = spz.get_data("cda/wrong/data", "2021-11-3", "2021-11-4")
             self.assertIn("Unknown parameter:", str(cm.exception))
+
+
+@ddt
+class DirectArchiveConverter(unittest.TestCase):
+
+    @data(
+        (
+            "i8_h0_gme_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/imp/imp8/particles_gme/data/flux/gme_h0",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'i8_h0_gme_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/imp/imp8/particles_gme/data/flux/gme_h0/{Y}/i8_h0_gme_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/imp/imp8/particles_gme/data/flux/gme_h0/1993/i8_h0_gme_19930101_v01.cdf",
+            datetime(1993, 3, 3, tzinfo=timezone.utc)
+        ),
+        (
+            "solo_l2_epd-ept-asun-burst-ion_%Y%m%dt%H%M%S-%Y%m%dt%H%M%S_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/solar-orbiter/epd/science/l2/ept/asun-burst-ion",
+            {
+                'date_format': '%Y%m%dt%H%M%S',
+                'fname_regex': 'solo_l2_epd-ept-asun-burst-ion_(?P<start>\\d+t?T?\\d+)-(?P<stop>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/solar-orbiter/epd/science/l2/ept/asun-burst-ion/{Y}/solo_l2_epd-ept-asun-burst-ion_{Y}[01]\\d[0-3]\\dt[0-2]\\d[0-5]\\d[0-5]\\d-[12]\\d\\d\\d[01]\\d[0-3]\\dt[0-2]\\d[0-5]\\d[0-5]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/solar-orbiter/epd/science/l2/ept/asun-burst-ion/2020/solo_l2_epd-ept-asun-burst-ion_20200615t122228-20200615t123728_v02.cdf",
+            datetime(2020, 6, 15, 12, 22, 28, tzinfo=timezone.utc)
+        ),
+        (
+            "wi_ehpd_3dp_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/wind/3dp/3dp_ehpd",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'wi_ehpd_3dp_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/wind/3dp/3dp_ehpd/{Y}/wi_ehpd_3dp_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/wind/3dp/3dp_ehpd/2005/wi_ehpd_3dp_20050116_v02.cdf",
+            datetime(2005, 1, 16, tzinfo=timezone.utc)
+        ),
+        (
+            "ac_or_def_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/ace/orbit/level_2_cdaweb/def_or",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'ac_or_def_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/ace/orbit/level_2_cdaweb/def_or/{Y}/ac_or_def_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/ace/orbit/level_2_cdaweb/def_or/1997/ac_or_def_19970826_v01.cdf",
+            datetime(1997, 8, 26, tzinfo=timezone.utc)
+        ),
+        (
+            "aerocube-6-a_dosimeter_l2_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/aaa_smallsats_cubesats/aerocube/aerocube-6/aerocube6-a/dosimeter-cdf",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'aerocube-6-a_dosimeter_l2_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/aaa_smallsats_cubesats/aerocube/aerocube-6/aerocube6-a/dosimeter-cdf/{Y}/aerocube-6-a_dosimeter_l2_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/aaa_smallsats_cubesats/aerocube/aerocube-6/aerocube6-a/dosimeter-cdf/2017/aerocube-6-a_dosimeter_l2_20170508_v1.0.0.cdf",
+            datetime(2017, 5, 8, tzinfo=timezone.utc)
+        ),
+        (
+            "amptecce_h0_mepa_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/ampte/cce/MEPA/h0",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'amptecce_h0_mepa_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/ampte/cce/MEPA/h0/{Y}/amptecce_h0_mepa_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/ampte/cce/MEPA/h0/1986/amptecce_h0_mepa_19860508_v01.cdf",
+            datetime(1986, 5, 8, tzinfo=timezone.utc)
+        ),
+        (
+            "apollo12_sws_28s_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/apollo/apollo12_cdaweb/sws_28s",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'apollo12_sws_28s_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/apollo/apollo12_cdaweb/sws_28s/{Y}/apollo12_sws_28s_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/apollo/apollo12_cdaweb/sws_28s/1969/apollo12_sws_28s_19691223_v01.cdf",
+            datetime(1969, 12, 23, tzinfo=timezone.utc)
+        ),
+        (
+            "bar_1b_l2_fspc_%Y%m%d_%Q.cdf",
+            "None",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/barrel/l2/1b/fspc",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'bar_1b_l2_fspc_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'none',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/barrel/l2/1b/fspc/bar_1b_l2_fspc_[12]\\d\\d\\d[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/barrel/l2/1b/fspc/bar_1b_l2_fspc_20130106_v10.cdf",
+            datetime(2013, 1, 6, tzinfo=timezone.utc)
+        ),
+        (
+            "cn_k1_mari_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/canopus/mari_rio",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'cn_k1_mari_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/canopus/mari_rio/{Y}/cn_k1_mari_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/canopus/mari_rio/1996/cn_k1_mari_19960101_v01.cdf",
+            datetime(1996, 1, 1, tzinfo=timezone.utc)
+        ),
+        (
+            "csswe_reptile_6sec-flux-l2_%Y%m%d_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/csswe/l2/reptile/flux",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'csswe_reptile_6sec-flux-l2_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/csswe/l2/reptile/flux/{Y}/csswe_reptile_6sec-flux-l2_{Y}[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/csswe/l2/reptile/flux/2013/csswe_reptile_6sec-flux-l2_20131126_v01.cdf",
+            datetime(2013, 11, 26, tzinfo=timezone.utc)
+        ),
+        (
+            "endurance_ephemeris_def_%Y%m%d_%Q.cdf",
+            "None",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/sounding_rockets/endurance/endurance-2022/cdf",
+            {
+                'date_format': '%Y%m%d',
+                'fname_regex': 'endurance_ephemeris_def_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'none',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/sounding_rockets/endurance/endurance-2022/cdf/endurance_ephemeris_def_[12]\\d\\d\\d[01]\\d[0-3]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/sounding_rockets/endurance/endurance-2022/cdf/endurance_ephemeris_def_20220511_v01.cdf",
+            datetime(2022, 5, 11, tzinfo=timezone.utc)
+        ),
+        (
+            "iss_dosanl_tepc_%Y%m%d%H%M_%Q.cdf",
+            "None",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/international_space_station_iss/dos_tepc",
+            {
+                'date_format': '%Y%m%d%H%M',
+                'fname_regex': 'iss_dosanl_tepc_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'none',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/international_space_station_iss/dos_tepc/iss_dosanl_tepc_[12]\\d\\d\\d[01]\\d[0-3]\\d[0-2]\\d[0-5]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/international_space_station_iss/dos_tepc/iss_dosanl_tepc_201212190402_v01.cdf",
+            datetime(2012, 12, 20, tzinfo=timezone.utc)
+        )
+    )
+    @unpack
+    def test_convert_to_direct_archive_params(self, file_naming: str, subdivided_by: str, url: str, expected, test_url,
+                                              sample_date):
+        result = to_direct_archive_params(file_naming=file_naming, subdivided_by=subdivided_by, url=url)
+        self.assertEqual(result, expected)
+        fname_regex = re.compile(result['fname_regex'])
+        url_pattern = re.compile(apply_date_format(result['url_pattern'], sample_date))
+        self.assertIsNotNone(fname_regex.search(test_url))
+        self.assertIsNotNone(url_pattern.search(test_url))
 
 
 if __name__ == '__main__':
