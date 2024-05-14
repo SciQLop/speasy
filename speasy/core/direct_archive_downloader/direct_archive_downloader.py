@@ -19,6 +19,16 @@ from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
 
 
+def apply_date_format(txt: str, date: datetime) -> str:
+    if date.hour // 12:
+        p = 'PM'
+    else:
+        p = 'AM'
+    return txt.format(Y=date.year, y=str(date.year)[-2:], M=date.month, D=date.day, H=date.hour,
+                      j=date.timetuple().tm_yday, I=date.hour % 12,
+                      p=p)
+
+
 def _read_cdf(url: Optional[str], variable: str, **kwargs) -> Optional[SpeasyVariable]:
     if url is None:
         return None
@@ -37,7 +47,7 @@ def _remote_read_cdf(url: str, variable: str, **kwargs) -> Optional[SpeasyVariab
 
 
 def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
-    base_ulr = url_pattern.format(Y=date.year, M=date.month, D=date.day)
+    base_ulr = apply_date_format(url_pattern, date)
     if not use_file_list:
         return base_ulr
     folder_url, rx = base_ulr.rsplit('/', 1)
@@ -81,7 +91,16 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
     if split_frequency.lower() == "yearly":
         start = start.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         return [start + relativedelta(years=y) for y in range(relativedelta(stop, start).years + 1)]
+    if split_frequency.lower() == "none":
+        return [start]
     raise ValueError(f"Unknown/unimplemented split_frequency: {split_frequency}")
+
+
+def _parse_date(date: str or datetime, date_format: Optional[str] = None) -> datetime:
+    if isinstance(date, datetime) or date_format is None:
+        return make_utc_datetime(date)
+    if date_format is not None:
+        return make_utc_datetime(datetime.strptime(date, date_format))
 
 
 class RandomSplitDirectDownload:
@@ -96,14 +115,14 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def list_files(split_frequency, url_pattern: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                   fname_regex: str,
-                   **kwargs):
+                   fname_regex: str, date_format=None, **kwargs):
 
         keep = []
         start_time = make_utc_datetime(start_time)
         stop_time = make_utc_datetime(stop_time)
         for start in spilt_range(split_frequency, start_time, stop_time):
-            base_ulr = url_pattern.format(Y=start.year, M=start.month, D=start.day, H=start.hour)
+
+            base_ulr = apply_date_format(url_pattern, start)
             folder_url, rx = base_ulr.rsplit('/', 1)
             files: List[re.Match] = list(
                 filter(lambda m: m is not None, map(re.compile(fname_regex).match,
@@ -113,27 +132,31 @@ class RandomSplitDirectDownload:
                 for index, file in enumerate(files[:-1]):
                     d = file.groupdict()
                     if RandomSplitDirectDownload.overlaps_range(range_start=start_time, range_stop=stop_time,
-                                                                start=d['start'],
-                                                                stop=d.get('stop',
-                                                                           files[index + 1].groupdict()['start'])):
+                                                                start=_parse_date(d['start'], date_format),
+                                                                stop=_parse_date(d.get('stop',
+                                                                                       files[index + 1].groupdict()[
+                                                                                           'start']), date_format)):
                         keep.append(f'{folder_url}/{file.string}')
 
                 d = files[-1].groupdict()
                 if RandomSplitDirectDownload.overlaps_range(range_start=start_time, range_stop=stop_time,
-                                                            start=d['start'],
-                                                            stop=d.get('stop', max(stop_time,
-                                                                                   make_utc_datetime(d['start'])))):
+                                                            start=_parse_date(d['start'], date_format),
+                                                            stop=_parse_date(d.get('stop', max(stop_time,
+                                                                                               _parse_date(d['start'],
+                                                                                                           date_format))),
+                                                                             date_format)):
                     keep.append(f'{folder_url}/{files[-1].string}')
         return keep
 
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                    fname_regex: str, split_frequency: str = "daily", **kwargs) -> Optional[SpeasyVariable]:
+                    fname_regex: str, split_frequency: str = "daily", date_format=None, **kwargs) -> Optional[
+        SpeasyVariable]:
         v = merge(
             list(map(partial(_read_cdf, variable=variable),
                      RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
                                                           start_time=start_time, stop_time=stop_time,
-                                                          fname_regex=fname_regex, **kwargs))))
+                                                          fname_regex=fname_regex, date_format=date_format, **kwargs))))
         if v is not None:
             return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
         return None
