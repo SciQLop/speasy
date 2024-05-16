@@ -71,13 +71,13 @@ def _load_variable(variable="", file=None, buffer=None, master_file=None, master
     return None
 
 
-def _resolve_url_type(url, prefix=""):
+def _resolve_url_type(url, prefix="", cache_remote_files=True):
     if url is None:
         return prefix + "file", None
     if type(url) is str:
         if is_local_file(url):
             return prefix + "file", urlparse(url=url).path
-        return prefix + "buffer", any_loc_open(url, mode='rb').read()
+        return prefix + "buffer", any_loc_open(url, mode='rb', cache_remote_files=cache_remote_files).read()
     if type(url) is bytes:
         return prefix + "buffer", url
     if hasattr(url, 'read'):
@@ -90,5 +90,6 @@ def load_variable(variable, file: bytes or str or io.IOBase, cache_remote_files=
     kwargs = {
         "variable": variable,
     }
-    kwargs.update((_resolve_url_type(file, prefix=""), _resolve_url_type(master_cdf_url, prefix="master_")))
+    kwargs.update((_resolve_url_type(file, prefix="", cache_remote_files=cache_remote_files),
+                   _resolve_url_type(master_cdf_url, prefix="master_", cache_remote_files=cache_remote_files)))
     return _load_variable(**kwargs)

@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 def filter_variable_meta(datavar: DataVariable) -> dict:
     keep_list = ['CATDESC', 'FIELDNAM', 'UNITS', 'UNIT_PTR', 'DISPLAY_TYPE', 'LABLAXIS', 'LABL_PTR_1', 'LABL_PTR_2',
-                 'LABL_PTR_3']
+                 'LABL_PTR_3', 'VIRTUAL', 'FUNCT']
     base = {key: value for key, value in datavar.attributes.items() if key in keep_list}
     if len(datavar.values.shape) == 1:
         base['spz_shape'] = 1
