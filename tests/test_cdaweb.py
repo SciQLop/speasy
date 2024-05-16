@@ -220,6 +220,12 @@ class SpecificNonRegression(unittest.TestCase):
             solo_swa = spz.get_data("cda/wrong/data", "2021-11-3", "2021-11-4")
             self.assertIn("Unknown parameter:", str(cm.exception))
 
+    def test_get_virtual_parameter_always_falls_back_to_api(self):
+        mms1_fgm_b_bcs_srvy_l2_clean = spz.get_data(
+            spz.inventories.tree.cda.MMS.MMS1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_bcs_srvy_l2_clean,
+            "2021-11-3", "2021-11-3T01", disable_proxy=True, disable_cache=True, method="FILE")
+        self.assertIsNotNone(mms1_fgm_b_bcs_srvy_l2_clean)
+
 
 @ddt
 class DirectArchiveConverter(unittest.TestCase):

@@ -11,8 +11,8 @@ from typing import Optional, List
 from dateutil.relativedelta import relativedelta
 
 from speasy.core import make_utc_datetime, AnyDateTimeType
-from speasy.core.any_files import list_files, is_local_file
 from speasy.core.cache import CacheCall
+from speasy.core.any_files import list_files
 from speasy.core.cdf import load_variable
 from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
@@ -29,8 +29,8 @@ def apply_date_format(txt: str, date: datetime) -> str:
                       p=p)
 
 
-def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None, **kwargs) -> Optional[
-    SpeasyVariable]:
+@CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
+def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None) -> Optional[SpeasyVariable]:
     if url is None:
         return None
     return load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url, cache_remote_files=True)

@@ -38,6 +38,10 @@ def _is_burst_product(product: ParameterIndex or str) -> bool:
     return bool(_burst_regex.match(str(product)))
 
 
+def _is_virtual_parameter(product: ParameterIndex) -> bool:
+    return product.__dict__.get('VIRTUAL', 'FALSE').upper() == 'TRUE'
+
+
 def _large_request_max_duration(product):
     if _is_burst_product(product):
         return timedelta(hours=2)
@@ -180,11 +184,15 @@ class CDA_Webservice(DataProvider):
 
         dataset, variable = self._to_dataset_and_variable(product)
         dataset = self.flat_inventory.datasets[dataset]
+        if type(product) is str:
+            product_index = self.flat_inventory.parameters[product]
+        else:
+            product_index = product
         archive_params = to_direct_archive_params(file_naming=dataset.filenaming,
                                                   subdivided_by=dataset.subdividedby,
                                                   url=dataset.url)
         log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
-        if archive_params is not None:
+        if archive_params is not None and not _is_virtual_parameter(product_index):
             return direct_archive_get_product(variable=variable, start_time=start_time, stop_time=stop_time,
                                               **archive_params,
                                               master_cdf_url=dataset.mastercdf)
