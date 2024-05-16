@@ -29,21 +29,11 @@ def apply_date_format(txt: str, date: datetime) -> str:
                       p=p)
 
 
-def _read_cdf(url: Optional[str], variable: str, **kwargs) -> Optional[SpeasyVariable]:
+def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None, **kwargs) -> Optional[
+    SpeasyVariable]:
     if url is None:
         return None
-    if is_local_file(url):
-        return _local_read_cdf(file=url, variable=variable, **kwargs)
-    return _remote_read_cdf(url=url, variable=variable, **kwargs)
-
-
-def _local_read_cdf(file: str, variable: str, **kwargs) -> Optional[SpeasyVariable]:
-    return load_variable(file=file, variable=variable)
-
-
-@CacheCall(cache_retention=timedelta(hours=6), is_pure=True)
-def _remote_read_cdf(url: str, variable: str, **kwargs) -> Optional[SpeasyVariable]:
-    return load_variable(file=url, variable=variable, cache_remote_files=True)
+    return load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url, cache_remote_files=True)
 
 
 def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
@@ -115,7 +105,7 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def list_files(split_frequency, url_pattern: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                   fname_regex: str, date_format=None, **kwargs):
+                   fname_regex: str, date_format=None):
 
         keep = []
         start_time = make_utc_datetime(start_time)
@@ -153,10 +143,10 @@ class RandomSplitDirectDownload:
                     fname_regex: str, split_frequency: str = "daily", date_format=None, **kwargs) -> Optional[
         SpeasyVariable]:
         v = merge(
-            list(map(partial(_read_cdf, variable=variable),
+            list(map(partial(_read_cdf, variable=variable, **kwargs),
                      RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
                                                           start_time=start_time, stop_time=stop_time,
-                                                          fname_regex=fname_regex, date_format=date_format, **kwargs))))
+                                                          fname_regex=fname_regex, date_format=date_format))))
         if v is not None:
             return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
         return None

@@ -23,7 +23,7 @@ from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.core.direct_archive_downloader import get_product
+from speasy.core.direct_archive_downloader import get_product as direct_archive_get_product
 from speasy.products.variable import SpeasyVariable
 from ._direct_archive import to_direct_archive_params
 
@@ -185,7 +185,9 @@ class CDA_Webservice(DataProvider):
                                                   url=dataset.url)
         log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
         if archive_params is not None:
-            return get_product(variable=variable, start_time=start_time, stop_time=stop_time, **archive_params)
+            return direct_archive_get_product(variable=variable, start_time=start_time, stop_time=stop_time,
+                                              **archive_params,
+                                              master_cdf_url=dataset.mastercdf)
         else:
             if not mode_is_best:
                 log.warning(f"Can't get {product} without web service, switching to web service")

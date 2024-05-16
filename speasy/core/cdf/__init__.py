@@ -1,5 +1,5 @@
 import io
-
+from typing import Optional
 import pyistp
 import re
 from ..any_files import any_loc_open
@@ -45,8 +45,8 @@ def _build_labels(variable: pyistp.loader.DataVariable):
     return [f"component_{i}" for i in range(variable.values.shape[1])]
 
 
-def _load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or None:
-    istp = pyistp.load(file=file, buffer=buffer)
+def _load_variable(variable="", file=None, buffer=None, master_file=None, master_buffer=None) -> SpeasyVariable or None:
+    istp = pyistp.load(file=file, buffer=buffer, master_file=master_file, master_buffer=master_buffer)
     if istp is not None:
         if variable in istp.data_variables():
             var = istp.data_variable(variable)
@@ -71,14 +71,24 @@ def _load_variable(variable="", file=None, buffer=None) -> SpeasyVariable or Non
     return None
 
 
-def load_variable(variable, file: bytes or str or io.IOBase, cache_remote_files=True) -> SpeasyVariable or None:
-    if type(file) is str:
-        if is_local_file(file):
-            return _load_variable(variable=variable, file=urlparse(url=file).path)
-        return _load_variable(variable=variable,
-                              buffer=any_loc_open(file, mode='rb', cache_remote_files=cache_remote_files).read())
-    if type(file) is bytes:
-        return _load_variable(variable=variable, buffer=bytes)
-    if hasattr(file, 'read'):
-        return _load_variable(variable=variable, buffer=file.read())
-    return None
+def _resolve_url_type(url, prefix=""):
+    if url is None:
+        return prefix + "file", None
+    if type(url) is str:
+        if is_local_file(url):
+            return prefix + "file", urlparse(url=url).path
+        return prefix + "buffer", any_loc_open(url, mode='rb').read()
+    if type(url) is bytes:
+        return prefix + "buffer", url
+    if hasattr(url, 'read'):
+        return prefix + "buffer", url.read()
+    return prefix + "file", None
+
+
+def load_variable(variable, file: bytes or str or io.IOBase, cache_remote_files=True,
+                  master_cdf_url: Optional[bytes or str or io.IOBase] = None) -> SpeasyVariable or None:
+    kwargs = {
+        "variable": variable,
+    }
+    kwargs.update((_resolve_url_type(file, prefix=""), _resolve_url_type(master_cdf_url, prefix="master_")))
+    return _load_variable(**kwargs)
