@@ -119,16 +119,16 @@ class SimpleRequest(unittest.TestCase):
         self.assertIsNotNone(result3)
         self.assertTrue(np.all(result2.values == result3.values))
 
-    def test_get_empty_vector(self, variable=spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
-                                                                  start_time=datetime(2014, 6, 1, 23,
-                                                                                      tzinfo=timezone.utc),
-                                                                  stop_time=datetime(2014, 6, 2, 0, 10,
-                                                                                     tzinfo=timezone.utc),
-                                                                  disable_proxy=True, disable_cache=True,
-                                                                  method="API")):
+    def test_get_empty_vector(self):
+        variable = spz.cda.get_variable(dataset="THA_L2_FGM", variable="tha_fge_dsl",
+                                        start_time=datetime(2014, 6, 1, 23,
+                                                            tzinfo=timezone.utc),
+                                        stop_time=datetime(2014, 6, 2, 0, 10,
+                                                           tzinfo=timezone.utc),
+                                        disable_proxy=True, disable_cache=True,
+                                        method="API")
         # this used to fail because CDA returns at least a record but removes one dimension from data
-        result = variable
-        self.assertIsNone(result)
+        self.assertIsNone(variable)
 
     def test_no_data_404_error(self):
         # this used to fail because CDA returns a 404 error
