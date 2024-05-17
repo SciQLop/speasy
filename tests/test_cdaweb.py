@@ -410,6 +410,21 @@ class DirectArchiveConverter(unittest.TestCase):
             },
             "https://cdaweb.gsfc.nasa.gov/pub/data/international_space_station_iss/dos_tepc/iss_dosanl_tepc_201212190402_v01.cdf",
             datetime(2012, 12, 20, tzinfo=timezone.utc)
+        ),
+        (
+            "msl_rad_obs-l2_%Y%j_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/aaa_planetary/msl/rad/cdf/obs-l2",
+            {
+                'date_format': '%Y%j',
+                'fname_regex': 'msl_rad_obs-l2_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/aaa_planetary/msl/rad/cdf/obs-l2/{Y}/msl_rad_obs-l2_{Y}[0-3]\d\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/aaa_planetary/msl/rad/cdf/obs-l2/2015/msl_rad_obs-l2_2015001_v00.cdf",
+            datetime(2015, 1, 1, tzinfo=timezone.utc)
         )
     )
     @unpack
