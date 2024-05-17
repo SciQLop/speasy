@@ -108,8 +108,10 @@ class GenericArchive(DataProvider):
         return var
 
     def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType, **kwargs) -> \
-    Optional[
-        SpeasyVariable]:
+        Optional[
+            SpeasyVariable]:
         ga_cfg: dict = getattr(product, 'spz_ga_cfg')
+        ga_cfg.pop('inventory_path', None)
+        ga_cfg.pop('master_cdf', None)
         return get_product(**ga_cfg,
                            variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
