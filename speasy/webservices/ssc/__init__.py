@@ -59,7 +59,7 @@ def parse_trajectory(trajectory: str) -> Optional[SpeasyVariable]:
         data = xml.find('Result').find('Data')
         coordinates = data.find('Coordinates')
         values = np.array(
-            [list(map(lambda v: v.text, coordinates.findall(axis))) for axis in ('X', 'Y', 'Z')]).transpose()
+            [list(map(lambda v: float(v.text), coordinates.findall(axis))) for axis in ('X', 'Y', 'Z')]).transpose()
         time_axis = np.array([np.datetime64(v.text[:-1], 'ns') for v in data.findall('Time')])
         return SpeasyVariable(
             axes=[VariableTimeAxis(values=time_axis)],
@@ -109,7 +109,7 @@ class SSC_Webservice(DataProvider):
         return parse_inventory(res.text)
 
     def version(self, product):
-        return 3
+        return 4
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.
