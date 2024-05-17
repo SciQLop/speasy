@@ -53,6 +53,7 @@ class SscWeb(unittest.TestCase):
             self.assertEqual(trajectory.meta['CoordinateSystem'], 'GSE')
             self.assertEqual(trajectory.meta['UNITS'], 'km')
             self.assertEqual(trajectory.time[0], np.datetime64('2006-01-08T01:00:00.000000000', 'ns'))
+            self.assertIsInstance(trajectory.values[0][0], np.float64)
 
     @data(
         {
