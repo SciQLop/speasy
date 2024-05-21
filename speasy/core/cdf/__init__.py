@@ -12,6 +12,8 @@ def _fix_value_type(value):
         return value
     if type(value) is list:
         return [_fix_value_type(sub_v) for sub_v in value]
+    if type(value) is bytes:
+        return value.decode('utf-8')
     return str(value)
 
 
@@ -37,9 +39,9 @@ def _make_axis(axis, time_axis_name):
 
 def _build_labels(variable: pyistp.loader.DataVariable):
     if len(variable.values.shape) != 2:
-        return variable.labels
+        return _fix_value_type(variable.labels)
     if type(variable.labels) is list and len(variable.labels) == variable.values.shape[1]:
-        return variable.labels
+        return _fix_value_type(variable.labels)
     if type(variable.labels) is list and len(variable.labels) == 1:
         return [f"{variable.labels[0]}[{i}]" for i in range(variable.values.shape[1])]
     return [f"component_{i}" for i in range(variable.values.shape[1])]

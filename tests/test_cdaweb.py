@@ -89,6 +89,12 @@ class SimpleRequest(unittest.TestCase):
             "variable": "pos_eq_op",
             "start_time": datetime(2018, 1, 1, tzinfo=timezone.utc),
             "stop_time": datetime(2018, 1, 1, 2, tzinfo=timezone.utc)
+        },
+        {
+            "dataset": "SOLO_L2_MAG-RTN-NORMAL-1-MINUTE",
+            "variable": "B_RTN",
+            "start_time": datetime(2021, 1, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2021, 1, 1, 2, tzinfo=timezone.utc)
         }
     )
     def test_a_simple_direct_archive_request(self, kwargs):
