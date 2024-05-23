@@ -61,9 +61,22 @@ class CdaWebException(BaseException):
         super(CdaWebException, self).__init__(text)
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
-    return {'path': f"cdaweb/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}'}
+def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+    return {
+        'path': f"cdaweb/{product}",
+        'start_time': f'{start_time.isoformat()}',
+        'stop_time': f'{stop_time.isoformat()}',
+        'method': 'API',
+    }
+
+
+def get_parameter_args_archive(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+    return {
+        'path': f"cdaweb/{product}",
+        'start_time': f'{start_time.isoformat()}',
+        'stop_time': f'{stop_time.isoformat()}',
+        'method': 'FILE',
+    }
 
 
 class CDA_Webservice(DataProvider):
@@ -170,7 +183,7 @@ class CDA_Webservice(DataProvider):
 
     @UnversionedProviderCache(prefix="cda", fragment_hours=_cache_fragment_size, cache_retention=timedelta(days=7))
     @SplitLargeRequests(threshold=_large_request_max_duration)
-    @Proxyfiable(GetProduct, get_parameter_args)
+    @Proxyfiable(GetProduct, get_parameter_args_ws)
     def _get_data_with_ws(self, product, start_time: datetime, stop_time: datetime,
                           if_newer_than: datetime or None = None,
                           extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
@@ -178,6 +191,7 @@ class CDA_Webservice(DataProvider):
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
 
+    @Proxyfiable(GetProduct, get_parameter_args_archive)
     def _get_data_with_direct_archive(self, product, start_time: datetime, stop_time: datetime, mode_is_best: bool,
                                       if_newer_than: datetime or None = None,
                                       extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
