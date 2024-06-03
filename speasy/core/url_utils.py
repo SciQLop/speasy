@@ -1,5 +1,8 @@
 from typing import Dict, Tuple
 from urllib.parse import urlparse, urlencode
+from speasy.config import core as core_config
+
+_REWRITE_RULES_ = core_config.http_rewrite_rules.get()
 
 
 def quote(*args, **kwargs):
@@ -87,3 +90,10 @@ def host_and_port(url: str) -> Tuple[str, int]:
         return parsed.hostname, 443
 
     return parsed.hostname, 80
+
+
+def apply_rewrite_rules(url: str) -> str:
+    for base_url in _REWRITE_RULES_:
+        if url.startswith(base_url):
+            return _REWRITE_RULES_[base_url] + url[len(base_url):]
+    return url

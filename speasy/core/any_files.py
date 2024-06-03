@@ -115,6 +115,8 @@ def _list_local_files(path: str) -> List[str]:
 
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
 def _list_remote_files(url: str) -> List[str]:
+    if not url.endswith('/'):
+        url += '/'
     response = http.get(url)
     if response.ok:
         return _HREF_REGEX.findall(response.text)
