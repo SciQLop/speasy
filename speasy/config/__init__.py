@@ -8,6 +8,7 @@ Configuration module for SPEASY, it reads or sets config entries first from ENV 
 import configparser
 import os
 from typing import Any
+import ast
 
 import appdirs
 
@@ -22,6 +23,14 @@ _config.read(SPEASY_CONFIG_FILE)
 
 _entries = {}
 
+def _load_dict_from_repr(value: str):
+    if value:
+        d = ast.literal_eval(value)
+        if isinstance(d, dict):
+            return d
+        else:
+            raise ValueError(f"Config value can't be converted to dict: {value}")
+    return {}
 
 def show():
     """Prints config entries and current values
@@ -148,7 +157,12 @@ core = ConfigSection("CORE",
                      disabled_providers={"default": set(),
                                          "description": """A comma separated list of providers you want to disable.
 The main benefit of disabling providers is to speedup speasy loading.""",
-                                         "type_ctor": lambda x: set(x.split(','))}
+                                         "type_ctor": lambda x: set(x.split(','))},
+                     http_rewrite_rules={"default": {},
+                                         "description": """A dictionary of rules to rewrite URLs before sending requests.
+The keys are the URL to match and the values are the replacement URL.
+Example: {"http://example.com": "http://localhost:8000"}""",
+                                         "type_ctor": _load_dict_from_repr},
                      )
 
 proxy = ConfigSection("PROXY",

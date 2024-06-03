@@ -10,7 +10,7 @@ from urllib3 import PoolManager
 from urllib3.util.retry import Retry
 
 from speasy import __version__
-from .url_utils import host_and_port
+from .url_utils import host_and_port, apply_rewrite_rules
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ STATUS_FORCE_LIST = [500, 502, 504, 413, 429, 503]
 RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error codes (see below)
 
 _HREF_REGEX = re.compile(' href="([A-Za-z0-9.-_]+)">')
+
 
 pool = PoolManager()
 
@@ -92,6 +93,7 @@ class _HttpVerb:
         # self._adapter.timeout = timeout
         headers = headers or {}
         headers['User-Agent'] = USER_AGENT
+        url = apply_rewrite_rules(url)
         return Response(self._verb(url=url, headers=headers, fields=params, timeout=timeout))
 
 
@@ -102,6 +104,7 @@ head = _HttpVerb("HEAD")
 def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None):
     headers = {} if headers is None else headers
     headers['User-Agent'] = USER_AGENT
+    url = apply_rewrite_rules(url)
     return Response(pool.urlopen(method="GET", url=url, headers=headers, timeout=timeout))
 
 
@@ -131,6 +134,7 @@ def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Op
         If neither url nor host and port are provided
     """
     if url is not None:
+        url = apply_rewrite_rules(url)
         host, port = host_and_port(url)
     elif host is None or port is None:
         raise ValueError("Either url or host and port must be provided")
