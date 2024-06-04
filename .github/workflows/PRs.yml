@@ -47,6 +47,7 @@ jobs:
         SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS: "25"
         SPEASY_LONG_TESTS: ""
         SPEASY_INVENTORY_TESTS: ""
+        SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
       run: |
         sudo apt update && sudo apt install -y texlive pandoc
         pip install pytest pytest-cov sphinx pandoc
@@ -61,10 +62,10 @@ jobs:
         twine check dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
-        fail_ci_if_error: true
+        fail_ci_if_error: false
