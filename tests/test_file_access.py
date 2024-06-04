@@ -47,6 +47,13 @@ class FileAccess(unittest.TestCase):
         self.assertIsNotNone(f)
         self.assertEqual(b'\x7fELF', f.read(4))
 
+    def test_simple_remote_bin_file_with_rewrite_rules(self):
+        if 'SPEASY_CORE_HTTP_REWRITE_RULES' not in os.environ:
+            self.skipTest("No rewrite rules defined")
+        f = any_loc_open("https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/data/ace/mag/level_2_cdaweb/mfi_h0/2014/ac_h0_mfi_20141117_v06.cdf", mode='rb')
+        self.assertIsNotNone(f)
+        self.assertIn(b'NSSDC Common Data Format', f.read(100))
+
     def test_cached_remote_bin_file(self):
         drop_item("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw")
         start = datetime.now()
@@ -74,6 +81,12 @@ class FileAccess(unittest.TestCase):
         flist = list_files(url='https://hephaistos.lpp.polytechnique.fr/data/', file_regex=re.compile(r'\w+\.webm'))
         self.assertGreaterEqual(len(flist), 9)
         self.assertIn('plasmaSpeaker1.webm', flist)
+
+    def test_list_remote_files_with_rewrite_rules(self):
+        if 'SPEASY_CORE_HTTP_REWRITE_RULES' not in os.environ:
+            self.skipTest("No rewrite rules defined")
+        flist = list_files(url='https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/data/ace/mag/level_2_cdaweb/mfi_h0/2014/', file_regex=re.compile(r'[a-zA-Z0-9_]\.cdf'))
+        self.assertGreaterEqual(len(flist), 10)
 
     @data(
         f"{_HERE_}/resources/",
