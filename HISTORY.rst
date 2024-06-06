@@ -2,6 +2,17 @@
 History
 =======
 
+1.3.0 (2024-09-26)
+------------------
+
+* Switch sscweb to xml format by @jeandet in https://github.com/SciQLop/speasy/pull/128
+* Adds basic resampling features and filtering by @jeandet in https://github.com/SciQLop/speasy/pull/129
+* inventory to inventories by @nicolasaunai in https://github.com/SciQLop/speasy/pull/133
+* CDA direct file access by @jeandet in https://github.com/SciQLop/speasy/pull/134
+* New basic rewrite rule for http module, mostly for internal uses by @jeandet in https://github.com/SciQLop/speasy/pull/135
+* Quick fix for url_rewrite test by @jeandet in https://github.com/SciQLop/speasy/pull/136
+* Readme update and proxy fix by @jeandet in https://github.com/SciQLop/speasy/pull/137
+
 1.2.7 (2024-04-17)
 ------------------
 
