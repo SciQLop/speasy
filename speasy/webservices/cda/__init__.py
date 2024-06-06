@@ -191,7 +191,6 @@ class CDA_Webservice(DataProvider):
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
 
-    @Proxyfiable(GetProduct, get_parameter_args_archive)
     def _get_data_with_direct_archive(self, product, start_time: datetime, stop_time: datetime, mode_is_best: bool,
                                       if_newer_than: datetime or None = None,
                                       extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
