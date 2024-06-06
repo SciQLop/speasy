@@ -7,7 +7,7 @@ from typing import Optional, Tuple, Dict
 
 from astroquery.utils.tap.core import TapPlus
 
-from speasy.core import any_files, AllowedKwargs, fix_name
+from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime
 from speasy.core import cdf
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
@@ -223,6 +223,7 @@ class CSA_Webservice(DataProvider):
         return self.flat_inventory.datasets[dataset].date_last_update
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)
+    @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
     @SplitLargeRequests(threshold=lambda x: timedelta(days=7))

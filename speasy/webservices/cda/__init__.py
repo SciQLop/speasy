@@ -11,7 +11,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
-from speasy.core import AllowedKwargs, EnsureUTC_DateTime
+from speasy.core import AllowedKwargs, EnsureUTCDateTime
 from speasy.core import http, url_utils
 from speasy.core import cdf
 from speasy.config import cdaweb as cda_cfg
@@ -218,7 +218,7 @@ class CDA_Webservice(DataProvider):
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than', 'method'])
-    @EnsureUTC_DateTime()
+    @EnsureUTCDateTime()
     @ParameterRangeCheck()
     def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
                  extra_http_headers: Dict or None = None, method: Optional[str] = None, **kwargs) -> Optional[
