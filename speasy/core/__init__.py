@@ -345,9 +345,7 @@ def progress_bar(leave=True, progress=False, desc=None, **kwargs):
         return lambda x: tqdm(x, leave=leave, desc=desc)
 
 
-class EnsureUTC_DateTime(object):
-    def __init__(self):
-        pass
+class EnsureUTCDateTime(object):
 
     def __call__(self, get_data: Callable):
         @wraps(get_data)

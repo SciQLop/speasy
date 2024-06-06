@@ -10,7 +10,7 @@ from ._impl import is_private, is_public
 from .inventory import to_xmlid
 from .utils import get_parameter_args
 from ...config import amda as amda_cfg
-from ...core import AllowedKwargs, make_utc_datetime, EnsureUTC_DateTime
+from ...core import AllowedKwargs, make_utc_datetime, EnsureUTCDateTime
 from ...core.http import is_server_up
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
 from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
@@ -394,7 +394,7 @@ class AMDA_Webservice(DataProvider):
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format', 'restricted_period'])
-    @EnsureUTC_DateTime()
+    @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix="amda", version=product_version, fragment_hours=lambda x: 12, entry_name=_amda_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
