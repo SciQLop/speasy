@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from functools import wraps
-from typing import Any, Dict, List, Sequence, Type, Union
+from typing import Any, Dict, List, Sequence, Type, Union, Callable
 
 import numpy as np
 from dateutil.parser import parse
@@ -343,3 +343,16 @@ def progress_bar(leave=True, progress=False, desc=None, **kwargs):
         return lambda x: x
     else:
         return lambda x: tqdm(x, leave=leave, desc=desc)
+
+
+class EnsureUTC_DateTime(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, get_data: Callable):
+        @wraps(get_data)
+        def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
+            return get_data(wrapped_self, product=product, start_time=make_utc_datetime(start_time),
+                            stop_time=make_utc_datetime(stop_time), **kwargs)
+
+        return wrapped

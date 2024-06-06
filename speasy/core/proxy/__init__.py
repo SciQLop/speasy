@@ -36,6 +36,8 @@ def query_proxy_version():
     global _CURRENT_PROXY_SERVER_VERSION
     if _CURRENT_PROXY_SERVER_VERSION is None:
         url = proxy_cfg.url()
+        if url.endswith("/"):
+            url = url[:-1]
         if url != "":
             resp = http.get(f"{url}/get_version")
             if resp.status_code == 200:
@@ -65,7 +67,10 @@ except ImportError:
 def is_proxy_up() -> bool:
     if http.is_server_up(proxy_cfg.url()):
         try:
-            r = http.get(f"{proxy_cfg.url()}/get_inventory", params={"provider": "ssc"}, timeout=1)
+            url = proxy_cfg.url()
+            if url.endswith("/"):
+                url = url[:-1]
+            r = http.get(f"{url}/get_inventory", params={"provider": "ssc"}, timeout=1)
             return r.status_code == 200
         except:  # lgtm [py/catch-base-exception]
             pass
@@ -79,6 +84,8 @@ class GetProduct:
     @staticmethod
     def get(path: str, start_time: str, stop_time: str, **kwargs):
         url = proxy_cfg.url()
+        if url.endswith("/"):
+            url = url[:-1]
         kwargs['path'] = path
         kwargs['start_time'] = start_time
         kwargs['stop_time'] = stop_time
@@ -101,6 +108,8 @@ class GetInventory:
             return saved_inventory
 
         url = proxy_cfg.url()
+        if url.endswith("/"):
+            url = url[:-1]
         kwargs['provider'] = provider
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
@@ -136,8 +145,9 @@ class Proxyfiable(object):
                     else:
                         log.warning(
                             f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
-                except:  # lgtm [py/catch-base-exception]
+                except Exception as e:  # lgtm [py/catch-base-exception]
                     log.error(f"Can't get data from proxy server {proxy_cfg.url()}")
+                    print(e)
             return func(*args, **kwargs)
 
         return wrapped

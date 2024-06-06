@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 
+from speasy.core import EnsureUTC_DateTime
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
@@ -143,6 +144,7 @@ class SSC_Webservice(DataProvider):
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['coordinate_system',
                                                                                  'debug'])
+    @EnsureUTC_DateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
