@@ -85,7 +85,7 @@ class FileAccess(unittest.TestCase):
     def test_list_remote_files_with_rewrite_rules(self):
         if 'SPEASY_CORE_HTTP_REWRITE_RULES' not in os.environ:
             self.skipTest("No rewrite rules defined")
-        flist = list_files(url='https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/data/ace/mag/level_2_cdaweb/mfi_h0/2014/', file_regex=re.compile(r'[a-zA-Z0-9_]\.cdf'))
+        flist = list_files(url='https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/data/ace/mag/level_2_cdaweb/mfi_h0/2014/', file_regex=re.compile(r'.*\.cdf'))
         self.assertGreaterEqual(len(flist), 10)
 
     @data(

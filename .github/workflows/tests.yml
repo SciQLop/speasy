@@ -37,6 +37,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       if: matrix.python-version != '3.10' ||  matrix.os != 'ubuntu-latest'
+      env:
+          SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
       run: |
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
