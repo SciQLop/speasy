@@ -2,7 +2,12 @@
 History
 =======
 
-1.3.0 (2024-09-26)
+1.3.1 (2024-06-07)
+------------------
+
+* Using SciQLop proxy for CDA direct files access makes no sense by @jeandet in https://github.com/SciQLop/speasy/pull/138
+
+1.3.0 (2024-06-26)
 ------------------
 
 * Switch sscweb to xml format by @jeandet in https://github.com/SciQLop/speasy/pull/128
