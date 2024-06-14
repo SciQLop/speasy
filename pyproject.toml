@@ -37,5 +37,5 @@ dependencies = ['requests', 'pandas', 'diskcache', 'appdirs', 'numpy', 'packagin
 homepage = "https://github.com/SciQLop/speasy"
 
 [project.optional-dependencies]
-zstd = ["zstd"]
+zstd = ["pyzstd"]
 

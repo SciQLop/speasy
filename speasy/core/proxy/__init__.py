@@ -47,13 +47,13 @@ def query_proxy_version():
 
 
 try:
-    import zstd
+    import pyzstd
 
     zstd_compression = 'true'
 
 
     def decompress(data):
-        return zstd.decompress(data)
+        return pyzstd.decompress(data)
 
 except ImportError:
     zstd_compression = 'false'
