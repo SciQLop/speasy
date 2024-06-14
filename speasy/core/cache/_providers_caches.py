@@ -260,8 +260,9 @@ class UnversionedProviderCache(object):
             for group in progress_bar(leave=False, desc="Checking if cache fragments are outdated", **kwargs)(
                 maybe_outdated_fragments):
                 oldest = max(group, key=lambda item: item[1].version)[1].version
+                kwargs['if_newer_than'] = oldest
                 data = get_data(wrapped_self, product=product, start_time=group[0][0],
-                                stop_time=group[-1][0] + fragment_duration, if_newer_than=oldest, **kwargs)
+                                stop_time=group[-1][0] + fragment_duration, **kwargs)
                 if data is None:
                     for fragment, entry in group:
                         entry.version = datetime.utcnow()
