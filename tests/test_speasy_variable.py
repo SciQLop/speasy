@@ -54,6 +54,20 @@ def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: flo
         values=DataContainer(values, is_time_dependent=True, meta={"DISPLAY_TYPE": "spectrogram"}), columns=["Values"])
 
 
+def make_3d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32,
+                depth: int = 32):
+    time = np.arange(start, stop, step)
+    values = np.random.random((len(time), height, depth))
+    y = np.repeat(np.arange(height), len(time), axis=0)
+    z = np.repeat(np.arange(depth), len(time), axis=0)
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
+              VariableAxis(name='y', values=y, is_time_dependent=True),
+              VariableAxis(name='z', values=z, is_time_dependent=True)
+              ],
+        values=DataContainer(values, is_time_dependent=True, meta={"DISPLAY_TYPE": "spectrogram"}), columns=["Values"])
+
+
 def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
     time = np.arange(start, stop, step)
     values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
@@ -299,10 +313,13 @@ class TestSpeasyVariableMath(unittest.TestCase):
             self.assertTrue(np.all(var.time == self.var.time + shift))
 
 
+@ddt
 class TestSpeasyVariableNumpyInterface(unittest.TestCase):
     def setUp(self):
         self.var = make_simple_var(1., 10., 1., 10.)
         self.vector = make_simple_var_3cols(1., 10., 1., 10.)
+        self.spectro = make_2d_var(1., 10., 10., 32)
+        self.var3d = make_3d_var(1., 10., 10., 32, 16)
 
     def tearDown(self):
         pass
@@ -325,6 +342,29 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
         var = np.sqrt(np.sum(np.multiply(self.vector, self.vector), axis=1))
         self.assertTrue(np.allclose(var.values, np.linalg.norm(self.vector.values, axis=1).reshape(-1, 1)))
         self.assertTrue(np.allclose(var, np.linalg.norm(self.vector, axis=1)))
+
+    @data(np.sum, np.mean, np.std, np.var, np.max, np.min)
+    def test_functions_that_reduce_ndim_on_axis1(self, func):
+        for var in (self.spectro, self.var3d):
+            result = func(var, axis=1)
+            self.assertEqual(len(var.axes) - 1, len(result.axes))
+            self.assertTrue(np.all(result.values == func(var.values, axis=1)))
+
+    @data(np.sum, np.mean, np.std, np.var, np.max, np.min)
+    def test_functions_that_reduce_ndim_on_last_axis(self, func):
+        for var in (self.spectro, self.var3d):
+            axis = len(var.axes) - 1
+            result = func(var, axis=axis)
+            self.assertEqual(len(var.axes) - 1, len(result.axes))
+            self.assertTrue(np.all(result.values == func(var.values, axis=axis)))
+
+    @data(np.sum, np.mean, np.std, np.var, np.max, np.min)
+    def test_functions_that_reduce_ndim_on_axis0(self, func):
+        for var in (self.spectro, self.var3d):
+            result = func(var, axis=0)
+            self.assertIsNot(type(result), SpeasyVariable)
+            self.assertIsInstance(result, np.ndarray)
+            self.assertTrue(np.all(result == func(var.values, axis=0)))
 
     def test_zeros_like(self):
         var = np.zeros_like(self.var)
@@ -349,14 +389,10 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
         self.assertListEqual(self.var.axes, var.axes)
         self.assertListEqual(self.var.columns, var.columns)
 
-    def test_scalar_result(self):
-        for v in (self.var, self.vector):
-            self.assertIsInstance(np.sum(v), float)
-            self.assertIsInstance(np.mean(v), float)
-            self.assertIsInstance(np.std(v), float)
-            self.assertIsInstance(np.var(v), float)
-            self.assertIsInstance(np.max(v), float)
-            self.assertIsInstance(np.min(v), float)
+    @data(np.sum, np.mean, np.std, np.var, np.max, np.min)
+    def test_scalar_result(self, func):
+        for v in (self.var, self.vector, self.spectro, self.var3d):
+            self.assertIsInstance(func(v), float)
 
 
 class SpeasyVariableCompare(unittest.TestCase):

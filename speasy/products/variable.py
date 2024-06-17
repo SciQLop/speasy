@@ -247,6 +247,16 @@ class SpeasyVariable(SpeasyProduct):
     def __rtruediv__(self, other):
         return np.divide(other, self)
 
+    def __np_build_axes__(self, other, axis=None):
+        if axis is None or self.ndim == other.ndim:
+            return deepcopy(self.__axes)
+        else:
+            axes = []
+            for i, ax in enumerate(self.__axes):
+                if i != axis:
+                    axes.append(deepcopy(ax))
+            return axes
+
     def __array_function__(self, func, types, args, kwargs):
         if func.__name__ in SpeasyVariable.__LIKE_NP_FUNCTIONS__:
             return SpeasyVariable.__dict__[func.__name__].__func__(self)
@@ -258,29 +268,34 @@ class SpeasyVariable(SpeasyProduct):
         if np.isscalar(res):
             return res
         if isinstance(res, np.ndarray):
-            if len(res.shape) != self.shape and res.shape[0] != len(self.time):
+            if len(res.shape) != self.shape and (res.shape[0] != len(self.time) or kwargs.get('axis', None) == 0):
                 return res
 
         n_cols = res.shape[1] if len(res.shape) > 1 else 1
         return SpeasyVariable(
-            axes=deepcopy(self.__axes),
+            axes=self.__np_build_axes__(res, axis=kwargs.get('axis', None)),
             values=DataContainer(values=res, name=f"{func.__name__}_{self.__values_container.name}",
                                  meta=deepcopy(self.__values_container.meta)),
             columns=[f"column_{i}" for i in range(n_cols)],
         )
 
-    def __array_ufunc__(self, ufunc, method, *inputs, out=None, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *inputs, out: 'SpeasyVariable' or None = None, **kwargs):
         if out is not None:
             _out = _values(out[0])
         else:
             _out = None
         inputs = list(map(_values, inputs))
         values = ufunc(*inputs, **{name: _values(value) for name, value in kwargs}, out=_out)
+
+        axes = self.__np_build_axes__(values, axis=kwargs.get('axis', None))
+
         if out is not None:
+            if isinstance(out, SpeasyVariable):
+                out.__axes = axes
             return out
         else:
             return SpeasyVariable(
-                axes=deepcopy(self.__axes),
+                axes=axes,
                 values=DataContainer(values=values, name=f"{ufunc.__name__}_{self.__values_container.name}",
                                      meta=deepcopy(self.__values_container.meta)),
                 columns=[f"column_{i}" for i in range(values.shape[1])],
