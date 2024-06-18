@@ -2,6 +2,14 @@
 History
 =======
 
+1.3.2 (2024-06-18)
+------------------
+
+* Switch to pyzstd since it is more maintained by @jeandet in https://github.com/SciQLop/speasy/pull/140
+* Fixes bug when using CDA  REST API, if_newer_than kw arg was given twice by @jeandet in https://github.com/SciQLop/speasy/pull/141
+* If SPEASY_SKIP_INIT_PROVIDERS env var if defined Speasy will skip inventories load by @jeandet in https://github.com/SciQLop/speasy/pull/142
+* Reduces axes count according to numpy reduction by @jeandet in https://github.com/SciQLop/speasy/pull/143
+
 1.3.1 (2024-06-07)
 ------------------
 
