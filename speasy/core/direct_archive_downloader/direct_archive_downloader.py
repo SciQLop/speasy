@@ -6,7 +6,7 @@
 import re
 from datetime import timedelta, datetime
 from functools import partial
-from typing import Optional, List
+from typing import Optional, List, Callable
 
 from dateutil.relativedelta import relativedelta
 
@@ -17,6 +17,8 @@ from speasy.core.cdf import load_variable
 from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
+
+FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
 
 
 def apply_date_format(txt: str, date: datetime) -> str:
@@ -140,10 +142,10 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                    fname_regex: str, split_frequency: str = "daily", date_format=None, **kwargs) -> Optional[
-        SpeasyVariable]:
+                    fname_regex: str, split_frequency: str = "daily", date_format=None,
+                    file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> Optional[SpeasyVariable]:
         v = merge(
-            list(map(partial(_read_cdf, variable=variable, **kwargs),
+            list(map(partial(file_reader, variable=variable, **kwargs),
                      RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
                                                           start_time=start_time, stop_time=stop_time,
                                                           fname_regex=fname_regex, date_format=date_format))))
@@ -157,11 +159,12 @@ class RegularSplitDirectDownload:
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType,
                     stop_time: AnyDateTimeType, use_file_list: bool = False, split_frequency: str = "daily",
+                    file_reader: FileLoaderCallable = _read_cdf,
                     **kwargs) -> \
         Optional[SpeasyVariable]:
         v = merge(
-            list(map(lambda date: _read_cdf(_build_url(url_pattern, date, use_file_list=use_file_list),
-                                            variable=variable, **kwargs),
+            list(map(lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list),
+                                              variable=variable, **kwargs),
                      spilt_range(split_frequency=split_frequency, start_time=start_time,
                                  stop_time=stop_time))))
         if v is not None:
@@ -170,12 +173,13 @@ class RegularSplitDirectDownload:
 
 
 def get_product(url_pattern: str, split_rule: str, variable: str, start_time: AnyDateTimeType,
-                stop_time: AnyDateTimeType, use_file_list: bool = False, **kwargs) -> Optional[SpeasyVariable]:
+                stop_time: AnyDateTimeType, use_file_list: bool = False, file_reader: FileLoaderCallable = _read_cdf,
+                **kwargs) -> Optional[SpeasyVariable]:
     if split_rule.lower() == "regular":
         return RegularSplitDirectDownload.get_product(url_pattern, variable, start_time, stop_time,
-                                                      use_file_list, **kwargs)
+                                                      use_file_list, file_reader=file_reader, **kwargs)
     if split_rule.lower() == "random":
         return RandomSplitDirectDownload.get_product(url_pattern, variable, start_time, stop_time,
-                                                     **kwargs)
+                                                     file_reader=file_reader, **kwargs)
 
     return None
