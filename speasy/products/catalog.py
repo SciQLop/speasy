@@ -23,9 +23,6 @@ class Event(DateTimeRange):
     meta : dict
             Additional event data
 
-    Methods
-    -------
-
     Notes
     -----
     This class support the same operations as a speasy.common.datetime_range.DateTimeRange.
