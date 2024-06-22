@@ -18,7 +18,9 @@ from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
 
-FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
+# Change to this when we drop Python 3.8
+# FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
+FileLoaderCallable = Callable[..., Optional[SpeasyVariable]]
 
 
 def apply_date_format(txt: str, date: datetime) -> str:
