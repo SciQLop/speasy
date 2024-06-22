@@ -62,3 +62,75 @@ Here's an explanation of the parameters::
         - `start`: Start date, it should be parsable by ``dateutil.parser.parse`` (mandatory)
         - `stop`: Stop date, same as start date (optional)
         - `version`: Dataset version (optional)
+
+
+Custom file format support (advanced users)
+-------------------------------------------
+
+If your data archive does not follow the ISTP standards enough to be supported by Speasy or it uses an unsupported file format, you can still take advantage of the Direct Archive Access module to easily access your data.
+
+To do so, you need to create a custom reader function that loads the requested variable from the given file URL and returns it as a ``speasy.products.variable.SpeasyVariable`` or None if the variable is not found in the file.
+
+The function should have the following signature:
+
+.. code-block:: python
+
+    def custom_reader(url: str, variable_name: str, **kwargs) -> SpeasyVariable or None:
+        pass
+
+
+Then you can use the ``speasy.core.direct_archive_downloader.get_product`` method directly to download the data on any time interval using your custom reader function.
+
+Here is an example of a custom reader function that reads SolarOrbiter LFR snapshot data that are not ISTP compliant:
+
+.. code-block:: python
+
+    import speasy as spz
+    from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
+    from speasy.core.direct_archive_downloader import get_product
+    from speasy.core.any_files import any_loc_open
+    import numpy as np
+    import pycdfpp
+    import matplotlib.pyplot as plt
+
+    def snapshots_B_custom_reader(url, variable='B', sampling = 24576.):
+        cdf=pycdfpp.load(any_loc_open(url,cache_remote_files=True).read())
+        # all snapshots for different sampling rates are stored in the same variable
+        # so we need to build an index of the snapshots with the desired sampling rate
+        indexes = cdf["SAMPLING_RATE"].values[:] == sampling
+        # build time axis from each snapshot start time and sampling rate
+        star_times = pycdfpp.to_datetime64(cdf["Epoch"].values[indexes]).astype(np.int64)
+        time = np.linspace(star_times, star_times+2048*int(1e9/sampling),num=2048).astype('datetime64[ns]').T.reshape(-1)
+        sel_values = cdf[variable].values[indexes]
+        values = np.empty((sel_values.shape[0]*sel_values.shape[2],3), sel_values.dtype)
+        values[:,0] = sel_values[:,0,:].reshape(-1)
+        values[:,1] = sel_values[:,1,:].reshape(-1)
+        values[:,2] = sel_values[:,2,:].reshape(-1)
+        if 'RTN' in variable:
+            labels = ['Bxrtn', 'Byrtn', 'Bzrtn']
+        else:
+            labels = ['Bx', 'By', 'Bz']
+        return SpeasyVariable(axes=[VariableTimeAxis(values= time)],values=DataContainer(values), columns=labels)
+
+
+    lfr_b_F2 = get_product(url_pattern="http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/data/solar-orbiter/rpw/science/l2/lfr-surv-swf-b/{Y}/solo_l2_rpw-lfr-surv-swf-b_{Y}{M:02}{D:02}_v\d+.cdf",
+                        start_time="2023-06-19T02:01:59",
+                        stop_time="2023-06-19T02:02:08",
+                        variable="B",
+                        split_rule="regular",
+                        split_frequency="daily",
+                        use_file_list=True,
+                        file_reader=snapshots_B_custom_reader,
+                        sampling = 256.
+                        )
+    plt.figure()
+    lfr_b_F2.plot()
+    plt.show()
+
+This should produce the following plot:
+
+.. image:: LFR_Snapshot.png
+    :width: 800
+    :align: center
+
+

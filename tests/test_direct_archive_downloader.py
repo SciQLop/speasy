@@ -5,7 +5,8 @@ from ddt import ddt, data, unpack
 import speasy as spz
 from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
-from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product, spilt_range, _read_cdf
+from speasy.core.direct_archive_downloader import get_product
+from speasy.core.direct_archive_downloader.direct_archive_downloader import spilt_range, _read_cdf
 
 
 def _custom_cdf_loader(url, variable, *args, **kwargs):
