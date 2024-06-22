@@ -5,7 +5,13 @@ from ddt import ddt, data, unpack
 import speasy as spz
 from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
-from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product, spilt_range
+from speasy.core.direct_archive_downloader.direct_archive_downloader import get_product, spilt_range, _read_cdf
+
+
+def _custom_cdf_loader(url, variable, *args, **kwargs):
+    v = _read_cdf(url, variable, *args, **kwargs)
+    v.meta["_custom_cdf_loader"] = True
+    return v
 
 
 @ddt
@@ -68,6 +74,15 @@ class DirectArchiveDownloader(unittest.TestCase):
             split_rule=split_rule,
             variable=variable, start_time=start_time, stop_time=stop_time, **kwargs)
         self.assertIsNotNone(data)
+
+    def test_get_product_with_custom_loader(self):
+        v = get_product(
+            url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v03_05.cdf",
+            split_rule="regular",
+            variable="ne_mgf", start_time="2018-02-01", stop_time="2018-02-02",
+            file_reader=_custom_cdf_loader)
+        self.assertIsNotNone(v)
+        self.assertTrue(v.meta.get("_custom_cdf_loader"))
 
     @data(
         "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/2018/erg_pwe_hfa_l3_1min_20180102_v03_05.cdf",
