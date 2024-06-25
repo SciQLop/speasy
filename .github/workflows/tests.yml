@@ -54,7 +54,7 @@ jobs:
         sudo apt update && sudo apt install -y texlive pandoc
         pip install pytest pytest-cov sphinx pandoc
         pip install -r docs/requirements.txt
-        pytest --cov=./ --cov-report=xml
+        pytest --cov=./ -cov-config=.coveragerc --cov-report=xml
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'

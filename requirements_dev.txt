@@ -1,5 +1,6 @@
 pandas
 pytest-runner
+pytest-cov
 appdirs
 diskcache
 requests

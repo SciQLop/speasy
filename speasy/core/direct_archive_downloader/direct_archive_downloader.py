@@ -6,6 +6,7 @@
 import re
 from datetime import timedelta, datetime
 from functools import partial
+import random
 from typing import Optional, List, Callable
 
 from dateutil.relativedelta import relativedelta
@@ -38,6 +39,18 @@ def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] =
     if url is None:
         return None
     return load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url, cache_remote_files=True)
+
+
+"""
+The rationale behind the following function is to randomize the order of execution so we minimize the requests collisions and maximize the throughput.
+"""
+
+
+def randomized_map(f, l):
+    indexed_list = list(enumerate(l))
+    random.shuffle(indexed_list)
+    result = sorted([(i, f(e)) for i, e in indexed_list], key=lambda x: x[0])
+    return [e for i, e in result]
 
 
 def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
@@ -147,10 +160,12 @@ class RandomSplitDirectDownload:
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
                     file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> Optional[SpeasyVariable]:
         v = merge(
-            list(map(partial(file_reader, variable=variable, **kwargs),
-                     RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
-                                                          start_time=start_time, stop_time=stop_time,
-                                                          fname_regex=fname_regex, date_format=date_format))))
+            randomized_map(partial(file_reader, variable=variable, **kwargs),
+                           RandomSplitDirectDownload.list_files(split_frequency=split_frequency,
+                                                                url_pattern=url_pattern,
+                                                                start_time=start_time, stop_time=stop_time,
+                                                                fname_regex=fname_regex,
+                                                                date_format=date_format)))
         if v is not None:
             return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
         return None
@@ -164,11 +179,10 @@ class RegularSplitDirectDownload:
                     file_reader: FileLoaderCallable = _read_cdf,
                     **kwargs) -> \
         Optional[SpeasyVariable]:
-        v = merge(
-            list(map(lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list),
-                                              variable=variable, **kwargs),
-                     spilt_range(split_frequency=split_frequency, start_time=start_time,
-                                 stop_time=stop_time))))
+        v = merge(randomized_map(
+            lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list), variable=variable,
+                                     **kwargs),
+            spilt_range(split_frequency=split_frequency, start_time=start_time, stop_time=stop_time)))
         if v is not None:
             return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
         return None

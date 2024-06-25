@@ -1,5 +1,5 @@
 import unittest
-
+from multiprocessing import Pool
 from ddt import ddt, data, unpack
 
 import speasy as spz
