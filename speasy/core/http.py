@@ -10,6 +10,7 @@ from urllib3 import PoolManager
 from urllib3.util.retry import Retry
 
 from speasy import __version__
+from speasy.config import core as core_config
 from .url_utils import host_and_port, apply_rewrite_rules
 
 log = logging.getLogger(__name__)
@@ -28,8 +29,7 @@ RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error co
 
 _HREF_REGEX = re.compile(' href="([A-Za-z0-9.-_]+)">')
 
-
-pool = PoolManager()
+pool = PoolManager(num_pools=core_config.urlib_num_pools.get(), maxsize=core_config.urlib_pool_size.get())
 
 
 class Response:
