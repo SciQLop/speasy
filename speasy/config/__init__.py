@@ -23,6 +23,7 @@ _config.read(SPEASY_CONFIG_FILE)
 
 _entries = {}
 
+
 def _load_dict_from_repr(value: str):
     if value:
         d = ast.literal_eval(value)
@@ -31,6 +32,7 @@ def _load_dict_from_repr(value: str):
         else:
             raise ValueError(f"Config value can't be converted to dict: {value}")
     return {}
+
 
 def show():
     """Prints config entries and current values
@@ -158,11 +160,20 @@ core = ConfigSection("CORE",
                                          "description": """A comma separated list of providers you want to disable.
 The main benefit of disabling providers is to speedup speasy loading.""",
                                          "type_ctor": lambda x: set(x.split(','))},
-                     http_rewrite_rules={"default": {"https://cdaweb.gsfc.nasa.gov/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"},
+                     http_rewrite_rules={"default": {
+                         "https://cdaweb.gsfc.nasa.gov/pub/": "http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"},
                                          "description": """A dictionary of rules to rewrite URLs before sending requests.
 The keys are the URL to match and the values are the replacement URL.
 Example: {"http://example.com": "http://localhost:8000"}""",
                                          "type_ctor": _load_dict_from_repr},
+                     urlib_pool_size={"default": 10,
+                                      "description": """Sets the maximum number of connections to keep in the pool.
+This is useful to avoid creating a new connection for each request.""",
+                                      "type_ctor": int},
+                     urlib_num_pools={"default": 10,
+                                      "description": """Sets the maximum number of pools to keep in the pool.
+This is useful to avoid creating a new pool for each request.""",
+                                      "type_ctor": int},
                      )
 
 proxy = ConfigSection("PROXY",
