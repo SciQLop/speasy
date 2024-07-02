@@ -80,19 +80,25 @@ class DataContainer(object):
             "values": self.__values.tolist() if array_to_list else self.__values.copy(),
             "meta": self.__meta.copy(),
             "name": self.__name,
-            "is_time_dependent": self.is_time_dependent
+            "is_time_dependent": self.is_time_dependent,
+            "values_type": str(self.__values.dtype)
         }
 
     @staticmethod
     def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float64) -> "DataContainer":
         try:
-            return DataContainer(values=np.array(dictionary["values"], dtype=dtype), meta=dictionary["meta"],
-                                 name=dictionary["name"],
-                                 is_time_dependent=dictionary["is_time_dependent"])
+            return DataContainer(
+                values=np.array(dictionary["values"], dtype=dictionary.get("values_type", dtype)),
+                meta=dictionary["meta"],
+                name=dictionary["name"],
+                is_time_dependent=dictionary["is_time_dependent"]
+            )
         except ValueError:
-            return DataContainer(values=np.array(dictionary["values"]), meta=dictionary["meta"],
-                                 name=dictionary["name"],
-                                 is_time_dependent=dictionary["is_time_dependent"])
+            return DataContainer(
+                values=np.array(dictionary["values"]), meta=dictionary["meta"],
+                name=dictionary["name"],
+                is_time_dependent=dictionary["is_time_dependent"]
+            )
 
     @staticmethod
     def reserve_like(other: 'DataContainer', length: int = 0) -> 'DataContainer':

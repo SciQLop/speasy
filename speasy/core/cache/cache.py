@@ -5,7 +5,7 @@ from .version import str_to_version, version_to_str, Version
 from speasy.config import cache as cache_cfg
 from contextlib import ExitStack
 
-cache_version = str_to_version("2.0")
+cache_version = str_to_version("3.0")
 
 
 class CacheItem:
