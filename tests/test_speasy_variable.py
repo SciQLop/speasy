@@ -22,9 +22,11 @@ def epoch_to_datetime64_s(epoch):
     return np.datetime64(int(epoch * 1e9), 'ns')
 
 
-def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None):
+def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., meta=None,
+                    dtype=np.float64):
     time = np.arange(start, stop, step)
     values = time * coef
+    values = values.astype(dtype)
     return SpeasyVariable(axes=[VariableTimeAxis(values=epoch_to_datetime64(time))],
                           values=DataContainer(values=values, is_time_dependent=True, meta=meta), columns=["Values"])
 
@@ -251,6 +253,13 @@ class ASpeasyVariable(unittest.TestCase):
         var3 = from_dictionary(to_dictionary(var1, array_to_list=True))
         self.assertEqual(var1, var2)
         self.assertEqual(var1, var3)
+
+    def test_from_dict_preserves_dtype(self):
+        for dtype in (np.float32, np.float64, np.int32, np.int64):
+            var = make_simple_var(1., 10., 1., 10., dtype=dtype)
+            var2 = from_dictionary(to_dictionary(var))
+            self.assertEqual(var.values.dtype, dtype)
+            self.assertEqual(var.values.dtype, var2.values.dtype)
 
     def test_from_dataframe(self):
         var1 = make_simple_var(1., 10., 1., 10.)

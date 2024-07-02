@@ -18,7 +18,7 @@ from ..cache import CacheCall
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
-MINIMUM_REQUIRED_PROXY_VERSION = Version("0.10.0")
+MINIMUM_REQUIRED_PROXY_VERSION = Version("0.11.0")
 _CURRENT_PROXY_SERVER_VERSION = None
 
 if proxy_cfg.url() == "" or proxy_cfg.enabled() == False:
