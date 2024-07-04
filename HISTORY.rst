@@ -2,6 +2,15 @@
 History
 =======
 
+1.4.0 (2024-07-04)
+------------------
+
+* Allows to pass a custom file reader to the archive module by @jeandet in https://github.com/SciQLop/speasy/pull/144
+* Adds request deduplication for cached remote file access by @jeandet in https://github.com/SciQLop/speasy/pull/145
+* Allow to configure urlib3 http pool manager by @jeandet in https://github.com/SciQLop/speasy/pull/146
+* Preserves SpeasyVariable values dtype across dictionary serialization by @jeandet in https://github.com/SciQLop/speasy/pull/147
+
+
 1.3.2 (2024-06-18)
 ------------------
 
