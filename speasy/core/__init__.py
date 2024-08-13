@@ -261,7 +261,7 @@ def datetime64_to_epoch(datetime64_array: np.array) -> np.array:
     ...                              dtype='datetime64[ns]'))
     array([0., 1.])
     """
-    return (datetime64_array.astype("int64") / 1e-9).astype("float64")
+    return (datetime64_array.astype("int64") * 1e-9).astype("float64")
 
 
 class AllowedKwargs(object):
