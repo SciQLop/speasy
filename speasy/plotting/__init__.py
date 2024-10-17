@@ -1,8 +1,8 @@
 from dataclasses import dataclass
+
 from .mpl_backend import Plot as MplPlot
 from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
-from typing import List, Dict
-import numpy as np
+from typing import List
 from enum import Enum
 from copy import copy
 
@@ -43,27 +43,31 @@ class Plot:
         return PlotType.LINE
 
     def line(self, *args, backend=None, **kwargs):
-        units = self.values.unit
-        yaxis_label = self.values.name
-        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values.values, labels=self.columns_names,
+        units = kwargs.pop("units", None) or self.values.unit
+        labels = kwargs.pop("labels", None) or self.columns_names
+        xaxis_label = kwargs.pop("xaxis_label", None) or self.axes[0].name
+        yaxis_label = kwargs.pop("yaxis_label", None) or self.values.name
+        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values.values, labels=labels,
                                                units=units,
-                                               xaxis_label=self.axes[0].name,
+                                               xaxis_label=xaxis_label,
                                                yaxis_label=yaxis_label, *args,
                                                **kwargs)
 
     def colormap(self, *args, logy=True, logz=True, backend=None, **kwargs):
-        yaxis_units = self.axes[1].unit
-        yaxis_label = self.axes[1].name
-        zaxis_units = self.values.unit
-        zaxis_label = self.values.name
+        x_axis_label = kwargs.pop("xaxis_label", None) or self.axes[0].name
+        yaxis_units = kwargs.pop("yaxis_units", None) or self.axes[1].unit
+        yaxis_label = kwargs.pop("yaxis_label", None) or self.axes[1].name
+        zaxis_units = kwargs.pop("zaxis_units", None) or self.values.unit
+        zaxis_label = kwargs.pop("zaxis_label", None) or self.values.name
         return self._get_backend(backend).colormap(x=self.axes[0].values, y=self.axes[1].values.T,
                                                    z=self.values.values.T,
-                                                   xaxis_label=self.axes[0].name,
+                                                   xaxis_label=x_axis_label,
                                                    yaxis_label=yaxis_label,
                                                    yaxis_units=yaxis_units,
                                                    zaxis_label=zaxis_label,
                                                    zaxis_units=zaxis_units,
-                                                   *args, **kwargs)
+                                                   logy=logy,
+                                                   logz=logz, *args, **kwargs)
 
     def __call__(self, *args, backend=None, **kwargs):
         if self._infer_plot_type() == PlotType.SPECTRO:
