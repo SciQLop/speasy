@@ -291,6 +291,23 @@ class ASpeasyVariable(unittest.TestCase):
         except ImportError:
             self.skipTest("Can't import matplotlib")
 
+    def test_overrides_plot_arguments(self):
+        try:
+            import matplotlib.pyplot as plt
+            var = make_simple_var(1., 10., 1., 10.)
+            ax = var.plot(xaxis_label="Time", yaxis_label="Values", units="nT", labels=["Values"])
+            self.assertIsNotNone(ax)
+            self.assertEqual(ax.get_xlabel(), "Time")
+            self.assertEqual(ax.get_ylabel(), "Values (nT)")
+
+            var = make_2d_var(1., 10., 1., 10., 128)
+            ax = var.plot(xaxis_label="Time", yaxis_label="Values", yaxis_units="nT", zaxis_label="Values",
+                          zaxis_units="nT")
+            self.assertIsNotNone(ax)
+            
+        except ImportError:
+            self.skipTest("Can't import matplotlib")
+
 
 class TestSpeasyVariableMath(unittest.TestCase):
     def setUp(self):
