@@ -26,6 +26,12 @@ src_path = os.path.abspath('..')
 sys.path.insert(0, src_path)
 os.environ['PYTHONPATH'] = src_path
 
+if os.environ.get("READTHEDOCS", "") == "True":
+    if "html_context" not in globals():
+        html_context = {}
+    html_context["READTHEDOCS"] = True
+
+
 # -- General configuration ---------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -70,7 +76,7 @@ nbsphinx_thumbnails = {
 }
 
 nbsphinx_prolog = r"""
-{% set docname = 'docs/' + env.doc2path(env.docname, base=None) %}
+{% set docname = 'docs/' + env.doc2path(env.docname, base=None) | string() %}
 {% set nb_base = 'tree' if env.config.revision else 'blob' %}
 {% set nb_where = env.config.revision if env.config.revision else 'main' %}
 
