@@ -24,7 +24,7 @@ class HttpTests(unittest.TestCase):
     @data(
         ("http://somewhere-that-does-not-exist-404.com", False),
         ("https://hephaistos.lpp.polytechnique.fr", True),
-        ("https://sciqlop.lpp.polytechnique.fr/", False),
+        ("http://sciqlop.lpp.polytechnique.fr:8080/", False),
     )
     @unpack
     def test_is_up(self, url, expected):
