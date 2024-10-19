@@ -162,7 +162,7 @@ def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     datetime.datetime(2018, 1, 2, 0, 0, tzinfo=datetime.timezone.utc)
 
     >>> make_utc_datetime(0.)
-    datetime.datetime(1970, 1, 1, 0, 0)
+    datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
 
     >>> from datetime import datetime
     >>> make_utc_datetime(datetime(2020,1,1))
@@ -196,14 +196,14 @@ def make_utc_datetime64(input_dt: AnyDateTimeType) -> np.datetime64:
     Examples
     --------
     >>> make_utc_datetime64('2018-01-02')
-    numpy.datetime64('2018-01-02T00:00:00.000000000')
+    np.datetime64('2018-01-02T00:00:00.000000000')
 
     >>> make_utc_datetime64(0.)
-    numpy.datetime64('1970-01-01T00:00:00.000000000')
+    np.datetime64('1970-01-01T00:00:00.000000')
 
     >>> from datetime import datetime
     >>> make_utc_datetime64(datetime(2020,1,1))
-    numpy.datetime64('2020-01-01T00:00:00.000000000')
+    np.datetime64('2020-01-01T00:00:00.000000000')
     """
     if type(input_dt) in (np.float64, float):
         return np.datetime64(datetime.fromtimestamp(input_dt, tz=timezone.utc))
