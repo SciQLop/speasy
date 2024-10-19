@@ -178,7 +178,7 @@ class CSA_Webservice(DataProvider):
 
         >>> import speasy as spz
         >>> spz.csa.parameter_range("C3_CP_WBD_WAVEFORM_BM2/B__C3_CP_WBD_WAVEFORM_BM2")
-        <DateTimeRange: 2001-03-07T17:45:22+00:00 -> ...>
+        <DateTimeRange: 2001-03-07T17:40:00+00:00 -> ...>
 
         """
         return self._parameter_range(parameter_id)
