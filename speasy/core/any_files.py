@@ -99,7 +99,7 @@ def _try_lock_request(url: str, timeout: int):
 
 
 def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb') -> AnyFile:
-    last_modified = http.head(url).getheader('last-modified', str(datetime.now()))
+    last_modified = http.head(url).headers.get('last-modified', str(datetime.now()))
     entry = _try_lock_request(url, timeout)
     if type(entry) is not CacheItem or last_modified != entry.version:
         resp = http.urlopen(url=url, headers=headers, timeout=timeout)

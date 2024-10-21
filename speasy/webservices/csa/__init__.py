@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Dict
 from astroquery.utils.tap.core import TapPlus
 
 from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime
-from speasy.core import cdf
+from speasy.core.codecs import get_codec, CodecInterface
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
@@ -104,13 +104,13 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-def _load_variable(archive: io.BytesIO, variable: str) -> SpeasyVariable:
+def _load_variable(archive: io.BytesIO, variable: str, cdf_codec: CodecInterface) -> SpeasyVariable:
     with tarfile.open(fileobj=archive) as tar:
         tarname = tar.getnames()
         if len(tarname):
             with TemporaryDirectory() as tmp_dir:
                 tar.extractall(tmp_dir)
-                return cdf.load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
+                return cdf_codec.load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -124,6 +124,7 @@ class CSA_Webservice(DataProvider):
     def __init__(self):
         DataProvider.__init__(self, provider_name='csa')
         self.__url = f"{self.BASE_URL}/csa-sl-tap/data"
+        self._cdf_codec = get_codec("application/x-cdf")
 
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
         if type(dataset) is str:
@@ -154,7 +155,7 @@ class CSA_Webservice(DataProvider):
                     "DELIVERY_INTERVAL": "all"
                 }),
                 headers=headers),
-            variable)
+            variable, cdf_codec=self._cdf_codec)
 
     @staticmethod
     def build_inventory(root: SpeasyIndex):

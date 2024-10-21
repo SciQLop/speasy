@@ -10,12 +10,12 @@ import numpy as np
 import speasy as spz
 from ddt import data, ddt, unpack
 from speasy.config import amda as amda_cfg
+from speasy.core.codecs import get_codec
 from speasy.inventories import flat_inventories
 from speasy.products import SpeasyVariable
 from speasy.webservices.amda import ProductType
 from speasy.webservices.amda.exceptions import MissingCredentials
 from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
-from speasy.webservices.amda.utils import load_csv
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -200,7 +200,7 @@ class AMDAModule(unittest.TestCase):
     )
     @unpack
     def test_loads_csv(self, fname, expected_parameter, unit, attributes):
-        var = load_csv(os.path.normpath(f'{_HERE_}/{fname}'), expected_parameter=expected_parameter)
+        var = get_codec('amda/csv').load_variable(expected_parameter,os.path.normpath(f'{_HERE_}/{fname}'))
         self.assertEqual(var.values.shape[0], len(var.time))
         self.assertEqual(var.values.shape[1], len(var.columns))
         self.assertGreater(len(var.time), 0)
