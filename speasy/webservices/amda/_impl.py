@@ -7,12 +7,12 @@ from . import rest_client
 from .exceptions import MissingCredentials
 from .inventory import AmdaXMLParser
 from .rest_client import auth_args
-from .utils import load_catalog, load_csv, load_timetable
+from .utils import load_catalog, load_timetable
 # General modules
 from ...config import amda as amda_cfg
 from ...core.any_files import any_loc_open
 from ...core.cache import CacheCall
-from ...core.cdf import load_variable as cdf_load_variable
+from ...core.codecs import get_codec
 from ...core.inventory.indexes import SpeasyIndex
 from ...inventories import flat_inventories
 from ...products.variable import SpeasyVariable, merge
@@ -44,6 +44,8 @@ def is_private(node):
 class AmdaImpl:
     def __init__(self, server_url: str = amda_cfg.entry_point()):
         self.server_url = server_url
+        self._csv_codec = get_codec('amda/csv')
+        self._cdf_codec = get_codec('application/x-cdf')
 
     def _update_private_lists(self, TimeTables: SpeasyIndex, Catalogs: SpeasyIndex, root: SpeasyIndex):
         if credential_are_valid():
@@ -107,9 +109,9 @@ class AmdaImpl:
         if url is not None:
             if output_format == "CDF_ISTP":
                 if url is not None:
-                    var = cdf_load_variable(variable=parameter_id, file=url)
+                    var = self._cdf_codec.load_variable(variable=parameter_id, file=url)
             else:
-                var = load_csv(url, parameter_id)
+                var = self._csv_codec.load_variable(parameter_id, url)
             if var is not None:
                 if len(var):
                     log.debug(

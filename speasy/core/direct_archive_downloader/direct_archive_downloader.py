@@ -14,7 +14,7 @@ from dateutil.relativedelta import relativedelta
 from speasy.core import make_utc_datetime, AnyDateTimeType
 from speasy.core.cache import CacheCall
 from speasy.core.any_files import list_files
-from speasy.core.cdf import load_variable
+from speasy.core.codecs import get_codec
 from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
@@ -38,14 +38,12 @@ def apply_date_format(txt: str, date: datetime) -> str:
 def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None) -> Optional[SpeasyVariable]:
     if url is None:
         return None
-    return load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url, cache_remote_files=True)
+    return get_codec('application/x-cdf').load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url, cache_remote_files=True)
 
 
 """
 The rationale behind the following function is to randomize the order of execution so we minimize the requests collisions and maximize the throughput.
 """
-
-
 def randomized_map(f, l):
     indexed_list = list(enumerate(l))
     random.shuffle(indexed_list)
@@ -190,7 +188,10 @@ class RegularSplitDirectDownload:
 
 def get_product(url_pattern: str, split_rule: str, variable: str, start_time: AnyDateTimeType,
                 stop_time: AnyDateTimeType, use_file_list: bool = False, file_reader: FileLoaderCallable = _read_cdf,
+                codec: Optional[str] = None,
                 **kwargs) -> Optional[SpeasyVariable]:
+    if codec is not None:
+        file_reader = get_codec(codec).load_variable
     if split_rule.lower() == "regular":
         return RegularSplitDirectDownload.get_product(url_pattern, variable, start_time, stop_time,
                                                       use_file_list, file_reader=file_reader, **kwargs)
