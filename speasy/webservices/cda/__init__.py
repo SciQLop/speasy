@@ -13,8 +13,8 @@ from typing import Dict, Optional, Tuple
 
 from speasy.core import AllowedKwargs, EnsureUTCDateTime
 from speasy.core import http, url_utils
-from speasy.core import cdf
 from speasy.config import cdaweb as cda_cfg
+from speasy.core.codecs import get_codec
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck)
@@ -85,6 +85,7 @@ class CDA_Webservice(DataProvider):
     def __init__(self):
         self.__url = f"{self.BASE_URL}/WS/cdasr/1"
         DataProvider.__init__(self, provider_name='cda', provider_alt_names=['cdaweb'])
+        self._cdf_codec = get_codec('application/x-cdf')
 
     def build_inventory(self, root: SpeasyIndex):
         from ._inventory_builder import build_inventory
@@ -172,7 +173,7 @@ class CDA_Webservice(DataProvider):
         resp = http.get(url, headers=headers)
         log.debug(resp.url)
         if resp.status_code == 200 and 'FileDescription' in resp.json():
-            return cdf.load_variable(file=resp.json()['FileDescription'][0]['Name'], variable=variable)
+            return self._cdf_codec.load_variable(file=resp.json()['FileDescription'][0]['Name'], variable=variable)
         elif not resp.ok:
             if resp.status_code == 404 and "No data available" in resp.json().get('Message', [""])[0]:
                 log.warning(f"Got 404 'No data available' from CDAWeb with {url}")
