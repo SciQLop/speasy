@@ -1,4 +1,4 @@
-from typing import Protocol, Optional, List, AnyStr, Mapping
+from typing import Protocol, Optional, List, AnyStr, Mapping, Union
 import io
 from speasy.products import SpeasyVariable
 
@@ -8,7 +8,8 @@ class CodecInterface(Protocol):
 
     Codecs are used to load and save data from different formats. Codecs must implement this interface to be registered in the codecs registry.
     """
-    def load_variables(self, variables: List[AnyStr], file: bytes or str or io.IOBase, cache_remote_files=True,
+
+    def load_variables(self, variables: List[AnyStr], file: Union[bytes, str, io.IOBase], cache_remote_files=True,
                        **kwargs) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
         """Load variables from a file. The file can be a local file, a remote file or a file-like object.
 
@@ -40,7 +41,8 @@ class CodecInterface(Protocol):
         """
         ...
 
-    def load_variable(self, variable: AnyStr, file: bytes or str or io.IOBase, cache_remote_files=True, **kwargs) -> Optional[SpeasyVariable]:
+    def load_variable(self, variable: AnyStr, file: Union[bytes, str, io.IOBase], cache_remote_files=True, **kwargs) -> \
+    Optional[SpeasyVariable]:
         """Load a variable from a file. The file can be a local file, a remote file or a file-like object.
 
         Parameters
