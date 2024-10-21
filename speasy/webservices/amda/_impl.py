@@ -108,8 +108,7 @@ class AmdaImpl:
         # check status until done
         if url is not None:
             if output_format == "CDF_ISTP":
-                if url is not None:
-                    var = self._cdf_codec.load_variable(variable=parameter_id, file=url)
+                var = self._cdf_codec.load_variable(variable=parameter_id, file=url)
             else:
                 var = self._csv_codec.load_variable(parameter_id, url)
             if var is not None:

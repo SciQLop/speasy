@@ -1,5 +1,8 @@
-from typing import List, AnyStr, Optional, Mapping
+from typing import List, AnyStr, Optional, Mapping, Union
 import io
+
+from pycparser.c_ast import Union
+
 from speasy.core.codecs import CodecInterface, register_codec
 import numpy as np
 import re
@@ -56,11 +59,9 @@ def _load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
     """
     with any_loc_open(filename, mode='rb') as csv:
         with tempfile.TemporaryFile() as fd:
-            # _copy_data(csv, fd)
             fd.write(csv.read())
             fd.seek(0)
-            line = fd.readline().decode()
-            meta = {}
+            fd.readline().decode()
             y = None
             y_label = None
             meta = _parse_header(fd, expected_parameter)
@@ -69,7 +70,7 @@ def _load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
             meta["UNITS"] = meta.get("PARAMETER_UNITS")
             fd.seek(0)
             data = pds.read_csv(fd, comment='#', delim_whitespace=True,
-                                header=None, names=columns).values.transpose()
+                                header=None, names=columns).to_numpy().transpose()
             time, data = epoch_to_datetime64(data[0]), data[1:].transpose()
 
         if "PARAMETER_TABLE_MIN_VALUES[1]" in meta:
@@ -101,17 +102,18 @@ def _load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
 @register_codec
 class AmdaCsv(CodecInterface):
 
-    def load_variables(self, variables: List[AnyStr], file: bytes or str or io.IOBase, cache_remote_files=True,
+    def load_variables(self, variables: List[AnyStr], file: Union[bytes, str, io.IOBase], cache_remote_files=True,
                        **kwargs) -> Mapping[
                                         AnyStr, SpeasyVariable] or None:
         if len(variables) != 1:
             raise ValueError("Only one variable can be loaded at a time")
         return {variables[0]: _load_csv(file, variables[0])}
 
-    def load_variable(self, variable: AnyStr, file: bytes or str or io.IOBase, cache_remote_files=True, **kwargs) ->Optional[SpeasyVariable]:
+    def load_variable(self, variable: AnyStr, file: Union[bytes, str, io.IOBase], cache_remote_files=True, **kwargs) -> \
+    Optional[SpeasyVariable]:
         return _load_csv(file, variable)
 
-    def save_variables(self, variables: List[SpeasyVariable], file: bytes or str or io.IOBase, **kwargs) -> bool:
+    def save_variables(self, variables: List[SpeasyVariable], file: Union[bytes, str, io.IOBase], **kwargs) -> bool:
         raise NotImplementedError("Saving variables is not supported for this codec")
 
     @property
