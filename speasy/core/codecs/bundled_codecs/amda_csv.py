@@ -1,9 +1,7 @@
 from typing import List, AnyStr, Optional, Mapping, Union
 import io
 
-from pycparser.c_ast import Union
-
-from speasy.core.codecs import CodecInterface, register_codec
+from speasy.core.codecs import CodecInterface, register_codec, Buffer
 import numpy as np
 import re
 import os
@@ -102,18 +100,19 @@ def _load_csv(filename: str, expected_parameter: str) -> SpeasyVariable:
 @register_codec
 class AmdaCsv(CodecInterface):
 
-    def load_variables(self, variables: List[AnyStr], file: Union[bytes, str, io.IOBase], cache_remote_files=True,
+    def load_variables(self, variables: List[AnyStr], file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
                        **kwargs) -> Mapping[
                                         AnyStr, SpeasyVariable] or None:
         if len(variables) != 1:
             raise ValueError("Only one variable can be loaded at a time")
         return {variables[0]: _load_csv(file, variables[0])}
 
-    def load_variable(self, variable: AnyStr, file: Union[bytes, str, io.IOBase], cache_remote_files=True, **kwargs) -> \
-    Optional[SpeasyVariable]:
+    def load_variable(self, variable: AnyStr, file: Union[Buffer, str, io.IOBase], cache_remote_files=True, **kwargs) -> \
+        Optional[SpeasyVariable]:
         return _load_csv(file, variable)
 
-    def save_variables(self, variables: List[SpeasyVariable], file: Union[bytes, str, io.IOBase], **kwargs) -> bool:
+    def save_variables(self, variables: List[SpeasyVariable], file: Optional[Union[str, io.IOBase]] = None, **kwargs) -> \
+    Union[bool, Buffer]:
         raise NotImplementedError("Saving variables is not supported for this codec")
 
     @property
