@@ -3,23 +3,17 @@
 
 """Tests for `speasy.core.codecs` package."""
 import unittest
-import numpy as np
 
 from ddt import ddt, data, unpack
 
 import os
-from speasy.core.codecs import CodecInterface, get_codec
+from speasy.core.codecs import get_codec
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 
 @ddt
 class TestCodecResolution(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     @data(
         ("unknown", False),
@@ -33,11 +27,6 @@ class TestCodecResolution(unittest.TestCase):
 
 @ddt
 class TestReadFiles(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     @data(
         (f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf", "cdf", ['Magnitude', 'BGSEc']),
@@ -82,3 +71,17 @@ class TestReadFiles(unittest.TestCase):
         for variable in variables:
             self.assertIsNotNone(data[variable])
             self.assertIsNotNone(data[variable].values)
+
+
+class TestCDFWriter(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        codec = get_codec("application/x-cdf")
+        cls.v = codec.load_variable("BGSEc", codec.save_variables(
+            [codec.load_variable("BGSEc", f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf")]))
+
+    def test_variable_is_loaded(self):
+        self.assertIsNotNone(self.v)
+
+    def test_variable_shape(self):
+        self.assertEqual(self.v.values.shape, (24, 3))
