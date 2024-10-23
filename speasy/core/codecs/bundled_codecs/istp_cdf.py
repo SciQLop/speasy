@@ -169,25 +169,37 @@ def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: Lis
 class IstpCdf(CodecInterface):
     """Codec for ISTP CDF files. This codec is a wrapper around PyISTP library. It supports some variations around the ISTP standard."""
 
-    def load_variables(self, variables: List[AnyStr], file: [Buffer, str, io.IOBase],
-                       master_cdf_url: Optional[Buffer or str or io.IOBase] = None, cache_remote_files=True, **kwargs) -> Optional[Mapping[
-        AnyStr, SpeasyVariable]]:
+    def load_variables(self,
+                       variables: List[AnyStr],
+                       file: Union[Buffer, str, io.IOBase],
+                       cache_remote_files=True,
+                       master_cdf_url: Optional[Union[Buffer, str, io.IOBase]] = None,
+                       **kwargs
+                       ) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
         kwargs["variables"] = variables
         kwargs.update((_resolve_url_type(file, prefix="", cache_remote_files=cache_remote_files),
                        _resolve_url_type(master_cdf_url, prefix="master_", cache_remote_files=cache_remote_files)))
         return _load_variables(**kwargs)
 
     @CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)
-    def load_variable(self, variable: AnyStr, file: [Buffer, str, io.IOBase], cache_remote_files=True,
-                      master_cdf_url: Optional[Buffer or str or io.IOBase] = None, **kwargs) -> \
-        Optional[SpeasyVariable]:
-        r = self.load_variables(variables=[variable], file=file, master_cdf_url=master_cdf_url,cache_remote_files=cache_remote_files, **kwargs)
+    def load_variable(self,
+                      variable: AnyStr, file: Union[Buffer, str, io.IOBase],
+                      cache_remote_files=True,
+                      master_cdf_url: Optional[Union[Buffer, str, io.IOBase]] = None,
+                      **kwargs
+                      ) -> Optional[SpeasyVariable]:
+        r = self.load_variables(variables=[variable], file=file, master_cdf_url=master_cdf_url,
+                                cache_remote_files=cache_remote_files, **kwargs)
         if r is not None:
             return r.get(variable)
         return None
 
-    def save_variables(self, variables: List[SpeasyVariable], file: Optional[Union[str, io.IOBase]] = None,
-                       compress_variables=False, **kwargs) -> Union[bool, Buffer]:
+    def save_variables(self,
+                       variables: List[SpeasyVariable],
+                       file: Optional[Union[str, io.IOBase]] = None,
+                       compress_variables=False,
+                       **kwargs
+                       ) -> Union[bool, Buffer]:
         cdf = pycdfpp.CDF()
         axes = []
         for variable in variables:

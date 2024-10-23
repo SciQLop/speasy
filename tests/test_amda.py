@@ -10,7 +10,6 @@ import numpy as np
 import speasy as spz
 from ddt import data, ddt, unpack
 from speasy.config import amda as amda_cfg
-from speasy.core.codecs import get_codec
 from speasy.inventories import flat_inventories
 from speasy.products import SpeasyVariable
 from speasy.webservices.amda import ProductType
@@ -138,7 +137,7 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertIsNotNone(r)
 
     def test_get_multidimensional_data(self):
-        for f in ("ASCII", "CDF_ISTP"):
+        for f in ("CDF_ISTP",):
             r = spz.amda.get_data("psp_spe_EvsE", "2021-07-30T00:00:00", "2021-07-30T00:05:00", output_format=f)
             self.assertIsNotNone(r)
             self.assertIsNotNone(r.values)
@@ -189,25 +188,6 @@ class AMDAModule(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    @data(
-        ("resources/amda_sample_spectro.txt", "mvn-sep1-clb", '1/cm#u2#d/sec/ster/keV', {'MISSION_ID': 'MAVEN'}),
-        ("resources/derived_param.txt", "bepi_xyz_hee", 'AU', {'MISSION_ID': 'NONE'}),
-        ("resources/derived_param2.txt", "mms1_fast_jgse", 'A/m**2',
-         {'MISSION_ID': 'NONE', 'PARAMETER_SHORT_NAME': 'j_gse', 'DATASET_ID': 'mms1-fpi-dismoms',
-          'INTERVAL_START': '2019-11-08T00:00:00.000',
-          'PARAMETER_PROCESS_INFO': "Derived parameter from expression '1.6e-10*(#sampling_under_refparam($mms1_des_ne;mms1_des_ne)+#sampling_under_refparam($mms1_dis_ni;mms1_des_ne))*0.5*(#sampling_under_refparam($mms1_dis_vgse;mms1_des_ne)-#sampling_under_refparam($mms1_des_vgse;mms1_des_ne))'"})
-    )
-    @unpack
-    def test_loads_csv(self, fname, expected_parameter, unit, attributes):
-        var = get_codec('amda/csv').load_variable(expected_parameter,os.path.normpath(f'{_HERE_}/{fname}'))
-        self.assertEqual(var.values.shape[0], len(var.time))
-        self.assertEqual(var.values.shape[1], len(var.columns))
-        self.assertGreater(len(var.time), 0)
-        self.assertEqual(var.unit, unit)
-        for k, v in attributes.items():
-            self.assertIn(k, var.meta)
-            self.assertEqual(v, var.meta.get(k))
 
     def test_load_obs_datatree(self):
         with open(os.path.normpath(f'{_HERE_}/resources/obsdatatree.xml')) as obs_xml:

@@ -104,13 +104,14 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-def _load_variable(archive: io.BytesIO, variable: str, cdf_codec: CodecInterface) -> SpeasyVariable:
+def _load_variable(archive: io.BytesIO, variable: str, cdf_codec: CodecInterface) -> Optional[SpeasyVariable]:
     with tarfile.open(fileobj=archive) as tar:
         tarname = tar.getnames()
         if len(tarname):
             with TemporaryDirectory() as tmp_dir:
                 tar.extractall(tmp_dir)
                 return cdf_codec.load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
+    return None
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):

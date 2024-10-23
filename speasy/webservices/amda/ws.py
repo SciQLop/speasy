@@ -11,7 +11,6 @@ from .inventory import to_xmlid
 from .utils import get_parameter_args
 from ...config import amda as amda_cfg
 from ...core import AllowedKwargs, make_utc_datetime, EnsureUTCDateTime
-from ...core.http import is_server_up
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
 from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                   ParameterRangeCheck)
@@ -29,11 +28,11 @@ log = logging.getLogger(__name__)
 
 
 def _amda_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
-    output_format: str = kwargs.get('output_format', 'csv')
+    output_format: str = kwargs.get('output_format', 'cdf_istp')
     if output_format.lower() == 'cdf_istp':
         return f"{prefix}/{product}-cdf_istp/{start_time}"
     else:
-        return f"{prefix}/{product}/{start_time}"
+        raise ValueError(f"Unknown output format: {output_format}")
 
 
 class ProductType(Enum):
@@ -416,7 +415,7 @@ class AMDA_Webservice(DataProvider):
         extra_http_headers: dict
             reserved for internal use
         output_format: str
-            request output format in case of success, allowed values are ASCII and CDF_ISTP
+            request output format in case of success, only CDF_ISTP is supported for now
 
         Returns
         -------

@@ -94,13 +94,13 @@ class FileAccess(unittest.TestCase):
             self.assertEqual(0, sync.value)
 
     @data(
-        f"{_HERE_}/resources/derived_param.txt",
-        f"file://{_HERE_}/resources/derived_param.txt"
+        f"{_HERE_}/resources/obsdatatree.xml",
+        f"file://{_HERE_}/resources/obsdatatree.xml"
     )
     def test_simple_local_txt_file(self, url):
         f = any_loc_open(url, mode='r')
         self.assertIsNotNone(f)
-        self.assertIn('AMDA INFO', f.read(100))
+        self.assertIn('<dataCenter name="AMDA_Webservice"', f.read(100))
 
     def test_list_remote_files(self):
         flist = list_files(url='https://hephaistos.lpp.polytechnique.fr/data/', file_regex=re.compile(r'\w+\.webm'))
@@ -121,7 +121,7 @@ class FileAccess(unittest.TestCase):
     )
     def test_list_local_files(self, url):
         flist = list_files(url=url, file_regex=re.compile(r'\w+\.(txt|xml)'))
-        self.assertGreaterEqual(len(flist), 4)
+        self.assertGreaterEqual(len(flist), 3)
         self.assertIn('obsdatatree.xml', flist)
 
 
