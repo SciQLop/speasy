@@ -100,7 +100,7 @@ class AmdaImpl:
         return root
 
     def dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                           extra_http_headers: Dict or None = None, output_format: str = 'ASCII', **kwargs) -> Optional[
+                           extra_http_headers: Dict or None = None, output_format: str = 'CDF_ISTP', **kwargs) -> Optional[
         SpeasyVariable]:
         url = rest_client.get_parameter(server_url=self.server_url, startTime=start_time.timestamp(),
                                         stopTime=stop_time.timestamp(), parameterID=parameter_id, timeFormat='UNIXTIME',
@@ -110,7 +110,7 @@ class AmdaImpl:
             if output_format == "CDF_ISTP":
                 var = self._cdf_codec.load_variable(variable=parameter_id, file=url)
             else:
-                var = self._csv_codec.load_variable(parameter_id, url)
+                raise NotImplementedError(f"Output format {output_format} not supported")
             if var is not None:
                 if len(var):
                     log.debug(
@@ -124,7 +124,7 @@ class AmdaImpl:
         return None
 
     def dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                     extra_http_headers: Dict or None = None, output_format: str = 'ASCII', restricted_period=False,
+                     extra_http_headers: Dict or None = None, output_format: str = 'CDF_ISTP', restricted_period=False,
                      **kwargs) -> Optional[
         SpeasyVariable]:
         dt = timedelta(days=amda_cfg.max_chunk_size_days())
