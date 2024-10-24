@@ -25,12 +25,16 @@ def has_amda_creds() -> bool:
 
 class UserProductsRequestsWithoutCreds(unittest.TestCase):
     def setUp(self):
+        self.user = os.environ.get(spz.config.amda.username.env_var_name)
+        self.password = os.environ.get(spz.config.amda.password.env_var_name)
         os.environ[spz.config.amda.username.env_var_name] = ""
         os.environ[spz.config.amda.password.env_var_name] = ""
 
     def tearDown(self):
-        os.environ.pop(spz.config.amda.username.env_var_name)
-        os.environ.pop(spz.config.amda.password.env_var_name)
+        if self.user is not None:
+            os.environ[spz.config.amda.username.env_var_name] = self.user
+        if self.password is not None:
+            os.environ[spz.config.amda.password.env_var_name] = self.password
 
     def test_get_user_timetables(self):
         with self.assertRaises(MissingCredentials):
