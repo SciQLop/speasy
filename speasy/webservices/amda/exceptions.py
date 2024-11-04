@@ -1,2 +1,0 @@
-class MissingCredentials(Exception):
-    pass

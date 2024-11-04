@@ -12,9 +12,9 @@ from ddt import data, ddt, unpack
 from speasy.config import amda as amda_cfg
 from speasy.inventories import flat_inventories
 from speasy.products import SpeasyVariable
-from speasy.webservices.amda import ProductType
-from speasy.webservices.amda.exceptions import MissingCredentials
-from speasy.webservices.amda.inventory import AmdaXMLParser, to_xmlid
+from speasy.core.impex import ImpexProductType
+from speasy.core.impex.exceptions import MissingCredentials
+from speasy.core.impex.parser import ImpexXMLParser, to_xmlid
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,17 +24,15 @@ def has_amda_creds() -> bool:
 
 
 class UserProductsRequestsWithoutCreds(unittest.TestCase):
-    def setUp(self):
-        self.user = os.environ.get(spz.config.amda.username.env_var_name)
-        self.password = os.environ.get(spz.config.amda.password.env_var_name)
-        os.environ[spz.config.amda.username.env_var_name] = ""
-        os.environ[spz.config.amda.password.env_var_name] = ""
+    @classmethod
+    def setUpClass(self):
+        if has_amda_creds():
+            spz.amda.reset_credentials()
 
-    def tearDown(self):
-        if self.user is not None:
-            os.environ[spz.config.amda.username.env_var_name] = self.user
-        if self.password is not None:
-            os.environ[spz.config.amda.password.env_var_name] = self.password
+    @classmethod
+    def tearDownClass(self):
+        if has_amda_creds():
+            spz.amda.reset_credentials(spz.config.amda.username(), spz.config.amda.password())
 
     def test_get_user_timetables(self):
         with self.assertRaises(MissingCredentials):
@@ -151,6 +149,7 @@ class PrivateProductsRequests(unittest.TestCase):
     def setUp(self):
         if not has_amda_creds():
             self.skipTest("Missing AMDA_Webservice credentials")
+        spz.amda.reset_credentials(spz.config.amda.username(), spz.config.amda.password())
 
     def tearDown(self):
         pass
@@ -197,7 +196,7 @@ class AMDAModule(unittest.TestCase):
         with open(os.path.normpath(f'{_HERE_}/resources/obsdatatree.xml')) as obs_xml:
             flat_inventories.amda.parameters.clear()
             flat_inventories.amda.datasets.clear()
-            root = AmdaXMLParser.parse(obs_xml.read(), is_public=True)
+            root = ImpexXMLParser.parse(obs_xml.read(), is_public=True, provider_name='amda')
             flat_inventories.amda.update(root)
             self.assertIsNotNone(root)
             # grep -o -i '<parameter ' obsdatatree.xml | wc -l
@@ -207,18 +206,18 @@ class AMDAModule(unittest.TestCase):
         spz.update_inventories()
 
     @data(
-        (spz.amda.list_catalogs()[-1], ProductType.CATALOG),
-        (to_xmlid(spz.amda.list_catalogs()[-1]), ProductType.CATALOG),
-        (spz.amda.list_timetables()[-1], ProductType.TIMETABLE),
-        (to_xmlid(spz.amda.list_timetables()[-1]), ProductType.TIMETABLE),
-        (spz.amda.list_datasets()[-1], ProductType.DATASET),
-        (to_xmlid(spz.amda.list_datasets()[-1]), ProductType.DATASET),
+        (spz.amda.list_catalogs()[-1], ImpexProductType.CATALOG),
+        (to_xmlid(spz.amda.list_catalogs()[-1]), ImpexProductType.CATALOG),
+        (spz.amda.list_timetables()[-1], ImpexProductType.TIMETABLE),
+        (to_xmlid(spz.amda.list_timetables()[-1]), ImpexProductType.TIMETABLE),
+        (spz.amda.list_datasets()[-1], ImpexProductType.DATASET),
+        (to_xmlid(spz.amda.list_datasets()[-1]), ImpexProductType.DATASET),
         (spz.inventories.data_tree.amda.Parameters.ACE.Ephemeris.ace_orb_all.ace_xyz_gse.ace_xyz_gse0,
-         ProductType.COMPONENT),
+         ImpexProductType.COMPONENT),
         (to_xmlid(spz.inventories.data_tree.amda.Parameters.ACE.Ephemeris.ace_orb_all.ace_xyz_gse.ace_xyz_gse0),
-         ProductType.COMPONENT),
-        ('this xml id is unlikely to exist', ProductType.UNKNOWN),
-        (spz.inventories.data_tree.amda.Parameters.ACE, ProductType.UNKNOWN)
+         ImpexProductType.COMPONENT),
+        ('this xml id is unlikely to exist', ImpexProductType.UNKNOWN),
+        (spz.inventories.data_tree.amda.Parameters.ACE, ImpexProductType.UNKNOWN)
     )
     @unpack
     def test_returns_product_type_from_either_id_or_index(self, index, expexted_type):

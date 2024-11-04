@@ -5,29 +5,21 @@ conversion procedures for parsing CSV and VOTable data.
 import datetime
 import logging
 import os
-import re
-import tempfile
-from typing import Dict, List
+from typing import List
 
-import numpy as np
-import pandas as pds
-from speasy.config import amda as amda_cfg
-from speasy.core import epoch_to_datetime64
 from speasy.core.any_files import any_loc_open
 from speasy.core.datetime_range import DateTimeRange
 from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
-from speasy.products.variable import (DataContainer, SpeasyVariable,
-                                      VariableAxis, VariableTimeAxis)
+
 
 log = logging.getLogger(__name__)
 
-DATA_CHUNK_SIZE = 10485760
 
-def _build_event(data, colnames: List[str]) -> Event:
+def _build_event(data, col_names: List[str]) -> Event:
     return Event(datetime.datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%S.%f"),
                  datetime.datetime.strptime(data[1], "%Y-%m-%dT%H:%M:%S.%f"),
-                 {name: value for name, value in zip(colnames[2:], data[2:])})
+                 {name: value for name, value in zip(col_names[2:], data[2:])})
 
 
 def load_timetable(filename: str) -> TimeTable:
@@ -51,8 +43,11 @@ def load_timetable(filename: str) -> TimeTable:
 
         from astropy.io.votable import parse as parse_votable
         votable = parse_votable(votable)
-        name = next(filter(lambda e: 'Name' in e,
-                           votable.description.split(';\n'))).split(':')[-1]
+        if votable.description:
+            name = next(filter(lambda e: 'Name' in e,
+                               votable.description.split(';\n'))).split(':')[-1]
+        else:
+            name = os.path.basename(filename)
         # convert astropy votable structure to SpeasyVariable
         tab = votable.get_first_table()
         # prepare data
@@ -90,30 +85,16 @@ def load_catalog(filename: str) -> Catalog:
         tab = votable.get_first_table()
         name = next(filter(lambda e: 'Name' in e,
                            votable.description.split(';\n'))).split(':')[-1]
-        colnames = list(map(lambda f: f.name, tab.fields))
+        col_names = list(map(lambda f: f.name, tab.fields))
         data = tab.array.tolist()
-        events = [_build_event(line, colnames) for line in data]
+        events = [_build_event(line, col_names) for line in data]
         var = Catalog(name=name, meta={}, events=events)
         return var
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> Dict:
-    """Get parameter arguments
+def is_public(node):
+    return node.__dict__.get('is_public', True)
 
-    Parameters
-    ----------
-    start_time: datetime
-        parameter start time
-    stop_time: datetime
-        parameter stop time
-    product: str
-        product ID (xmlid)
 
-    Returns
-    -------
-    dict
-        parameter arguments in dictionary
-    """
-    return {'path': f"amda/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}',
-            'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}
+def is_private(node):
+    return not is_public(node)
