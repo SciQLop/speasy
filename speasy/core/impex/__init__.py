@@ -276,7 +276,7 @@ class ImpexProvider(DataProvider):
         >>> import speasy as spz
         >>> imf_data = spz.amda.get_data("imf", "2019-02-24T19:20:05", "2019-02-25")
         >>> print(imf_data.columns)
-        ['imf[0]', 'imf[1]', 'imf[2]']
+        ['bx', 'by', 'bz']
         >>> print(imf_data.values.shape)
         (1050, 3)
 
@@ -373,7 +373,7 @@ class ImpexProvider(DataProvider):
         >>> import datetime
         >>> imf_data = spz.amda.get_parameter("imf", "2018-01-01", "2018-01-01T01")
         >>> print(imf_data.columns)
-        ['imf[0]', 'imf[1]', 'imf[2]']
+        ['bx', 'by', 'bz']
         >>> print(imf_data.values.shape)
         (225, 3)
 
@@ -412,7 +412,7 @@ class ImpexProvider(DataProvider):
         >>> dataset
         <Dataset: final / prelim
                 variables: ['|b|', 'b_gse', 'b_gsm']
-                time range: <DateTimeRange: 2000-01-01T00:00:11 -> 2000-01-01T23:59:55>
+                time range: <DateTimeRange: 2000-01-01T00:00:11+00:00 -> 2000-01-01T23:59:55+00:00>
 
 
         """
