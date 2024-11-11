@@ -16,8 +16,7 @@ _XML_CATALOG_PATH = f"{cda_cfg.inventory_data_path()}/all.xml"
 
 def _ensure_path_exists(path: str):
     dirname = os.path.dirname(path)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
+    os.makedirs(dirname, exist_ok=True)
 
 
 def _clean_master_cdf_folder():
