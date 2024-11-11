@@ -102,8 +102,7 @@ def mkdir(directory: str) -> None:
     directory: str
         Path to create
     """
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    os.makedirs(directory, exist_ok=True)
 
 
 def listify(obj: Any) -> List:
