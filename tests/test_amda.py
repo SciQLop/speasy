@@ -25,12 +25,12 @@ def has_amda_creds() -> bool:
 
 class UserProductsRequestsWithoutCreds(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         if has_amda_creds():
             spz.amda.reset_credentials()
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         if has_amda_creds():
             spz.amda.reset_credentials(spz.config.amda.username(), spz.config.amda.password())
 

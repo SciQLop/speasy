@@ -503,7 +503,7 @@ class ImpexProvider(DataProvider):
 
         """
         timetable_id = to_xmlid(timetable_id)
-        return self._dl_user_timetable(to_xmlid(timetable_id))
+        return self._dl_user_timetable(to_xmlid(timetable_id), **kwargs)
 
     def get_user_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
         """Get user catalog. Raises an exception if user is not authenticated.
@@ -572,7 +572,8 @@ class ImpexProvider(DataProvider):
 
         return ImpexProductType.UNKNOWN
 
-    def find_parent_dataset(self, product_id: str or DatasetIndex or ParameterIndex or ComponentIndex) -> Optional[str]:
+    def find_parent_dataset(self, product_id: Union[str, DatasetIndex, ParameterIndex,
+                                                    ComponentIndex]) -> Optional[str]:
         product_id = to_xmlid(product_id)
         product_type = self.product_type(product_id)
         if product_type is ImpexProductType.DATASET:
@@ -766,7 +767,7 @@ class ImpexProvider(DataProvider):
                                   output_format=output_format,
                                   product_variables=self._get_product_variables(product),
                                   restricted_period=restricted_period,
-                                  time_format='UNIXTIME')
+                                  time_format='UNIXTIME', **kwargs)
 
     def _dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                             extra_http_headers: Dict or None = None,
@@ -800,7 +801,7 @@ class ImpexProvider(DataProvider):
                         name = parameter_id
                     var = ImpexProvider._concatenate_variables(var, name)
                     if var is None:
-                        log.debug(f'Failed to concatenate variables')
+                        log.debug('Failed to concatenate variables')
             else:
                 log.debug(f'Failed to load file f{url}')
             return var
