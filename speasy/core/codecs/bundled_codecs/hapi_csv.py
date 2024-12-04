@@ -10,15 +10,21 @@ import json
 
 from speasy.core.codecs import CodecInterface, register_codec, Buffer
 from speasy.core.any_files import any_loc_open
-from speasy.core.url_utils import urlparse, is_local_file
 from speasy.core.cache import CacheCall
-from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
+from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
 
 log = logging.getLogger(__name__)
 
 
+def _encode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
+    if "UNITS" in meta:
+        meta["units"] = meta.pop("UNITS")
+    return meta
+
+
 def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
-    meta["UNITS"] = meta.pop("units")
+    if "units" in meta:
+        meta["UNITS"] = meta.pop("units")
     return meta
 
 
@@ -44,7 +50,7 @@ def _extract_data(file: io.IOBase) -> pds.DataFrame:
 def _load_csv(file: Union[Buffer, str, io.IOBase], **kwargs) -> Tuple[
     Optional[pds.DataFrame], Optional[Dict[str, Any]]]:
     if isinstance(file, str):
-        file = any_loc_open(file)
+        file = any_loc_open(file, cache_remote_files=False)
     if isinstance(file, io.IOBase) or hasattr(file, 'read'):
         headers = _extract_headers(file)
         data = _extract_data(file)
