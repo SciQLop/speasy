@@ -1,15 +1,15 @@
+astropy
 pandas
 appdirs
 diskcache
 requests
 urllib3>=1.26.0
 packaging
-numpy
 python_dateutil
-astropy
 pyistp>=0.5.0
 astroquery
 tqdm
 matplotlib
 PyYAML
 scipy
+numpy
