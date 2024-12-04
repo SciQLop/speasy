@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict
+from typing import Dict, Union
 from json.decoder import JSONDecodeError
 import logging
 import time
@@ -59,8 +59,9 @@ class ImpexClient:
     def reachable(self):
         try:
             return is_server_up(url=f"{self.server_url}/")
-        except:  # lgtm [py/catch-base-exception]
-            return False
+        except (Exception,):
+            pass
+        return False
 
     def is_alive(self):
         if not self.is_capable(ImpexEndpoint.ISALIVE):
@@ -120,7 +121,7 @@ class ImpexClient:
         if self.use_token:
             params['token'] = self.auth()
         return self._send_request(ImpexEndpoint.GETPARAM, params=params,
-                                  extra_http_headers=extra_http_headers, timeout=5*60)
+                                  extra_http_headers=extra_http_headers, timeout=5 * 60)
 
     def get_timetable(self, tt_id, use_credentials=False, **kwargs):
         params = {
@@ -155,7 +156,7 @@ class ImpexClient:
         return None
 
     def _send_request(self, endpoint: ImpexEndpoint, params: Dict = None, timeout: int = http.DEFAULT_TIMEOUT,
-                      extra_http_headers: Dict or None = None) -> str or bool or None:
+                      extra_http_headers: Union[Dict, None] = None) -> Union[str, bool, None]:
         if not self.is_capable(endpoint):
             raise UnavailableEndpoint()
         url = self._request_url(endpoint)

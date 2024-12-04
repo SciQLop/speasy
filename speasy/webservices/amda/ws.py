@@ -69,8 +69,9 @@ class AMDA_Webservice(ImpexProvider):
         """
         try:
             return is_server_up(url=amda_cfg.entry_point())
-        except:  # lgtm [py/catch-base-exception]
-            return False
+        except (Exception,):
+            pass
+        return False
 
     def has_time_restriction(self, product_id: str or SpeasyIndex, start_time: str or datetime,
                              stop_time: str or datetime):

@@ -15,10 +15,12 @@ from speasy.products.timetable import TimeTable
 
 log = logging.getLogger(__name__)
 
+tt_catalog_time_format = "%Y-%m-%dT%H:%M:%S.%f"
+
 
 def _build_event(data, col_names: List[str]) -> Event:
-    return Event(datetime.datetime.strptime(data[0], "%Y-%m-%dT%H:%M:%S.%f"),
-                 datetime.datetime.strptime(data[1], "%Y-%m-%dT%H:%M:%S.%f"),
+    return Event(datetime.datetime.strptime(data[0], tt_catalog_time_format),
+                 datetime.datetime.strptime(data[1], tt_catalog_time_format),
                  {name: value for name, value in zip(col_names[2:], data[2:])})
 
 
@@ -52,8 +54,8 @@ def load_timetable(filename: str) -> TimeTable:
         tab = votable.get_first_table()
         # prepare data
         data = tab.array.tolist()
-        dt_ranges = [DateTimeRange(datetime.datetime.strptime(t0, "%Y-%m-%dT%H:%M:%S.%f"),
-                                   datetime.datetime.strptime(t1, "%Y-%m-%dT%H:%M:%S.%f")) for (t0, t1) in
+        dt_ranges = [DateTimeRange(datetime.datetime.strptime(t0, tt_catalog_time_format),
+                                   datetime.datetime.strptime(t1, tt_catalog_time_format)) for (t0, t1) in
                      data]
         var = TimeTable(name=name, meta={}, dt_ranges=dt_ranges)
         return var
