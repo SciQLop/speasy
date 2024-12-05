@@ -42,8 +42,14 @@ class AnyFile(io.IOBase):
     def read(self, *args, **kwargs):
         return self._file_impl.read(*args, **kwargs)
 
+    def readline(self, *args, **kwargs):
+        return self._file_impl.readline(*args, **kwargs)
+
     def seek(self, *args, **kwargs):
         return self._file_impl.seek(*args, **kwargs)
+
+    def close(self):
+        return self._file_impl.close()
 
     @property
     def ok(self):
