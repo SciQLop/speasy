@@ -46,15 +46,18 @@ def _extract_data(file: io.IOBase) -> pds.DataFrame:
     file.seek(0)
     return pds.read_csv(file, comment='#', header=None, skiprows=0)
 
+def _parse_HAPI_csv(file: io.IOBase) -> Tuple[pds.DataFrame, Dict[str, Any]]:
+    headers = _extract_headers(file)
+    data = _extract_data(file)
+    return data, headers
 
 def _load_csv(file: Union[Buffer, str, io.IOBase], **kwargs) -> Tuple[
     Optional[pds.DataFrame], Optional[Dict[str, Any]]]:
     if isinstance(file, str):
-        file = any_loc_open(file, cache_remote_files=False)
+        with any_loc_open(file, cache_remote_files=False, mode='r') as f:
+            return _parse_HAPI_csv(f)
     if isinstance(file, io.IOBase) or hasattr(file, 'read'):
-        headers = _extract_headers(file)
-        data = _extract_data(file)
-        return data, headers
+        return _parse_HAPI_csv(file)
     return None, None
 
 

@@ -39,15 +39,14 @@ class TestHAPI_CSV_Codec(unittest.TestCase):
     @unpack
     def test_load_values(self, fname, var_name, shape, first_value, last_value):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', fname), 'r') as f:
-            v: SpeasyVariable = hapi_csv_codec.load_variable(file=f, variable=var_name, disable_cache=True)
-            self.assertEqual(v.values.shape, shape)
-            if type(first_value) is list:
-                self.assertListEqual(v.values[0].tolist(), first_value)
-                self.assertListEqual(v.values[-1].tolist(), last_value)
-            else:
-                self.assertEqual(v.values[0], first_value)
-                self.assertEqual(v.values[-1], last_value)
+        v: SpeasyVariable = hapi_csv_codec.load_variable(file=str(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')) , variable=var_name, disable_cache=True)
+        self.assertEqual(v.values.shape, shape)
+        if type(first_value) is list:
+            self.assertListEqual(v.values[0].tolist(), first_value)
+            self.assertListEqual(v.values[-1].tolist(), last_value)
+        else:
+            self.assertEqual(v.values[0], first_value)
+            self.assertEqual(v.values[-1], last_value)
 
     def test_load_multiple_variables(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
