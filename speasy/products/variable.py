@@ -414,6 +414,17 @@ class SpeasyVariable(SpeasyProduct):
             list(map(lambda ax: ax.nbytes, self.__axes))
         )
 
+    @property
+    def fill_value(self) -> Optional[Any]:
+        """SpeasyVariable fill value if found in meta-data
+
+        Returns
+        -------
+        Any
+            fill value if found in meta-data
+        """
+        return self.meta.get("FILLVAL", None)
+
     def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
         """Returns a SpeasyVariable with given or automatically found unit applied to values
 
@@ -605,8 +616,8 @@ class SpeasyVariable(SpeasyProduct):
             res = self
         else:
             res = deepcopy(self)
-        if "FILLVAL" in res.meta:
-            res.__values_container.replace_val_by_nan(res.meta["FILLVAL"])
+        if (fill_value := self.fill_value) is not None:
+            res.__values_container.replace_val_by_nan(fill_value)
         return res
 
     @staticmethod
@@ -789,3 +800,23 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
         result[pos: (pos + frag_len)] = r[0:frag_len]
         pos += frag_len
     return result
+
+
+def same_time_axis(variables: List[SpeasyVariable]) -> bool:
+    """Check if all variables have the same time axis values and length
+    If only one variable is provided, it returns True.
+
+    Parameters
+    ----------
+    variables : List[SpeasyVariable]
+        list of variables to check
+
+    Returns
+    -------
+    bool
+        True if all variables have the same time axis values and length
+    """
+    if len(variables) < 2:
+        return True
+    ref_time_axis = variables[0].time
+    return all([np.all(var.time == ref_time_axis) for var in variables[1:]])
