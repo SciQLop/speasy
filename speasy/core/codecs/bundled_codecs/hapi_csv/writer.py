@@ -1,7 +1,7 @@
 from typing import Union, Optional
 import io
 from speasy.core.codecs.codec_interface import Buffer
-from .csv_file import HapiCsvFile, HapiCsvParameter
+from .csv_file import HapiCsvFile
 import json
 import pandas as pds
 

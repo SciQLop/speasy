@@ -1,1 +1,1 @@
-from .codec import HAPI_CSV
+from .codec import HapiCsv

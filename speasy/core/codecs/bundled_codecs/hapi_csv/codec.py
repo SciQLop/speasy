@@ -1,4 +1,4 @@
-from typing import List, AnyStr, Optional, Mapping, Union, Dict, Any, Tuple
+from typing import List, AnyStr, Optional, Mapping, Union, Dict, Any
 import io
 import logging
 
@@ -92,7 +92,7 @@ def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFil
 
 
 @register_codec
-class HAPI_CSV(CodecInterface):
+class HapiCsv(CodecInterface):
     """Codec for HAPI CSV files"""
 
     def load_variables(self, variables: List[AnyStr], file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
