@@ -85,3 +85,18 @@ class TestCDFWriter(unittest.TestCase):
 
     def test_variable_shape(self):
         self.assertEqual(self.v.values.shape, (24, 3))
+
+
+@ddt
+class TestCDFWriterPtrAttributes(unittest.TestCase):
+
+    @data(
+        (f"{__HERE__}/resources/ge_h0_cpi_00000000_v01.cdf", "cdf", "SW_V"),
+    )
+    @unpack
+    def test_read_files(self, filename, codec_id, variable):
+        codec = get_codec(codec_id)
+        self.assertIsNotNone(codec)
+        data = codec.load_variable(variable, file=filename)
+        buffer = codec.save_variables([data])
+        self.assertIsNotNone(buffer)
