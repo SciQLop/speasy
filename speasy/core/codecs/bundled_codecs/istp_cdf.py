@@ -16,7 +16,7 @@ from speasy.core.cache import CacheCall
 from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 
 log = logging.getLogger(__name__)
-_PTR_rx = re.compile(r".*_PTR_\d+")
+_PTR_rx = re.compile(r".*_PTR(_\d+)?")
 
 
 def _fix_value_type(value):
