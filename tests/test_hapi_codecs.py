@@ -9,7 +9,7 @@ __HERE__ = os.path.dirname(__file__)
 
 
 @ddt
-class TestHAPI_CSV_Codec(unittest.TestCase):
+class TestHapiCsvCodec(unittest.TestCase):
 
     @data(
         ('HAPI_sample_csv.csv', 'Magnitude', 'nT', "B-field magnitude"),
@@ -51,13 +51,13 @@ class TestHAPI_CSV_Codec(unittest.TestCase):
     def test_load_multiple_variables(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv'), 'r') as f:
-            variables = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
-            vars = hapi_csv_codec.load_variables(file=f, variables=variables, disable_cache=True)
-            self.assertEqual(len(vars), len(variables))
-            for v in vars.values():
+            names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
+            variables = hapi_csv_codec.load_variables(file=f, variables=names, disable_cache=True)
+            self.assertEqual(len(variables), len(names))
+            for v in variables.values():
                 self.assertEqual(v.values.shape[0], 48)
-            self.assertListEqual(list(vars.keys()), variables)
-            self.assertEqual(vars['Magnitude'].unit, 'nT')
-            self.assertEqual(vars['Magnitude'].meta['description'], 'B-field magnitude')
-            self.assertEqual(vars['SC_pos_GSE'].unit, 'km')
-            self.assertEqual(vars['SC_pos_GSE'].meta['description'], 'ACE s/c position, 3 comp. in GSE coord.')
+            self.assertListEqual(list(variables.keys()), names)
+            self.assertEqual(variables['Magnitude'].unit, 'nT')
+            self.assertEqual(variables['Magnitude'].meta['description'], 'B-field magnitude')
+            self.assertEqual(variables['SC_pos_GSE'].unit, 'km')
+            self.assertEqual(variables['SC_pos_GSE'].meta['description'], 'ACE s/c position, 3 comp. in GSE coord.')
