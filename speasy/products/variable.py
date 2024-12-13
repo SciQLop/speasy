@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 import astropy.table
 import astropy.units
@@ -11,6 +11,7 @@ from speasy.core.data_containers import (
     VariableAxis,
     VariableTimeAxis,
     _to_index,
+    DataContainerProtocol
 )
 from speasy.plotting import Plot
 
@@ -46,6 +47,10 @@ class SpeasyVariable(SpeasyProduct):
         SpeasyVariable name
     nbytes: int
         memory usage in bytes
+    fill_value: Any
+        fill value if found in meta-data
+    valid_range: Tuple[Any, Any]
+        valid range if found in meta-data
 
     Methods
     -------
@@ -425,6 +430,17 @@ class SpeasyVariable(SpeasyProduct):
         """
         return self.meta.get("FILLVAL", None)
 
+    @property
+    def valid_range(self) -> Optional[Tuple[Any, Any]]:
+        """SpeasyVariable valid range if found in meta-data
+
+        Returns
+        -------
+        Tuple[Any, Any]
+            valid range if found in meta-data
+        """
+        return self.meta.get("VALIDMIN", None), self.meta.get("VALIDMAX", None)
+
     def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
         """Returns a SpeasyVariable with given or automatically found unit applied to values
 
@@ -439,6 +455,10 @@ class SpeasyVariable(SpeasyProduct):
         -------
         SpeasyVariable
             SpeasyVariable identic to source one with values converted to astropy.units.Quantity according to given or found unit
+
+        Notes
+        -----
+        This interface assume that there is only one unit for the whole variable since all stored in the same array
 
         See Also
         --------
@@ -611,6 +631,11 @@ class SpeasyVariable(SpeasyProduct):
         -------
         SpeasyVariable
             source variable or copy with fill values replaced by NaN
+
+        See Also
+        --------
+        clamp_with_nan: replaces values outside valid range by NaN
+        sanitized: removes fill and invalid values
         """
         if inplace:
             res = self
@@ -618,6 +643,94 @@ class SpeasyVariable(SpeasyProduct):
             res = deepcopy(self)
         if (fill_value := self.fill_value) is not None:
             res.__values_container.replace_val_by_nan(fill_value)
+        return res
+
+    def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None) -> "SpeasyVariable":
+        """Replaces values outside valid range by NaN, valid range is taken from metadata fields "VALIDMIN" and "VALIDMAX"
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Modifies source variable when true else modifies and returns a copy, by default False
+        valid_min : Float, optional
+            Optional minimum valid value, takes metadata field "VALIDMIN" if not provided, by default None
+        valid_max : Float, optional
+            Optional maximum valid value, takes metadata field "VALIDMAX" if not provided, by default None
+
+        Returns
+        -------
+        SpeasyVariable
+            source variable or copy with values clamped by NaN
+
+        See Also
+        --------
+        replace_fillval_by_nan: replaces fill values by NaN
+        sanitized: removes fill and invalid values
+        """
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+        valid_min = valid_min or self.valid_range[0]
+        valid_max = valid_max or self.valid_range[1]
+        res.__values_container.clamp_by_nan((valid_min, valid_max))
+        return res
+
+    def sanitized(self, drop_fill_values=True, drop_invalid_values=True, drop_nan=True, inplace=False, valid_min=None,
+                  valid_max=None) -> "SpeasyVariable":
+        """Returns a copy of the variable with fill values and invalid values removed
+
+        Parameters
+        ----------
+        drop_fill_values : bool, optional
+            Remove fill values, by default True
+        drop_invalid_values : bool, optional
+            Remove values outside valid range, by default True
+        drop_nan : bool, optional
+            Remove NaN values, by default True
+        inplace : bool, optional
+            Modifies source variable when true else modifies and returns a copy, by default False
+        valid_min : Float, optional
+            Minimum valid value, takes metadata field "VALIDMIN" if not provided, by default None
+        valid_max : Float, optional
+            Maximum valid value, takes metadata field "VALIDMAX" if not provided, by default None
+
+        Returns
+        -------
+        SpeasyVariable
+            source variable or copy with fill and invalid values removed
+
+        See Also
+        --------
+        replace_fillval_by_nan: replaces fill values by NaN
+        clamp_with_nan: replaces values outside valid range by NaN
+        """
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+
+        indexes_without_nan = None
+        indexes_without_fill = None
+        indexes_without_invalid = None
+        if drop_nan:
+            indexes_without_nan = res.values != np.nan
+        if drop_fill_values and res.fill_value is not None:
+            indexes_without_fill = res.values != res.fill_value
+        if drop_invalid_values:
+            valid_min = valid_min or res.valid_range[0]
+            valid_max = valid_max or res.valid_range[1]
+            if valid_min is not None and valid_max is not None:
+                indexes_without_invalid = np.logical_and(
+                    res.values >= valid_min, res.values <= valid_max
+                )
+        keep_indexes = np.where(np.logical_and(
+            indexes_without_nan, indexes_without_fill, indexes_without_invalid
+        ))
+        res.__values_container.select(keep_indexes, inplace=True)
+        for axis in res.__axes:
+            if axis.is_time_dependent:
+                axis.select(keep_indexes[0], inplace=True)
         return res
 
     @staticmethod

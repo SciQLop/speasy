@@ -304,10 +304,35 @@ class ASpeasyVariable(unittest.TestCase):
             ax = var.plot(xaxis_label="Time", yaxis_label="Values", yaxis_units="nT", zaxis_label="Values",
                           zaxis_units="nT")
             self.assertIsNotNone(ax)
-            
+
         except ImportError:
             self.skipTest("Can't import matplotlib")
 
+    def test_replaces_fill_value(self):
+        var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50.})
+        self.assertEqual(var.fill_value, 50.)
+        cleaned_copy = var.replace_fillval_by_nan(inplace=False)
+        self.assertTrue(np.isnan(cleaned_copy.values[4,0]))
+        self.assertFalse(np.isnan(var.values[4,0]))
+        var.replace_fillval_by_nan(inplace=True)
+        self.assertTrue(np.isnan(var.values[4,0]))
+
+    def test_clamps(self):
+        var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.})
+        clamped_copy = var.clamp_with_nan()
+        self.assertTrue(np.all(np.isnan(clamped_copy.values[0:1, 0])))
+        self.assertTrue(np.all(np.isnan(clamped_copy.values[8:10, 0])))
+        self.assertFalse(np.any(np.isnan(clamped_copy.values[1:8, 0])))
+        var.clamp_with_nan(inplace=True)
+        self.assertTrue(np.all(np.isnan(var.values[0:1, 0])))
+        self.assertTrue(np.all(np.isnan(var.values[8:10, 0])))
+        self.assertFalse(np.any(np.isnan(var.values[1:8, 0])))
+
+    def test_cleans(self):
+        var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50., "VALIDMIN": 20., "VALIDMAX": 80.})
+        cleaned_copy = var.sanitized()
+        self.assertFalse(np.any(np.isnan(cleaned_copy.values)))
+        self.assertTrue(len(cleaned_copy) < len(var))
 
 class TestSpeasyVariableMath(unittest.TestCase):
     def setUp(self):
@@ -419,6 +444,7 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
     def test_scalar_result(self, func):
         for v in (self.var, self.vector, self.spectro, self.var3d):
             self.assertIsInstance(func(v), float)
+
 
 
 class SpeasyVariableCompare(unittest.TestCase):
