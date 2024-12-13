@@ -1,6 +1,7 @@
+from copy import deepcopy
 from datetime import datetime
 from sys import getsizeof
-from typing import Dict, List
+from typing import Dict, List, Tuple, Protocol, TypeVar
 
 import astropy.units
 import numpy as np
@@ -19,7 +20,65 @@ def _to_index(key, time):
         return np.searchsorted(time, key, side='left')
 
 
-class DataContainer(object):
+T = TypeVar("T")  # keep until we drop python 3.11 support
+
+
+class DataContainerProtocol(Protocol[T]):
+    def select(self, indices, inplace=False) -> T:
+        ...
+
+    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+        ...
+
+    @staticmethod
+    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float64) -> T:
+        ...
+
+    @staticmethod
+    def reserve_like(other: T, length: int = 0) -> T:
+        ...
+
+    def __getitem__(self, key)->T:
+        ...
+
+    def __setitem__(self, k, v: T):
+        ...
+
+    def __len__(self)->int:
+        ...
+
+    def view(self, index_range: slice) -> T:
+        ...
+
+    def __eq__(self, other: T) -> bool:
+        ...
+
+    @property
+    def unit(self) -> str:
+        ...
+
+    @property
+    def is_time_dependent(self) -> bool:
+        ...
+
+    @property
+    def values(self) -> np.array:
+        ...
+
+    @property
+    def shape(self):
+        ...
+
+    @property
+    def name(self) -> str:
+        ...
+
+    @property
+    def nbytes(self) -> int:
+        ...
+
+
+class DataContainer(DataContainerProtocol['DataContainer']):
     __slots__ = ['__values', '__name', '__meta', '__is_time_dependent']
 
     def __init__(self, values: np.array, meta: Dict = None, name: str = None, is_time_dependent: bool = True):
@@ -33,6 +92,13 @@ class DataContainer(object):
     def reshape(self, new_shape) -> "DataContainer":
         self.__values = self.__values.reshape(new_shape)
         return self
+
+    def select(self, indices, inplace=False) -> "DataContainer":
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+        res.__values = res.__values[indices]
 
     @property
     def is_time_dependent(self) -> bool:
@@ -147,9 +213,15 @@ class DataContainer(object):
             np.array_equal(self.__values, other.__values, equal_nan=True)
 
     def replace_val_by_nan(self, val):
-        if self.__values.dtype != np.float64:
-            self.__values = self.__values.astype(np.float64)
+        if not np.issubdtype(self.__values.dtype, np.floating):
+            raise ValueError("DataContainer must be a floating type to replace val by nan")
         self.__values[self.__values == val] = np.nan
+
+    def clamp_by_nan(self, valid_range: Tuple[float, float]):
+        if not np.issubdtype(self.__values.dtype, np.float64):
+            raise ValueError("DataContainer must be a floating type to clamp by nan")
+        self.__values[self.__values < valid_range[0]] = np.nan
+        self.__values[self.__values > valid_range[1]] = np.nan
 
     @property
     def meta(self):
@@ -160,7 +232,7 @@ class DataContainer(object):
         return self.__name
 
 
-class VariableAxis(object):
+class VariableAxis(DataContainerProtocol['VariableAxis']):
     __slots__ = ['__data']
 
     def __init__(self, values: np.array = None, meta: Dict = None, name: str = "", is_time_dependent: bool = False,
@@ -175,6 +247,14 @@ class VariableAxis(object):
         d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableAxis"})
         return d
+
+    def select(self, indices, inplace=False) -> "VariableAxis":
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+        res.__data.select(indices, inplace=True)
+        return res
 
     @staticmethod
     def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time=None) -> "VariableAxis":
@@ -227,7 +307,7 @@ class VariableAxis(object):
         return self.__data.nbytes
 
 
-class VariableTimeAxis(object):
+class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
     __slots__ = ['__data']
 
     def __init__(self, values: np.array = None, meta: Dict = None, data: DataContainer = None):
@@ -244,6 +324,14 @@ class VariableTimeAxis(object):
         d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableTimeAxis"})
         return d
+
+    def select(self, indices, inplace=False) -> "VariableTimeAxis":
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+        res.__data.select(indices, inplace=True)
+        return res
 
     @property
     def shape(self):
