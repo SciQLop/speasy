@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple, Union
 
 import astropy.table
 import astropy.units
@@ -11,6 +11,7 @@ from speasy.core.data_containers import (
     VariableAxis,
     VariableTimeAxis,
     _to_index,
+    DataContainerProtocol
 )
 from speasy.plotting import Plot
 
@@ -46,6 +47,10 @@ class SpeasyVariable(SpeasyProduct):
         SpeasyVariable name
     nbytes: int
         memory usage in bytes
+    fill_value: Any
+        fill value if found in meta-data
+    valid_range: Tuple[Any, Any]
+        valid range if found in meta-data
 
     Methods
     -------
@@ -103,7 +108,7 @@ class SpeasyVariable(SpeasyProduct):
         self.__values_container = values
         self.__axes = axes
 
-    def view(self, index_range: slice) -> "SpeasyVariable":
+    def view(self, index_range: Union[slice, np.ndarray]) -> "SpeasyVariable":
         """Return view of the current variable within the desired :data:`index_range`.
 
         Parameters
@@ -116,6 +121,9 @@ class SpeasyVariable(SpeasyProduct):
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
+        if type(index_range) is np.ndarray:
+            if index_range.dtype == bool:
+                index_range = np.nonzero(index_range)[0]
         return SpeasyVariable(
             axes=[
                 axis[index_range] if axis.is_time_dependent else axis
@@ -164,24 +172,41 @@ class SpeasyVariable(SpeasyProduct):
             columns=columns,
         )
 
-    def __eq__(self, other: "SpeasyVariable") -> bool:
-        """Check if this variable equals another.
+    def __eq__(self, other: Union["SpeasyVariable", float, int]) -> bool:
+        """Check if this variable equals another. Or apply the numpy array comparison if other is a scalar.
 
         Parameters
         ----------
-        other: speasy.common.variable.SpeasyVariable
-            another SpeasyVariable object to compare with
+        other: speasy.common.variable.SpeasyVariable, float, int
+            SpeasyVariable or scalar to compare with
 
         Returns
         -------
-        bool:
-            True if all attributes are equal
+        bool, np.ndarray
+            True if both variables are equal or an array with the element wise comparison between values and the given scalar
         """
-        return (
-            type(other) is SpeasyVariable
-            and self.__axes == other.__axes
-            and self.__values_container == other.__values_container
-        )
+        if type(other) is SpeasyVariable:
+            return self.__axes == other.__axes and self.__values_container == other.__values_container
+        else:
+            return self.values.__eq__(other)
+
+    def __ne__(self, other: Union["SpeasyVariable", float, int]) -> bool:
+        if type(other) is SpeasyVariable:
+            return not other == self
+        else:
+            return self.values.__ne__(other)
+
+    def __le__(self, other):
+        return self.values.__le__(other)
+
+    def __lt__(self, other):
+        return self.values.__lt__(other)
+
+    def __ge__(self, other):
+        return self.values.__ge__(other)
+
+    def __gt__(self, other):
+        return self.values.__gt__(other)
 
     def __len__(self):
         return len(self.__axes[0])
@@ -196,15 +221,19 @@ class SpeasyVariable(SpeasyProduct):
             return self.filter_columns(key)
         if type(key) is str and key in self.__columns:
             return self.filter_columns([key])
+        if type(key) is np.ndarray:
+            return self.view(key)
         raise ValueError(
             f"No idea how to slice SpeasyVariable with given value: {key}")
 
-    def __setitem__(self, k, v: "SpeasyVariable"):
-        assert type(v) is SpeasyVariable
-        self.__values_container[k] = v.__values_container
-        for axis, src_axis in zip(self.__axes, v.__axes):
-            if axis.is_time_dependent:
-                axis[k] = src_axis
+    def __setitem__(self, k, v: Union["SpeasyVariable", float, int]):
+        if type(v) is SpeasyVariable:
+            self.__values_container[k] = v.__values_container
+            for axis, src_axis in zip(self.__axes, v.__axes):
+                if axis.is_time_dependent:
+                    axis[k] = src_axis
+        else:
+            self.__values_container[k] = v
 
     def __mul__(self, other):
         return np.multiply(self, other)
@@ -414,6 +443,28 @@ class SpeasyVariable(SpeasyProduct):
             list(map(lambda ax: ax.nbytes, self.__axes))
         )
 
+    @property
+    def fill_value(self) -> Optional[Any]:
+        """SpeasyVariable fill value if found in meta-data
+
+        Returns
+        -------
+        Any
+            fill value if found in meta-data
+        """
+        return self.meta.get("FILLVAL", None)
+
+    @property
+    def valid_range(self) -> Optional[Tuple[Any, Any]]:
+        """SpeasyVariable valid range if found in meta-data
+
+        Returns
+        -------
+        Tuple[Any, Any]
+            valid range if found in meta-data
+        """
+        return self.meta.get("VALIDMIN", None), self.meta.get("VALIDMAX", None)
+
     def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
         """Returns a SpeasyVariable with given or automatically found unit applied to values
 
@@ -428,6 +479,10 @@ class SpeasyVariable(SpeasyProduct):
         -------
         SpeasyVariable
             SpeasyVariable identic to source one with values converted to astropy.units.Quantity according to given or found unit
+
+        Notes
+        -----
+        This interface assume that there is only one unit for the whole variable since all stored in the same array
 
         See Also
         --------
@@ -600,14 +655,104 @@ class SpeasyVariable(SpeasyProduct):
         -------
         SpeasyVariable
             source variable or copy with fill values replaced by NaN
+
+        See Also
+        --------
+        clamp_with_nan: replaces values outside valid range by NaN
+        sanitized: removes fill and invalid values
         """
         if inplace:
             res = self
         else:
             res = deepcopy(self)
-        if "FILLVAL" in res.meta:
-            res.__values_container.replace_val_by_nan(res.meta["FILLVAL"])
+        if (fill_value := self.fill_value) is not None:
+            res[res == fill_value] = np.nan
         return res
+
+    def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None) -> "SpeasyVariable":
+        """Replaces values outside valid range by NaN, valid range is taken from metadata fields "VALIDMIN" and "VALIDMAX"
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            Modifies source variable when true else modifies and returns a copy, by default False
+        valid_min : Float, optional
+            Optional minimum valid value, takes metadata field "VALIDMIN" if not provided, by default None
+        valid_max : Float, optional
+            Optional maximum valid value, takes metadata field "VALIDMAX" if not provided, by default None
+
+        Returns
+        -------
+        SpeasyVariable
+            source variable or copy with values clamped by NaN
+
+        See Also
+        --------
+        replace_fillval_by_nan: replaces fill values by NaN
+        sanitized: removes fill and invalid values
+        """
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+        valid_min = valid_min or self.valid_range[0]
+        valid_max = valid_max or self.valid_range[1]
+        res[np.logical_or(res > valid_max, res < valid_min)] = np.nan
+        return res
+
+    def sanitized(self, drop_fill_values=True, drop_out_of_range_values=True, drop_nan_and_inf=True, inplace=False,
+                  valid_min=None, valid_max=None) -> "SpeasyVariable":
+        """Returns a copy of the variable with fill values and invalid values removed
+
+        Parameters
+        ----------
+        drop_fill_values : bool, optional
+            Remove fill values, by default True
+        drop_out_of_range_values : bool, optional
+            Remove values outside valid range, by default True
+        drop_nan_and_inf : bool, optional
+            Remove NaN and Infinite values, by default True
+        inplace : bool, optional
+            Modifies source variable when true else modifies and returns a copy, by default False
+        valid_min : Float, optional
+            Minimum valid value, takes metadata field "VALIDMIN" if not provided, by default None
+        valid_max : Float, optional
+            Maximum valid value, takes metadata field "VALIDMAX" if not provided, by default None
+
+        Returns
+        -------
+        SpeasyVariable
+            source variable or copy with fill and invalid values removed
+
+        See Also
+        --------
+        replace_fillval_by_nan: replaces fill values by NaN
+        clamp_with_nan: replaces values outside valid range by NaN
+        """
+        if inplace:
+            res = self
+        else:
+            res = deepcopy(self)
+
+        indexes_without_nan = None
+        indexes_without_fill = None
+        indexes_without_invalid = None
+        if drop_nan_and_inf:
+            indexes_without_nan = np.isfinite(res)
+        if drop_fill_values and res.fill_value is not None:
+            indexes_without_fill = res != res.fill_value
+        if drop_out_of_range_values:
+            valid_min = valid_min or res.valid_range[0]
+            valid_max = valid_max or res.valid_range[1]
+            if valid_min is not None and valid_max is not None:
+                indexes_without_invalid = np.logical_and(
+                    res >= valid_min, res <= valid_max
+                )
+        return res[
+            np.logical_and(
+                indexes_without_nan, indexes_without_fill, indexes_without_invalid
+            )
+        ]
 
     @staticmethod
     def reserve_like(other: "SpeasyVariable", length: int = 0) -> "SpeasyVariable":
@@ -789,3 +934,23 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
         result[pos: (pos + frag_len)] = r[0:frag_len]
         pos += frag_len
     return result
+
+
+def same_time_axis(variables: List[SpeasyVariable]) -> bool:
+    """Check if all variables have the same time axis values and length
+    If only one variable is provided, it returns True.
+
+    Parameters
+    ----------
+    variables : List[SpeasyVariable]
+        list of variables to check
+
+    Returns
+    -------
+    bool
+        True if all variables have the same time axis values and length
+    """
+    if len(variables) < 2:
+        return True
+    ref_time_axis = variables[0].time
+    return all([np.all(var.time == ref_time_axis) for var in variables[1:]])
