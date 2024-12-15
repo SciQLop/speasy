@@ -1,7 +1,7 @@
 from copy import deepcopy
 from datetime import datetime
 from sys import getsizeof
-from typing import Dict, List, Tuple, Protocol, TypeVar, Union
+from typing import Dict, List, Protocol, TypeVar, Union
 
 import astropy.units
 import numpy as np
@@ -31,7 +31,7 @@ class DataContainerProtocol(Protocol[T]):
         ...
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float64) -> T:
+    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], dtype=np.float64) -> T:
         ...
 
     @staticmethod
@@ -151,7 +151,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         }
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], dtype=np.float64) -> "DataContainer":
+    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], dtype=np.float64) -> "DataContainer":
         try:
             return DataContainer(
                 values=np.array(dictionary["values"], dtype=dictionary.get("values_type", dtype)),
@@ -251,7 +251,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return res
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time=None) -> "VariableAxis":
+    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], time=None) -> "VariableAxis":
         assert dictionary['type'] == "VariableAxis"
         return VariableAxis(data=DataContainer.from_dictionary(dictionary))
 
@@ -336,7 +336,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
         return self.__data.shape
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, str or Dict[str, str] or List], time=None) -> "VariableTimeAxis":
+    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], time=None) -> "VariableTimeAxis":
         assert dictionary['type'] == "VariableTimeAxis"
         return VariableTimeAxis(data=DataContainer.from_dictionary(dictionary, dtype=np.dtype('datetime64[ns]')))
 

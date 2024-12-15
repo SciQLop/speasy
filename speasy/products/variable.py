@@ -122,8 +122,8 @@ class SpeasyVariable(SpeasyProduct):
             view of the variable on the given range
         """
         if type(index_range) is np.ndarray:
-            if np.isdtype(index_range.dtype, np.bool):
-                index_range = np.where(index_range)[0]
+            if index_range.dtype == bool:
+                index_range = np.nonzero(index_range)[0]
         return SpeasyVariable(
             axes=[
                 axis[index_range] if axis.is_time_dependent else axis
@@ -189,6 +189,12 @@ class SpeasyVariable(SpeasyProduct):
             return self.__axes == other.__axes and self.__values_container == other.__values_container
         else:
             return self.values.__eq__(other)
+
+    def __ne__(self, other: Union["SpeasyVariable", float, int]) -> bool:
+        if type(other) is SpeasyVariable:
+            return not other == self
+        else:
+            return self.values.__ne__(other)
 
     def __le__(self, other):
         return self.values.__le__(other)
@@ -694,18 +700,18 @@ class SpeasyVariable(SpeasyProduct):
         res[np.logical_or(res > valid_max, res < valid_min)] = np.nan
         return res
 
-    def sanitized(self, drop_fill_values=True, drop_invalid_values=True, drop_nan=True, inplace=False, valid_min=None,
-                  valid_max=None) -> "SpeasyVariable":
+    def sanitized(self, drop_fill_values=True, drop_out_of_range_values=True, drop_nan_and_inf=True, inplace=False,
+                  valid_min=None, valid_max=None) -> "SpeasyVariable":
         """Returns a copy of the variable with fill values and invalid values removed
 
         Parameters
         ----------
         drop_fill_values : bool, optional
             Remove fill values, by default True
-        drop_invalid_values : bool, optional
+        drop_out_of_range_values : bool, optional
             Remove values outside valid range, by default True
-        drop_nan : bool, optional
-            Remove NaN values, by default True
+        drop_nan_and_inf : bool, optional
+            Remove NaN and Infinite values, by default True
         inplace : bool, optional
             Modifies source variable when true else modifies and returns a copy, by default False
         valid_min : Float, optional
@@ -731,11 +737,11 @@ class SpeasyVariable(SpeasyProduct):
         indexes_without_nan = None
         indexes_without_fill = None
         indexes_without_invalid = None
-        if drop_nan:
-            indexes_without_nan = res != np.nan
+        if drop_nan_and_inf:
+            indexes_without_nan = np.isfinite(res)
         if drop_fill_values and res.fill_value is not None:
             indexes_without_fill = res != res.fill_value
-        if drop_invalid_values:
+        if drop_out_of_range_values:
             valid_min = valid_min or res.valid_range[0]
             valid_max = valid_max or res.valid_range[1]
             if valid_min is not None and valid_max is not None:
