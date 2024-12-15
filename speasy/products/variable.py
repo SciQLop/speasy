@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Union
 
 import astropy.table
 import astropy.units
@@ -108,7 +108,7 @@ class SpeasyVariable(SpeasyProduct):
         self.__values_container = values
         self.__axes = axes
 
-    def view(self, index_range: slice) -> "SpeasyVariable":
+    def view(self, index_range: Union[slice, np.ndarray]) -> "SpeasyVariable":
         """Return view of the current variable within the desired :data:`index_range`.
 
         Parameters
@@ -121,6 +121,9 @@ class SpeasyVariable(SpeasyProduct):
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
+        if type(index_range) is np.ndarray:
+            if np.isdtype(index_range.dtype, np.bool):
+                index_range = np.where(index_range)[0]
         return SpeasyVariable(
             axes=[
                 axis[index_range] if axis.is_time_dependent else axis
@@ -169,24 +172,35 @@ class SpeasyVariable(SpeasyProduct):
             columns=columns,
         )
 
-    def __eq__(self, other: "SpeasyVariable") -> bool:
-        """Check if this variable equals another.
+    def __eq__(self, other: Union["SpeasyVariable", float, int]) -> bool:
+        """Check if this variable equals another. Or apply the numpy array comparison if other is a scalar.
 
         Parameters
         ----------
-        other: speasy.common.variable.SpeasyVariable
-            another SpeasyVariable object to compare with
+        other: speasy.common.variable.SpeasyVariable, float, int
+            SpeasyVariable or scalar to compare with
 
         Returns
         -------
-        bool:
-            True if all attributes are equal
+        bool, np.ndarray
+            True if both variables are equal or an array with the element wise comparison between values and the given scalar
         """
-        return (
-            type(other) is SpeasyVariable
-            and self.__axes == other.__axes
-            and self.__values_container == other.__values_container
-        )
+        if type(other) is SpeasyVariable:
+            return self.__axes == other.__axes and self.__values_container == other.__values_container
+        else:
+            return self.values.__eq__(other)
+
+    def __le__(self, other):
+        return self.values.__le__(other)
+
+    def __lt__(self, other):
+        return self.values.__lt__(other)
+
+    def __ge__(self, other):
+        return self.values.__ge__(other)
+
+    def __gt__(self, other):
+        return self.values.__gt__(other)
 
     def __len__(self):
         return len(self.__axes[0])
@@ -201,15 +215,19 @@ class SpeasyVariable(SpeasyProduct):
             return self.filter_columns(key)
         if type(key) is str and key in self.__columns:
             return self.filter_columns([key])
+        if type(key) is np.ndarray:
+            return self.view(key)
         raise ValueError(
             f"No idea how to slice SpeasyVariable with given value: {key}")
 
-    def __setitem__(self, k, v: "SpeasyVariable"):
-        assert type(v) is SpeasyVariable
-        self.__values_container[k] = v.__values_container
-        for axis, src_axis in zip(self.__axes, v.__axes):
-            if axis.is_time_dependent:
-                axis[k] = src_axis
+    def __setitem__(self, k, v: Union["SpeasyVariable", float, int]):
+        if type(v) is SpeasyVariable:
+            self.__values_container[k] = v.__values_container
+            for axis, src_axis in zip(self.__axes, v.__axes):
+                if axis.is_time_dependent:
+                    axis[k] = src_axis
+        else:
+            self.__values_container[k] = v
 
     def __mul__(self, other):
         return np.multiply(self, other)
@@ -642,7 +660,7 @@ class SpeasyVariable(SpeasyProduct):
         else:
             res = deepcopy(self)
         if (fill_value := self.fill_value) is not None:
-            res.__values_container.replace_val_by_nan(fill_value)
+            res[res == fill_value] = np.nan
         return res
 
     def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None) -> "SpeasyVariable":
@@ -673,7 +691,7 @@ class SpeasyVariable(SpeasyProduct):
             res = deepcopy(self)
         valid_min = valid_min or self.valid_range[0]
         valid_max = valid_max or self.valid_range[1]
-        res.__values_container.clamp_by_nan((valid_min, valid_max))
+        res[np.logical_or(res > valid_max, res < valid_min)] = np.nan
         return res
 
     def sanitized(self, drop_fill_values=True, drop_invalid_values=True, drop_nan=True, inplace=False, valid_min=None,
@@ -714,24 +732,21 @@ class SpeasyVariable(SpeasyProduct):
         indexes_without_fill = None
         indexes_without_invalid = None
         if drop_nan:
-            indexes_without_nan = res.values != np.nan
+            indexes_without_nan = res != np.nan
         if drop_fill_values and res.fill_value is not None:
-            indexes_without_fill = res.values != res.fill_value
+            indexes_without_fill = res != res.fill_value
         if drop_invalid_values:
             valid_min = valid_min or res.valid_range[0]
             valid_max = valid_max or res.valid_range[1]
             if valid_min is not None and valid_max is not None:
                 indexes_without_invalid = np.logical_and(
-                    res.values >= valid_min, res.values <= valid_max
+                    res >= valid_min, res <= valid_max
                 )
-        keep_indexes = np.where(np.logical_and(
-            indexes_without_nan, indexes_without_fill, indexes_without_invalid
-        ))
-        res.__values_container.select(keep_indexes, inplace=True)
-        for axis in res.__axes:
-            if axis.is_time_dependent:
-                axis.select(keep_indexes[0], inplace=True)
-        return res
+        return res[
+            np.logical_and(
+                indexes_without_nan, indexes_without_fill, indexes_without_invalid
+            )
+        ]
 
     @staticmethod
     def reserve_like(other: "SpeasyVariable", length: int = 0) -> "SpeasyVariable":

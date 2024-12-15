@@ -165,6 +165,18 @@ class SpeasyVariableSlice(unittest.TestCase):
         self.assertTrue(np.all(y.values[:, 0] == var.values[:, 1]))
         self.assertTrue(np.all(y.axes == var.axes))
 
+    def test_can_slice_with_numpy_comparison(self):
+        var = make_simple_var(1., 10., 1., 1.)
+        sliced = var[var > 5]
+        self.assertEqual(len(sliced), 4)
+        self.assertTrue(np.all(sliced.values > 5))
+
+    def test_can_set_values_where_condition_is_true(self):
+        var = make_simple_var(1., 10., 1., 1.)
+        var[var < 5] = np.nan
+        self.assertTrue(np.all(np.isnan(var.values[:4])))
+        self.assertTrue(not np.any(np.isnan(var.values[4:])))
+
 
 @ddt
 class SpeasyVariableMerge(unittest.TestCase):
@@ -312,10 +324,10 @@ class ASpeasyVariable(unittest.TestCase):
         var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50.})
         self.assertEqual(var.fill_value, 50.)
         cleaned_copy = var.replace_fillval_by_nan(inplace=False)
-        self.assertTrue(np.isnan(cleaned_copy.values[4,0]))
-        self.assertFalse(np.isnan(var.values[4,0]))
+        self.assertTrue(np.isnan(cleaned_copy.values[4, 0]))
+        self.assertFalse(np.isnan(var.values[4, 0]))
         var.replace_fillval_by_nan(inplace=True)
-        self.assertTrue(np.isnan(var.values[4,0]))
+        self.assertTrue(np.isnan(var.values[4, 0]))
 
     def test_clamps(self):
         var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.})
@@ -333,6 +345,7 @@ class ASpeasyVariable(unittest.TestCase):
         cleaned_copy = var.sanitized()
         self.assertFalse(np.any(np.isnan(cleaned_copy.values)))
         self.assertTrue(len(cleaned_copy) < len(var))
+
 
 class TestSpeasyVariableMath(unittest.TestCase):
     def setUp(self):
@@ -444,7 +457,6 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
     def test_scalar_result(self, func):
         for v in (self.var, self.vector, self.spectro, self.var3d):
             self.assertIsInstance(func(v), float)
-
 
 
 class SpeasyVariableCompare(unittest.TestCase):
