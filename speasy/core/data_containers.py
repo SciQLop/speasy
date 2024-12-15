@@ -1,7 +1,7 @@
 from copy import deepcopy
 from datetime import datetime
 from sys import getsizeof
-from typing import Dict, List, Tuple, Protocol, TypeVar
+from typing import Dict, List, Tuple, Protocol, TypeVar, Union
 
 import astropy.units
 import numpy as np
@@ -38,19 +38,16 @@ class DataContainerProtocol(Protocol[T]):
     def reserve_like(other: T, length: int = 0) -> T:
         ...
 
-    def __getitem__(self, key)->T:
+    def __getitem__(self, key) -> T:
         ...
 
-    def __setitem__(self, k, v: T):
+    def __setitem__(self, k, v: Union[T, float, int]):
         ...
 
-    def __len__(self)->int:
+    def __len__(self) -> int:
         ...
 
-    def view(self, index_range: slice) -> T:
-        ...
-
-    def __eq__(self, other: T) -> bool:
+    def __eq__(self, other: Union[T, float, int]) -> Union[bool, np.ndarray]:
         ...
 
     @property
@@ -75,6 +72,9 @@ class DataContainerProtocol(Protocol[T]):
 
     @property
     def nbytes(self) -> int:
+        ...
+
+    def view(self, index_range: Union[slice, np.ndarray]) -> T:
         ...
 
 
@@ -128,7 +128,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     def nbytes(self) -> int:
         return self.__values.nbytes + getsizeof(self.__meta) + getsizeof(self.__name)
 
-    def view(self, index_range: slice):
+    def view(self, index_range: Union[slice, np.ndarray]):
         return DataContainer(name=self.__name, meta=self.__meta, values=self.__values[index_range],
                              is_time_dependent=self.__is_time_dependent)
 
@@ -201,27 +201,21 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     def __getitem__(self, key):
         return self.view(key)
 
-    def __setitem__(self, k, v: 'DataContainer'):
-        assert type(v) is DataContainer
-        self.__values[k] = v.__values
+    def __setitem__(self, k, v: Union['DataContainer', float, int]):
+        if type(v) is DataContainer:
+            self.__values[k] = v.__values
+        else:
+            self.__values[k] = v
 
-    def __eq__(self, other: 'DataContainer') -> bool:
-        return self.__meta == other.__meta and \
-            self.__name == other.__name and \
-            self.is_time_dependent == other.is_time_dependent and \
-            np.all(self.__values.shape == other.__values.shape) and \
-            np.array_equal(self.__values, other.__values, equal_nan=True)
-
-    def replace_val_by_nan(self, val):
-        if not np.issubdtype(self.__values.dtype, np.floating):
-            raise ValueError("DataContainer must be a floating type to replace val by nan")
-        self.__values[self.__values == val] = np.nan
-
-    def clamp_by_nan(self, valid_range: Tuple[float, float]):
-        if not np.issubdtype(self.__values.dtype, np.float64):
-            raise ValueError("DataContainer must be a floating type to clamp by nan")
-        self.__values[self.__values < valid_range[0]] = np.nan
-        self.__values[self.__values > valid_range[1]] = np.nan
+    def __eq__(self, other: Union['DataContainer', float, int]) -> Union[bool, np.ndarray]:
+        if type(other) is DataContainer:
+            return self.__meta == other.__meta and \
+                self.__name == other.__name and \
+                self.is_time_dependent == other.is_time_dependent and \
+                np.all(self.__values.shape == other.__values.shape) and \
+                np.array_equal(self.__values, other.__values, equal_nan=True)
+        else:
+            return self.__values.__eq__(other)
 
     @property
     def meta(self):
@@ -268,15 +262,19 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
     def __getitem__(self, key):
         if isinstance(key, slice):
             return self.view(slice(_to_index(key.start, self.__data.values), _to_index(key.stop, self.__data.values)))
+        else:
+            return self.view(key)
 
-    def __setitem__(self, k, v: 'VariableAxis'):
-        assert type(v) is VariableAxis
-        self.__data[k] = v.__data
+    def __setitem__(self, k, v: Union['VariableAxis', float, int]):
+        if type(v) is VariableAxis:
+            self.__data[k] = v.__data
+        else:
+            self.__data[k] = v
 
     def __len__(self):
         return len(self.__data)
 
-    def view(self, index_range: slice) -> 'VariableAxis':
+    def view(self, index_range: Union[slice, np.ndarray]) -> 'VariableAxis':
         return VariableAxis(data=self.__data[index_range])
 
     def __eq__(self, other: 'VariableAxis') -> bool:
@@ -310,7 +308,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
 class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
     __slots__ = ['__data']
 
-    def __init__(self, values: np.array = None, meta: Dict = None, data: DataContainer = None):
+    def __init__(self, values: np.array = None, meta: Dict = None, name: str = "time", data: DataContainer = None):
         if data is not None:
             self.__data = data
         else:
@@ -318,7 +316,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
                 raise ValueError(
                     f"Please provide datetime64[ns] for time axis, got {values.dtype}")
             self.__data = DataContainer(
-                values=values, name='time', meta=meta, is_time_dependent=True)
+                values=values, name=name, meta=meta, is_time_dependent=True)
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
@@ -347,17 +345,18 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
         return VariableTimeAxis(data=DataContainer.reserve_like(other.__data, length))
 
     def __getitem__(self, key):
-        if isinstance(key, slice):
-            return self.view(key)
+        return self.view(key)
 
-    def __setitem__(self, k, v: 'VariableTimeAxis'):
-        assert type(v) is VariableTimeAxis
-        self.__data[k] = v.__data
+    def __setitem__(self, k, v: Union['VariableTimeAxis', float, int]):
+        if type(v) is VariableTimeAxis:
+            self.__data[k] = v.__data
+        else:
+            self.__data[k] = v
 
     def __len__(self):
         return len(self.__data)
 
-    def view(self, index_range: slice) -> "VariableTimeAxis":
+    def view(self, index_range: Union[slice, np.ndarray]) -> 'VariableTimeAxis':
         return VariableTimeAxis(data=self.__data[index_range])
 
     def __eq__(self, other: 'VariableTimeAxis') -> bool:
