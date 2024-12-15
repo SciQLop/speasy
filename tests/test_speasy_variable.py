@@ -344,7 +344,7 @@ class ASpeasyVariable(unittest.TestCase):
         var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50., "VALIDMIN": 20., "VALIDMAX": 80.})
         cleaned_copy = var.sanitized()
         self.assertFalse(np.any(np.isnan(cleaned_copy.values)))
-        self.assertTrue(len(cleaned_copy) < len(var))
+        self.assertLess(len(cleaned_copy), len(var))
 
 
 class TestSpeasyVariableMath(unittest.TestCase):
