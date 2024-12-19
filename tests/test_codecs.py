@@ -60,6 +60,8 @@ class TestReadFiles(unittest.TestCase):
                                   'mms3_dis_heatq_gse_fast',
                                   'mms3_dis_temppara_fast',
                                   'mms3_dis_tempperp_fast']),
+        (f"{__HERE__}/resources/HAPI_sample_csv.csv", "hapi/csv", ['Magnitude']),
+        ("https://cdaweb.gsfc.nasa.gov/hapi/data?id=AC_H0_MFI&parameters=Magnitude,BGSEc&time.min=1997-09-02T00:00:12Z&time.max=1997-09-02T00:01:12.000Z&include=header", "hapi/csv", ['Magnitude', 'BGSEc']),
     )
     @unpack
     def test_read_files(self, filename, codec_id, variables):
