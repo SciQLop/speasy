@@ -10,11 +10,9 @@ from speasy.core.data_containers import (
     DataContainer,
     VariableAxis,
     VariableTimeAxis,
-    _to_index,
-    DataContainerProtocol
+    _to_index
 )
 from speasy.plotting import Plot
-
 from .base_product import SpeasyProduct
 
 
@@ -121,9 +119,8 @@ class SpeasyVariable(SpeasyProduct):
         speasy.common.variable.SpeasyVariable
             view of the variable on the given range
         """
-        if type(index_range) is np.ndarray:
-            if index_range.dtype == bool:
-                index_range = np.nonzero(index_range)[0]
+        if (type(index_range) is np.ndarray) and (index_range.dtype == bool):
+            index_range = np.nonzero(index_range)[0]
         return SpeasyVariable(
             axes=[
                 axis[index_range] if axis.is_time_dependent else axis
@@ -192,7 +189,7 @@ class SpeasyVariable(SpeasyProduct):
 
     def __ne__(self, other: Union["SpeasyVariable", float, int]) -> bool:
         if type(other) is SpeasyVariable:
-            return not other == self
+            return not (other == self)
         else:
             return self.values.__ne__(other)
 
@@ -322,6 +319,8 @@ class SpeasyVariable(SpeasyProduct):
             if isinstance(out, SpeasyVariable):
                 out.__axes = axes
             return out
+        if type(values) is np.ndarray and values.dtype == bool:
+            return np.all(values, axis=1, keepdims=True)
         else:
             return SpeasyVariable(
                 axes=axes,
