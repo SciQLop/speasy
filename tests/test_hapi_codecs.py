@@ -1,4 +1,6 @@
 import unittest
+
+import numpy as np
 from ddt import ddt, data, unpack
 
 import os
@@ -28,6 +30,19 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertEqual(v.meta['description'], description)
 
     @data(
+        ('HAPI_sample_csv.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000Z"), np.datetime64("1997-09-03T23:00:00.000Z")),
+        ('HAPI_sample_csv_multiple_vars.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000Z"), np.datetime64("1997-09-03T23:00:00.000Z"))
+    )
+    @unpack
+    def test_load_time_index(self, fname, var_name, first_value, last_value):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        v: SpeasyVariable = hapi_csv_codec.load_variable(
+            file=str(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')), variable=var_name,
+            disable_cache=True)
+        self.assertEqual(v.time[0], first_value)
+        self.assertEqual(v.time[-1], last_value)
+
+    @data(
         ('HAPI_sample_csv.csv', 'Magnitude', (48, 1), 2.658, 14.743),
         ('HAPI_sample_csv_multiple_vars.csv', 'Magnitude', (48, 1), 2.658, 14.743),
         ('HAPI_sample_csv_multiple_vars.csv', 'BGSEc', (48, 3), [0.654, -1.157, -2.252], [4.955, -5.523, 3.774]),
@@ -39,7 +54,9 @@ class TestHapiCsvCodec(unittest.TestCase):
     @unpack
     def test_load_values(self, fname, var_name, shape, first_value, last_value):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        v: SpeasyVariable = hapi_csv_codec.load_variable(file=str(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')) , variable=var_name, disable_cache=True)
+        v: SpeasyVariable = hapi_csv_codec.load_variable(
+            file=str(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')), variable=var_name,
+            disable_cache=True)
         self.assertEqual(v.values.shape, shape)
         if type(first_value) is list:
             self.assertListEqual(v.values[0].tolist(), first_value)

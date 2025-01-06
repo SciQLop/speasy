@@ -29,11 +29,12 @@ def _extract_headers(file: io.IOBase) -> Dict[str, Any]:
 
 def _extract_data(file: io.IOBase) -> pds.DataFrame:
     file.seek(0)
-    return pds.read_csv(file, comment='#', header=None, skiprows=0)
+    return pds.read_csv(file, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
 
 
 def _parse_hapi_csv(file: io.IOBase) -> Tuple[pds.DataFrame, Dict[str, Any]]:
     headers = _extract_headers(file)
+    assert headers["parameters"][0]["type"] == "isotime"
     data = _extract_data(file)
     return data, headers
 
@@ -51,9 +52,11 @@ def load_hapi_csv(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiCsvFile]:
     data, headers = _load_csv(file)
     hapi_csv_file = HapiCsvFile()
     if data is not None and headers is not None:
-        assert headers["parameters"][0]["type"] == "isotime"
-        hapi_csv_file.create_parameter(data.index.to_numpy(dtype="datetime64[ns]"), meta=headers["parameters"][0])
-        column_offset = 1
+        time_header = headers["parameters"][0]
+        assert time_header["type"] == "isotime"
+        hapi_csv_file.create_parameter(data.index.to_numpy(dtype="datetime64[ns]"),
+                                       meta=time_header)
+        column_offset = 0
         for i, param_meta in enumerate(headers["parameters"][1:]):
             shape = param_meta.get("size", [1])
             flatten_shape = np.prod(shape)
