@@ -26,7 +26,7 @@ from ...inventories import flat_inventories
 from .parser import ImpexXMLParser, to_xmlid
 from .client import ImpexClient, ImpexEndpoint
 from .utils import load_catalog, load_timetable, is_private, is_public
-from .exceptions import MissingCredentials
+from .exceptions import MissingCredentials, MissingTemplateArgs
 
 
 log = logging.getLogger(__name__)
@@ -381,6 +381,7 @@ class ImpexProvider(DataProvider):
         if hasattr(self, 'has_time_restriction') and self.has_time_restriction(product, start_time, stop_time):
             kwargs['disable_proxy'] = True
             kwargs['restricted_period'] = True
+
         return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
                                    output_format=output_format or self.client.output_format, **kwargs)
 
@@ -762,10 +763,14 @@ class ImpexProvider(DataProvider):
         Optional[
             SpeasyVariable]:
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
+        if hasattr(self, 'get_real_product_id'):
+            real_product_id = self.get_real_product_id(product, **kwargs)
+            if real_product_id:
+                kwargs['real_product_id'] = real_product_id
         return self._dl_parameter(start_time=start_time, stop_time=stop_time, parameter_id=product,
                                   extra_http_headers=extra_http_headers,
                                   output_format=output_format,
-                                  product_variables=self._get_product_variables(product),
+                                  product_variables=self._get_product_variables(product, **kwargs),
                                   restricted_period=restricted_period,
                                   time_format='UNIXTIME', **kwargs)
 
@@ -775,13 +780,14 @@ class ImpexProvider(DataProvider):
                             product_variables: List = None, **kwargs) -> Optional[SpeasyVariable]:
         url = self.client.get_parameter(start_time=start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
                                         stop_time=stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                                        parameter_id=parameter_id, extra_http_headers=extra_http_headers,
+                                        parameter_id=parameter_id,
+                                        extra_http_headers=extra_http_headers,
                                         use_credentials=use_credentials, **kwargs)
         # check status until done
         if url is not None:
             var = None
             if not product_variables:
-                product_variables = [parameter_id]
+                product_variables = [kwargs.get('real_product_id', parameter_id)]
             if kwargs.get('output_format', self.client.output_format) in ["CDF_ISTP", "CDF"]:
                 var = self._cdf_codec.load_variables(variables=product_variables, file=url)
             else:
@@ -829,14 +835,15 @@ class ImpexProvider(DataProvider):
                 curr_t += dt
             return var
         else:
-            return self._dl_parameter_chunk(start_time, stop_time, parameter_id, extra_http_headers=extra_http_headers,
+            return self._dl_parameter_chunk(start_time, stop_time, parameter_id,
+                                            extra_http_headers=extra_http_headers,
                                             use_credentials=use_credentials,
                                             product_variables=product_variables, **kwargs)
 
     def _dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                            **kwargs) -> Optional[SpeasyVariable]:
         return self._dl_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time,
-                                  product_variables=self._get_product_variables(parameter_id),
+                                  product_variables=self._get_product_variables(parameter_id, **kwargs),
                                   use_credentials=True, **kwargs)
 
     def _dl_timetable(self, timetable_id: str, use_credentials=False, **kwargs):
@@ -872,9 +879,9 @@ class ImpexProvider(DataProvider):
     def _dl_user_catalog(self, catalog_id: str, **kwargs):
         return self._dl_catalog(catalog_id, use_credentials=True, **kwargs)
 
-    def _get_product_variables(self, product_id: str or SpeasyIndex):
+    def _get_product_variables(self, product_id: str or SpeasyIndex, **kwargs):
         product_id = to_xmlid(product_id)
-        return [product_id]
+        return [kwargs.get('real_product_id', product_id)]
 
     @staticmethod
     def _concatenate_variables(variables: Dict[str, SpeasyVariable], product_id) -> Optional[SpeasyVariable]:
@@ -906,8 +913,8 @@ class ImpexProvider(DataProvider):
             values=DataContainer(values=values, meta=meta, name=product_id, is_time_dependent=True),
             columns=columns)
 
-    def _get_obs_data_tree(self) -> str or None:
-        return self.client.get_obs_data_tree()
+    def _get_obs_data_tree(self, add_template_info=False) -> str or None:
+        return self.client.get_obs_data_tree(add_template_info=add_template_info)
 
     def _get_timetables_tree(self) -> str or None:
         return self.client.get_time_table_list()

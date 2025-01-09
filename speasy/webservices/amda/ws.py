@@ -14,11 +14,13 @@ from ...core.datetime_range import DateTimeRange
 from ...core.inventory.indexes import (CatalogIndex, ParameterIndex,
                                        SpeasyIndex, TimetableIndex)
 from ...core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
+from ...inventories import flat_inventories
 from ...products.catalog import Catalog
 from ...products.timetable import TimeTable
 from ...products.variable import SpeasyVariable
 
-from ...core.impex import ImpexProvider, ImpexEndpoint
+from ...core.impex import ImpexProvider, ImpexEndpoint, to_xmlid
+from ...core.impex.exceptions import MissingTemplateArgs, BadTemplateArgDefinition
 
 
 log = logging.getLogger(__name__)
@@ -35,12 +37,42 @@ amda_name_mapping = {
 }
 
 
+def _amda_replace_arguments_in_template(product: ParameterIndex, additional_arguments: Dict):
+    product_id = product.template
+    for k, v in product.arguments.items():
+        print(v)
+        if v['type'] == 'list':
+            if additional_arguments[k] not in v['items'].keys():
+                raise BadTemplateArgDefinition()
+        product_id = product_id.replace(f'##{k}##', str(additional_arguments[k]))
+
+    return product_id
+
+
+def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
+    product_id = to_xmlid(product_id)
+    product = flat_inventories.__dict__[amda_provider_name].parameters[product_id]
+    if hasattr(product, 'template'):
+        additional_arguments = kwargs.get('additional_arguments', {})
+        if not hasattr(product, 'arguments'):
+            return product_id
+        real_product_id = product.template
+        for k, v in product.arguments.items():
+            if k not in additional_arguments:
+                raise MissingTemplateArgs()
+        real_product_id = _amda_replace_arguments_in_template(product, additional_arguments)
+    else:
+        real_product_id = product_id
+    return real_product_id
+
+
 def _amda_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
     output_format: str = kwargs.get('output_format', 'cdf_istp')
+    real_product_id = _amda_get_real_product_id(product, **kwargs)
     if output_format.lower() == 'cdf_istp':
-        return f"{prefix}/{product}-cdf_istp/{start_time}"
+        return f"{prefix}/{real_product_id}-cdf_istp/{start_time}"
     else:
-        return f"{prefix}/{product}/{start_time}"
+        return f"{prefix}/{real_product_id}/{start_time}"
 
 
 def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> Dict:
@@ -119,6 +151,9 @@ class AMDA_Webservice(ImpexProvider):
         if hasattr(self.flat_inventory.datasets[dataset], 'lastModificationDate'):
             return self.flat_inventory.datasets[dataset].lastModificationDate
         return self.flat_inventory.datasets[dataset].lastUpdate
+
+    def get_real_product_id(self, product_id: str or SpeasyIndex, **kwargs):
+        return _amda_get_real_product_id(product_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
@@ -229,7 +264,8 @@ class AMDA_Webservice(ImpexProvider):
         return super().get_user_catalog(catalog_id)
 
     @AllowedKwargs(
-        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format', 'restricted_period'])
+        PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS +
+        ['output_format', 'restricted_period', 'additional_arguments'])
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix=amda_provider_name, version=product_version, fragment_hours=lambda x: 12,
@@ -277,7 +313,7 @@ class AMDA_Webservice(ImpexProvider):
 
     @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
     def _get_obs_data_tree(self) -> str or None:
-        return super()._get_obs_data_tree()
+        return super()._get_obs_data_tree(add_template_info=True)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_timetables_tree(self) -> str or None:
