@@ -104,6 +104,31 @@ class ImpexXMLParser:
                                             is_public=is_public)
 
     @staticmethod
+    def parse_template_arguments(parent, node, provider_name, name_key, is_public: bool = True):
+        parent.__dict__['arguments'] = {}
+        return parent.arguments
+
+    @staticmethod
+    def parse_template_argument(parent, node, provider_name, name_key, is_public: bool = True):
+        parent[node.get('key')] = {
+            'name': node.get('name'),
+            'type': node.get('type'),
+            'default': node.get('default')
+        }
+        if parent[node.get('key')]['type'] == 'generated-list':
+            parent[node.get('key')]['type'] = 'list'
+            parent[node.get('key')]['items'] = {k: node.get('nametpl').replace('##key##', str(k))
+                                                for k in range(int(node.get('minkey')), int(node.get('maxkey')))}
+        elif parent[node.get('key')]['type'] == 'list':
+            parent[node.get('key')]['items'] = {}
+        return parent[node.get('key')]
+
+    @staticmethod
+    def parse_template_argument_item(parent, node, provider_name, name_key, is_public: bool = True):
+        parent['items'][node.get('key')] = node.get('name')
+        return {}
+
+    @staticmethod
     def parse(xml, provider_name, name_mapping=None, is_public: bool = True):
         handlers = {
             'mission': ImpexXMLParser.make_path_node,
@@ -117,6 +142,9 @@ class ImpexXMLParser:
             'timetab': ImpexXMLParser.make_timetable_node,
             'catalog': ImpexXMLParser.make_catalog_node,
             'param': ImpexXMLParser.make_user_parameter_node,
+            'arguments': ImpexXMLParser.parse_template_arguments,
+            'argument': ImpexXMLParser.parse_template_argument,
+            'item': ImpexXMLParser.parse_template_argument_item,
         }
 
         def _recursive_parser(parent, node, is_node_public):
