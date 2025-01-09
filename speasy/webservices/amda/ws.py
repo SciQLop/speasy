@@ -116,7 +116,7 @@ class AMDA_Webservice(ImpexProvider):
             product version
         """
         dataset = self.find_parent_dataset(parameter_id)
-        if self.flat_inventory.datasets[dataset].lastModificationDate:
+        if hasattr(self.flat_inventory.datasets[dataset], 'lastModificationDate'):
             return self.flat_inventory.datasets[dataset].lastModificationDate
         return self.flat_inventory.datasets[dataset].lastUpdate
 
