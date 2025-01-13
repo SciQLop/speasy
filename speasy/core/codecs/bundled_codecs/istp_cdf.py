@@ -38,9 +38,9 @@ def _fix_attributes_types(attributes: dict):
 
 def _is_time_dependent(axis, time_axis_name):
     if axis.attributes.get('DEPEND_TIME', '') == time_axis_name:
-        return True
+        return not axis.is_nrv
     if axis.attributes.get('DEPEND_0', '') == time_axis_name:
-        return True
+        return not axis.is_nrv
     return False
 
 
