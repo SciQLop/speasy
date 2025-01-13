@@ -232,6 +232,12 @@ class SpecificNonRegression(unittest.TestCase):
             "2021-11-3", "2021-11-3T01", disable_proxy=True, disable_cache=True, method="FILE")
         self.assertIsNotNone(mms1_fgm_b_bcs_srvy_l2_clean)
 
+    def test_wrong_time_dependency_axis(self):
+        result = spz.get_data(
+            "cda/MMS1_FEEPS_SRVY_L2_ELECTRON/mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_2",
+            datetime(2018, 5, 26, 1, 0, 0), datetime(2018, 5, 26, 1, 10, 1))
+        self.assertIsNotNone(result)
+
 
 @ddt
 class DirectArchiveConverter(unittest.TestCase):

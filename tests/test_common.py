@@ -8,6 +8,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 import speasy as spz
+from speasy.core.cache import entries
 
 
 @ddt
@@ -83,6 +84,34 @@ class TestTimeConversions(unittest.TestCase):
     def test_epoch_to_dt64(self, input, expected):
         self.assertTrue(
             np.allclose(spz.core.epoch_to_datetime64(input).astype('int64'), expected.astype('int64'), atol=1e-10))
+
+
+class TestDroppingKeysFromCache(unittest.TestCase):
+
+    def test_dropping_specific_key(self):
+        spz.core.cache.add_item("key1", "value1")
+        spz.core.cache.add_item("key2", "value2")
+        spz.core.cache.add_item("key3", "value3")
+
+        spz.core.cache.drop_item("key2")
+
+        self.assertEqual(spz.core.cache.get_item("key1"), "value1")
+        self.assertIsNone(spz.core.cache.get_item("key2"))
+        self.assertEqual(spz.core.cache.get_item("key3"), "value3")
+        spz.core.cache.drop_matching_entries("key\\d")
+
+    def test_dropping_matching_keys(self):
+        spz.core.cache.add_item("key1", "value1")
+        spz.core.cache.add_item("key2", "value2")
+        spz.core.cache.drop_matching_entries("key\\d")
+        self.assertIsNone(spz.core.cache.get_item("key1"))
+        self.assertIsNone(spz.core.cache.get_item("key2"))
+
+    def test_dropping_speasy_variables(self):
+        spz.get_data(spz.inventories.tree.ssc.Trajectories.ace, "2008-01-01", "2008-01-02")
+        self.assertGreater(len(list(filter(lambda e: e.startswith("ssc_orbits/ace/gse"), spz.core.cache.entries()))), 0)
+        spz.core.cache.drop_matching_entries("^ssc_orbits/ace/gse")
+        self.assertEqual(len(list(filter(lambda e: e.startswith("ssc_orbits/ace/gse"), spz.core.cache.entries()))), 0)
 
 
 if __name__ == '__main__':

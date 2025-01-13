@@ -33,6 +33,7 @@ classifiers = [
 ]
 dependencies = ['requests', 'pandas', 'diskcache', 'appdirs', 'numpy', 'packaging', 'python-dateutil',
     'astropy', 'astroquery', 'pyistp>=0.7.0', 'tqdm', 'matplotlib', 'urllib3>=1.26.0', "PyYAML", "scipy"]
+
 [project.urls]
 homepage = "https://github.com/SciQLop/speasy"
 
