@@ -143,6 +143,7 @@ def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Op
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         result = sock.connect_ex((host, int(port)))
+        sock.close()
         return result == 0
     except Exception as e:
         log.error(f"Error while checking server status: {e}")
