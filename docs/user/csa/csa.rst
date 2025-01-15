@@ -27,7 +27,7 @@ Once you have found your product, then simply ask CSA module to get data for the
            ...,
            [ 20.586,  -4.407, -29.247],
            [ 20.741,  -0.268, -29.078],
-           [ 20.356,   1.052, -27.904]], dtype=float32)
+           [ 20.356,   1.052, -27.904]], shape=(852, 3), dtype=float32)
 
 
 

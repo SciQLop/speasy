@@ -265,9 +265,6 @@ def datetime64_to_epoch(datetime64_array: np.array) -> np.array:
 
 class AllowedKwargs(object):
     """A decorator that prevent from passing unexpected kwargs to a function
-
-    Methods
-    -------
     """
 
     def __init__(self, allowed_list):

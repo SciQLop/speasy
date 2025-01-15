@@ -20,5 +20,5 @@ sphinx-gallery
 nbsphinx
 ipympl
 ipywidgets
-sphinx-codeautolink
+sphinx-codeautolink==0.15.2
 sphinxcontrib-apidoc
