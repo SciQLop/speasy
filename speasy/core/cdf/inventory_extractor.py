@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import pyistp
 from pyistp.loader import DataVariable, ISTPLoader
@@ -13,8 +13,9 @@ log = logging.getLogger(__name__)
 
 def filter_variable_meta(datavar: DataVariable) -> dict:
     keep_list = ['CATDESC', 'FIELDNAM', 'UNITS', 'UNIT_PTR', 'DISPLAY_TYPE', 'LABLAXIS', 'LABL_PTR_1', 'LABL_PTR_2',
-                 'LABL_PTR_3', 'VIRTUAL', 'FUNCT']
+                 'LABL_PTR_3', 'VIRTUAL', 'FUNCT', 'FILLVAL']
     base = {key: value for key, value in datavar.attributes.items() if key in keep_list}
+    base['cdf_type'] = datavar.cdf_type
     if len(datavar.values.shape) == 1:
         base['spz_shape'] = 1
     else:
@@ -30,7 +31,8 @@ def _attribute_value(attr):
 
 
 def filter_dataset_meta(dataset: ISTPLoader) -> dict:
-    keep_list = ['Caveats', 'Rules_of_use']
+    keep_list = ['Caveats', 'Rules_of_use', 'Time_resolution', 'spase_DatasetResourceID', 'HTTP_LINK', 'Data_type',
+                 'Acknowledgement']
     return {key: _attribute_value(dataset.attribute(key)) for key in dataset.attributes() if key in keep_list}
 
 
@@ -55,15 +57,18 @@ def _extract_parameters_impl(cdf: ISTPLoader, provider: str, uid_fmt: str = "{va
                            cdf.data_variables())))
 
 
-def extract_parameters(url: str, provider: str, uid_fmt: str = "{var_name}", meta=None) -> List[ParameterIndex]:
+def extract_parameters(url_or_istp_loader: Union[str,ISTPLoader], provider: str, uid_fmt: str = "{var_name}", meta=None) -> List[ParameterIndex]:
     indexes: List[ParameterIndex] = []
     try:
-        with any_loc_open(url) as remote_cdf:
-            cdf = pyistp.load(buffer=remote_cdf.read())
-            return _extract_parameters_impl(cdf, provider=provider, uid_fmt=uid_fmt, meta=meta)
+        if isinstance(url_or_istp_loader, str):
+            with any_loc_open(url_or_istp_loader) as remote_cdf:
+                cdf = pyistp.load(buffer=remote_cdf.read())
+                return _extract_parameters_impl(cdf, provider=provider, uid_fmt=uid_fmt, meta=meta)
+        else:
+            return _extract_parameters_impl(url_or_istp_loader, provider=provider, uid_fmt=uid_fmt, meta=meta)
 
     except RuntimeError:
-        print(f"Issue loading {url}")
+        print(f"Issue loading {url_or_istp_loader}")
     return indexes
 
 
