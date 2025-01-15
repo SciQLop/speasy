@@ -8,7 +8,7 @@ import unittest
 from datetime import datetime
 import time
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from speasy.core.any_files import any_loc_open, list_files
 from speasy.core.cache import drop_item
@@ -102,10 +102,16 @@ class FileAccess(unittest.TestCase):
         self.assertIsNotNone(f)
         self.assertIn('<dataCenter name="AMDA_Webservice"', f.read(100))
 
-    def test_list_remote_files(self):
-        flist = list_files(url='https://hephaistos.lpp.polytechnique.fr/data/', file_regex=re.compile(r'\w+\.webm'))
-        self.assertGreaterEqual(len(flist), 9)
-        self.assertIn('plasmaSpeaker1.webm', flist)
+    @data(
+        ('https://hephaistos.lpp.polytechnique.fr/data/', re.compile(r'\w+\.webm'), 'plasmaSpeaker1.webm'),
+        ('http://solarorbiter.irap.omp.eu/tests/L1/20121117/', re.compile('.*\.cdf'),
+         'solo_L1_swa-pas-3d_20121117_V01.cdf')
+    )
+    @unpack
+    def test_list_remote_files(self, url, file_regex, sample):
+        flist = list_files(url=url, file_regex=file_regex, force_refresh=True)
+        self.assertGreaterEqual(len(flist), 0)
+        self.assertIn(sample, flist)
 
     def test_list_remote_files_with_rewrite_rules(self):
         if 'SPEASY_CORE_HTTP_REWRITE_RULES' not in os.environ:

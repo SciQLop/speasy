@@ -97,3 +97,7 @@ def apply_rewrite_rules(url: str) -> str:
         if url.startswith(base_url):
             return _REWRITE_RULES_[base_url] + url[len(base_url):]
     return url
+
+
+def extract_path(url: str) -> str:
+    return urlparse(url).path
