@@ -89,8 +89,8 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     missions_req = CSA.launch_job_async("SELECT * FROM csa.v_mission")
     observatories_req = CSA.launch_job_async("SELECT * FROM csa.v_observatory")
     instruments_req = CSA.launch_job_async("SELECT * FROM csa.v_instrument")
-    datasets_req = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE is_cef='true' AND is_istp='true'")
-    parameters_req = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data'")
+    datasets_req = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE  dataset_id like '%GRMB' OR (is_cef='true' AND is_istp='true')")
+    parameters_req = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data' AND value_type<>'CHAR'")
     missions = {}
     observatories = {}
     instruments = {}
