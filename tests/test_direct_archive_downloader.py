@@ -93,7 +93,7 @@ class DirectArchiveDownloader(unittest.TestCase):
     )
     def test_build_inventory_from_remote_cdf(self, url):
         parameters = extract_parameters(
-            url=url,
+            url_or_istp_loader=url,
             provider="test")
         self.assertGreater(len(parameters), 0)
 

@@ -7,7 +7,7 @@ packaging
 numpy
 python_dateutil
 astropy
-pyistp>=0.5.0
+pyistp>=0.7.0
 astroquery
 tqdm
 matplotlib
