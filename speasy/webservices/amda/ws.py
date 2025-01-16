@@ -116,6 +116,8 @@ class AMDA_Webservice(ImpexProvider):
             product version
         """
         dataset = self.find_parent_dataset(parameter_id)
+        if hasattr(self.flat_inventory.datasets[dataset], 'lastModificationDate'):
+            return self.flat_inventory.datasets[dataset].lastModificationDate
         return self.flat_inventory.datasets[dataset].lastUpdate
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
