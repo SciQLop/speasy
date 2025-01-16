@@ -46,9 +46,10 @@ def make_simple_var_3cols(start: float = 0., stop: float = 0., step: float = 1.,
                           columns=["x", "y", "z"])
 
 
-def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32):
+def make_2d_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1., height: int = 32,
+                height_start: int = 0):
     time = np.arange(start, stop, step)
-    values = (time * coef).reshape(-1, 1) * np.arange(height).reshape(1, -1)
+    values = (time * coef).reshape(-1, 1) * np.arange(height_start, height).reshape(1, -1)
     y = values * 0.1
     return SpeasyVariable(
         axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
@@ -60,8 +61,8 @@ def make_3d_var(start: float = 0., stop: float = 0., step: float = 1., coef: flo
                 depth: int = 32):
     time = np.arange(start, stop, step)
     values = np.random.random((len(time), height, depth))
-    y = np.repeat(np.arange(height), len(time), axis=0)
-    z = np.repeat(np.arange(depth), len(time), axis=0)
+    y = np.repeat(np.arange(height), len(time), axis=0).reshape((len(time), -1))
+    z = np.repeat(np.arange(depth), len(time), axis=0).reshape((len(time), -1))
     return SpeasyVariable(
         axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
               VariableAxis(name='y', values=y, is_time_dependent=True),
@@ -170,6 +171,20 @@ class SpeasyVariableSlice(unittest.TestCase):
         sliced = var[var > 5]
         self.assertEqual(len(sliced), 4)
         self.assertTrue(np.all(sliced.values > 5))
+
+    def test_can_slice_2dVar_with_numpy_comparison(self):
+        var = make_2d_var(1., 10., 1., 1., 128, 1)
+        sliced = var[var > 5]
+        self.assertEqual(len(sliced), 4)
+        self.assertTrue(np.all(sliced.values > 5))
+
+    def test_can_slice_3dVar_with_numpy_comparison(self):
+        var = make_3d_var(1., 100., 1., 1., 128, 16)
+        var.values[:] = np.arange(np.prod(var.shape)).reshape(var.shape)
+        median = np.median(var)
+        sliced = var[var > median]
+        self.assertTrue(np.all(sliced.values > median))
+        self.assertIn(len(sliced), [(len(var) // 2) - 1, len(var) // 2])
 
     def test_can_set_values_where_condition_is_true(self):
         var = make_simple_var(1., 10., 1., 1.)
