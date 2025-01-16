@@ -13,7 +13,7 @@ from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  SpeasyIndex, TimetableIndex)
 from ...config import core as core_cfg, amda as amda_cfg
 from ...products import *
-from ...webservices import (AMDA_Webservice, CDA_Webservice, CSA_Webservice,
+from ...data_providers import (AMDA_Webservice, CDA_Webservice, CSA_Webservice,
                             SSC_Webservice, GenericArchive)
 from ..http import is_server_up
 

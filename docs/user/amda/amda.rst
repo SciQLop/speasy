@@ -13,8 +13,8 @@ Basics: Getting data from AMDA
 ------------------------------
 
 `AMDA <http://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs.
-Speasy makes them accessible thanks to this module with :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()`
-or their dedicated methods such as :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()`, :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_user_parameter()`,...
+Speasy makes them accessible thanks to this module with :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_data()`
+or their dedicated methods such as :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_parameter()`, :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_user_parameter()`,...
 Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`__ Workspace:
 
 .. image:: images/AMDA_workspace_collapsed.png
@@ -79,7 +79,7 @@ AMDA products directly from your Python terminal or notebook:
     >>> len(mms4_fgm_btot.time)
     57600
 
-See :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_parameter()` or :meth:`~speasy.webservices.amda.ws.AMDA_Webservice.get_data()` for more details.
+See :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_parameter()` or :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_data()` for more details.
 
 
 Catalogs and TimeTables
