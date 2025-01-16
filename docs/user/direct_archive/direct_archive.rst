@@ -15,7 +15,7 @@ ensures compatibility and smooth data access.
 This module supports both regularly split files (one file per day for example) and randomly split files such as burst data.
 
 To add your favourite products into Speasy, you need to add or edit an yaml file either located in Speasy lookup
-path, default user lookup path can be retrieved with ``spz.webservices.generic_archive.user_inventory_dir()``. You need to
+path, default user lookup path can be retrieved with ``spz.data_providers.generic_archive.user_inventory_dir()``. You need to
 add an entry per dataset with the following information:
 
 - For a regularly split dataset, you can configure it using the following YAML structure:
