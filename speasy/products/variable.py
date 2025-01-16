@@ -22,6 +22,52 @@ def _values(input: "SpeasyVariable" or Any) -> Any:
     return input
 
 
+def _check_time_axis(axis: VariableTimeAxis, values: DataContainer):
+    if not isinstance(axis, VariableTimeAxis):
+        raise TypeError(
+            f"axes[0] must be a VariableTimeAxis instance, got {type(axis)}"
+        )
+    if axis.shape[0] != values.shape[0]:
+        raise ValueError(
+            f"Time and data must have the same length, got time:{len(axis)} and data:{len(values)}"
+        )
+
+
+def _check_time_dependent_axis(axis: VariableAxis, axis_index, time_axis: VariableTimeAxis, values: DataContainer):
+    if axis.shape[0] != len(time_axis):
+        raise ValueError(
+            f"Time dependent axis must have the same length than time axis, got {len(axis)} and {len(time_axis)}"
+        )
+    if axis.shape[1] != values.shape[axis_index]:
+        raise ValueError(
+            f"Axis {axis_index} must match data shape, got {axis.shape[1]} and {values.shape[axis_index]}"
+        )
+
+
+def _check_time_independent_axis(axis: VariableAxis, axis_index, values: DataContainer):
+    if axis.shape[0] != values.shape[axis_index]:
+        raise ValueError(
+            f"Axis {axis_index} must match data shape, got {axis.shape[0]} and {values.shape[axis_index]}"
+        )
+
+
+def _check_extra_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], values: DataContainer):
+    for index, axis in enumerate(axes):
+        if not isinstance(axis, VariableAxis):
+            raise TypeError(
+                f"axes[1:] must be a VariableAxis instance, got {type(axis)}"
+            )
+        if axis.is_time_dependent:
+            _check_time_dependent_axis(axis, index + 1, time_axis, values)
+        else:
+            _check_time_independent_axis(axis, index + 1, values)
+
+
+def _check_axes(axes: List[VariableAxis or VariableTimeAxis], values: DataContainer):
+    _check_time_axis(axes[0], values)
+    _check_extra_axes(axes[0], axes[1:], values)
+
+
 class SpeasyVariable(SpeasyProduct):
     """SpeasyVariable object. Base class for storing variable data.
 
@@ -85,14 +131,8 @@ class SpeasyVariable(SpeasyProduct):
         columns: Optional[List[str]] = None,
     ):
         super().__init__()
-        if not isinstance(axes[0], VariableTimeAxis):
-            raise TypeError(
-                f"axes[0] must be a VariableTimeAxis instance, got {type(axes[0])}"
-            )
-        if axes[0].shape[0] != values.shape[0]:
-            raise ValueError(
-                f"Time and data must have the same length, got time:{len(axes[0])} and data:{len(values)}"
-            )
+        _check_axes(axes, values)
+
         if not isinstance(values, DataContainer):
             raise TypeError(
                 f"values must be a DataContainer instance, got {type(values)}"
@@ -120,7 +160,7 @@ class SpeasyVariable(SpeasyProduct):
             view of the variable on the given range
         """
         if (type(index_range) is np.ndarray) and (index_range.dtype == bool):
-            index_range = np.nonzero(index_range)[0]
+            index_range = np.all(index_range, axis=tuple(range(1, index_range.ndim)), keepdims=False)
         return SpeasyVariable(
             axes=[
                 axis[index_range] if axis.is_time_dependent else axis
@@ -320,7 +360,7 @@ class SpeasyVariable(SpeasyProduct):
                 out.__axes = axes
             return out
         if type(values) is np.ndarray and values.dtype == bool:
-            return np.all(values, axis=1, keepdims=True)
+            return np.all(values, axis=tuple(range(1, values.ndim)), keepdims=True)
         else:
             return SpeasyVariable(
                 axes=axes,
