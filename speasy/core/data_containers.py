@@ -195,6 +195,10 @@ class DataContainer(DataContainerProtocol['DataContainer']):
                              is_time_dependent=other.__is_time_dependent
                              )
 
+    def copy(self, name=None):
+        return DataContainer(name=name or self.__name, meta=deepcopy(self.__meta), values=deepcopy(self.__values),
+                             is_time_dependent=self.__is_time_dependent)
+
     def __len__(self):
         return len(self.__values)
 
