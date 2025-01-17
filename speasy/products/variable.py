@@ -21,6 +21,14 @@ def _values(input: "SpeasyVariable" or Any) -> Any:
         return input.values
     return input
 
+def _name(input: "SpeasyVariable" or Any) -> str:
+    if isinstance(input, SpeasyVariable):
+        return input.name
+    return str(input)
+
+def _np_build_result_name(func, *args, **kwargs):
+    return f"{func.__name__}({', '.join(map(_name, args))}{', ' * bool(kwargs)}{', '.join([f'{k}={_name(v)}' for k, v in kwargs.items()])})"
+
 
 def _check_time_axis(axis: VariableTimeAxis, values: DataContainer):
     if not isinstance(axis, VariableTimeAxis):
@@ -66,6 +74,9 @@ def _check_extra_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], val
 def _check_axes(axes: List[VariableAxis or VariableTimeAxis], values: DataContainer):
     _check_time_axis(axes[0], values)
     _check_extra_axes(axes[0], axes[1:], values)
+
+
+
 
 
 class SpeasyVariable(SpeasyProduct):
@@ -170,8 +181,13 @@ class SpeasyVariable(SpeasyProduct):
             columns=self.columns,
         )
 
-    def copy(self) -> "SpeasyVariable":
+    def copy(self, name=None) -> "SpeasyVariable":
         """Makes a deep copy the variable
+
+        Parameters
+        ----------
+        name: str, optional
+            new variable name, by default None, keeps the same name
 
         Returns
         -------
@@ -180,7 +196,7 @@ class SpeasyVariable(SpeasyProduct):
         """
         return SpeasyVariable(
             axes=deepcopy(self.__axes),
-            values=deepcopy(self.__values_container),
+            values=self.__values_container.copy(name=name),
             columns=deepcopy(self.columns),
         )
 
@@ -283,7 +299,7 @@ class SpeasyVariable(SpeasyProduct):
 
     def __add__(self, other):
         if type(other) is np.timedelta64:
-            result = self.copy()
+            result = self.copy(name=f"shifted({self.name}, {other})")
             result.time[:] += other
             return result
         return np.add(self, other)
@@ -296,8 +312,8 @@ class SpeasyVariable(SpeasyProduct):
 
     def __sub__(self, other):
         if type(other) is np.timedelta64:
-            result = self.copy()
-            result.time[:] += other
+            result = self.copy(name=f"shifted({self.name}, -{other})")
+            result.time[:] -= other
             return result
         return np.subtract(self, other)
 
@@ -340,7 +356,8 @@ class SpeasyVariable(SpeasyProduct):
         n_cols = res.shape[1] if len(res.shape) > 1 else 1
         return SpeasyVariable(
             axes=self.__np_build_axes__(res, axis=kwargs.get('axis', None)),
-            values=DataContainer(values=res, name=f"{func.__name__}_{self.__values_container.name}",
+            values=DataContainer(values=res,
+                                 name=_np_build_result_name(func, *args, **kwargs),
                                  meta=deepcopy(self.__values_container.meta)),
             columns=[f"column_{i}" for i in range(n_cols)],
         )
@@ -350,8 +367,7 @@ class SpeasyVariable(SpeasyProduct):
             _out = _values(out[0])
         else:
             _out = None
-        inputs = list(map(_values, inputs))
-        values = ufunc(*inputs, **{name: _values(value) for name, value in kwargs}, out=_out)
+        values = ufunc(*list(map(_values, inputs)), **{name: _values(value) for name, value in kwargs}, out=_out)
 
         axes = self.__np_build_axes__(values, axis=kwargs.get('axis', None))
 
@@ -364,7 +380,8 @@ class SpeasyVariable(SpeasyProduct):
         else:
             return SpeasyVariable(
                 axes=axes,
-                values=DataContainer(values=values, name=f"{ufunc.__name__}_{self.__values_container.name}",
+                values=DataContainer(values=values,
+                                     name=_np_build_result_name(ufunc, *inputs, **kwargs),
                                      meta=deepcopy(self.__values_container.meta)),
                 columns=[f"column_{i}" for i in range(values.shape[1])],
             )
