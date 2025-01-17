@@ -1,4 +1,4 @@
-Data providers
+Data Providers
 ==============
 
 .. toctree::

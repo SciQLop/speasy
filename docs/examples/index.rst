@@ -1,5 +1,5 @@
-Speasy examples gallery
-=======================
+Examples gallery
+================
 
 Browse example folder on MyBinder:
 

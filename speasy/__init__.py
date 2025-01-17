@@ -24,7 +24,7 @@ from .core.requests_scheduling.request_dispatch import get_data, list_providers,
 # @TODO implement me, this function should be able to look inside all servers
 # and return something that could be passed to get_data
 def find_product(name: str) -> List[str]:
-    pass
+    raise NotImplementedError("Not implemented yet")
 
 
 def update_inventories():

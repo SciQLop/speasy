@@ -5,6 +5,14 @@ import astropy.table
 import astropy.units
 import numpy as np
 import pandas as pds
+import humanize
+
+try:
+    from IPython.lib.pretty import pretty, CallExpression
+
+    _have_ipython = True
+except ImportError:
+    _have_ipython = False
 
 from speasy.core.data_containers import (
     DataContainer,
@@ -287,6 +295,18 @@ class SpeasyVariable(SpeasyProduct):
                     axis[k] = src_axis
         else:
             self.__values_container[k] = v
+
+    def __ge__(self, other):
+        return np.greater_equal(self, other)
+
+    def __gt__(self, other):
+        return np.greater(self, other)
+
+    def __le__(self, other):
+        return np.less_equal(self, other)
+
+    def __lt__(self, other):
+        return np.less(self, other)
 
     def __mul__(self, other):
         return np.multiply(self, other)
@@ -899,6 +919,45 @@ class SpeasyVariable(SpeasyProduct):
             axes=deepcopy(other.__axes),
             columns=deepcopy(other.columns),
         )
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text("SpeasyVariable(...)")
+        else:
+            def _print_member(name, value, last=False):
+                p.text(f"{name}: ")
+                p.pretty(value)
+                if not last:
+                    p.text(", ")
+                p.breakable()
+
+            def _print_dict(name, d, last=False):
+                p.text(f"{name}: ")
+                with p.group(4, '{', '}'):
+                    p.breakable()
+                    for k, v in d.items():
+                        p.text(f"{k}: ")
+                        p.pretty(v)
+                        p.text(", ")
+                        p.breakable()
+                if not last:
+                    p.text(", ")
+                p.breakable()
+
+            def _print_time_range():
+                p.text(f"Time Range: {self.time[0]} - {self.time[-1]}")
+                p.breakable()
+
+            with p.group(4, f'{self.__class__.__name__}(', ')'):
+                p.breakable()
+                _print_member("Name", self.name)
+                if len(self):
+                    _print_time_range()
+                _print_member("Shape", self.shape)
+                _print_member("Unit", self.unit)
+                _print_member("Columns", self.columns)
+                _print_dict("Meta", self.meta)
+                _print_member("Size", humanize.naturalsize(self.nbytes))
 
 
 def to_dictionary(var: SpeasyVariable, array_to_list=False) -> Dict[str, object]:

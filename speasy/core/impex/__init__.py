@@ -20,6 +20,7 @@ from ...products.variable import SpeasyVariable, merge, DataContainer
 from ...products.catalog import Catalog
 from ...products.dataset import Dataset
 from ...products.timetable import TimeTable
+from ...products import MaybeAnyProduct
 
 from ...inventories import flat_inventories
 
@@ -44,6 +45,9 @@ class ImpexProductType(Enum):
 
 
 class ImpexProvider(DataProvider):
+    """ImpexProvider class. This class is the main interface to interact with the Impex data providers such as AMDA or CLWeb.
+    """
+
     def __init__(self, provider_name: str, server_url: str, max_chunk_size_days: int = 10, capabilities: List = None,
                  username: str = "", password: str = "", name_mapping: Dict = None, output_format: str = 'CDF'):
         self.provider_name = provider_name
@@ -63,7 +67,7 @@ class ImpexProvider(DataProvider):
         Parameters
         ----------
         username: Optional[str]
-            user name in the related service
+            username in the related service
         password: Optional[str]
             user password in the related service
 
@@ -72,7 +76,7 @@ class ImpexProvider(DataProvider):
         self.update_inventory()
 
     def credential_are_valid(self):
-        """Test credential validity
+        """Tels if credential are valid. It only checks they are not empty. It does not check if they are correct.
 
         Returns
         -------
@@ -83,7 +87,7 @@ class ImpexProvider(DataProvider):
         return self.client.credential_are_valid()
 
     def build_inventory(self, root: SpeasyIndex):
-        """Build provider public inventory
+        """Build public inventory from the specified Impex data provider.
 
         Parameters
         ----------
@@ -93,7 +97,7 @@ class ImpexProvider(DataProvider):
         Returns
         -------
         SpeasyIndex
-            root index
+            root index populated with public inventory
 
         """
         obs_data_tree = ImpexXMLParser.parse(self._get_obs_data_tree(), self.provider_name, self.name_mapping)
@@ -123,7 +127,7 @@ class ImpexProvider(DataProvider):
         return root
 
     def build_private_inventory(self, root: SpeasyIndex):
-        """Build provider private inventory
+        """Build private inventory, requires user authentication.
 
         Parameters
         ----------
@@ -133,7 +137,7 @@ class ImpexProvider(DataProvider):
         Returns
         -------
         SpeasyIndex
-            root index
+            root index populated with user private inventory
 
         """
         if self.client.credential_are_valid():
@@ -163,7 +167,7 @@ class ImpexProvider(DataProvider):
         return root
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
-        """Get product time range.
+        """Get parameter time range as defined in the inventory.
 
         Parameters
         ----------
@@ -184,7 +188,7 @@ class ImpexProvider(DataProvider):
         return self._parameter_range(parameter_id)
 
     def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
-        """Get product time range.
+        """Get dataset time range as defined in the inventory.
 
         Parameters
         ----------
@@ -205,7 +209,7 @@ class ImpexProvider(DataProvider):
         return self._dataset_range(dataset_id)
 
     def is_user_catalog(self, catalog_id: str or CatalogIndex):
-        """Test if a product is a user catalog
+        """Tels if a product is a user catalog
 
         Parameters
         ----------
@@ -221,7 +225,7 @@ class ImpexProvider(DataProvider):
         return ImpexProvider.is_user_product(catalog_id, flat_inventories.__dict__[self.provider_name].catalogs)
 
     def is_user_timetable(self, timetable_id: str or TimetableIndex):
-        """Test if a product is a user timetable
+        """Tels if a product is a user timetable
 
         Parameters
         ----------
@@ -237,7 +241,7 @@ class ImpexProvider(DataProvider):
         return ImpexProvider.is_user_product(timetable_id, flat_inventories.__dict__[self.provider_name].timetables)
 
     def is_user_parameter(self, parameter_id: str or ParameterIndex):
-        """Test if a product is a user parameter
+        """Tells if a product is a user parameter
 
         Parameters
         ----------
@@ -253,12 +257,14 @@ class ImpexProvider(DataProvider):
         return ImpexProvider.is_user_product(parameter_id, flat_inventories.__dict__[self.provider_name].parameters)
 
     def get_data(self, product, start_time=None, stop_time=None,
-                 **kwargs) -> Optional[Union[SpeasyVariable, TimeTable, Catalog, Dataset]]:
-        """Get product data by id.
+                 **kwargs) -> MaybeAnyProduct:
+        """Get product data by id, start and stop time if applicable. The product can be a parameter, a dataset, a
+        catalog or a timetable. The method will automatically determine the product type and call the appropriate underlying
+        method.
 
         Parameters
         ----------
-        product: str or AMDAIndex
+        product: str or SpeasyIndex
             product id
         start_time: str or datetime.datetime
             desired data start time
@@ -267,8 +273,8 @@ class ImpexProvider(DataProvider):
 
         Returns
         -------
-        Optional[Union[SpeasyVariable, TimeTable, Catalog, Dataset]]
-            product data if available
+        MaybeAnyProduct
+            product data if available, None otherwise
 
         Examples
         --------
@@ -309,7 +315,7 @@ class ImpexProvider(DataProvider):
 
         Parameters
         ----------
-        parameter_id: str or AMDAParameterIndex
+        parameter_id: str or ParameterIndex
             parameter id
         start_time: datetime or str
             begining of data time
@@ -350,7 +356,7 @@ class ImpexProvider(DataProvider):
 
         Parameters
         ----------
-        product: str or AMDAParameterIndex
+        product: str or ParameterIndex
             parameter id
         start_time:
             desired data start time
@@ -391,7 +397,7 @@ class ImpexProvider(DataProvider):
 
         Parameters
         ----------
-        dataset_id: str or AMDADatasetIndex
+        dataset_id: str or DatasetIndex
             dataset id
         start: str or datetime
             desired data start
@@ -458,7 +464,7 @@ class ImpexProvider(DataProvider):
 
         Parameters
         ----------
-        catalog_id: str or AMDACatalogIndex
+        catalog_id: str or CatalogIndex
             catalog id
 
         Returns
@@ -511,7 +517,7 @@ class ImpexProvider(DataProvider):
 
         Parameters
         ----------
-        catalog_id: str or AMDACatalogIndex
+        catalog_id: str or CatalogIndex
             catalog id
 
         Returns
@@ -537,11 +543,11 @@ class ImpexProvider(DataProvider):
         return self._dl_user_catalog(catalog_id, **kwargs)
 
     def product_type(self, product_id: str or SpeasyIndex) -> ImpexProductType:
-        """Returns product type for any known ADMA product from its index or ID.
+        """Returns product type for any known Impex product from its index or ID.
 
         Parameters
         ----------
-        product_id: str or AMDAIndex
+        product_id: str or SpeasyIndex
             product id
 
         Returns
@@ -591,12 +597,12 @@ class ImpexProvider(DataProvider):
         return False
 
     def list_datasets(self) -> List[DatasetIndex]:
-        """Get the list of dataset id available in AMDA_Webservice
+        """Get the list of datasets available
 
         Returns
         -------
-        List[AMDADatasetIndex]
-            list if dataset ids
+        List[DatasetIndex]
+            list of dataset indexes
 
         Examples
         --------

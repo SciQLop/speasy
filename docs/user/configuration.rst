@@ -1,5 +1,5 @@
-Speasy configuration
-====================
+Configuration
+=============
 
 Speasy is configured using the config module or setting environment variables or editing an ini file.
 The default location can be found by running:

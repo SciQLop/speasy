@@ -261,7 +261,7 @@ def get_data(*args, **kwargs) -> MaybeAnyProduct:
         Either a time independent or a list of time independent indexes or any combination of time dependent or list of
         time dependent indexes plus a datetime range or a list of datetime ranges. See examples below for more details.
     kwargs :
-        For webservice specific keyword arguments check :doc:`/user/webservices`.
+        For webservice specific keyword arguments check :doc:`/user/data_providers`.
 
         - disable_proxy: bool
             ignore proxy configuration and always bypass proxy server when True (default: False).
