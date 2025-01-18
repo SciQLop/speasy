@@ -257,18 +257,6 @@ class SpeasyVariable(SpeasyProduct):
         else:
             return self.values.__ne__(other)
 
-    def __le__(self, other):
-        return self.values.__le__(other)
-
-    def __lt__(self, other):
-        return self.values.__lt__(other)
-
-    def __ge__(self, other):
-        return self.values.__ge__(other)
-
-    def __gt__(self, other):
-        return self.values.__gt__(other)
-
     def __len__(self):
         return len(self.__axes[0])
 
@@ -278,8 +266,11 @@ class SpeasyVariable(SpeasyProduct):
                 slice(_to_index(key.start, self.time),
                       _to_index(key.stop, self.time))
             )
-        if type(key) in (list, tuple) and all(map(lambda v: type(v) is str, key)):
-            return self.filter_columns(key)
+        if type(key) in (list, tuple):
+            if type(key[0]) is np.ndarray:
+                return self.view(key[0])
+            elif all(map(lambda v: type(v) is str, key)):
+                return self.filter_columns(key)
         if type(key) is str and key in self.__columns:
             return self.filter_columns([key])
         if type(key) is np.ndarray:

@@ -192,6 +192,12 @@ class SpeasyVariableSlice(unittest.TestCase):
         self.assertTrue(np.all(np.isnan(var.values[:4])))
         self.assertTrue(not np.any(np.isnan(var.values[4:])))
 
+    def test_can_index_with_np_where(self):
+        var = make_simple_var(1., 10., 1., 1.)
+        sliced = var[np.where(var > 5)]
+        self.assertEqual(len(sliced), 4)
+        self.assertTrue(np.all(sliced.values > 5))
+
 
 @ddt
 class SpeasyVariableMerge(unittest.TestCase):
