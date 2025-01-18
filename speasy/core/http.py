@@ -90,7 +90,7 @@ class _HttpVerb:
         # self._http.mount("http://", self._adapter)
         self._verb = partial(pool.request, method=verb, retries=retry_strategy)
 
-    @ApplyRewriteRules()
+    @ApplyRewriteRules(is_method=True)
     def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
         # self._adapter.timeout = timeout
         headers = headers or {}
