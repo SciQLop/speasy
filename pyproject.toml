@@ -31,8 +31,23 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dependencies = ['requests', 'pandas', 'diskcache', 'appdirs', 'numpy', 'packaging', 'python-dateutil',
-    'astropy', 'astroquery', 'pyistp>=0.7.0', 'tqdm', 'matplotlib', 'urllib3>=1.26.0', "PyYAML", "scipy"]
+dependencies = ['PyYAML',
+ 'appdirs',
+ 'astropy',
+ 'astroquery',
+ 'diskcache',
+ 'humanize',
+ 'matplotlib',
+ 'numpy',
+ 'packaging',
+ 'pandas',
+ 'pyistp>=0.7.0',
+ 'python-dateutil',
+ 'requests',
+ 'scipy',
+ 'tqdm',
+ 'urllib3>=1.26.0']
+
 
 [project.urls]
 homepage = "https://github.com/SciQLop/speasy"

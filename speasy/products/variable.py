@@ -5,14 +5,6 @@ import astropy.table
 import astropy.units
 import numpy as np
 import pandas as pds
-import humanize
-
-try:
-    from IPython.lib.pretty import pretty, CallExpression
-
-    _have_ipython = True
-except ImportError:
-    _have_ipython = False
 
 from speasy.core.data_containers import (
     DataContainer,
@@ -29,10 +21,12 @@ def _values(input: "SpeasyVariable" or Any) -> Any:
         return input.values
     return input
 
+
 def _name(input: "SpeasyVariable" or Any) -> str:
     if isinstance(input, SpeasyVariable):
         return input.name
     return str(input)
+
 
 def _np_build_result_name(func, *args, **kwargs):
     return f"{func.__name__}({', '.join(map(_name, args))}{', ' * bool(kwargs)}{', '.join([f'{k}={_name(v)}' for k, v in kwargs.items()])})"
@@ -82,9 +76,6 @@ def _check_extra_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], val
 def _check_axes(axes: List[VariableAxis or VariableTimeAxis], values: DataContainer):
     _check_time_axis(axes[0], values)
     _check_extra_axes(axes[0], axes[1:], values)
-
-
-
 
 
 class SpeasyVariable(SpeasyProduct):
@@ -912,6 +903,7 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     def _repr_pretty_(self, p, cycle):
+        import humanize
         if cycle:
             p.text("SpeasyVariable(...)")
         else:
