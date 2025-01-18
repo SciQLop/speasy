@@ -100,13 +100,33 @@ def apply_rewrite_rules(url: str) -> str:
             return _REWRITE_RULES_[base_url] + url[len(base_url):]
     return url
 
+
 class ApplyRewriteRules:
-    def __call__(self, f:Callable):
+
+    def __init__(self, is_method: bool = False):
+        self.is_method = is_method
+
+    def __call__(self, f: Callable):
         @wraps(f)
-        def wrapper(url:str, *args, **kwargs):
+        def wrapper(*args, **kwargs):
+            if self.is_method:
+                wrapped_self = args[0]
+                args = args[1:]
+            if 'url' in kwargs:
+                url = kwargs.pop('url')
+            elif len(args):
+                url = args[0]
+                args = args[1:]
+            else:
+                url = None
             if url is not None:
-                return f(apply_rewrite_rules(url), *args, **kwargs)
+                url = apply_rewrite_rules(url)
+            if self.is_method:
+                return f(wrapped_self, url, *args, **kwargs)
             return f(url, *args, **kwargs)
+
+        return wrapper
+
 
 def extract_path(url: str) -> str:
     return urlparse(url).path
