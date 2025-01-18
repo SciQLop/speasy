@@ -7,7 +7,7 @@ from multiprocessing import dummy
 
 import numpy as np
 import speasy as spz
-from speasy.webservices.cda._direct_archive import to_direct_archive_params
+from speasy.data_providers.cda._direct_archive import to_direct_archive_params
 from speasy.core.direct_archive_downloader.direct_archive_downloader import apply_date_format
 from ddt import data, ddt, unpack
 
