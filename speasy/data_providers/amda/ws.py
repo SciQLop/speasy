@@ -177,7 +177,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        parameter_id: str or AMDAParameterIndex
+        parameter_id: str or ParameterIndex
             parameter id
 
         Returns
@@ -223,7 +223,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        catalog_id: str or AMDACatalogIndex
+        catalog_id: str or CatalogIndex
             catalog id
 
         Returns
@@ -247,7 +247,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        timetable_id: str
+        timetable_id: str or TimetableIndex
             timetable id
 
         Returns
@@ -277,7 +277,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        catalog_id: str or AMDACatalogIndex
+        catalog_id: str or CatalogIndex
             catalog id
 
         Returns
@@ -318,7 +318,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        product: str or AMDAParameterIndex
+        product: str or ParameterIndex
             parameter id
         start_time:
             desired data start time
