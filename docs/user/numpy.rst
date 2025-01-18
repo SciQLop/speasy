@@ -57,6 +57,16 @@ Speasy variables support several indexing methods, including boolean indexing:
     >>> import speasy as spz
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
     >>> ace_mag[ace_mag > 0]
-    <speasy.products.variable.SpeasyVariable object at 0x7f8b3c1b3d90>
-    >>> ace_mag[ace_mag[:, 0] > 0].shape
-    (8100, 3)
+    <speasy.products.variable.SpeasyVariable object at ...>
+    >>> ace_mag[ace_mag > 0].shape, ace_mag.shape
+    ((1157, 3), (16200, 3))
+
+You can also use integer indexing as with :meth:`numpy.where(...) <numpy.where>`:
+
+    >>> import numpy as np
+    >>> import speasy as spz
+    >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+    >>> ace_mag[np.where(ace_mag>0)]
+    <speasy.products.variable.SpeasyVariable object at ...>
+    >>> ace_mag[np.where(ace_mag>0)].shape, ace_mag.shape
+    ((1157, 3), (16200, 3))
