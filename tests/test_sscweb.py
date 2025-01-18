@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import numpy as np
 from ddt import data, ddt
 
-from speasy.webservices import ssc
+from speasy.data_providers import ssc
 from speasy.products import SpeasyVariable
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
