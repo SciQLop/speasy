@@ -32,7 +32,7 @@ In the following example, np.mean and np.std return scalar values:
     >>> mag_divided_offset = ace_mag / 3 + 50
     >>> np.mean(ace_mag) - np.mean(mag_divided_offset)
     np.float32(-49.76359)
-    >> np.std(ace_mag) / np.std(mag_divided_offset)
+    >>> np.std(ace_mag) / np.std(mag_divided_offset)
     np.float32(3.0)
 
 In the following example, np.linalg.norm returns a Speasy variable with the same number of rows as the input variable:
