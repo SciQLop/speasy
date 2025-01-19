@@ -33,14 +33,14 @@ Even more complex interpolations are supported, such as interpolating multiple v
     >>> import numpy as np
     >>> mms1_products = spz.inventories.tree.cda.MMS.MMS1
     >>> b, Tperp, Tpara = spz.get_data(
-    >>>    [
-    >>>         mms1_products.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2,
-    >>>         mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_tempperp_fast,
-    >>>         mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_temppara_fast
-    >>>     ],
-    >>>     '2017-01-01T02:00:00',
-    >>>     '2017-01-01T02:00:15'
-    >>> )
+    ...    [
+    ...         mms1_products.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2,
+    ...         mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_tempperp_fast,
+    ...         mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_temppara_fast
+    ...     ],
+    ...     '2017-01-01T02:00:00',
+    ...     '2017-01-01T02:00:15'
+    ... )
     >>> Tperp_interp, Tpara_interp = resampling.interpolate(b, [Tperp, Tpara])
     >>> Tperp_interp.shape, Tpara_interp.shape, b.shape
     ((240, 1), (240, 1), (240, 4))
