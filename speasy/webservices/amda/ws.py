@@ -54,7 +54,7 @@ def _amda_replace_arguments_in_template(product: ParameterIndex, additional_argu
 def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
     product_id = to_xmlid(product_id)
     product = flat_inventories.__dict__[amda_provider_name].parameters[product_id]
-    if hasattr(product, 'template'):
+    if hasattr(product, 'template') and not hasattr(product, 'predefined'):
         additional_arguments = kwargs.get('additional_arguments', {})
         if not hasattr(product, 'arguments'):
             return product_id
