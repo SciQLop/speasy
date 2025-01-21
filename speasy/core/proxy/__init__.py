@@ -83,7 +83,6 @@ class GetProduct:
 
     @staticmethod
     def get(path: str, start_time: str, stop_time: str, **kwargs):
-        print(kwargs)
         url = proxy_cfg.url()
         if url.endswith("/"):
             url = url[:-1]

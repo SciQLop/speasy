@@ -1,6 +1,6 @@
 """
 """
-
+import json
 import logging
 from datetime import datetime
 from typing import Dict, Optional
@@ -40,10 +40,12 @@ amda_name_mapping = {
 def _amda_replace_arguments_in_template(product: ParameterIndex, additional_arguments: Dict):
     product_id = product.template
     for k, v in product.arguments.items():
-        print(v)
         if v['type'] == 'list':
             if additional_arguments[k] not in v['items'].keys():
-                raise BadTemplateArgDefinition()
+                raise BadTemplateArgDefinition(f"""Additional arguments definition for this parameter is:
+{json.dumps(product.arguments, indent=2)}
+
+{k} must be in the list: {", ".join(map(str,v['items'].keys()))}""")
         product_id = product_id.replace(f'##{k}##', str(additional_arguments[k]))
 
     return product_id
@@ -56,10 +58,22 @@ def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
         additional_arguments = kwargs.get('additional_arguments', {})
         if not hasattr(product, 'arguments'):
             return product_id
-        real_product_id = product.template
+        missing_arguments = []
+        default_arguments = {}
         for k, v in product.arguments.items():
+            default_arguments[k] = v['default']
             if k not in additional_arguments:
-                raise MissingTemplateArgs()
+                missing_arguments.append(k)
+
+        if missing_arguments:
+            raise MissingTemplateArgs(f"""Parameter {product_id} requires additional arguments to be used:
+{json.dumps(product.arguments, indent=2)}
+
+For example:
+===========================================================================
+    data = spz.get_data(PRODUCT, START, STOP, additional_arguments={json.dumps(default_arguments)})
+===========================================================================
+""")
         real_product_id = _amda_replace_arguments_in_template(product, additional_arguments)
     else:
         real_product_id = product_id
@@ -76,9 +90,12 @@ def _amda_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
 
 
 def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> Dict:
-    return {'path': f"{amda_provider_name}/{product}", 'start_time': f'{start_time.isoformat()}',
+    proxy_args = {'path': f"{amda_provider_name}/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}',
             'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}
+    if kwargs.get('additional_arguments') and isinstance(kwargs.get('additional_arguments'), Dict):
+        proxy_args['additional_arguments'] = json.dumps(kwargs.get('additional_arguments'))
+    return proxy_args
 
 
 class AMDA_Webservice(ImpexProvider):
