@@ -127,6 +127,13 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.name, 'jedi_i90_flux_4')
 
+    def test_get_predefined_templated_parameter(self):
+        start_date = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        stop_date = datetime(2024, 1, 1, 1, 0, 0, tzinfo=timezone.utc)
+        parameter_id = "b_jrm33_con_60_1_juno_jup_xyz"
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
+        self.assertIsNotNone(result)
+
     def test_list_datasets(self):
         result = spz.amda.list_datasets()
         self.assertTrue(len(result) != 0)
