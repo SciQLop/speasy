@@ -33,19 +33,36 @@ amda_name_mapping = {
     "dataset": "xmlid",
     "parameter": "xmlid",
     "folder": "name",
-    "component": "xmlid"
+    "component": "xmlid",
+    "argument": "key",
+    "item": "key"
 }
+
+
+def _amda_arguments_to_dict(index):
+    if isinstance(index, SpeasyIndex):
+        res = {}
+        for key, value in index.__dict__.items():
+            if isinstance(value, SpeasyIndex) or isinstance(value, str) and key in ['name', 'default', 'type']:
+                if index.spz_name() == 'items_list':
+                    key = value.key
+                res[key] = _amda_arguments_to_dict(value)
+        return res
+    elif type(index) is not str:
+        return str(index)
+    return index
 
 
 def _amda_replace_arguments_in_template(product: ParameterIndex, additional_arguments: Dict):
     product_id = product.template
-    for k, v in product.arguments.items():
+    parameter_arguments = _amda_arguments_to_dict(product.arguments)
+    for k, v in parameter_arguments.items():
         if v['type'] == 'list':
-            if additional_arguments[k] not in v['items'].keys():
+            if additional_arguments[k] not in v['items_list'].keys():
                 raise BadTemplateArgDefinition(f"""Additional arguments definition for this parameter is:
-{json.dumps(product.arguments, indent=2)}
+{json.dumps(parameter_arguments, indent=2)}
 
-{k} must be in the list: {", ".join(map(str,v['items'].keys()))}""")
+{k} must be in the list: {", ".join(map(str,v['items_list'].keys()))}""")
         product_id = product_id.replace(f'##{k}##', str(additional_arguments[k]))
 
     return product_id
@@ -60,14 +77,15 @@ def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
             return product_id
         missing_arguments = []
         default_arguments = {}
-        for k, v in product.arguments.items():
+        parameter_arguments = _amda_arguments_to_dict(product.arguments)
+        for k, v in parameter_arguments.items():
             default_arguments[k] = v['default']
             if k not in additional_arguments:
                 missing_arguments.append(k)
 
         if missing_arguments:
             raise MissingTemplateArgs(f"""Parameter {product_id} requires additional arguments to be used:
-{json.dumps(product.arguments, indent=2)}
+{json.dumps(parameter_arguments, indent=2)}
 
 For example:
 ===========================================================================

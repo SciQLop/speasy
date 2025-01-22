@@ -105,28 +105,29 @@ class ImpexXMLParser:
 
     @staticmethod
     def parse_template_arguments(parent, node, provider_name, name_key, is_public: bool = True):
-        parent.__dict__['arguments'] = {}
-        return parent.arguments
+        return ImpexXMLParser.make_any_node(parent, node, provider_name, SpeasyIndex, name_key=name_key,
+                                            is_public=is_public)
 
     @staticmethod
     def parse_template_argument(parent, node, provider_name, name_key, is_public: bool = True):
-        parent[node.get('key')] = {
-            'name': node.get('name'),
-            'type': node.get('type'),
-            'default': node.get('default')
-        }
-        if parent[node.get('key')]['type'] == 'generated-list':
-            parent[node.get('key')]['type'] = 'list'
-            parent[node.get('key')]['items'] = {k: node.get('nametpl').replace('##key##', str(k))
-                                                for k in range(int(node.get('minkey')), int(node.get('maxkey')))}
-        elif parent[node.get('key')]['type'] == 'list':
-            parent[node.get('key')]['items'] = {}
-        return parent[node.get('key')]
+        if node.get('type') == 'generated-list':
+            node.set('type', 'list')
+            for k in range(int(node.get('minkey')), int(node.get('maxkey'))):
+                # Inject item nodes to transform generated-list into list
+                item_node = Et.Element('item')
+                item_node.set('key', str(k))
+                item_node.set('name', node.get('nametpl').replace('##key##', str(k)))
+                node.append(item_node)
+        return ImpexXMLParser.make_any_node(parent, node, provider_name, SpeasyIndex, name_key=name_key,
+                                            is_public=is_public)
 
     @staticmethod
     def parse_template_argument_item(parent, node, provider_name, name_key, is_public: bool = True):
-        parent['items'][node.get('key')] = node.get('name')
-        return {}
+        if not hasattr(parent, 'items_list'):
+            parent.__dict__.update(
+                {'items_list': SpeasyIndex(name='items_list', provider=provider_name, uid='items_list')})
+        return ImpexXMLParser.make_any_node(parent.items_list, node, provider_name, SpeasyIndex, name_key=name_key,
+                                            is_public=is_public)
 
     @staticmethod
     def parse(xml, provider_name, name_mapping=None, is_public: bool = True):

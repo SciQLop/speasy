@@ -121,9 +121,9 @@ class PublicProductsRequests(unittest.TestCase):
             spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
         with self.assertRaises(BadTemplateArgDefinition):
             spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True,
-                                   additional_arguments={'lookdir': 100})
+                                   additional_arguments={'lookdir': "100"})
         result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True,
-                                        additional_arguments={'lookdir': 4})
+                                        additional_arguments={'lookdir': "4"})
         self.assertIsNotNone(result)
         self.assertEqual(result.name, 'jedi_i90_flux_4')
 
@@ -221,9 +221,9 @@ class AMDAModule(unittest.TestCase):
             flat_inventories.amda.update(root)
             self.assertIsNotNone(root)
             # grep -o -i '<parameter ' obsdatatree.xml | wc -l
-            self.assertEqual(len(spz.amda.list_parameters()), 4696)
+            self.assertEqual(len(spz.amda.list_parameters()), 5420)
             # grep -o -i '<dataset ' obsdatatree.xml | wc -l
-            self.assertEqual(len(spz.amda.list_datasets()), 935)
+            self.assertEqual(len(spz.amda.list_datasets()), 1046)
         spz.update_inventories()
 
     @data(
