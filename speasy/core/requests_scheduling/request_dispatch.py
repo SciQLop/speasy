@@ -32,9 +32,9 @@ ssc = None
 archive = None
 
 
-def init_amda():
+def init_amda(force=False):
     global amda
-    if 'amda' not in core_cfg.disabled_providers():
+    if force or 'amda' not in core_cfg.disabled_providers():
         if AMDA_Webservice.is_server_up():
             amda = AMDA_Webservice()
             sys.modules[__name__].amda = amda
@@ -43,9 +43,9 @@ def init_amda():
             log.warning(f"AMDA server {amda_cfg.entry_point()} is down, disabling AMDA provider")
 
 
-def init_csa():
+def init_csa(force=False):
     global csa
-    if 'csa' not in core_cfg.disabled_providers():
+    if force or 'csa' not in core_cfg.disabled_providers():
         if is_server_up(CSA_Webservice.BASE_URL):
             csa = CSA_Webservice()
             sys.modules[__name__].csa = csa
@@ -54,9 +54,9 @@ def init_csa():
             log.warning(f"CSA server {CSA_Webservice.BASE_URL} is down, disabling CSA provider")
 
 
-def init_cdaweb():
+def init_cdaweb(force=False):
     global cda
-    if not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
+    if force or not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
         if is_server_up(CDA_Webservice.BASE_URL):
             cda = CDA_Webservice()
             sys.modules[__name__].cda = cda
@@ -66,9 +66,9 @@ def init_cdaweb():
             log.warning(f"CDA server {CDA_Webservice.BASE_URL} is down, disabling CDA provider")
 
 
-def init_sscweb():
+def init_sscweb(force=False):
     global ssc
-    if not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
+    if force or not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
         if is_server_up(SSC_Webservice.BASE_URL):
             ssc = SSC_Webservice()
             sys.modules[__name__].ssc = ssc
@@ -78,21 +78,21 @@ def init_sscweb():
             log.warning(f"SSC server {SSC_Webservice.BASE_URL} is down, disabling SSC provider")
 
 
-def init_archive():
+def init_archive(force=False):
     global archive
-    if not core_cfg.disabled_providers().intersection({'archive', 'generic_archive'}):
+    if force or not core_cfg.disabled_providers().intersection({'archive', 'generic_archive'}):
         archive = GenericArchive()
         sys.modules[__name__].archive = archive
         PROVIDERS['archive'] = archive
         PROVIDERS['generic_archive'] = archive
 
 
-def init_providers():
-    init_amda()
-    init_csa()
-    init_cdaweb()
-    init_sscweb()
-    init_archive()
+def init_providers(force=False):
+    init_amda(force=force)
+    init_csa(force=force)
+    init_cdaweb(force=force)
+    init_sscweb(force=force)
+    init_archive(force=force)
 
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
