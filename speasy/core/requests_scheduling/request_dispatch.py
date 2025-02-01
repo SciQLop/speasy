@@ -32,9 +32,9 @@ ssc = None
 archive = None
 
 
-def init_amda(force=False):
+def init_amda(ignore_disabled_status=False):
     global amda
-    if force or 'amda' not in core_cfg.disabled_providers():
+    if ignore_disabled_status or 'amda' not in core_cfg.disabled_providers():
         if AMDA_Webservice.is_server_up():
             amda = AMDA_Webservice()
             sys.modules[__name__].amda = amda
@@ -43,9 +43,9 @@ def init_amda(force=False):
             log.warning(f"AMDA server {amda_cfg.entry_point()} is down, disabling AMDA provider")
 
 
-def init_csa(force=False):
+def init_csa(ignore_disabled_status=False):
     global csa
-    if force or 'csa' not in core_cfg.disabled_providers():
+    if ignore_disabled_status or 'csa' not in core_cfg.disabled_providers():
         if is_server_up(CSA_Webservice.BASE_URL):
             csa = CSA_Webservice()
             sys.modules[__name__].csa = csa
@@ -54,9 +54,9 @@ def init_csa(force=False):
             log.warning(f"CSA server {CSA_Webservice.BASE_URL} is down, disabling CSA provider")
 
 
-def init_cdaweb(force=False):
+def init_cdaweb(ignore_disabled_status=False):
     global cda
-    if force or not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
+    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
         if is_server_up(CDA_Webservice.BASE_URL):
             cda = CDA_Webservice()
             sys.modules[__name__].cda = cda
@@ -66,9 +66,9 @@ def init_cdaweb(force=False):
             log.warning(f"CDA server {CDA_Webservice.BASE_URL} is down, disabling CDA provider")
 
 
-def init_sscweb(force=False):
+def init_sscweb(ignore_disabled_status=False):
     global ssc
-    if force or not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
+    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
         if is_server_up(SSC_Webservice.BASE_URL):
             ssc = SSC_Webservice()
             sys.modules[__name__].ssc = ssc
@@ -78,21 +78,21 @@ def init_sscweb(force=False):
             log.warning(f"SSC server {SSC_Webservice.BASE_URL} is down, disabling SSC provider")
 
 
-def init_archive(force=False):
+def init_archive(ignore_disabled_status=False):
     global archive
-    if force or not core_cfg.disabled_providers().intersection({'archive', 'generic_archive'}):
+    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'archive', 'generic_archive'}):
         archive = GenericArchive()
         sys.modules[__name__].archive = archive
         PROVIDERS['archive'] = archive
         PROVIDERS['generic_archive'] = archive
 
 
-def init_providers(force=False):
-    init_amda(force=force)
-    init_csa(force=force)
-    init_cdaweb(force=force)
-    init_sscweb(force=force)
-    init_archive(force=force)
+def init_providers(ignore_disabled_status=False):
+    init_amda(ignore_disabled_status=ignore_disabled_status)
+    init_csa(ignore_disabled_status=ignore_disabled_status)
+    init_cdaweb(ignore_disabled_status=ignore_disabled_status)
+    init_sscweb(ignore_disabled_status=ignore_disabled_status)
+    init_archive(ignore_disabled_status=ignore_disabled_status)
 
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
