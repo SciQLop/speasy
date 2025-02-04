@@ -304,6 +304,10 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
     def nbytes(self) -> int:
         return self.__data.nbytes
 
+    @property
+    def meta(self) -> Dict:
+        return self.__data.meta
+
 
 class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
     __slots__ = ['__data']
@@ -381,3 +385,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
     @property
     def nbytes(self) -> int:
         return self.__data.nbytes
+
+    @property
+    def meta(self) -> Dict:
+        return self.__data.meta
