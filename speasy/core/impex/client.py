@@ -75,8 +75,11 @@ class ImpexClient:
     def in_progress(result):
         return result == "in progress"
 
-    def get_obs_data_tree(self, use_credentials=False):
-        params = {}
+    def get_obs_data_tree(self, use_credentials=False, **kwargs):
+        params = {
+        }
+        if kwargs.get('add_template_info', False):
+            params['templateInfo'] = True
         if use_credentials:
             params['userID'], params['password'] = self.get_credentials()
         return self._send_indirect_request(ImpexEndpoint.OBSTREE, params=params)
@@ -109,7 +112,7 @@ class ImpexClient:
         params = {
             'startTime': start_time,
             'stopTime': stop_time,
-            'parameterID': parameter_id,
+            'parameterID': kwargs.get('real_product_id', parameter_id),
             'outputFormat': kwargs.get('output_format', self.output_format)
         }
 

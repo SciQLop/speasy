@@ -5,7 +5,9 @@ import xml.etree.ElementTree as Et
 from ...core import fix_name
 from ...core.inventory.indexes import (CatalogIndex, ComponentIndex,
                                        DatasetIndex, ParameterIndex,
-                                       SpeasyIndex, TimetableIndex)
+                                       ArgumentListIndex, ArgumentIndex,
+                                       DerivedParameterIndex, SpeasyIndex,
+                                       TimetableIndex)
 
 
 def to_xmlid(index_or_str) -> str:
@@ -60,8 +62,13 @@ class ImpexXMLParser:
 
     @staticmethod
     def make_parameter_node(parent, node, provider_name, name_key, is_public: bool = True):
-        param = ImpexXMLParser.make_any_node(parent, node, provider_name, ParameterIndex, name_key=name_key,
-                                             is_public=is_public)
+        if arguments:=node.find('.//arguments'):
+            arguments.set('name', '__spz_arguments__')
+            param = ImpexXMLParser.make_any_node(parent, node, provider_name, DerivedParameterIndex, name_key=name_key,
+                                                 is_public=is_public)
+        else:
+            param = ImpexXMLParser.make_any_node(parent, node, provider_name, ParameterIndex, name_key=name_key,
+                                                 is_public=is_public)
         if isinstance(parent, DatasetIndex):
             param.start_date = parent.start_date
             param.stop_date = parent.stop_date
@@ -104,6 +111,30 @@ class ImpexXMLParser:
                                             is_public=is_public)
 
     @staticmethod
+    def parse_template_arguments(parent, node, provider_name, name_key, is_public: bool = True):
+        return ImpexXMLParser.make_any_node(parent, node, provider_name, ArgumentListIndex, name_key=name_key,
+                                            is_public=is_public)
+
+    @staticmethod
+    def parse_template_argument(parent, node, provider_name, name_key, is_public: bool = True):
+        if node.get('type') == 'list':
+            choices = []
+            for item in node.findall('.//item'):
+                choices.append((item.get('name'), item.get('key')))
+                node.remove(item)
+            node.set('choices', choices)
+        elif node.get('type') == 'generated-list':
+            node.set('type', 'list')
+            choices = []
+            for k in range(int(node.get('minkey')), int(node.get('maxkey'))):
+                choices.append((node.get('nametpl').replace('##key##', str(k), 1), str(k)))
+            node.set('choices', choices)
+
+        return ImpexXMLParser.make_any_node(parent, node, provider_name, ArgumentIndex, name_key=name_key,
+                                            is_public=is_public)
+
+
+    @staticmethod
     def parse(xml, provider_name, name_mapping=None, is_public: bool = True):
         handlers = {
             'mission': ImpexXMLParser.make_path_node,
@@ -117,6 +148,8 @@ class ImpexXMLParser:
             'timetab': ImpexXMLParser.make_timetable_node,
             'catalog': ImpexXMLParser.make_catalog_node,
             'param': ImpexXMLParser.make_user_parameter_node,
+            'arguments': ImpexXMLParser.parse_template_arguments,
+            'argument': ImpexXMLParser.parse_template_argument
         }
 
         def _recursive_parser(parent, node, is_node_public):

@@ -13,7 +13,7 @@ from speasy.config import amda as amda_cfg
 from speasy.inventories import flat_inventories
 from speasy.products import SpeasyVariable
 from speasy.core.impex import ImpexProductType
-from speasy.core.impex.exceptions import MissingCredentials
+from speasy.core.impex.exceptions import MissingCredentials, BadTemplateArgDefinition
 from speasy.core.impex.parser import ImpexXMLParser, to_xmlid
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
@@ -113,6 +113,27 @@ class PublicProductsRequests(unittest.TestCase):
         self.assertEqual(r.unit, "nT")
         self.assertIsNotNone(r)
 
+    def test_get_templated_parameter(self):
+        start_date = datetime(2023, 1, 4, 7, 51, 0, tzinfo=timezone.utc)
+        stop_date = datetime(2023, 1, 4, 7, 52, 00, tzinfo=timezone.utc)
+        parameter_id = "jedi_i90_flux"
+        with self.assertWarnsRegex(Warning, 'Argument .* is not provided, using default value'):
+            spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
+        with self.assertRaises(BadTemplateArgDefinition):
+            spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True,
+                                   product_inputs={'lookdir': "100"})
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True,
+                                        product_inputs={'lookdir': "4"})
+        self.assertIsNotNone(result)
+        self.assertEqual(result.name, 'jedi_i90_flux_4')
+
+    def test_get_predefined_templated_parameter(self):
+        start_date = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        stop_date = datetime(2024, 1, 1, 1, 0, 0, tzinfo=timezone.utc)
+        parameter_id = "b_jrm33_con_60_1_juno_jup_xyz"
+        result = spz.amda.get_parameter(parameter_id, start_date, stop_date, disable_proxy=True, disable_cache=True)
+        self.assertIsNotNone(result)
+
     def test_list_datasets(self):
         result = spz.amda.list_datasets()
         self.assertTrue(len(result) != 0)
@@ -200,9 +221,9 @@ class AMDAModule(unittest.TestCase):
             flat_inventories.amda.update(root)
             self.assertIsNotNone(root)
             # grep -o -i '<parameter ' obsdatatree.xml | wc -l
-            self.assertEqual(len(spz.amda.list_parameters()), 4696)
+            self.assertEqual(len(spz.amda.list_parameters()), 5420)
             # grep -o -i '<dataset ' obsdatatree.xml | wc -l
-            self.assertEqual(len(spz.amda.list_datasets()), 935)
+            self.assertEqual(len(spz.amda.list_datasets()), 1046)
         spz.update_inventories()
 
     @data(

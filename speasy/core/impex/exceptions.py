@@ -4,3 +4,7 @@ class MissingCredentials(Exception):
 
 class UnavailableEndpoint(Exception):
     pass
+
+
+class BadTemplateArgDefinition(Exception):
+    pass
