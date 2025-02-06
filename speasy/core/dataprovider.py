@@ -8,7 +8,7 @@ from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex, inventory_has_changed)
-from speasy.core.proxy import GetInventory, Proxyfiable
+from speasy.core.proxy import GetInventory, Proxyfiable, MINIMUM_REQUIRED_PROXY_VERSION
 from speasy.inventories import flat_inventories, tree
 
 log = logging.getLogger(__name__)
@@ -37,11 +37,13 @@ def _get_inventory_args(provider_name, **kwargs):
 
 
 class DataProvider:
-    def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False):
+    def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False,
+                 min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name
         self._inventory_disable_proxy = inventory_disable_proxy
         self.provider_alt_names = provider_alt_names or []
         self.flat_inventory = ProviderInventory()
+        self.min_proxy_version = min_proxy_version
         flat_inventories.__dict__[provider_name] = self.flat_inventory
         for alt_name in self.provider_alt_names:
             flat_inventories.__dict__[alt_name] = self.flat_inventory
@@ -61,7 +63,8 @@ class DataProvider:
         lock = Lock()
         with lock:
             new_inventory = self._inventory(provider_name=self.provider_name,
-                                            disable_proxy=self._inventory_disable_proxy)
+                                            disable_proxy=self._inventory_disable_proxy,
+                                            min_proxy_version=self.min_proxy_version)
             if inventory_has_changed(tree.__dict__.get(self.provider_name, SpeasyIndex("", "", "")), new_inventory):
                 if self.provider_name in tree.__dict__:
                     tree.__dict__[self.provider_name].clear()
