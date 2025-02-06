@@ -87,6 +87,15 @@ class SpeasyGetData(unittest.TestCase):
             "product": spz.inventories.data_tree.ssc.Trajectories.ace,
             "start_time": '2018-06-01',
             "stop_time": '2018-06-02'
+        },
+        {
+            "product": 'amda/jedi_i90_flux',
+            "start_time": '2023-01-04T07:51',
+            "stop_time": '2023-01-04T07:52',
+            "disable_proxy": True,
+            "product_inputs": {
+                'lookdir': "1"
+            }
         }
     )
     def test_get_data(self, kw):

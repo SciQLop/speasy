@@ -13,9 +13,10 @@ from ...core.dataprovider import (DataProvider)
 
 from ...core import make_utc_datetime
 
-from ...core.inventory.indexes import ComponentIndex, DatasetIndex, ParameterIndex, SpeasyIndex, \
-                                      TimetableIndex, CatalogIndex
+from ...core.inventory.indexes import (ComponentIndex, DatasetIndex, ParameterIndex, SpeasyIndex,
+                                       TimetableIndex, CatalogIndex, TemplatedParameterIndex, AnyProductIndex)
 from ...core.codecs import get_codec
+from ...core.proxy import MINIMUM_REQUIRED_PROXY_VERSION
 from ...products.variable import SpeasyVariable, merge, DataContainer
 from ...products.catalog import Catalog
 from ...products.dataset import Dataset
@@ -26,8 +27,7 @@ from ...inventories import flat_inventories
 from .parser import ImpexXMLParser, to_xmlid
 from .client import ImpexClient, ImpexEndpoint
 from .utils import load_catalog, load_timetable, is_private, is_public
-from .exceptions import MissingCredentials, MissingTemplateArgs
-
+from .exceptions import MissingCredentials
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +45,8 @@ class ImpexProductType(Enum):
 
 class ImpexProvider(DataProvider):
     def __init__(self, provider_name: str, server_url: str, max_chunk_size_days: int = 10, capabilities: List = None,
-                 username: str = "", password: str = "", name_mapping: Dict = None, output_format: str = 'CDF'):
+                 username: str = "", password: str = "", name_mapping: Dict = None, output_format: str = 'CDF',
+                 min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name
         self.server_url = server_url
         self.client = ImpexClient(capabilities=capabilities, server_url=server_url,
@@ -55,7 +56,7 @@ class ImpexProvider(DataProvider):
         self.max_chunk_size_days = max_chunk_size_days
         self.name_mapping = name_mapping
         self._cdf_codec = get_codec('application/x-cdf')
-        DataProvider.__init__(self, provider_name=provider_name)
+        DataProvider.__init__(self, provider_name=provider_name, min_proxy_version=min_proxy_version)
 
     def reset_credentials(self, username: str = "", password: str = ""):
         """Reset user credentials and update the inventory by replacing the information contained in the configuration
@@ -573,16 +574,35 @@ class ImpexProvider(DataProvider):
 
         return ImpexProductType.UNKNOWN
 
-    def find_parent_dataset(self, product_id: Union[str, DatasetIndex, ParameterIndex,
-                                                    ComponentIndex]) -> Optional[str]:
-        product_id = to_xmlid(product_id)
-        product_type = self.product_type(product_id)
-        if product_type is ImpexProductType.DATASET:
+    def to_index(self, product_id: str or SpeasyIndex) -> AnyProductIndex:
+        if type(product_id) in (
+            DatasetIndex, ParameterIndex, TemplatedParameterIndex, ComponentIndex, TimetableIndex, CatalogIndex):
             return product_id
-        elif product_type in (ImpexProductType.COMPONENT, ImpexProductType.PARAMETER):
-            for dataset in flat_inventories.__dict__[self.provider_name].datasets.values():
-                if product_id in dataset:
-                    return to_xmlid(dataset)
+        elif type(product_id) is str:
+            if p := flat_inventories.__dict__[self.provider_name].datasets.get(product_id):
+                return p
+            if p := flat_inventories.__dict__[self.provider_name].parameters.get(product_id):
+                return p
+            if p := flat_inventories.__dict__[self.provider_name].components.get(product_id):
+                return p
+            if p := flat_inventories.__dict__[self.provider_name].timetables.get(product_id):
+                return p
+            if p := flat_inventories.__dict__[self.provider_name].catalogs.get(product_id):
+                return p
+        raise ValueError(f"Unknown product: {product_id}")
+
+    def find_parent_dataset(
+        self,
+        product_id: Union[str, DatasetIndex, ParameterIndex, TemplatedParameterIndex, ComponentIndex]
+    ) -> Optional[str]:
+
+        product_id = to_xmlid(product_id)
+        product = self.to_index(product_id)
+        if isinstance(product, DatasetIndex):
+            return product_id
+        elif type(product) in (ParameterIndex, ComponentIndex, TemplatedParameterIndex):
+            return product.dataset
+        return None
 
     @staticmethod
     def is_user_product(product_id: str or SpeasyIndex, collection: Dict):

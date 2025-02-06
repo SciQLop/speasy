@@ -2,6 +2,8 @@
 """
 import json
 import logging
+import warnings
+import os
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -11,17 +13,16 @@ from ...core.http import is_server_up
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
 from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, ParameterRangeCheck)
 from ...core.datetime_range import DateTimeRange
-from ...core.inventory.indexes import (CatalogIndex, ParameterIndex,
-                                       SpeasyIndex, TimetableIndex)
-from ...core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
+from ...core.inventory.indexes import (CatalogIndex, ParameterIndex, TemplatedParameterIndex,
+                                       SpeasyIndex, TimetableIndex, ArgumentIndex)
+from ...core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable, Version
 from ...inventories import flat_inventories
 from ...products.catalog import Catalog
 from ...products.timetable import TimeTable
 from ...products.variable import SpeasyVariable
 
 from ...core.impex import ImpexProvider, ImpexEndpoint, to_xmlid
-from ...core.impex.exceptions import MissingTemplateArgs, BadTemplateArgDefinition
-
+from ...core.impex.exceptions import BadTemplateArgDefinition
 
 log = logging.getLogger(__name__)
 
@@ -34,9 +35,12 @@ amda_name_mapping = {
     "parameter": "xmlid",
     "folder": "name",
     "component": "xmlid",
+    "arguments": "name",
     "argument": "key",
     "item": "key"
 }
+
+AMDA_MIN_PROXY_VERSION = Version("0.12.0")
 
 
 def _amda_arguments_to_dict(index):
@@ -53,46 +57,45 @@ def _amda_arguments_to_dict(index):
     return index
 
 
-def _amda_replace_arguments_in_template(product: ParameterIndex, additional_arguments: Dict):
+def _argument_fits_allowed_values(value:str, argument_desc:ArgumentIndex):
+    if argument_desc.type == 'list':
+        return value in list(zip(*argument_desc.choices))[1]
+    return True
+
+def _stack_level_outside_of_speasy():
+    import inspect
+    import speasy as spz
+    level = 0
+    for frame in inspect.stack():
+        if os.path.dirname(spz.__file__) not in frame.filename:
+            return level
+        level += 1
+    return level
+
+def _amda_replace_arguments_in_template(product: TemplatedParameterIndex, product_inputs: Dict[str,str]):
     product_id = product.template
-    parameter_arguments = _amda_arguments_to_dict(product.arguments)
-    for k, v in parameter_arguments.items():
-        if v['type'] == 'list':
-            if additional_arguments[k] not in v['items_list'].keys():
-                raise BadTemplateArgDefinition(f"""Additional arguments definition for this parameter is:
-{json.dumps(parameter_arguments, indent=2)}
-
-{k} must be in the list: {", ".join(map(str,v['items_list'].keys()))}""")
-        product_id = product_id.replace(f'##{k}##', str(additional_arguments[k]))
-
+    for arg in product.spz_arguments():
+        k = arg.key
+        v = product_inputs.get(k)
+        if v is None:
+            v = arg.default
+            import speasy as spz
+            warnings.warn(f"""Argument {arg.key} is not provided, using default value {v}
+You can set Derived Parameters inputs using:
+spz.get_data("amda/{product.spz_uid()}, start_time, stop_time, product_inputs={{'{k}': '{arg.default}' }})
+""", category=RuntimeWarning, stacklevel=_stack_level_outside_of_speasy())
+        if arg.type == 'list' and  not _argument_fits_allowed_values(v, arg):
+                raise BadTemplateArgDefinition(f"""Argument {arg.key} has value {v} which is not in the allowed values {arg.choices}""")
+        product_id = product_id.replace(f'##{k}##', str(v), 1)
     return product_id
 
 
 def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
     product_id = to_xmlid(product_id)
     product = flat_inventories.__dict__[amda_provider_name].parameters[product_id]
-    if hasattr(product, 'template') and not hasattr(product, 'predefined'):
-        additional_arguments = kwargs.get('additional_arguments', {})
-        if not hasattr(product, 'arguments'):
-            return product_id
-        missing_arguments = []
-        default_arguments = {}
-        parameter_arguments = _amda_arguments_to_dict(product.arguments)
-        for k, v in parameter_arguments.items():
-            default_arguments[k] = v['default']
-            if k not in additional_arguments:
-                missing_arguments.append(k)
-
-        if missing_arguments:
-            raise MissingTemplateArgs(f"""Parameter {product_id} requires additional arguments to be used:
-{json.dumps(parameter_arguments, indent=2)}
-
-For example:
-===========================================================================
-    data = spz.get_data(PRODUCT, START, STOP, additional_arguments={json.dumps(default_arguments)})
-===========================================================================
-""")
-        real_product_id = _amda_replace_arguments_in_template(product, additional_arguments)
+    if isinstance(product, TemplatedParameterIndex) and not hasattr(product, 'predefined'):
+        product_inputs = kwargs.get('product_inputs', {})
+        real_product_id = _amda_replace_arguments_in_template(product, product_inputs)
     else:
         real_product_id = product_id
     return real_product_id
@@ -109,8 +112,8 @@ def _amda_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
 
 def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> Dict:
     proxy_args = {'path': f"{amda_provider_name}/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}',
-            'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}
+                  'stop_time': f'{stop_time.isoformat()}',
+                  'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}
     if kwargs.get('additional_arguments') and isinstance(kwargs.get('additional_arguments'), Dict):
         proxy_args['additional_arguments'] = json.dumps(kwargs.get('additional_arguments'))
     return proxy_args
@@ -118,11 +121,11 @@ def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, pr
 
 class AMDA_Webservice(ImpexProvider):
     def __init__(self):
-        ImpexProvider.__init__(self, provider_name=amda_provider_name, server_url=amda_cfg.entry_point()+"/php/rest",
+        ImpexProvider.__init__(self, provider_name=amda_provider_name, server_url=amda_cfg.entry_point() + "/php/rest",
                                max_chunk_size_days=amda_cfg.max_chunk_size_days(),
                                capabilities=amda_capabilities, name_mapping=amda_name_mapping,
                                username=amda_cfg.username(), password=amda_cfg.password(),
-                               output_format=amda_cfg.output_format())
+                               output_format=amda_cfg.output_format(), min_proxy_version=AMDA_MIN_PROXY_VERSION)
 
     @staticmethod
     def is_server_up():
@@ -300,12 +303,12 @@ class AMDA_Webservice(ImpexProvider):
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS +
-        ['output_format', 'restricted_period', 'additional_arguments'])
+        ['output_format', 'restricted_period', 'product_inputs'])
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix=amda_provider_name, version=product_version, fragment_hours=lambda x: 12,
                entry_name=_amda_cache_entry_name)
-    @Proxyfiable(GetProduct, _amda_get_proxy_parameter_args)
+    @Proxyfiable(GetProduct, _amda_get_proxy_parameter_args, min_version=AMDA_MIN_PROXY_VERSION)
     def _get_parameter(self, product, start_time, stop_time,
                        extra_http_headers: Dict or None = None, output_format: str or None = None,
                        restricted_period=False, **kwargs) -> \

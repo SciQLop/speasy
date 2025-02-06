@@ -1,5 +1,5 @@
 from typing import Dict, Callable
-from .indexes import ParameterIndex, DatasetIndex, TimetableIndex, ComponentIndex, CatalogIndex, SpeasyIndex
+from .indexes import ParameterIndex, DatasetIndex, TimetableIndex, ComponentIndex, CatalogIndex, SpeasyIndex,TemplatedParameterIndex
 
 
 class ProviderInventory:
@@ -23,6 +23,7 @@ class ProviderInventory:
         self.components = {}
         self._type_lookup = {
             ParameterIndex: lambda node: self.parameters.__setitem__(node.spz_uid(), node),
+            TemplatedParameterIndex: lambda node: self.parameters.__setitem__(node.spz_uid(), node),
             DatasetIndex: lambda node: self.datasets.__setitem__(node.spz_uid(), node),
             TimetableIndex: lambda node: self.timetables.__setitem__(node.spz_uid(), node),
             ComponentIndex: lambda node: self.components.__setitem__(node.spz_uid(), node),
