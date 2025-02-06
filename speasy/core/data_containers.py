@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from sys import getsizeof
 from typing import Dict, List, Protocol, TypeVar, Union
 
@@ -15,7 +15,8 @@ def _to_index(key, time):
     if isinstance(key, float):
         return np.searchsorted(time, np.datetime64(int(key * 1e9), 'ns'), side='left')
     if isinstance(key, datetime):
-        return np.searchsorted(time, np.datetime64(key, 'ns'), side='left')
+        without_tz = key.astimezone(timezone.utc).replace(tzinfo=None)
+        return np.searchsorted(time, np.datetime64(without_tz, 'ns'), side='left')
     if isinstance(key, np.datetime64):
         return np.searchsorted(time, key, side='left')
 
@@ -194,6 +195,10 @@ class DataContainer(DataContainerProtocol['DataContainer']):
                              values=np.empty_like(other.__values, dtype=other.__values.dtype),
                              is_time_dependent=other.__is_time_dependent
                              )
+
+    def copy(self, name=None):
+        return DataContainer(name=name or self.__name, meta=deepcopy(self.__meta), values=deepcopy(self.__values),
+                             is_time_dependent=self.__is_time_dependent)
 
     def __len__(self):
         return len(self.__values)
