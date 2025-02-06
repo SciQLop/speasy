@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Union
 
 __INDEXES_TYPES__ = {}
 
@@ -85,6 +85,45 @@ class ParameterIndex(SpeasyIndex):
                     return True
         return False
 
+class ArgumentIndex(SpeasyIndex):
+    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+        super().__init__(name, provider, uid, meta)
+
+    def __repr__(self):
+        return f'<ArgumentIndex: {self.spz_name()}>'
+
+class ArgumentListIndex(SpeasyIndex):
+    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+        super().__init__(name, provider, uid, meta)
+
+    @property
+    def _arguments(self):
+        return [v for v in self.__dict__.values() if isinstance(v, ArgumentIndex)]
+
+    def __repr__(self):
+        return f'<ArgumentListIndex: {self.spz_name()}>'
+
+    def __getitem__(self, item)->ArgumentIndex:
+        return self._arguments[item]
+
+    def __len__(self):
+        return len(self._arguments)
+
+    def __iter__(self):
+        return self._arguments.__iter__()
+
+class TemplatedParameterIndex(ParameterIndex):
+    __spz_arguments__: ArgumentListIndex
+
+    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+        super().__init__(name, provider, uid, meta)
+
+    def spz_arguments(self):
+        return self.__spz_arguments__
+
+    def __repr__(self):
+        return f'<TemplatedParameterIndex: {self.spz_name()}>'
+
 
 class DatasetIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
@@ -151,3 +190,5 @@ def inventory_has_changed(orig, new):
             if orig.__dict__[orig_key] != new.__dict__[orig_key]:
                 return True
     return False
+
+AnyProductIndex = Union[ParameterIndex, TemplatedParameterIndex, DatasetIndex, TimetableIndex, CatalogIndex, ComponentIndex]

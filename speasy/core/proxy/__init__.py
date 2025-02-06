@@ -129,22 +129,26 @@ class GetInventory:
 
 
 class Proxyfiable(object):
-    def __init__(self, request, arg_builder):
+    def __init__(self, request, arg_builder, min_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.request = request
         self.arg_builder = arg_builder
+        if not isinstance(min_version, Version):
+            min_version = Version(min_version)
+        self.min_version = max(min_version, MINIMUM_REQUIRED_PROXY_VERSION)
 
     def __call__(self, func):
         @wraps(func)
         def wrapped(*args, **kwargs):
             disable_proxy = kwargs.pop("disable_proxy", False)
+            min_version = kwargs.pop("min_proxy_version", self.min_version)
             if proxy_cfg.enabled() and not disable_proxy and is_proxy_up():
                 try:
                     proxy_version = query_proxy_version()
-                    if proxy_version is not None and proxy_version >= MINIMUM_REQUIRED_PROXY_VERSION:
+                    if proxy_version is not None and proxy_version >= min_version:
                         return self.request.get(**self.arg_builder(**kwargs))
                     else:
                         log.warning(
-                            f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {MINIMUM_REQUIRED_PROXY_VERSION}")
+                            f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {min_version}")
                 except Exception as e:  # lgtm [py/catch-base-exception]
                     log.error(f"Can't get data from proxy server {proxy_cfg.url()}")
                     print(e)
