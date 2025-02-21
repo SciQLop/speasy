@@ -16,13 +16,13 @@ from speasy.plotting import Plot
 from .base_product import SpeasyProduct
 
 
-def _values(input: "SpeasyVariable" or Any) -> Any:
+def _values(input: Any) -> Any:
     if isinstance(input, SpeasyVariable):
         return input.values
     return input
 
 
-def _name(input: "SpeasyVariable" or Any) -> str:
+def _name(input: Any) -> str:
     if isinstance(input, SpeasyVariable):
         return input.name
     return str(input)

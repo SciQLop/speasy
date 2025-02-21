@@ -119,7 +119,7 @@ def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, pr
     return proxy_args
 
 
-class AMDA_Webservice(ImpexProvider):
+class AmdaWebservice(ImpexProvider):
     def __init__(self):
         ImpexProvider.__init__(self, provider_name=amda_provider_name, server_url=amda_cfg.entry_point() + "/php/rest",
                                max_chunk_size_days=amda_cfg.max_chunk_size_days(),

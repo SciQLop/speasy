@@ -119,7 +119,7 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}'}
 
 
-class CSA_Webservice(DataProvider):
+class CsaWebservice(DataProvider):
     BASE_URL = "https://csa.esac.esa.int"
 
     def __init__(self):
@@ -221,7 +221,7 @@ class CSA_Webservice(DataProvider):
         str
             product last update date
         """
-        dataset, variable = to_dataset_and_variable(product)
+        dataset, _ = to_dataset_and_variable(product)
         return self.flat_inventory.datasets[dataset].date_last_update
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)

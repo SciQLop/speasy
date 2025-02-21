@@ -56,12 +56,12 @@ def _cache_fragment_size(product):
         return 12
 
 
-class CdaWebException(BaseException):
+class CdaWebException(Exception):
     def __init__(self, text):
         super(CdaWebException, self).__init__(text)
 
 
-def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: str, **_):
     return {
         'path': f"cdaweb/{product}",
         'start_time': f'{start_time.isoformat()}',
@@ -70,16 +70,7 @@ def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: st
     }
 
 
-def get_parameter_args_archive(start_time: datetime, stop_time: datetime, product: str, **kwargs):
-    return {
-        'path': f"cdaweb/{product}",
-        'start_time': f'{start_time.isoformat()}',
-        'stop_time': f'{stop_time.isoformat()}',
-        'method': 'FILE',
-    }
-
-
-class CDA_Webservice(DataProvider):
+class CdaWebservice(DataProvider):
     BASE_URL = "https://cdaweb.gsfc.nasa.gov"
 
     def __init__(self):

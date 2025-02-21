@@ -17,7 +17,7 @@ _HERE_ = os.path.dirname(os.path.abspath(__file__))
 @ddt
 class SscWeb(unittest.TestCase):
     def setUp(self):
-        self.ssc = ssc.SSC_Webservice()
+        self.ssc = ssc.SscWebservice()
 
     def tearDown(self):
         pass

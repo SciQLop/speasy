@@ -45,7 +45,7 @@ none_or_stop_date_substitutions = substitutions + (
 )
 
 
-def _build_date_format(file_naming: str) -> str:
+def _build_date_format(file_naming: str) -> Optional[str]:
     date_format = _date_format_regex.search(file_naming)
     if date_format is None:
         return None
