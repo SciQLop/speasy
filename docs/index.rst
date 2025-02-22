@@ -123,6 +123,7 @@ Features
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`__ API
 - Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__, `CSA <https://csa.esac.esa.int/csa-web/>`__, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__
+- Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
 
 Examples
 ========
