@@ -89,7 +89,7 @@ def make_index(meta: Dict):
     return node
 
 
-class SSC_Webservice(DataProvider):
+class SscWebservice(DataProvider):
     BASE_URL = "https://sscweb.gsfc.nasa.gov"
 
     def __init__(self):

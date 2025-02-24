@@ -13,7 +13,9 @@ Space Physics made EASY
    :maxdepth: 2
 
    installation
-   user/webservices
+   user/data_providers
+   user/numpy
+   user/scipy
    user/configuration
    examples/index
    dev/index
@@ -53,12 +55,19 @@ Space Physics made EASY
     :target: https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples
     :alt: Discover on MyBinder
 
-Speasy is an open source Python client for Space Physics web services such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`__
-or `AMDA <http://amda.irap.omp.eu/>`__.
-Most space physics data analysis starts with finding which server provides which dataset then figuring out how to download them.
-This can be difficult specially for students or newcomers, Speasy try to remove all difficulties by providing an unique and
-simple API to access them all.
-Speasy aims to support as much as possible web services and also cover a maximum of features they propose.
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+    :target: https://colab.research.google.com/github/SciQLop/speasy
+    :alt: Open in Colab
+
+
+Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
+data sources, whether it is online and public such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`__ and `AMDA <http://amda.irap.omp.eu/>`__,
+or any described archive, local or remote.
+This task, where any science project starts, would seem easy a priori but, considering the very
+diverse array of missions and instrument nowaday available, proves to be one of the major bottleneck,
+especially for students and newcomers.
+Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
+
 
 Quickstart
 ----------
@@ -77,6 +86,11 @@ Getting data is as simple as:
 
     import speasy as spz
     ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+    ace_mag.plot()
+
+.. image:: ../README_files/README_2_0.png
+   :width: 49%
+   :alt: ACE IMF data
 
 Where amda is the webservice and imf is the product id you will get with this request.
 
@@ -117,12 +131,16 @@ More complex requests like this one are supported:
 Features
 --------
 - Simple and intuitive API (spz.get_data to get them all)
-- Pandas DataFrame like interface for variables
+- Pandas DataFrame like interface for variables (columns, values, index)
 - Quick functions to convert a variable to a Pandas DataFrame
-- Local cache to avoid repeating twice the same request
+- Dynamic inventory to discover available data from your favourite Python environment completion
+- Speasy variables support :doc:`NumPy operations <user/numpy>`
+- Speasy variables support :doc:`filtering, resampling, and interpolation <user/scipy>`
+- Local cache to avoid redundant downloads
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`__ API
 - Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__, `CSA <https://csa.esac.esa.int/csa-web/>`__, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__
+- Can retrieve any data from any local or remote archive with a `simple configuration file <user/direct_archive/direct_archive>`__
 - Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
 
 Examples

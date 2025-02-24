@@ -16,10 +16,20 @@ from speasy.plotting import Plot
 from .base_product import SpeasyProduct
 
 
-def _values(input: "SpeasyVariable" or Any) -> Any:
+def _values(input: Any) -> Any:
     if isinstance(input, SpeasyVariable):
         return input.values
     return input
+
+
+def _name(input: Any) -> str:
+    if isinstance(input, SpeasyVariable):
+        return input.name
+    return str(input)
+
+
+def _np_build_result_name(func, *args, **kwargs):
+    return f"{func.__name__}({', '.join(map(_name, args))}{', ' * bool(kwargs)}{', '.join([f'{k}={_name(v)}' for k, v in kwargs.items()])})"
 
 
 def _check_time_axis(axis: VariableTimeAxis, values: DataContainer):
@@ -170,8 +180,13 @@ class SpeasyVariable(SpeasyProduct):
             columns=self.columns,
         )
 
-    def copy(self) -> "SpeasyVariable":
+    def copy(self, name=None) -> "SpeasyVariable":
         """Makes a deep copy the variable
+
+        Parameters
+        ----------
+        name: str, optional
+            new variable name, by default None, keeps the same name
 
         Returns
         -------
@@ -180,7 +195,7 @@ class SpeasyVariable(SpeasyProduct):
         """
         return SpeasyVariable(
             axes=deepcopy(self.__axes),
-            values=deepcopy(self.__values_container),
+            values=self.__values_container.copy(name=name),
             columns=deepcopy(self.columns),
         )
 
@@ -233,18 +248,6 @@ class SpeasyVariable(SpeasyProduct):
         else:
             return self.values.__ne__(other)
 
-    def __le__(self, other):
-        return self.values.__le__(other)
-
-    def __lt__(self, other):
-        return self.values.__lt__(other)
-
-    def __ge__(self, other):
-        return self.values.__ge__(other)
-
-    def __gt__(self, other):
-        return self.values.__gt__(other)
-
     def __len__(self):
         return len(self.__axes[0])
 
@@ -254,8 +257,11 @@ class SpeasyVariable(SpeasyProduct):
                 slice(_to_index(key.start, self.time),
                       _to_index(key.stop, self.time))
             )
-        if type(key) in (list, tuple) and all(map(lambda v: type(v) is str, key)):
-            return self.filter_columns(key)
+        if type(key) in (list, tuple):
+            if type(key[0]) is np.ndarray:
+                return self.view(key[0])
+            elif all(map(lambda v: type(v) is str, key)):
+                return self.filter_columns(key)
         if type(key) is str and key in self.__columns:
             return self.filter_columns([key])
         if type(key) is np.ndarray:
@@ -272,6 +278,18 @@ class SpeasyVariable(SpeasyProduct):
         else:
             self.__values_container[k] = v
 
+    def __ge__(self, other):
+        return np.greater_equal(self, other)
+
+    def __gt__(self, other):
+        return np.greater(self, other)
+
+    def __le__(self, other):
+        return np.less_equal(self, other)
+
+    def __lt__(self, other):
+        return np.less(self, other)
+
     def __mul__(self, other):
         return np.multiply(self, other)
 
@@ -283,7 +301,7 @@ class SpeasyVariable(SpeasyProduct):
 
     def __add__(self, other):
         if type(other) is np.timedelta64:
-            result = self.copy()
+            result = self.copy(name=f"shifted({self.name}, {other})")
             result.time[:] += other
             return result
         return np.add(self, other)
@@ -296,8 +314,8 @@ class SpeasyVariable(SpeasyProduct):
 
     def __sub__(self, other):
         if type(other) is np.timedelta64:
-            result = self.copy()
-            result.time[:] += other
+            result = self.copy(name=f"shifted({self.name}, -{other})")
+            result.time[:] -= other
             return result
         return np.subtract(self, other)
 
@@ -340,7 +358,8 @@ class SpeasyVariable(SpeasyProduct):
         n_cols = res.shape[1] if len(res.shape) > 1 else 1
         return SpeasyVariable(
             axes=self.__np_build_axes__(res, axis=kwargs.get('axis', None)),
-            values=DataContainer(values=res, name=f"{func.__name__}_{self.__values_container.name}",
+            values=DataContainer(values=res,
+                                 name=_np_build_result_name(func, *args, **kwargs),
                                  meta=deepcopy(self.__values_container.meta)),
             columns=[f"column_{i}" for i in range(n_cols)],
         )
@@ -350,8 +369,7 @@ class SpeasyVariable(SpeasyProduct):
             _out = _values(out[0])
         else:
             _out = None
-        inputs = list(map(_values, inputs))
-        values = ufunc(*inputs, **{name: _values(value) for name, value in kwargs}, out=_out)
+        values = ufunc(*list(map(_values, inputs)), **{name: _values(value) for name, value in kwargs}, out=_out)
 
         axes = self.__np_build_axes__(values, axis=kwargs.get('axis', None))
 
@@ -364,7 +382,8 @@ class SpeasyVariable(SpeasyProduct):
         else:
             return SpeasyVariable(
                 axes=axes,
-                values=DataContainer(values=values, name=f"{ufunc.__name__}_{self.__values_container.name}",
+                values=DataContainer(values=values,
+                                     name=_np_build_result_name(ufunc, *inputs, **kwargs),
                                      meta=deepcopy(self.__values_container.meta)),
                 columns=[f"column_{i}" for i in range(values.shape[1])],
             )
@@ -882,6 +901,46 @@ class SpeasyVariable(SpeasyProduct):
             axes=deepcopy(other.__axes),
             columns=deepcopy(other.columns),
         )
+
+    def _repr_pretty_(self, p, cycle):
+        import humanize
+        if cycle:
+            p.text("SpeasyVariable(...)")
+        else:
+            def _print_member(name, value, last=False):
+                p.text(f"{name}: ")
+                p.pretty(value)
+                if not last:
+                    p.text(", ")
+                p.breakable()
+
+            def _print_dict(name, d, last=False):
+                p.text(f"{name}: ")
+                with p.group(4, '{', '}'):
+                    p.breakable()
+                    for k, v in d.items():
+                        p.text(f"{k}: ")
+                        p.pretty(v)
+                        p.text(", ")
+                        p.breakable()
+                if not last:
+                    p.text(", ")
+                p.breakable()
+
+            def _print_time_range():
+                p.text(f"Time Range: {self.time[0]} - {self.time[-1]}")
+                p.breakable()
+
+            with p.group(4, f'{self.__class__.__name__}(', ')'):
+                p.breakable()
+                _print_member("Name", self.name)
+                if len(self):
+                    _print_time_range()
+                _print_member("Shape", self.shape)
+                _print_member("Unit", self.unit)
+                _print_member("Columns", self.columns)
+                _print_dict("Meta", self.meta)
+                _print_member("Size", humanize.naturalsize(self.nbytes))
 
 
 def to_dictionary(var: SpeasyVariable, array_to_list=False) -> Dict[str, object]:

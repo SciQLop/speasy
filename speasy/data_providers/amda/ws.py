@@ -119,7 +119,7 @@ def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, pr
     return proxy_args
 
 
-class AMDA_Webservice(ImpexProvider):
+class AmdaWebservice(ImpexProvider):
     def __init__(self):
         ImpexProvider.__init__(self, provider_name=amda_provider_name, server_url=amda_cfg.entry_point() + "/php/rest",
                                max_chunk_size_days=amda_cfg.max_chunk_size_days(),
@@ -177,7 +177,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        parameter_id: str or AMDAParameterIndex
+        parameter_id: str or ParameterIndex
             parameter id
 
         Returns
@@ -223,7 +223,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        catalog_id: str or AMDACatalogIndex
+        catalog_id: str or CatalogIndex
             catalog id
 
         Returns
@@ -247,7 +247,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        timetable_id: str
+        timetable_id: str or TimetableIndex
             timetable id
 
         Returns
@@ -277,7 +277,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        catalog_id: str or AMDACatalogIndex
+        catalog_id: str or CatalogIndex
             catalog id
 
         Returns
@@ -318,7 +318,7 @@ class AMDA_Webservice(ImpexProvider):
 
         Parameters
         ----------
-        product: str or AMDAParameterIndex
+        product: str or ParameterIndex
             parameter id
         start_time:
             desired data start time
