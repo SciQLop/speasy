@@ -141,6 +141,7 @@ Features
 - Full support of `AMDA <http://amda.irap.omp.eu/>`__ API
 - Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__, `CSA <https://csa.esac.esa.int/csa-web/>`__, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__
 - Can retrieve any data from any local or remote archive with a `simple configuration file <user/direct_archive/direct_archive>`__
+- Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
 
 Examples
 ========

@@ -39,7 +39,8 @@ Don't want to write code? See our graphical interface [SciQLop](https://github.c
     [CSA](https://csa.esac.esa.int/csa-web/),
     [SSCWeb](https://sscweb.gsfc.nasa.gov/)
 -   Support data access from any local or remote archives described by YAML file.
-  
+-   Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
+
 ## Help us improve Speasy!
 
 We want Speasy to be the best possible tool for space physics research. You can help us by:
@@ -75,7 +76,7 @@ ace_mag.plot();
 ```
 
 
-    
+
 ![png](README_files/README_2_0.png)
     
 
@@ -103,7 +104,7 @@ ace_mag.plot();
 
 #### Plotting multiple time series on a single figure
 
-This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values with NaNs. 
+This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values with NaNs.
 
 
 ```python
@@ -245,7 +246,7 @@ Check out [Speasy documentation](https://speasy.readthedocs.io/en/stable/) and [
 -   Speasy is not a plotting package.
     basic plotting capabilities are here for illustration purposes and making quick-and-dirty plots.
     It is not meant to produce publication ready figures, prefer using Matplotlib directly for example.
-    
+
 ### Credits
 
 The development of Speasy is supported by the [CDPP](http://www.cdpp.eu/).
@@ -254,4 +255,3 @@ This package was created with
 [Cookiecutter](https://github.com/audreyr/cookiecutter) and the
 [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage)
 project template.
-
