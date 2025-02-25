@@ -13,6 +13,11 @@ from ....core.inventory.indexes import SpeasyIndex, to_dict, from_dict
 _MASTERS_CDF_PATH = f"{cda_cfg.inventory_data_path()}/masters_cdf/"
 _XML_CATALOG_PATH = f"{cda_cfg.inventory_data_path()}/all.xml"
 
+_CDAWEB_INVENTORY_ = "cdaweb-inventory"
+_CDAWEB_INVENTORY_TREE_ = "tree_v2"
+_CDAWEB_INVENTORY_LAST_MODIFIED_MASTERS_ = "masters-last-modified"
+_CDAWEB_INVENTORY_LAST_MODIFIED_XML_ = "last_modified_xml"
+
 
 def _ensure_path_exists(path: str):
     dirname = os.path.dirname(path)
@@ -37,21 +42,21 @@ def _download_and_extract_master_cdf(masters_url: str):
 
 def update_master_cdf(masters_url: str = "https://spdf.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/master.tar"):
     last_modified = http.head(masters_url).headers['last-modified']
-    if index.get("cdaweb-inventory", "masters-last-modified", "") != last_modified:
+    if index.get(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_LAST_MODIFIED_MASTERS_, "") != last_modified:
         _clean_master_cdf_folder()
         _download_and_extract_master_cdf(masters_url)
-        index.set("cdaweb-inventory", "masters-last-modified", last_modified)
+        index.set(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_LAST_MODIFIED_MASTERS_, last_modified)
         return True
     return False
 
 
 def update_xml_catalog(xml_catalog_url: str = "https://spdf.gsfc.nasa.gov/pub/catalogs/all.xml"):
     last_modified = http.head(xml_catalog_url).headers['last-modified']
-    if index.get("cdaweb-inventory", "xml_catalog-last-modified", "") != last_modified:
+    if index.get(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_LAST_MODIFIED_XML_, "") != last_modified:
         _ensure_path_exists(_XML_CATALOG_PATH)
         with open(_XML_CATALOG_PATH, 'w') as f:
             f.write(http.get(xml_catalog_url).text)
-            index.set("cdaweb-inventory", "xml_catalog-last-modified", last_modified)
+            index.set(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_LAST_MODIFIED_XML_, last_modified)
             return True
     return False
 
@@ -60,11 +65,11 @@ def build_inventory(root: SpeasyIndex = None, xml_catalog_url: str = "https://sp
                     masters_url: str = "https://spdf.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/master.tar"):
     needs_rebuild = update_xml_catalog(xml_catalog_url)
     needs_rebuild |= update_master_cdf(masters_url)
-    if needs_rebuild or not index.contains("cdaweb-inventory", "tree"):
+    if needs_rebuild or not index.contains(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_TREE_):
         root = load_xml_catalog(xml_file_path=_XML_CATALOG_PATH, root=root)
         update_tree(root=root, master_cdf_dir=_MASTERS_CDF_PATH)
-        index.set("cdaweb-inventory", "tree", to_dict(root))
+        index.set(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_TREE_, to_dict(root, version=2))
     else:
-        t = from_dict(index.get("cdaweb-inventory", "tree"))
+        t = from_dict(index.get(_CDAWEB_INVENTORY_, _CDAWEB_INVENTORY_TREE_), version=2)
         root.__dict__ = t.__dict__
     return root
