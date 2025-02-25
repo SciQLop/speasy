@@ -114,8 +114,8 @@ def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, pr
     proxy_args = {'path': f"{amda_provider_name}/{product}", 'start_time': f'{start_time.isoformat()}',
                   'stop_time': f'{stop_time.isoformat()}',
                   'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}
-    if kwargs.get('additional_arguments') and isinstance(kwargs.get('additional_arguments'), Dict):
-        proxy_args['additional_arguments'] = json.dumps(kwargs.get('additional_arguments'))
+    if kwargs.get('product_inputs') and isinstance(kwargs.get('product_inputs'), Dict):
+        proxy_args['product_inputs'] = json.dumps(kwargs.get('product_inputs'))
     return proxy_args
 
 
