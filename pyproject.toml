@@ -4,7 +4,7 @@ requires = ["flit_core"]
 
 [project]
 name = 'speasy'
-version = "1.5.0"
+version = "1.5.1"
 description = "A simple Python package to deal with main Space Physics WebServices (CDA, CSA, AMDA and SSC)."
 keywords = ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
 authors = [
