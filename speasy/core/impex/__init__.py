@@ -817,7 +817,7 @@ class ImpexProvider(DataProvider):
             if kwargs.get('output_format', self.client.output_format) in ["CDF_ISTP", "CDF"]:
                 var = self._cdf_codec.load_variables(variables=product_variables, file=url)
             else:
-                raise NotImplementedError(f"Output format {self.client.output_format} not supported")
+                raise NotImplementedError(f"Output format {kwargs.get('output_format')} not supported")
             if var is not None:
                 if isinstance(var, SpeasyVariable):
                     if len(var):
