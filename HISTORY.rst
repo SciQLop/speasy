@@ -2,6 +2,35 @@
 History
 =======
 
+1.5.0 (2025-02-25)
+------------------
+
+* Fix typo in datetime64_to_epoch and add some tests by @jeandet in https://github.com/SciQLop/speasy/pull/148
+* Allows to overrides all parameters of Speasy plot functions by @jeandet in https://github.com/SciQLop/speasy/pull/152
+* Adds codec interface + registry and migrate existing code by @jeandet in https://github.com/SciQLop/speasy/pull/154
+* Switch to MIT license and drop last python 3.8 references by @jeandet in https://github.com/SciQLop/speasy/pull/157
+* remove last python 3.8 reference by @jeandet in https://github.com/SciQLop/speasy/pull/158
+* fix: allow mkdir work in multi threads in python by @Beforerr in https://github.com/SciQLop/speasy/pull/160
+* Definition of a common dataprovider for all IMPEX webservices by @brenard-irap in https://github.com/SciQLop/speasy/pull/159
+* Fix regex used to detect an attribute that must be convert to a variable by @brenard-irap in https://github.com/SciQLop/speasy/pull/166
+* Basic HAPI CSV codec  by @jeandet in https://github.com/SciQLop/speasy/pull/167
+* Retry is server up by @jeandet in https://github.com/SciQLop/speasy/pull/173
+* Ensure we close the open socket while checking if a server is up by @jeandet in https://github.com/SciQLop/speasy/pull/171
+* Amda last modification date by @brenard-irap in https://github.com/SciQLop/speasy/pull/177
+* Add CSA GRMB parameters by @jeandet in https://github.com/SciQLop/speasy/pull/172
+* allow to list remote files with absolute path by @jeandet in https://github.com/SciQLop/speasy/pull/174
+* Fixes most doc issues by @jeandet in https://github.com/SciQLop/speasy/pull/175
+* Extract more information from CDF while building the inventory by @jeandet in https://github.com/SciQLop/speasy/pull/176
+* Fixes #169, and adds functions to drop cache entries matching regex. by @jeandet in https://github.com/SciQLop/speasy/pull/170
+* Valid min and valid max by @jeandet in https://github.com/SciQLop/speasy/pull/168
+* Force init by @Beforerr in https://github.com/SciQLop/speasy/pull/194
+* feat:  access VariableTimeAxis and VariableAxis meta by @Beforerr in https://github.com/SciQLop/speasy/pull/195
+* Support amda template params by @brenard-irap in https://github.com/SciQLop/speasy/pull/192
+* docs: mention julia wrapper by @Beforerr in https://github.com/SciQLop/speasy/pull/199
+* Documentation improvements, Numpy support improvement and batch renaming by @jeandet in https://github.com/SciQLop/speasy/pull/189
+* Introduce a new inventory JSON/dict format that preserves more primitive types by @jeandet in https://github.com/SciQLop/speasy/pull/200
+
+
 1.4.0 (2024-07-04)
 ------------------
 
