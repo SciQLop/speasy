@@ -18,7 +18,7 @@ from ..cache import CacheCall
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
-MINIMUM_REQUIRED_PROXY_VERSION = Version("0.11.0")
+MINIMUM_REQUIRED_PROXY_VERSION = Version("0.12.0")
 _CURRENT_PROXY_SERVER_VERSION = None
 
 if proxy_cfg.url() == "" or proxy_cfg.enabled() == False:
@@ -113,13 +113,14 @@ class GetInventory:
         kwargs['provider'] = provider
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
+        kwargs['version'] = 2
         headers = {}
         if saved_inventory is not None:
             headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
         resp = http.get(f"{url}/get_inventory", params=kwargs, headers=headers)
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
-            inventory = inventory_from_dict(pickle.loads(decompress(resp.bytes)))
+            inventory = inventory_from_dict(pickle.loads(decompress(resp.bytes)), version=2)
             index.set("proxy_inventories", provider, inventory)
             index.set("proxy_inventories_save_date", provider, datetime.utcnow())
             return inventory

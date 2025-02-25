@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
 from typing import Optional, Tuple, Dict
 
+import numpy as np
 from astroquery.utils.tap.core import TapPlus
 
 from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime
@@ -19,6 +20,18 @@ from speasy.core.url_utils import build_url
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
+
+
+def _only_primitive_types(d: dict) -> dict:
+    for k, v in d.items():
+        if not isinstance(v, (int, bool, str, type(None), list, tuple, set)):
+            if isinstance(v, np.integer):
+                d[k] = int(v)
+            elif isinstance(v, np.floating):
+                d[k] = float(v)
+            elif isinstance(v, (np.bool_,bool)):
+                d[k] = bool(v)
+    return d
 
 
 def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
@@ -38,7 +51,7 @@ def register_dataset(instruments, datasets, dataset):
     name = fix_name(meta['dataset_id'])
     node = make_inventory_node(instruments[dataset['instruments']], DatasetIndex, name=name,
                                provider="csa",
-                               uid=meta['dataset_id'], **meta)
+                               uid=meta['dataset_id'], **_only_primitive_types(meta))
     datasets[meta['dataset_id']] = node
 
 
@@ -49,7 +62,7 @@ def register_observatory(missions, observatories, observatory):
                                name=fix_name(name),
                                provider="csa",
                                uid=name,
-                               **meta)
+                               **_only_primitive_types(meta))
     observatories[name] = node
 
 
@@ -58,7 +71,7 @@ def register_mission(inventory_tree, missions, mission):
     name = meta.pop('name')
     node = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(name),
                                provider="csa",
-                               uid=name, **meta)
+                               uid=name, **_only_primitive_types(meta))
     missions[name] = node
 
 
@@ -68,7 +81,7 @@ def register_instrument(observatories, instruments, instrument):
     node = make_inventory_node(observatories.get(instrument['observatories'], observatories['MULTIPLE']),
                                SpeasyIndex, name=fix_name(name),
                                provider="csa",
-                               uid=name, **meta)
+                               uid=name, **_only_primitive_types(meta))
     instruments[name] = node
 
 
@@ -81,7 +94,8 @@ def register_param(datasets, parameter):
         meta['stop_date'] = parent_dataset.stop_date
         name = fix_name(meta['parameter_id'])
         make_inventory_node(parent_dataset, ParameterIndex, name=name,
-                            provider="csa", uid=f"{parameter['dataset_id']}/{parameter['parameter_id']}", **meta)
+                            provider="csa", uid=f"{parameter['dataset_id']}/{parameter['parameter_id']}",
+                            **_only_primitive_types(meta))
 
 
 def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
@@ -89,7 +103,8 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     missions_req = CSA.launch_job_async("SELECT * FROM csa.v_mission")
     observatories_req = CSA.launch_job_async("SELECT * FROM csa.v_observatory")
     instruments_req = CSA.launch_job_async("SELECT * FROM csa.v_instrument")
-    datasets_req = CSA.launch_job_async("SELECT * FROM csa.v_dataset WHERE  dataset_id like '%GRMB' OR (is_cef='true' AND is_istp='true')")
+    datasets_req = CSA.launch_job_async(
+        "SELECT * FROM csa.v_dataset WHERE  dataset_id like '%GRMB' OR (is_cef='true' AND is_istp='true')")
     parameters_req = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data' AND value_type<>'CHAR'")
     missions = {}
     observatories = {}
@@ -135,7 +150,7 @@ class CsaWebservice(DataProvider):
     def _dl_variable(self,
                      dataset: str, variable: str,
                      start_time: datetime, stop_time: datetime, extra_http_headers: Dict[str, str] or None = None) -> \
-        Optional[SpeasyVariable]:
+            Optional[SpeasyVariable]:
 
         # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
         ds_range = self._dataset_range(dataset)
@@ -238,5 +253,5 @@ class CsaWebservice(DataProvider):
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \
-        Optional[SpeasyVariable]:
+            Optional[SpeasyVariable]:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)

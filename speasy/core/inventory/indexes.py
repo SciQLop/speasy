@@ -85,12 +85,14 @@ class ParameterIndex(SpeasyIndex):
                     return True
         return False
 
+
 class ArgumentIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
         return f'<ArgumentIndex: {self.spz_name()}>'
+
 
 class ArgumentListIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
@@ -103,7 +105,7 @@ class ArgumentListIndex(SpeasyIndex):
     def __repr__(self):
         return f'<ArgumentListIndex: {self.spz_name()}>'
 
-    def __getitem__(self, item)->ArgumentIndex:
+    def __getitem__(self, item) -> ArgumentIndex:
         return self._arguments[item]
 
     def __len__(self):
@@ -111,6 +113,7 @@ class ArgumentListIndex(SpeasyIndex):
 
     def __iter__(self):
         return self._arguments.__iter__()
+
 
 class TemplatedParameterIndex(ParameterIndex):
     __spz_arguments__: ArgumentListIndex
@@ -145,33 +148,48 @@ class DatasetIndex(SpeasyIndex):
         return False
 
 
-def to_dict(inventory_tree: SpeasyIndex or str):
+def to_dict(inventory_tree: SpeasyIndex or str, version: int = 1):
     if isinstance(inventory_tree, SpeasyIndex):
-        return {key: to_dict(value) for key, value in inventory_tree.__dict__.items()}
-    elif type(inventory_tree) is not str:
-        return str(inventory_tree)
+        return {key: to_dict(value, version=version) for key, value in inventory_tree.__dict__.items()}
+    elif version <= 1:
+        if type(inventory_tree) is not str:
+            inventory_tree = str(inventory_tree)
+    else:
+        if type(inventory_tree) in [list, tuple, set]:
+            return type(inventory_tree)([to_dict(value, version) for value in inventory_tree])
+        if type(inventory_tree) is dict:
+            return {key: to_dict(value, version) for key, value in inventory_tree.items()}
+        if type(inventory_tree) not in [str, int, float, bool, type(None)]:
+            return str(inventory_tree)
+
     return inventory_tree
 
 
-def from_dict(inventory_tree: dict or str):
-    if type(inventory_tree) is str:
-        return inventory_tree
+def from_dict(inventory_tree: dict or str, version: int = 1):
+    if version <= 1:
+        if type(inventory_tree) is str:
+            return inventory_tree
+    else:
+        if type(inventory_tree) in [str, int, float, bool, type(None), list, tuple, set]:
+            return inventory_tree
+        if type(inventory_tree) is dict and "__spz_type__" not in inventory_tree:
+            return inventory_tree
     idx_type = inventory_tree.pop("__spz_type__")
     idx_name = inventory_tree.pop("__spz_name__")
     idx_provider = inventory_tree.pop("__spz_provider__")
     idx_uid = inventory_tree.pop("__spz_uid__")
-    idx_meta = {key: from_dict(value) for key, value in inventory_tree.items()}
+    idx_meta = {key: from_dict(value, version) for key, value in inventory_tree.items()}
     root = __INDEXES_TYPES__.get(idx_type, SpeasyIndex)(name=idx_name, provider=idx_provider, uid=idx_uid,
                                                         meta=idx_meta)
     return root
 
 
-def to_json(inventory_tree: SpeasyIndex, sort_keys=True):
-    return json.dumps(to_dict(inventory_tree), sort_keys=sort_keys)
+def to_json(inventory_tree: SpeasyIndex, sort_keys=True, version: int = 1):
+    return json.dumps(to_dict(inventory_tree, version), sort_keys=sort_keys)
 
 
-def from_json(inventory_tree: str):
-    return from_dict(json.loads(inventory_tree))
+def from_json(inventory_tree: str, version: int = 1):
+    return from_dict(json.loads(inventory_tree), version)
 
 
 def make_inventory_node(parent, ctor, name, provider, uid, **meta):
@@ -191,4 +209,6 @@ def inventory_has_changed(orig, new):
                 return True
     return False
 
-AnyProductIndex = Union[ParameterIndex, TemplatedParameterIndex, DatasetIndex, TimetableIndex, CatalogIndex, ComponentIndex]
+
+AnyProductIndex = Union[
+    ParameterIndex, TemplatedParameterIndex, DatasetIndex, TimetableIndex, CatalogIndex, ComponentIndex]

@@ -914,8 +914,7 @@ class ImpexProvider(DataProvider):
         if len(variables) == 0:
             return None
         elif len(variables) == 1:
-            result = list(variables.values())[0].copy()
-            return result
+            return list(variables.values())[0]
 
         axes = []
         columns = []
