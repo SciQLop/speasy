@@ -2,6 +2,11 @@
 History
 =======
 
+1.5.1 (2025-02-25)
+------------------
+
+* Quick fix for leftover additional_argument instead of product_inputs by @jeandet in https://github.com/SciQLop/speasy/pull/201
+
 1.5.0 (2025-02-25)
 ------------------
 
