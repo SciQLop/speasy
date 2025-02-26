@@ -218,7 +218,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
                 self.__name == other.__name and \
                 self.is_time_dependent == other.is_time_dependent and \
                 np.all(self.__values.shape == other.__values.shape) and \
-                np.array_equal(self.__values, other.__values, equal_nan=True)
+                np.array_equal(self.__values, other.__values, equal_nan=np.issubdtype(self.__values.dtype, np.floating))
         else:
             return self.__values.__eq__(other)
 
