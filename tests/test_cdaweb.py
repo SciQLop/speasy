@@ -238,15 +238,28 @@ class SpecificNonRegression(unittest.TestCase):
             datetime(2018, 5, 26, 1, 0, 0), datetime(2018, 5, 26, 1, 10, 1))
         self.assertIsNotNone(result)
 
+    def test_mms_fgm_sanitized(self):
+        # https://github.com/SciQLop/speasy/issues/205
+        var = spz.get_data("cda/MMS2_FGM_SRVY_L2/mms2_fgm_b_gse_srvy_l2_clean", "2015-10-16T13:05:30",
+                           "2015-10-16T13:07:30")
+        var = var.sanitized()
+        self.assertIsNotNone(var)
+
     def test_get_cluster_fgm_data(self):
         # should return None because the data is not available but should not raise an error
-        result = spz.get_data(spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN , "2018-03-02", "2018-03-03")
+        result = spz.get_data(
+            spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
+            "2018-03-02", "2018-03-03")
         self.assertIsNone(result)
 
-        result = spz.get_data(spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN , "2016-03-02", "2016-03-03")
+        result = spz.get_data(
+            spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
+            "2016-03-02", "2016-03-03")
         self.assertIsNone(result)
 
-        result = spz.get_data(spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN , "2015-03-02", "2015-03-03")
+        result = spz.get_data(
+            spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
+            "2015-03-02", "2015-03-03")
         self.assertIsNotNone(result)
 
 
