@@ -796,16 +796,16 @@ class SpeasyVariable(SpeasyProduct):
         indexes_without_fill = None
         indexes_without_invalid = None
         if drop_nan_and_inf:
-            indexes_without_nan = np.isfinite(res)
+            indexes_without_nan = np.isfinite(res).reshape(-1)
         if drop_fill_values and res.fill_value is not None:
-            indexes_without_fill = res != res.fill_value
+            indexes_without_fill = np.all(res != res.fill_value, axis=tuple(range(1, res.ndim)))
         if drop_out_of_range_values:
             valid_min = valid_min or res.valid_range[0]
             valid_max = valid_max or res.valid_range[1]
             if valid_min is not None and valid_max is not None:
                 indexes_without_invalid = np.logical_and(
                     res >= valid_min, res <= valid_max
-                )
+                ).reshape(-1)
         return res[
             np.logical_and(
                 indexes_without_nan, indexes_without_fill, indexes_without_invalid
