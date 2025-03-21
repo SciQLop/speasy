@@ -12,6 +12,12 @@ from speasy.core.direct_archive_downloader.direct_archive_downloader import appl
 from ddt import data, ddt, unpack
 
 
+def reset_cda_inventory_cache_flags():
+    spz.core.index.index.set("cdaweb-inventory", "masters-last-modified", "")
+    spz.core.index.index.set("cdaweb-inventory", "xml_catalog-last-modified", "")
+    if spz.core.index.index.contains("cdaweb-inventory", "tree"):
+        spz.core.index.index.pop("cdaweb-inventory", "tree")
+
 @ddt
 class SimpleRequest(unittest.TestCase):
     def setUp(self):
@@ -178,10 +184,7 @@ class SimpleRequest(unittest.TestCase):
 
     def test_can_get_full_inventory_without_proxy(self):
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        spz.core.index.index.set("cdaweb-inventory", "masters-last-modified", "")
-        spz.core.index.index.set("cdaweb-inventory", "xml_catalog-last-modified", "")
-        if spz.core.index.index.contains("cdaweb-inventory", "tree"):
-            spz.core.index.index.pop("cdaweb-inventory", "tree")
+        reset_cda_inventory_cache_flags()
         spz.cda.update_inventory()
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
         self.assertGreaterEqual(len(spz.inventories.flat_inventories.cda.parameters), 47000)
@@ -261,6 +264,16 @@ class SpecificNonRegression(unittest.TestCase):
             spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
             "2015-03-02", "2015-03-03")
         self.assertIsNotNone(result)
+
+    def test_get_products_with_percent_in_name(self):
+        # https://github.com/SciQLop/speasy/issues/211
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        reset_cda_inventory_cache_flags()
+        spz.cda.update_inventory()
+        data = spz.get_data(spz.inventories.tree.cda.Equator_S.EQ.MAM.EQ_PP_MAM.B_nsigma_b_eq_pp_mam, "1998-01-01",
+                            "1998-01-02")
+        self.assertIsNotNone(data)
+        os.environ.pop(spz.config.proxy.enabled.env_var_name)
 
 
 @ddt

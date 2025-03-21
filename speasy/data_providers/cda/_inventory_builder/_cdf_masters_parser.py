@@ -5,6 +5,7 @@ import pyistp
 
 from speasy.core.cdf.inventory_extractor import extract_parameters, filter_dataset_meta
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex
+from speasy.core import fix_name
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def _patch_parameter(parameter: ParameterIndex, dataset: DatasetIndex):
 def load_master_cdf(path, dataset: DatasetIndex):
     cdf = pyistp.loader.ISTPLoader(path)
     dataset.__dict__.update(
-        {p.spz_name(): p for p in
+        {fix_name(p.spz_name()): p for p in
          map(lambda p: _patch_parameter(p, dataset), extract_parameters(cdf, provider="cda",
                                                                         uid_fmt=f"{dataset.serviceprovider_ID}/{{var_name}}"))})
     dataset.__dict__.update(filter_dataset_meta(cdf))
