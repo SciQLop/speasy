@@ -758,8 +758,8 @@ class SpeasyVariable(SpeasyProduct):
         res[np.logical_or(res > valid_max, res < valid_min)] = np.nan
         return res
 
-    def sanitized(self, drop_fill_values=True, drop_out_of_range_values=True, drop_nan_and_inf=True, inplace=False,
-                  valid_min=None, valid_max=None) -> "SpeasyVariable":
+    def sanitized(self, drop_fill_values=True, drop_out_of_range_values=True, drop_nan_and_inf=True, valid_min=None,
+                  valid_max=None) -> "SpeasyVariable":
         """Returns a copy of the variable with fill values and invalid values removed
 
         Parameters
@@ -770,8 +770,6 @@ class SpeasyVariable(SpeasyProduct):
             Remove values outside valid range, by default True
         drop_nan_and_inf : bool, optional
             Remove NaN and Infinite values, by default True
-        inplace : bool, optional
-            Modifies source variable when true else modifies and returns a copy, by default False
         valid_min : Float, optional
             Minimum valid value, takes metadata field "VALIDMIN" if not provided, by default None
         valid_max : Float, optional
@@ -787,27 +785,22 @@ class SpeasyVariable(SpeasyProduct):
         replace_fillval_by_nan: replaces fill values by NaN
         clamp_with_nan: replaces values outside valid range by NaN
         """
-        if inplace:
-            res = self
-        else:
-            res = deepcopy(self)
-
         indexes = []
         if drop_nan_and_inf:
-            indexes.append(np.isfinite(res).reshape(-1))
-        if drop_fill_values and res.fill_value is not None:
-            indexes.append(np.all(res != res.fill_value, axis=tuple(range(1, res.ndim))))
+            indexes.append(np.isfinite(self).reshape(-1))
+        if drop_fill_values and self.fill_value is not None:
+            indexes.append(np.all(self != self.fill_value, axis=tuple(range(1, self.ndim))))
         if drop_out_of_range_values:
-            valid_min = valid_min or res.valid_range[0]
-            valid_max = valid_max or res.valid_range[1]
+            valid_min = valid_min or self.valid_range[0]
+            valid_max = valid_max or self.valid_range[1]
             if valid_min is not None and valid_max is not None:
                 indexes.append(np.logical_and(
-                    res >= valid_min, res <= valid_max
+                    self >= valid_min, self <= valid_max
                 ).reshape(-1))
         if len(indexes) == 0:
             raise ValueError(
                 "No filtering applied, please set at least one of drop_fill_values, drop_out_of_range_values or drop_nan_and_inf to True")
-        return res[
+        return self[
             np.logical_and.reduce(indexes)
         ]
 
