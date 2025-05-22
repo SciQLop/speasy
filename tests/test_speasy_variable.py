@@ -366,7 +366,16 @@ class ASpeasyVariable(unittest.TestCase):
         cleaned_copy = var.sanitized()
         self.assertFalse(np.any(np.isnan(cleaned_copy.values)))
         self.assertLess(len(cleaned_copy), len(var))
+        with self.assertRaises(ValueError):
+            var.sanitized(drop_fill_values=False, drop_out_of_range_values=False, drop_nan_and_inf=False)
 
+    def test_non_regression_214(self):
+        # see https://github.com/SciQLop/speasy/issues/214
+        import  speasy as spz
+        r = spz.get_data("amda/imf", "2016-6-2", "2016-6-5").sanitized(drop_fill_values=False)
+        self.assertIsNotNone(r)
+        r = spz.get_data("amda/imf", "2016-6-2", "2016-6-5").sanitized(drop_fill_values=False, drop_out_of_range_values=False)
+        self.assertIsNotNone(r)
 
 class TestSpeasyVariableMath(unittest.TestCase):
     def setUp(self):
