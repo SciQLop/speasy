@@ -857,7 +857,9 @@ class ImpexProvider(DataProvider):
             while curr_t < stop_time:
                 var = merge([var, self._dl_parameter_chunk(curr_t, min(curr_t + dt, stop_time), parameter_id,
                                                            extra_http_headers=extra_http_headers,
-                                                           product_variables=product_variables, **kwargs)])
+                                                           product_variables=product_variables,
+                                                           use_credentials=use_credentials,
+                                                           **kwargs)])
                 curr_t += dt
             return var
         else:
