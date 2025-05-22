@@ -371,11 +371,13 @@ class ASpeasyVariable(unittest.TestCase):
 
     def test_non_regression_214(self):
         # see https://github.com/SciQLop/speasy/issues/214
-        import  speasy as spz
+        import speasy as spz
         r = spz.get_data("amda/imf", "2016-6-2", "2016-6-5").sanitized(drop_fill_values=False)
         self.assertIsNotNone(r)
-        r = spz.get_data("amda/imf", "2016-6-2", "2016-6-5").sanitized(drop_fill_values=False, drop_out_of_range_values=False)
+        r = spz.get_data("amda/imf", "2016-6-2", "2016-6-5").sanitized(drop_fill_values=False,
+                                                                       drop_out_of_range_values=False)
         self.assertIsNotNone(r)
+
 
 class TestSpeasyVariableMath(unittest.TestCase):
     def setUp(self):
