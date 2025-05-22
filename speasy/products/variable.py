@@ -792,24 +792,23 @@ class SpeasyVariable(SpeasyProduct):
         else:
             res = deepcopy(self)
 
-        indexes_without_nan = None
-        indexes_without_fill = None
-        indexes_without_invalid = None
+        indexes = []
         if drop_nan_and_inf:
-            indexes_without_nan = np.isfinite(res).reshape(-1)
+            indexes.append(np.isfinite(res).reshape(-1))
         if drop_fill_values and res.fill_value is not None:
-            indexes_without_fill = np.all(res != res.fill_value, axis=tuple(range(1, res.ndim)))
+            indexes.append(np.all(res != res.fill_value, axis=tuple(range(1, res.ndim))))
         if drop_out_of_range_values:
             valid_min = valid_min or res.valid_range[0]
             valid_max = valid_max or res.valid_range[1]
             if valid_min is not None and valid_max is not None:
-                indexes_without_invalid = np.logical_and(
+                indexes.append(np.logical_and(
                     res >= valid_min, res <= valid_max
-                ).reshape(-1)
+                ).reshape(-1))
+        if len(indexes) == 0:
+            raise ValueError(
+                "No filtering applied, please set at least one of drop_fill_values, drop_out_of_range_values or drop_nan_and_inf to True")
         return res[
-            np.logical_and(
-                indexes_without_nan, indexes_without_fill, indexes_without_invalid
-            )
+            np.logical_and.reduce(indexes)
         ]
 
     @staticmethod
