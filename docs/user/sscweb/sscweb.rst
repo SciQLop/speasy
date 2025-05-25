@@ -15,9 +15,9 @@ First you need to ensure that the trajectory you want to get is available with t
 speasy dynamic inventory so you will always get an up to date inventory:
 
     >>> import speasy as spz
-    >>> # Let's only print the first 10 trajectories
+    >>> # Let's only print the first 10 objects
     >>> print(list(spz.inventories.flat_inventories.ssc.parameters.keys())[:10])
-    ['ace', 'active', 'aec', 'aed', 'aee', 'aerocube6a', 'aerocube6b', 'aim', 'akebono', 'alouette1']
+    ['ace', 'active', 'adityal1', 'aec', 'aed', 'aee', 'aerocube6a', 'aerocube6b', 'aim', 'akebono']
 
 Note that you can also use your python terminal completion and browse `spz.inventories.data_tree.ssc.Trajectories` to find
 your trajectory.
