@@ -20,7 +20,6 @@ class HttpTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-
     @data(
         ("http://somewhere-that-does-not-exist-404.com", False),
         ("https://hephaistos.lpp.polytechnique.fr", True),
@@ -29,6 +28,16 @@ class HttpTests(unittest.TestCase):
     @unpack
     def test_is_up(self, url, expected):
         self.assertEqual(is_server_up(url), expected)
+
+    def test_basic_http_auth(self):
+        # https://authenticationtest.com/HTTPAuth/
+        import netrc
+        netrc_info = netrc.netrc()
+        if netrc_info.authenticators("authenticationtest.com"):
+            from speasy.core import http
+            self.assertEqual(http.get("https://authenticationtest.com/HTTPAuth/").status_code, 200)
+        else:
+            self.skipTest("Netrc authenticator not available")
 
 
 if __name__ == '__main__':

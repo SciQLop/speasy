@@ -3,12 +3,13 @@ import logging
 import platform
 import re
 import time
-from functools import partial
-from typing import Optional
+from functools import partial, cache
+from typing import Optional, Dict
 
 import urllib3.response
 from urllib3 import PoolManager
 from urllib3.util.retry import Retry
+import netrc
 
 from speasy import __version__
 from speasy.config import core as core_config
@@ -34,7 +35,7 @@ pool = PoolManager(num_pools=core_config.urlib_num_pools.get(), maxsize=core_con
 
 
 class Response:
-    def __init__(self, response: urllib3.response.HTTPResponse):
+    def __init__(self, response: urllib3.response.BaseHTTPResponse):
         self._response = response
 
     @property
@@ -73,6 +74,75 @@ class Response:
     def __exit__(self, *exc):
         return False
 
+@cache
+def _auth(hostname:str)-> Dict[str, str]:
+    """
+    Authenticates a user for a specified hostname by retrieving credentials from
+    the user's `.netrc` file if it exists. Utilizes caching for performance.
+
+    Parameters:
+        hostname: The hostname for which credentials need to be fetched.
+
+    Returns:
+        Dict[str, str]: A dictionary containing headers for basic authentication
+        if the credentials are available in the `.netrc` file. If no credentials
+        are found or the file is not present, an empty dictionary is returned.
+    """
+    try:
+        netrc_file = netrc.netrc()
+        auth = netrc_file.authenticators(hostname)
+        if auth:
+            username, _, password = auth
+            return urllib3.make_headers(basic_auth=f'{username}:{password}')
+    except FileNotFoundError:
+        pass
+    return {}
+
+@ApplyRewriteRules()
+def auth_header(url: str) -> Dict[str, str]:
+    """
+    Generate authentication headers for a given URL.
+
+    This function processes a URL to extract its hostname and generates
+    authentication headers based on the hostname. It uses auxiliary functions
+    to determine the hostname and retrieve the authentication details.
+    The authentication credentials are read from the user's .netrc file.
+
+    Args:
+        url (str): The URL for which to generate authentication headers.
+
+    Returns:
+        Dict[str, str]: A dictionary containing the authentication headers
+        corresponding to the provided URL.
+
+    Raises:
+        None
+    """
+    hostname,_ = host_and_port(url)
+    return _auth(hostname)
+
+
+def _build_headers(url: str, headers: Dict = None) -> Dict[str, str]:
+    """
+    Construct HTTP headers for a given URL, including a default User-Agent and
+    authorization headers.
+
+    Parameters:
+    url : str
+        The URL for which the headers are being constructed.
+    headers : Dict, optional
+        Existing headers to include in the request. Defaults to an empty dictionary
+        if not provided.
+
+    Returns:
+    Dict[str, str]
+        A dictionary containing the constructed HTTP headers.
+    """
+    headers = headers or {}
+    headers['User-Agent'] = USER_AGENT
+    headers.update(auth_header(url))
+    return headers
+
 
 class _HttpVerb:
     def __init__(self, verb):
@@ -93,9 +163,8 @@ class _HttpVerb:
     @ApplyRewriteRules(is_method=True)
     def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
         # self._adapter.timeout = timeout
-        headers = headers or {}
-        headers['User-Agent'] = USER_AGENT
-        return Response(self._verb(url=url, headers=headers, fields=params, timeout=timeout))
+        return Response(
+            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params, timeout=timeout))
 
 
 get = _HttpVerb("GET")
@@ -104,9 +173,8 @@ head = _HttpVerb("HEAD")
 
 @ApplyRewriteRules()
 def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None):
-    headers = {} if headers is None else headers
-    headers['User-Agent'] = USER_AGENT
-    return Response(pool.urlopen(method="GET", url=url, headers=headers, timeout=timeout))
+    return Response(
+        pool.urlopen(method="GET", url=url, headers=_build_headers(url=url, headers=headers), timeout=timeout))
 
 
 @ApplyRewriteRules()
