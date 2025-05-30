@@ -31,8 +31,13 @@ class HttpTests(unittest.TestCase):
 
     def test_basic_http_auth(self):
         # https://authenticationtest.com/HTTPAuth/
+
         import netrc
-        netrc_info = netrc.netrc()
+        try:
+            netrc_info = netrc.netrc()
+        except FileNotFoundError:
+            self.skipTest("Netrc file not found, skipping test")
+
         if netrc_info.authenticators("authenticationtest.com"):
             from speasy.core import http
             self.assertEqual(http.get("https://authenticationtest.com/HTTPAuth/").status_code, 200)
