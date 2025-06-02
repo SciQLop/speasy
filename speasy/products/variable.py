@@ -400,6 +400,25 @@ class SpeasyVariable(SpeasyProduct):
     def dtype(self):
         return self.__values_container.dtype
 
+    def astype(self, dtype) -> "SpeasyVariable":
+        """Returns a SpeasyVariable with values converted to given dtype
+
+        Parameters
+        ----------
+        dtype : str or np.dtype or type
+            desired dtype
+
+        Returns
+        -------
+        SpeasyVariable
+            SpeasyVariable with values converted to given dtype
+        """
+        return SpeasyVariable(
+            axes=deepcopy(self.__axes),
+            values=self.__values_container.astype(dtype),
+            columns=deepcopy(self.__columns),
+        )
+
     @property
     def name(self) -> str:
         """SpeasyVariable name
@@ -700,14 +719,16 @@ class SpeasyVariable(SpeasyProduct):
             values=self.__values_container, columns_names=self.columns, axes=self.axes
         )
 
-    def replace_fillval_by_nan(self, inplace=False) -> "SpeasyVariable":
-        """Replaces fill values by NaN, non float values are automatically converted to float.
+    def replace_fillval_by_nan(self, inplace=False, convert_to_float=False) -> "SpeasyVariable":
+        """Replaces fill values by NaN, non float values are automatically converted to float if convert_to_float is True.
         Fill value is taken from metadata field "FILLVAL"
 
         Parameters
         ----------
         inplace : bool, optional
             Modifies source variable when true else modifies and returns a copy, by default False
+        convert_to_float : bool, optional
+            Automatically converts variable to float if true and needed, by default False.
 
         Returns
         -------
@@ -719,16 +740,25 @@ class SpeasyVariable(SpeasyProduct):
         clamp_with_nan: replaces values outside valid range by NaN
         sanitized: removes fill and invalid values
         """
+        # @TODO replace by a match case when Python 3.9 is EOL
         if inplace:
             res = self
+            if convert_to_float and not np.issubdtype(self.dtype, np.floating):
+                res.__values_container = res.__values_container.astype(float)
         else:
-            res = deepcopy(self)
+            if convert_to_float and not np.issubdtype(self.dtype, np.floating):
+                res = self.astype(float)
+            else:
+                res = deepcopy(self)
         if (fill_value := self.fill_value) is not None:
+            if convert_to_float and not np.issubdtype(res.dtype, np.floating):
+                res.__values_container = res.__values_container.astype(float)
             res[res == fill_value] = np.nan
         return res
 
-    def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None) -> "SpeasyVariable":
-        """Replaces values outside valid range by NaN, valid range is taken from metadata fields "VALIDMIN" and "VALIDMAX"
+    def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None, convert_to_float=False) -> "SpeasyVariable":
+        """Replaces values outside valid range by NaN, valid range is taken from metadata fields "VALIDMIN" and "VALIDMAX".
+        Automatically converts variable to float if convert_to_float is True and needed.
 
         Parameters
         ----------
@@ -738,6 +768,8 @@ class SpeasyVariable(SpeasyProduct):
             Optional minimum valid value, takes metadata field "VALIDMIN" if not provided, by default None
         valid_max : Float, optional
             Optional maximum valid value, takes metadata field "VALIDMAX" if not provided, by default None
+        convert_to_float : bool, optional
+            Automatically converts variable to float if true and needed, by default False.
 
         Returns
         -------
@@ -749,10 +781,16 @@ class SpeasyVariable(SpeasyProduct):
         replace_fillval_by_nan: replaces fill values by NaN
         sanitized: removes fill and invalid values
         """
+        # @TODO replace by a match case when Python 3.9 is EOL
         if inplace:
             res = self
+            if convert_to_float and not np.issubdtype(self.dtype, np.floating):
+                res.__values_container = res.__values_container.astype(float)
         else:
-            res = deepcopy(self)
+            if convert_to_float and not np.issubdtype(self.dtype, np.floating):
+                res = self.astype(float)
+            else:
+                res = deepcopy(self)
         valid_min = valid_min or self.valid_range[0]
         valid_max = valid_max or self.valid_range[1]
         res[np.logical_or(res > valid_max, res < valid_min)] = np.nan

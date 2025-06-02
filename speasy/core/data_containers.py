@@ -121,6 +121,10 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     def dtype(self):
         return self.__values.dtype
 
+    def astype(self, dtype) -> "DataContainer":
+        return DataContainer(values=self.__values.astype(dtype), meta=self.__meta, name=self.__name,
+                             is_time_dependent=self.__is_time_dependent)
+
     @property
     def unit(self) -> str:
         return self.__meta.get('UNITS')
