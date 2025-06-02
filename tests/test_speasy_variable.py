@@ -341,6 +341,13 @@ class ASpeasyVariable(unittest.TestCase):
         except ImportError:
             self.skipTest("Can't import matplotlib")
 
+    def test_astype(self):
+        var = make_simple_var(1., 10., 1., 10.)
+        self.assertEqual(var.values.dtype, np.float64)
+        var2 = (var * 100).astype(np.int32)
+        self.assertEqual(var2.values.dtype, np.int32)
+        self.assertTrue(np.all(var2.values == (var.values * 100).astype(np.int32)))
+
     def test_replaces_fill_value(self):
         var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50.})
         self.assertEqual(var.fill_value, 50.)
@@ -350,6 +357,17 @@ class ASpeasyVariable(unittest.TestCase):
         var.replace_fillval_by_nan(inplace=True)
         self.assertTrue(np.isnan(var.values[4, 0]))
 
+    def test_replaces_fill_value_non_float(self):
+        var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50.}).astype(np.int32)
+        self.assertEqual(var.fill_value, 50.)
+        with self.assertRaises(ValueError):
+            var.replace_fillval_by_nan(inplace=False)
+        cleaned_copy = var.replace_fillval_by_nan(inplace=False, convert_to_float=True)
+        self.assertTrue(np.isnan(cleaned_copy.values[4, 0]))
+        self.assertFalse(np.isnan(var.values[4, 0]))
+        var.replace_fillval_by_nan(inplace=True, convert_to_float=True)
+        self.assertTrue(np.isnan(var.values[4, 0]))
+
     def test_clamps(self):
         var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.})
         clamped_copy = var.clamp_with_nan()
@@ -357,6 +375,19 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertTrue(np.all(np.isnan(clamped_copy.values[8:10, 0])))
         self.assertFalse(np.any(np.isnan(clamped_copy.values[1:8, 0])))
         var.clamp_with_nan(inplace=True)
+        self.assertTrue(np.all(np.isnan(var.values[0:1, 0])))
+        self.assertTrue(np.all(np.isnan(var.values[8:10, 0])))
+        self.assertFalse(np.any(np.isnan(var.values[1:8, 0])))
+
+    def test_clamps_non_float(self):
+        var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.}).astype(np.int32)
+        with self.assertRaises(ValueError):
+            var.clamp_with_nan(inplace=False)
+        clamped_copy = var.clamp_with_nan(convert_to_float=True)
+        self.assertTrue(np.all(np.isnan(clamped_copy.values[0:1, 0])))
+        self.assertTrue(np.all(np.isnan(clamped_copy.values[8:10, 0])))
+        self.assertFalse(np.any(np.isnan(clamped_copy.values[1:8, 0])))
+        var.clamp_with_nan(inplace=True, convert_to_float=True)
         self.assertTrue(np.all(np.isnan(var.values[0:1, 0])))
         self.assertTrue(np.all(np.isnan(var.values[8:10, 0])))
         self.assertFalse(np.any(np.isnan(var.values[1:8, 0])))
