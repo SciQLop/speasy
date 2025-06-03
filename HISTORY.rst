@@ -2,6 +2,18 @@
 History
 =======
 
+1.5.2 (2025-06-03)
+------------------
+* Handles corner cases with Cluster CDF files by @jeandet in https://github.com/SciQLop/speasy/pull/202
+* Always reduce to 1D boolean mask array in sanitize method by @jeandet in https://github.com/SciQLop/speasy/pull/207
+* CDAWeb inventory product node names were not cleanned by @jeandet in https://github.com/SciQLop/speasy/pull/212
+* Fixes CI issues on #215 and #216 by @jeandet in https://github.com/SciQLop/speasy/pull/217
+* Propagate AMDA identification information when the get data request is chunked by @brenard-irap in https://github.com/SciQLop/speasy/pull/216
+* Fixes #214 by @jeandet in https://github.com/SciQLop/speasy/pull/215
+* Add HTTP basic auth support using netrc file by @jeandet in https://github.com/SciQLop/speasy/pull/218
+* Skip auth http test also if there is no netrc file and bi-weekly CI run by @jeandet in https://github.com/SciQLop/speasy/pull/219
+* Allow float conversion in clamp and replace fill values by NaN functions by @jeandet in https://github.com/SciQLop/speasy/pull/220
+
 1.5.1 (2025-02-25)
 ------------------
 
