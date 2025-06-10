@@ -54,6 +54,7 @@ jobs:
         SPEASY_LONG_TESTS: ""
         SPEASY_INVENTORY_TESTS: ""
         SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
+        SPEASY_CORE_HTTP_USER_AGENT: "speasy-test-github-actions"
       run: |
         sudo apt update && sudo apt install -y texlive pandoc
         pip install pytest pytest-cov sphinx pandoc
