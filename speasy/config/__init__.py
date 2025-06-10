@@ -166,6 +166,10 @@ The main benefit of disabling providers is to speedup speasy loading.""",
 The keys are the URL to match and the values are the replacement URL.
 Example: {"http://example.com": "http://localhost:8000"}""",
                          "type_ctor": _load_dict_from_repr},
+                     http_user_agent={"default": "",
+                                        "description": """User agent to use for HTTP requests.
+This is useful to identify the application making the request.
+If not set, it will use the default user agent of the speasy package."""},
                      urlib_pool_size={"default": 10,
                                       "description": """Sets the maximum number of connections to keep in the pool.
 This is useful to avoid creating a new connection for each request.""",

@@ -17,7 +17,7 @@ from .url_utils import host_and_port, ApplyRewriteRules
 
 log = logging.getLogger(__name__)
 
-USER_AGENT = f'Speasy/{__version__} {platform.uname()} (SciQLop project)'
+USER_AGENT = core_config.http_user_agent.get() or f'Speasy/{__version__} {platform.uname()} (SciQLop project)'
 
 DEFAULT_TIMEOUT = 60  # seconds
 
