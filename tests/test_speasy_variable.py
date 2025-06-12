@@ -166,6 +166,13 @@ class SpeasyVariableSlice(unittest.TestCase):
         self.assertTrue(np.all(y.values[:, 0] == var.values[:, 1]))
         self.assertTrue(np.all(y.axes == var.axes))
 
+    def test_cant_slice_columns_a_3d_variable(self):
+        var = make_3d_var(1., 10., 1., 1., 32, 16)
+        var.columns.append("x")  # just a hack to enter the filter_columns meth
+        with self.assertRaises(ValueError) as e:
+            var["x"]
+        self.assertEqual(str(e.exception), "filter_columns is only supported for table-like variables with 1 or 2 axes")
+
     def test_can_slice_with_numpy_comparison(self):
         var = make_simple_var(1., 10., 1., 1.)
         sliced = var[var > 5]
@@ -408,6 +415,19 @@ class ASpeasyVariable(unittest.TestCase):
         r = spz.get_data("amda/imf", "2016-6-2", "2016-6-5").sanitized(drop_fill_values=False,
                                                                        drop_out_of_range_values=False)
         self.assertIsNotNone(r)
+
+    def test_non_regression_select_column(self):
+        import speasy as spz
+        the_c_temp = spz.get_data(spz.inventories.tree.cda.THEMIS.THC.L2.THC_L2_ESA.thc_peif_t3, "2010-01-01",
+                                  "2010-01-02")
+        t_perp1 = the_c_temp["Tprp1_ion Full ESA-C"]
+        self.assertIsNotNone(t_perp1)
+        self.assertEqual(t_perp1.columns, ["Tprp1_ion Full ESA-C"])
+        self.assertEqual(t_perp1.shape[1], 1)
+        t_perp = the_c_temp[["Tprp1_ion Full ESA-C", "Tprp2_ion Full ESA-C"]]
+        self.assertIsNotNone(t_perp)
+        self.assertEqual(t_perp.columns, ["Tprp1_ion Full ESA-C", "Tprp2_ion Full ESA-C"])
+        self.assertEqual(t_perp.shape[1], 2)
 
 
 class TestSpeasyVariableMath(unittest.TestCase):

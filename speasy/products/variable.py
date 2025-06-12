@@ -213,8 +213,16 @@ class SpeasyVariable(SpeasyProduct):
             a SpeasyVariable with only selected columns
         """
         indexes = list(map(lambda v: self.__columns.index(v), columns))
+        if len(self.__axes) == 1:
+            axes = deepcopy(self.__axes)
+        elif len(self.__axes) == 2:
+            axes = [deepcopy(self.__axes[0]),
+                    deepcopy(self.__axes[1][indexes])]
+        else:
+            raise ValueError("filter_columns is only supported for table-like variables with 1 or 2 axes")
+
         return SpeasyVariable(
-            axes=deepcopy(self.__axes),
+            axes=axes,
             values=DataContainer(
                 is_time_dependent=self.__values_container.is_time_dependent,
                 name=self.__values_container.name,
