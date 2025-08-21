@@ -275,6 +275,13 @@ class SpecificNonRegression(unittest.TestCase):
         self.assertIsNotNone(data)
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
 
+    def test_get_stereo_l1_het(self):
+        # https://github.com/SciQLop/speasy/issues/223
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        data = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
+        self.assertIsNotNone(data)
+        os.environ.pop(spz.config.proxy.enabled.env_var_name)
+
 
 @ddt
 class DirectArchiveConverter(unittest.TestCase):
