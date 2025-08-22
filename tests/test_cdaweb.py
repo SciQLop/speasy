@@ -50,8 +50,8 @@ class SimpleRequest(unittest.TestCase):
             "stop_time": datetime(2020, 1, 1, 2, tzinfo=timezone.utc)
         },
         {
-            "dataset": "ERG_ORB_L3",
-            "variable": "pos_eq_op",
+            "dataset": "ERG_ORB_L2",
+            "variable": "pos_gse",
             "start_time": datetime(2018, 1, 1, tzinfo=timezone.utc),
             "stop_time": datetime(2018, 1, 1, 2, tzinfo=timezone.utc)
         }
@@ -91,8 +91,8 @@ class SimpleRequest(unittest.TestCase):
             "stop_time": datetime(2020, 1, 1, 2, tzinfo=timezone.utc)
         },
         {
-            "dataset": "ERG_ORB_L3",
-            "variable": "pos_eq_op",
+            "dataset": "ERG_ORB_L2",
+            "variable": "pos_gse",
             "start_time": datetime(2018, 1, 1, tzinfo=timezone.utc),
             "stop_time": datetime(2018, 1, 1, 2, tzinfo=timezone.utc)
         },
