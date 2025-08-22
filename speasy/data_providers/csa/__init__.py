@@ -31,6 +31,12 @@ def _only_primitive_types(d: dict) -> dict:
                 d[k] = float(v)
             elif isinstance(v, (np.bool_,bool)):
                 d[k] = bool(v)
+            elif isinstance(v, np.str_):
+                d[k] = str(v)
+            elif isinstance(v, np.ma.core.MaskedConstant):
+                d[k] = None
+            else:
+                log.debug(f"Warning: removing non primitive type {type(v)} for key {k}")
     return d
 
 
