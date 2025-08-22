@@ -8,7 +8,7 @@ erg_pwe_hfa_l3_1min:
   inventory_path: cda/Arase_ERG/PWE/HFA
   master_cdf: https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_pwe_hfa_l3_1min_00000000_v01.cdf
   split_rule: regular
-  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3_1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v\d+_\d+.cdf
+  url_pattern: https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v\d+_\d+.cdf
   use_file_list: true
 mms1_fgm_srvy_l2:
   inventory_path: cda/MMS/MMS1/FGM/SRVY
