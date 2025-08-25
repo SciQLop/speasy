@@ -48,9 +48,9 @@ def _check_time_dependent_axis(axis: VariableAxis, axis_index, time_axis: Variab
         raise ValueError(
             f"Time dependent axis must have the same length than time axis, got {len(axis)} and {len(time_axis)}"
         )
-    if axis.shape[1] != values.shape[axis_index]:
+    if (axis.shape != values.shape) and (axis.shape[1] != values.shape[axis_index]):
         raise ValueError(
-            f"Axis {axis_index} must match data shape, got {axis.shape[1]} and {values.shape[axis_index]}"
+            f"Axis {axis_index} must match data shape, got axis:{axis.shape} and values:{values.shape}"
         )
 
 
@@ -346,6 +346,7 @@ class SpeasyVariable(SpeasyProduct):
             axes = []
             for i, ax in enumerate(self.__axes):
                 if i != axis:
+                    # needs to reduce axis
                     axes.append(deepcopy(ax))
             return axes
 

@@ -282,6 +282,22 @@ class SpecificNonRegression(unittest.TestCase):
         self.assertIsNotNone(data)
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
 
+    def test_get_PSP_ISOIS_EPILO_L2_PE(self):
+        # https://github.com/SciQLop/speasy/issues/225
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        data = spz.get_data("cda/PSP_ISOIS-EPILO_L2-PE/Electron_Counts_ChanE", "2021-10-09", "2021-10-09T01")
+        self.assertIsNotNone(data)
+        data_sum_1 = np.sum(data, axis=1)
+        data_sum_2 = np.sum(data, axis=2)
+        self.assertIsNotNone(data_sum_1)
+        self.assertIsNotNone(data_sum_2)
+
+    def test_get_WI_SFSP_3DP(self):
+        # https://github.com/SciQLop/speasy/issues/225
+        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        data = spz.get_data("cda/WI_SFSP_3DP/FLUX", "2005-01-01", "2005-01-01T01")
+        self.assertIsNotNone(data)
+
 
 @ddt
 class DirectArchiveConverter(unittest.TestCase):
