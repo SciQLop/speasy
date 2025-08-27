@@ -513,6 +513,14 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
             self.assertIsInstance(result, np.ndarray)
             self.assertTrue(np.all(result == func(var.values, axis=0)))
 
+    def test_on_axis(self):
+        for var in (self.spectro, self.var3d):
+            x_mean = np.mean(var.axes[0].astype(int)).astype('datetime64[ns]')
+            self.assertEqual(x_mean, np.mean(var.time.astype(np.int64)).astype('datetime64[ns]'))
+            diff = np.diff(var.axes[0])
+            self.assertTrue(np.all(diff.values == np.diff(var.time)))
+
+
     def test_zeros_like(self):
         var = np.zeros_like(self.var)
         self.assertEqual(self.var.shape, var.shape)
@@ -540,6 +548,38 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
     def test_scalar_result(self, func):
         for v in (self.var, self.vector, self.spectro, self.var3d):
             self.assertIsInstance(func(v), float)
+
+
+class DataContainerNumpyInterface(unittest.TestCase):
+    def setUp(self):
+        self.dc = DataContainer(values=np.arange(100).reshape(-1, 2, 5).astype(np.float64), is_time_dependent=True)
+
+    def tearDown(self):
+        pass
+
+    def test_ufunc(self):
+        dc = np.exp(self.dc)
+        self.assertTrue(np.all(dc.values == np.exp(self.dc.values)))
+
+    def test_ufunc_inplace(self):
+        values = self.dc.values.copy()
+        self.dc += 1
+        self.assertTrue(np.all(self.dc.values == values + 1))
+
+    def test_ufunc_with_output(self):
+        out = np.empty_like(self.dc)
+        np.add(self.dc, 1, out=out)
+        self.assertTrue(np.all(out.values == self.dc.values + 1))
+
+    def test_ufunc_sum(self):
+        r = np.sum(self.dc)
+        self.assertTrue(np.all(r == np.sum(self.dc.values)))
+        self.assertIsInstance(r, float)
+
+        r = np.sum(self.dc, axis=1)
+        self.assertTrue(np.all(r.values == np.sum(self.dc.values, axis=1)))
+        self.assertIsInstance(r, DataContainer)
+        self.assertEqual(r.shape, (self.dc.shape[0], self.dc.shape[2]))
 
 
 class SpeasyVariableCompare(unittest.TestCase):
