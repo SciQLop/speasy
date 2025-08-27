@@ -10,7 +10,8 @@ from speasy.core.data_containers import (
     DataContainer,
     VariableAxis,
     VariableTimeAxis,
-    _to_index
+    _to_index,
+    np_build_result_name
 )
 from speasy.plotting import Plot
 from .base_product import SpeasyProduct
@@ -20,17 +21,6 @@ def _values(input: Any) -> Any:
     if isinstance(input, SpeasyVariable):
         return input.values
     return input
-
-
-def _name(input: Any) -> str:
-    if isinstance(input, SpeasyVariable):
-        return input.name
-    return str(input)
-
-
-def _np_build_result_name(func, *args, **kwargs):
-    return f"{func.__name__}({', '.join(map(_name, args))}{', ' * bool(kwargs)}{', '.join([f'{k}={_name(v)}' for k, v in kwargs.items()])})"
-
 
 def _check_time_axis(axis: VariableTimeAxis, values: DataContainer):
     if not isinstance(axis, VariableTimeAxis):
@@ -339,7 +329,7 @@ class SpeasyVariable(SpeasyProduct):
     def __rtruediv__(self, other):
         return np.divide(other, self)
 
-    def __np_build_axes__(self, other, axis=None):
+    def __np_build_axes__(self, other, axis=None, func=None):
         if axis is None or self.ndim == other.ndim:
             return deepcopy(self.__axes)
         else:
@@ -347,6 +337,8 @@ class SpeasyVariable(SpeasyProduct):
             for i, ax in enumerate(self.__axes):
                 if i != axis:
                     # needs to reduce axis
+                    if len(ax.shape) == len(self.values.shape):
+                        ax = np.mean(ax, axis=axis, keepdims=False)
                     axes.append(deepcopy(ax))
             return axes
 
@@ -368,7 +360,7 @@ class SpeasyVariable(SpeasyProduct):
         return SpeasyVariable(
             axes=self.__np_build_axes__(res, axis=kwargs.get('axis', None)),
             values=DataContainer(values=res,
-                                 name=_np_build_result_name(func, *args, **kwargs),
+                                 name=np_build_result_name(func, *args, **kwargs),
                                  meta=deepcopy(self.__values_container.meta)),
             columns=[f"column_{i}" for i in range(n_cols)],
         )
@@ -392,7 +384,7 @@ class SpeasyVariable(SpeasyProduct):
             return SpeasyVariable(
                 axes=axes,
                 values=DataContainer(values=values,
-                                     name=_np_build_result_name(ufunc, *inputs, **kwargs),
+                                     name=np_build_result_name(ufunc, *inputs, **kwargs),
                                      meta=deepcopy(self.__values_container.meta)),
                 columns=[f"column_{i}" for i in range(values.shape[1])],
             )
