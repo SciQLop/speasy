@@ -83,11 +83,6 @@ def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef
 
 @ddt
 class SpeasyVariableSlice(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     @data(
         make_simple_var,
@@ -208,11 +203,6 @@ class SpeasyVariableSlice(unittest.TestCase):
 
 @ddt
 class SpeasyVariableMerge(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def test_empty_list(self):
         self.assertIsNone(merge([]))
@@ -261,11 +251,6 @@ class SpeasyVariableMerge(unittest.TestCase):
 
 @ddt
 class ASpeasyVariable(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def test_to_dataframe(self):
         var = make_simple_var(1., 10., 1., 10.)
@@ -434,9 +419,6 @@ class TestSpeasyVariableMath(unittest.TestCase):
     def setUp(self):
         self.var = make_simple_var(1., 10., 1., 10.)
 
-    def tearDown(self):
-        pass
-
     def test_addition(self):
         var = self.var + 1
         self.assertTrue(np.all(var.values == self.var.values + 1))
@@ -553,9 +535,6 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
 class DataContainerNumpyInterface(unittest.TestCase):
     def setUp(self):
         self.dc = DataContainer(values=np.arange(100).reshape(-1, 2, 5).astype(np.float64), is_time_dependent=True)
-
-    def tearDown(self):
-        pass
 
     def test_ufunc(self):
         dc = np.exp(self.dc)
