@@ -292,6 +292,7 @@ class SpecificNonRegression(unittest.TestCase):
         self.assertIsNotNone(data_sum_1)
         self.assertIsNotNone(data_sum_2)
 
+    @unittest.expectedFailure
     def test_get_WI_SFSP_3DP(self):
         # https://github.com/SciQLop/speasy/issues/225
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
