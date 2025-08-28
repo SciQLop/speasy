@@ -161,18 +161,19 @@ class _HttpVerb:
         self._verb = partial(pool.request, method=verb, retries=retry_strategy)
 
     @ApplyRewriteRules(is_method=True)
-    def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT):
+    def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT, **kwargs) -> Response:
         # self._adapter.timeout = timeout
         return Response(
-            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params, timeout=timeout))
+            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params, timeout=timeout, **kwargs))
 
 
 get = _HttpVerb("GET")
+post = _HttpVerb("POST")
 head = _HttpVerb("HEAD")
 
 
 @ApplyRewriteRules()
-def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None):
+def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None)-> Response:
     return Response(
         pool.urlopen(method="GET", url=url, headers=_build_headers(url=url, headers=headers), timeout=timeout))
 
