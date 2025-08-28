@@ -69,15 +69,14 @@ This simple code example shows how easy it is to get data using Speasy. The code
 
 
 ```python
-import numpy.linalg
 import speasy as spz
 ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
 ace_mag.plot();
 ```
 
 
-
-![png](README_files/README_2_0.png)
+    
+![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_2_0.png)
     
 
 
@@ -98,7 +97,7 @@ ace_mag.plot();
 
 
     
-![png](README_files/README_4_0.png)
+![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_4_0.png)
     
 
 
@@ -135,9 +134,12 @@ for p in plots:
 plt.show()
 ```
 
+    Can't get MMS1_FGM_SRVY_L2/mms1_fgm_b_gse_srvy_l2_clean without web service, switching to web service
+
+
 
     
-![png](README_files/README_6_0.png)
+![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_6_1.png)
     
 
 
@@ -163,16 +165,234 @@ data
 
 
 
-    [[<speasy.products.variable.SpeasyVariable at 0x7f14662feb80>,
-      <speasy.products.variable.SpeasyVariable at 0x7f146688a7c0>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f14660b0f40>,
-      <speasy.products.variable.SpeasyVariable at 0x7f14660d1180>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f1465f6da80>,
-      <speasy.products.variable.SpeasyVariable at 0x7f14660f43c0>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f14664d8dc0>,
-      <speasy.products.variable.SpeasyVariable at 0x7f146619fd40>],
-     [<speasy.products.variable.SpeasyVariable at 0x7f14660e63c0>,
-      <speasy.products.variable.SpeasyVariable at 0x7f1465f0ba40>]]
+    [[SpeasyVariable(
+          Name: 'wnd_swe_vth', 
+          Time Range: 2010-01-02T00:00:34.450000000 - 2010-01-02T09:59:39.371000000
+          Shape: (368, 1), 
+          Unit: 'km/s', 
+          Columns: ['v_thermal'], 
+          Meta: {
+              CATDESC: 'wnd_swe_vth', 
+              FIELDNAM: 'v_thermal', 
+              FORMAT: 'F11.4', 
+              VAR_TYPE: 'data', 
+              FILLVAL: [nan], 
+              SI_CONVERSION: '\x00', 
+              VALIDMIN: [-3.4028234663852886e+38], 
+              VALIDMAX: [3.4028234663852886e+38], 
+              DATA: 'N/A', 
+              DISPLAY_TYPE: 'time_series', 
+              LABLAXIS: 'v_thermal', 
+              TENSOR_FRAME: '\x00', 
+              TENSOR_ORDER: '0', 
+              UNITS: 'km/s', 
+              VAR_NOTES: '\x00', 
+              DEPEND_0: 'AMDA_TIME', 
+              }, 
+          Size: '5.2 kB', 
+          ),
+      SpeasyVariable(
+          Name: 'wnd_swe_vth', 
+          Time Range: 2009-08-02T00:02:32.599000000 - 2009-08-02T09:59:25.303000000
+          Shape: (366, 1), 
+          Unit: 'km/s', 
+          Columns: ['v_thermal'], 
+          Meta: {
+              CATDESC: 'wnd_swe_vth', 
+              FIELDNAM: 'v_thermal', 
+              FORMAT: 'F11.4', 
+              VAR_TYPE: 'data', 
+              FILLVAL: [nan], 
+              SI_CONVERSION: '\x00', 
+              VALIDMIN: [-3.4028234663852886e+38], 
+              VALIDMAX: [3.4028234663852886e+38], 
+              DATA: 'N/A', 
+              DISPLAY_TYPE: 'time_series', 
+              LABLAXIS: 'v_thermal', 
+              TENSOR_FRAME: '\x00', 
+              TENSOR_ORDER: '0', 
+              UNITS: 'km/s', 
+              VAR_NOTES: '\x00', 
+              DEPEND_0: 'AMDA_TIME', 
+              }, 
+          Size: '5.2 kB', 
+          )],
+     [SpeasyVariable(
+          Name: 'wnd_swe_pdyn', 
+          Time Range: 2010-01-02T00:00:34.450000000 - 2010-01-02T09:59:39.371000000
+          Shape: (368, 1), 
+          Unit: 'nPa', 
+          Columns: ['ram pressure'], 
+          Meta: {
+              CATDESC: 'wnd_swe_pdyn', 
+              FIELDNAM: 'ram pressure', 
+              FORMAT: 'F14.3', 
+              VAR_TYPE: 'data', 
+              FILLVAL: [nan], 
+              SI_CONVERSION: '\x00', 
+              VALIDMIN: [-1.7976931348623157e+308], 
+              VALIDMAX: [1.7976931348623157e+308], 
+              DATA: 'N/A', 
+              DISPLAY_TYPE: 'time_series', 
+              LABLAXIS: 'ram pressure', 
+              TENSOR_FRAME: '\x00', 
+              TENSOR_ORDER: '0', 
+              UNITS: 'nPa', 
+              VAR_NOTES: "Derived parameter from expression '0.000002*$wnd_swe_n*pow($wnd_swe_vmag,2)'", 
+              DEPEND_0: 'AMDA_TIME', 
+              }, 
+          Size: '6.7 kB', 
+          ),
+      SpeasyVariable(
+          Name: 'wnd_swe_pdyn', 
+          Time Range: 2009-08-02T00:02:32.599000000 - 2009-08-02T09:59:25.303000000
+          Shape: (366, 1), 
+          Unit: 'nPa', 
+          Columns: ['ram pressure'], 
+          Meta: {
+              CATDESC: 'wnd_swe_pdyn', 
+              FIELDNAM: 'ram pressure', 
+              FORMAT: 'F14.3', 
+              VAR_TYPE: 'data', 
+              FILLVAL: [nan], 
+              SI_CONVERSION: '\x00', 
+              VALIDMIN: [-1.7976931348623157e+308], 
+              VALIDMAX: [1.7976931348623157e+308], 
+              DATA: 'N/A', 
+              DISPLAY_TYPE: 'time_series', 
+              LABLAXIS: 'ram pressure', 
+              TENSOR_FRAME: '\x00', 
+              TENSOR_ORDER: '0', 
+              UNITS: 'nPa', 
+              VAR_NOTES: "Derived parameter from expression '0.000002*$wnd_swe_n*pow($wnd_swe_vmag,2)'", 
+              DEPEND_0: 'AMDA_TIME', 
+              }, 
+          Size: '6.7 kB', 
+          )],
+     [SpeasyVariable(
+          Name: 'wnd_swe_n', 
+          Time Range: 2010-01-02T00:00:34.450000000 - 2010-01-02T09:59:39.371000000
+          Shape: (368, 1), 
+          Unit: 'cm-3', 
+          Columns: ['density'], 
+          Meta: {
+              CATDESC: 'wnd_swe_n', 
+              FIELDNAM: 'density', 
+              FORMAT: 'F11.4', 
+              VAR_TYPE: 'data', 
+              FILLVAL: [nan], 
+              SI_CONVERSION: '\x00', 
+              VALIDMIN: [-3.4028234663852886e+38], 
+              VALIDMAX: [3.4028234663852886e+38], 
+              DATA: 'N/A', 
+              DISPLAY_TYPE: 'time_series', 
+              LABLAXIS: 'density', 
+              TENSOR_FRAME: '\x00', 
+              TENSOR_ORDER: '0', 
+              UNITS: 'cm-3', 
+              VAR_NOTES: '\x00', 
+              DEPEND_0: 'AMDA_TIME', 
+              }, 
+          Size: '5.2 kB', 
+          ),
+      SpeasyVariable(
+          Name: 'wnd_swe_n', 
+          Time Range: 2009-08-02T00:02:32.599000000 - 2009-08-02T09:59:25.303000000
+          Shape: (366, 1), 
+          Unit: 'cm-3', 
+          Columns: ['density'], 
+          Meta: {
+              CATDESC: 'wnd_swe_n', 
+              FIELDNAM: 'density', 
+              FORMAT: 'F11.4', 
+              VAR_TYPE: 'data', 
+              FILLVAL: [nan], 
+              SI_CONVERSION: '\x00', 
+              VALIDMIN: [-3.4028234663852886e+38], 
+              VALIDMAX: [3.4028234663852886e+38], 
+              DATA: 'N/A', 
+              DISPLAY_TYPE: 'time_series', 
+              LABLAXIS: 'density', 
+              TENSOR_FRAME: '\x00', 
+              TENSOR_ORDER: '0', 
+              UNITS: 'cm-3', 
+              VAR_NOTES: '\x00', 
+              DEPEND_0: 'AMDA_TIME', 
+              }, 
+          Size: '5.2 kB', 
+          )],
+     [SpeasyVariable(
+          Name: 'BGSE', 
+          Time Range: 2010-01-02T00:00:00.078500000 - 2010-01-02T09:59:59.950500000
+          Shape: (389013, 3), 
+          Unit: 'nT', 
+          Columns: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
+          Meta: {
+              FIELDNAM: 'Magnetic field vector in GSE cartesian coordinates', 
+              VALIDMIN: [-65534.0, -65534.0, -65534.0], 
+              VALIDMAX: [65534.0, 65534.0, 65534.0], 
+              SCALEMIN: [-5.998990058898926,
+               -3.514899969100952,
+               -4.955120086669922], 
+              SCALEMAX: [4.561240196228027, 5.447979927062988, 3.987950086593628], 
+              UNITS: 'nT', 
+              FORMAT: 'E13.6', 
+              MONOTON: 'FALSE', 
+              SCALETYP: 'LINEAR', 
+              CATDESC: 'Magnetic field vector in GSE cartesian coordinates', 
+              FILLVAL: [-9.999999848243207e+30], 
+              LABL_PTR_1: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
+              DEPEND_0: 'Epoch', 
+              VAR_TYPE: 'data', 
+              TIME_RES: 'Variable', 
+              }, 
+          Size: '7.8 MB', 
+          ),
+      SpeasyVariable(
+          Name: 'BGSE', 
+          Time Range: 2009-08-02T00:00:00.017500000 - 2009-08-02T09:59:59.982500000
+          Shape: (389069, 3), 
+          Unit: 'nT', 
+          Columns: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
+          Meta: {
+              FIELDNAM: 'Magnetic field vector in GSE cartesian coordinates', 
+              VALIDMIN: [-65534.0, -65534.0, -65534.0], 
+              VALIDMAX: [65534.0, 65534.0, 65534.0], 
+              SCALEMIN: [-5.998990058898926,
+               -3.514899969100952,
+               -4.955120086669922], 
+              SCALEMAX: [4.561240196228027, 5.447979927062988, 3.987950086593628], 
+              UNITS: 'nT', 
+              FORMAT: 'E13.6', 
+              MONOTON: 'FALSE', 
+              SCALETYP: 'LINEAR', 
+              CATDESC: 'Magnetic field vector in GSE cartesian coordinates', 
+              FILLVAL: [-9.999999848243207e+30], 
+              LABL_PTR_1: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
+              DEPEND_0: 'Epoch', 
+              VAR_TYPE: 'data', 
+              TIME_RES: 'Variable', 
+              }, 
+          Size: '7.8 MB', 
+          )],
+     [SpeasyVariable(
+          Name: '', 
+          Time Range: 2010-01-02T00:00:00.000000000 - 2010-01-02T09:48:00.000000000
+          Shape: (50, 3), 
+          Unit: 'km', 
+          Columns: ['X', 'Y', 'Z'], 
+          Meta: { CoordinateSystem: 'GSE',  UNITS: 'km',  }, 
+          Size: '1.9 kB', 
+          ),
+      SpeasyVariable(
+          Name: '', 
+          Time Range: 2009-08-02T00:00:00.000000000 - 2009-08-02T09:48:00.000000000
+          Shape: (50, 3), 
+          Unit: 'km', 
+          Columns: ['X', 'Y', 'Z'], 
+          Meta: { CoordinateSystem: 'GSE',  UNITS: 'km',  }, 
+          Size: '1.9 kB', 
+          )]]
 
 
 
@@ -233,7 +453,7 @@ plt.tight_layout()
 
 
     
-![png](README_files/README_12_0.png)
+![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_12_0.png)
     
 
 
@@ -255,3 +475,4 @@ This package was created with
 [Cookiecutter](https://github.com/audreyr/cookiecutter) and the
 [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage)
 project template.
+
