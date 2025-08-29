@@ -30,6 +30,7 @@ csa = None
 cda = None
 ssc = None
 archive = None
+uiowaephtool = None
 
 
 def init_amda(ignore_disabled_status=False):
@@ -87,12 +88,25 @@ def init_archive(ignore_disabled_status=False):
         PROVIDERS['generic_archive'] = archive
 
 
+def init_uiowaephtool(ignore_disabled_status=False):
+    global uiowaephtool
+    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'UiowaEphTool', 'uiowaephtool'}):
+        if is_server_up("https://planet.physics.uiowa.edu"):
+            from ...data_providers.uiowa_eph_tool import UiowaEphTool
+            uiowaephtool = UiowaEphTool()
+            sys.modules[__name__].uiowaephtool = uiowaephtool
+            PROVIDERS['uiowaephtool'] = uiowaephtool
+        else:
+            log.warning(f"UiowaEphTool server https://planet.physics.uiowa.edu is down, disabling UiowaEphTool provider")
+
+
 def init_providers(ignore_disabled_status=False):
     init_amda(ignore_disabled_status=ignore_disabled_status)
     init_csa(ignore_disabled_status=ignore_disabled_status)
     init_cdaweb(ignore_disabled_status=ignore_disabled_status)
     init_sscweb(ignore_disabled_status=ignore_disabled_status)
     init_archive(ignore_disabled_status=ignore_disabled_status)
+    init_uiowaephtool(ignore_disabled_status=ignore_disabled_status)
 
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:

@@ -87,3 +87,7 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python -m pip install .
+
+readme: ## open the README file in the default web browser
+	PYTHONPATH=. python -m jupyter nbconvert --execute --to markdown README.ipynb --output README.md
+	python scripts/relocate_readme_images.py --readme-path=README.md --new-image-location="https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/"
