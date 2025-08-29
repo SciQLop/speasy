@@ -625,13 +625,17 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     @staticmethod
-    def from_dataframe(df: pds.DataFrame) -> "SpeasyVariable":
+    def from_dataframe(df: pds.DataFrame, meta:Optional[Dict[str, Any]]=None, name:str="Unknown") -> "SpeasyVariable":
         """Load from pandas.DataFrame object.
 
         Parameters
         ----------
         df: pandas.DataFrame
             Input DataFrame to convert
+        meta: Optional[Dict[str, Any]], optional
+            Optional metadata dictionary, by default None
+        name: str, optional
+            Variable name, by default "Unknown"
 
         Returns
         -------
@@ -654,7 +658,7 @@ class SpeasyVariable(SpeasyProduct):
                 "Can't convert DataFrame index to datetime64[ns] array")
         return SpeasyVariable(
             axes=[VariableTimeAxis(values=time, meta={})],
-            values=DataContainer(values=df.values, meta={}, name="Unknown"),
+            values=DataContainer(values=df.values, meta=meta or {}, name=name),
             columns=list(df.columns),
         )
 
