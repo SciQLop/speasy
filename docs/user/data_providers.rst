@@ -11,6 +11,7 @@ Data Providers
    cdaweb/cdaweb
    csa/csa
    direct_archive/direct_archive
+   Uiowa_eph_tool/uiowa_eph_tool.rst
 
 Speasy provides access to the following Web Services:
 
@@ -18,6 +19,7 @@ Speasy provides access to the following Web Services:
     - :doc:`Satellite Situation Center Web (SSCWeb) <sscweb/sscweb>`
     - :doc:`Coordinated Data Analysis Web (CDAWeb) <cdaweb/cdaweb>`
     - :doc:`Cluster Science Archive (CSA) <csa/csa>`
+    - :doc:`University of Iowa Cassini Ephemeris Tool (UiowaEphTool) <Uiowa_eph_tool/uiowa_eph_tool>`
 
 Speasy can also access data directly from local or remote archives using the :doc:`direct archive access module <direct_archive/direct_archive>`
 
