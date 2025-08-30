@@ -101,29 +101,49 @@ class ImpexProvider(DataProvider):
             root index populated with public inventory
 
         """
-        obs_data_tree = ImpexXMLParser.parse(self._get_obs_data_tree(), self.provider_name, self.name_mapping)
-        root.Parameters = SpeasyIndex(name='Parameters', provider=self.provider_name, uid='Parameters',
-                                      meta=obs_data_tree.dataRoot.dataCenter.__dict__)
+        obs_data_xml = self._get_obs_data_tree()
+        if obs_data_xml is None:
+            logging.warning(f"Failed to retrieve observation data tree from {self.provider_name}. "
+                          f"Service may be temporarily unavailable. Creating empty Parameters index.")
+            root.Parameters = SpeasyIndex(name='Parameters', provider=self.provider_name, uid='Parameters')
+        else:
+            obs_data_tree = ImpexXMLParser.parse(obs_data_xml, self.provider_name, self.name_mapping)
+            root.Parameters = SpeasyIndex(name='Parameters', provider=self.provider_name, uid='Parameters',
+                                          meta=obs_data_tree.dataRoot.dataCenter.__dict__)
 
         if self.client.is_capable(ImpexEndpoint.GETTT):
             root.TimeTables = SpeasyIndex(name='TimeTables', provider=self.provider_name, uid='TimeTables')
-            public_tt = ImpexXMLParser.parse(self._get_timetables_tree(), self.provider_name, self.name_mapping)
-            if hasattr(public_tt, 'ws'):
-                # CLWeb case
-                shared_root = public_tt.ws.timetabList
+            timetables_xml = self._get_timetables_tree()
+            if timetables_xml is None:
+                logging.warning(f"Failed to retrieve timetables tree from {self.provider_name}. "
+                              f"Service may be temporarily unavailable. Creating empty SharedTimeTables index.")
+                root.TimeTables.SharedTimeTables = SpeasyIndex(name='SharedTimeTables', provider=self.provider_name,
+                                                               uid='SharedTimeTables')
             else:
-                # AMDA case
-                shared_root = public_tt.timeTableList
-            root.TimeTables.SharedTimeTables = SpeasyIndex(name='SharedTimeTables', provider=self.provider_name,
-                                                           uid='SharedTimeTables',
-                                                           meta=shared_root.__dict__)
+                public_tt = ImpexXMLParser.parse(timetables_xml, self.provider_name, self.name_mapping)
+                if hasattr(public_tt, 'ws'):
+                    # CLWeb case
+                    shared_root = public_tt.ws.timetabList
+                else:
+                    # AMDA case
+                    shared_root = public_tt.timeTableList
+                root.TimeTables.SharedTimeTables = SpeasyIndex(name='SharedTimeTables', provider=self.provider_name,
+                                                               uid='SharedTimeTables',
+                                                               meta=shared_root.__dict__)
 
         if self.client.is_capable(ImpexEndpoint.GETCAT):
             root.Catalogs = SpeasyIndex(name='Catalogs', provider=self.provider_name, uid='Catalogs')
-            public_cat = ImpexXMLParser.parse(self._get_catalogs_tree(), self.provider_name, self.name_mapping)
-            root.Catalogs.SharedCatalogs = SpeasyIndex(name='SharedCatalogs', provider=self.provider_name,
-                                                       uid='SharedCatalogs',
-                                                       meta=public_cat.catalogList.__dict__)
+            catalogs_xml = self._get_catalogs_tree()
+            if catalogs_xml is None:
+                logging.warning(f"Failed to retrieve catalogs tree from {self.provider_name}. "
+                              f"Service may be temporarily unavailable. Creating empty SharedCatalogs index.")
+                root.Catalogs.SharedCatalogs = SpeasyIndex(name='SharedCatalogs', provider=self.provider_name,
+                                                           uid='SharedCatalogs')
+            else:
+                public_cat = ImpexXMLParser.parse(catalogs_xml, self.provider_name, self.name_mapping)
+                root.Catalogs.SharedCatalogs = SpeasyIndex(name='SharedCatalogs', provider=self.provider_name,
+                                                           uid='SharedCatalogs',
+                                                           meta=public_cat.catalogList.__dict__)
 
         return root
 
@@ -143,28 +163,45 @@ class ImpexProvider(DataProvider):
         """
         if self.client.credential_are_valid():
             if self.client.is_capable(ImpexEndpoint.GETTT):
-                user_tt = ImpexXMLParser.parse(self._get_user_timetables_tree(),
-                                               self.provider_name, self.name_mapping, is_public=False)
-                if hasattr(user_tt, 'ws'):
-                    # CLWeb case
-                    public_root = user_tt.ws.timetabList
+                user_tt_xml = self._get_user_timetables_tree()
+                if user_tt_xml is None:
+                    logging.warning(f"Failed to retrieve user timetables tree from {self.provider_name}. "
+                                  f"Service may be temporarily unavailable. Creating empty MyTimeTables index.")
+                    root.TimeTables.MyTimeTables = SpeasyIndex(name='MyTimeTables', provider=self.provider_name,
+                                                               uid='MyTimeTables')
                 else:
-                    # AMDA case
-                    public_root = user_tt.timetabList
-                root.TimeTables.MyTimeTables = SpeasyIndex(name='MyTimeTables', provider=self.provider_name,
-                                                           uid='MyTimeTables', meta=public_root.__dict__)
+                    user_tt = ImpexXMLParser.parse(user_tt_xml, self.provider_name, self.name_mapping, is_public=False)
+                    if hasattr(user_tt, 'ws'):
+                        # CLWeb case
+                        public_root = user_tt.ws.timetabList
+                    else:
+                        # AMDA case
+                        public_root = user_tt.timetabList
+                    root.TimeTables.MyTimeTables = SpeasyIndex(name='MyTimeTables', provider=self.provider_name,
+                                                               uid='MyTimeTables', meta=public_root.__dict__)
 
             if self.client.is_capable(ImpexEndpoint.GETCAT):
-                user_cat = ImpexXMLParser.parse(self._get_user_catalogs_tree(), self.provider_name,
-                                                self.name_mapping, is_public=False)
-                root.Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider=self.provider_name, uid='MyCatalogs',
-                                                       meta=user_cat.catalogList.__dict__)
+                user_cat_xml = self._get_user_catalogs_tree()
+                if user_cat_xml is None:
+                    logging.warning(f"Failed to retrieve user catalogs tree from {self.provider_name}. "
+                                  f"Service may be temporarily unavailable. Creating empty MyCatalogs index.")
+                    root.Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider=self.provider_name, uid='MyCatalogs')
+                else:
+                    user_cat = ImpexXMLParser.parse(user_cat_xml, self.provider_name, self.name_mapping, is_public=False)
+                    root.Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider=self.provider_name, uid='MyCatalogs',
+                                                           meta=user_cat.catalogList.__dict__)
 
             if self.client.is_capable(ImpexEndpoint.LISTPARAM):
-                user_param = ImpexXMLParser.parse(self._get_derived_parameter_tree(),
-                                                  self.provider_name, self.name_mapping, is_public=False)
-                root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider=self.provider_name,
-                                                     uid='DerivedParameters', meta=user_param.ws.paramList.__dict__)
+                user_param_xml = self._get_derived_parameter_tree()
+                if user_param_xml is None:
+                    logging.warning(f"Failed to retrieve derived parameters tree from {self.provider_name}. "
+                                  f"Service may be temporarily unavailable. Creating empty DerivedParameters index.")
+                    root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider=self.provider_name,
+                                                         uid='DerivedParameters')
+                else:
+                    user_param = ImpexXMLParser.parse(user_param_xml, self.provider_name, self.name_mapping, is_public=False)
+                    root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider=self.provider_name,
+                                                         uid='DerivedParameters', meta=user_param.ws.paramList.__dict__)
         return root
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
