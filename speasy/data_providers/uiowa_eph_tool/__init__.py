@@ -6,7 +6,6 @@ __version__ = '0.1.0'
 
 import logging
 from datetime import datetime, timedelta
-from itertools import count
 from typing import Optional, Dict, List, Tuple
 import re
 
@@ -15,7 +14,7 @@ import numpy as np
 from urllib.parse import urlencode
 
 from speasy.core import EnsureUTCDateTime, fix_name
-from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
+from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
@@ -288,7 +287,6 @@ def parse_trajectory(trajectory: str, product: ParameterIndex) -> Optional[Speas
         else:
             logging.warning(f"Could not parse line: {line}")
 
-    values = values
     return SpeasyVariable(
         axes=[VariableTimeAxis(values=time)],
         values=DataContainer(values=values,

@@ -4,10 +4,8 @@
 """Tests for `speasy` package."""
 import os
 import unittest
-from datetime import datetime, timezone
 import numpy as np
 from ddt import data, ddt, unpack
-from keyring.core import disable
 
 import speasy as spz
 from speasy.data_providers import uiowa_eph_tool

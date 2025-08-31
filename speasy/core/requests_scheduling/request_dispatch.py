@@ -97,7 +97,7 @@ def init_uiowaephtool(ignore_disabled_status=False):
             sys.modules[__name__].uiowaephtool = uiowaephtool
             PROVIDERS['uiowaephtool'] = uiowaephtool
         else:
-            log.warning(f"UiowaEphTool server https://planet.physics.uiowa.edu is down, disabling UiowaEphTool provider")
+            log.warning("UiowaEphTool server https://planet.physics.uiowa.edu is down, disabling UiowaEphTool provider")
 
 
 def init_providers(ignore_disabled_status=False):

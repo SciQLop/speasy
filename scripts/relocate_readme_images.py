@@ -3,7 +3,7 @@ import os
 import sys
 import argparse
 
-MD_IMAGES_REGEX = re.compile(r"!\[(.*?)\]\(([^http].*?)\)")
+MD_IMAGES_REGEX = re.compile(r"!\[(.*?)\]\(((?!http).*?)\)")
 
 def relocate_readme_images(readme_path: str, new_image_dir: str):
     """
