@@ -46,7 +46,9 @@ dependencies = ['PyYAML',
  'requests',
  'scipy',
  'tqdm',
- 'urllib3>=1.26.0']
+ 'urllib3>=1.26.0',
+ 'certifi'
+]
 
 
 [project.urls]

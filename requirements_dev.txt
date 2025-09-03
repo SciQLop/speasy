@@ -20,3 +20,4 @@ pyistp>=0.7.0
 scipy
 tqdm
 watchdog
+certifi
