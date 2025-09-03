@@ -9,6 +9,7 @@ from typing import Optional, Dict
 import urllib3.response
 from urllib3 import PoolManager
 from urllib3.util.retry import Retry
+import certifi
 import netrc
 
 from speasy import __version__
@@ -31,7 +32,8 @@ RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error co
 
 _HREF_REGEX = re.compile(' href="([A-Za-z0-9.-_]+)">')
 
-pool = PoolManager(num_pools=core_config.urlib_num_pools.get(), maxsize=core_config.urlib_pool_size.get())
+pool = PoolManager(num_pools=core_config.urlib_num_pools.get(), maxsize=core_config.urlib_pool_size.get(),
+                   cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
 
 
 class Response:
