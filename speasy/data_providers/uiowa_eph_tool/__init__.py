@@ -130,6 +130,8 @@ __RADIUS_DICT__ = {
     "Earth": 6378.14,
     "Jupiter": 71492.,
     "Saturn": 60268.,
+    "Saturn baricentric": 60268.,
+    "Saturn geocentric": 60268.,
     "Io": 1824.4,
     "Europa": 1562.8,
     "Ganymede": 2631.2,
