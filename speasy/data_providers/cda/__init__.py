@@ -10,6 +10,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
+from packaging.version import Version
 
 from speasy.core import AllowedKwargs, EnsureUTCDateTime
 from speasy.core import http, url_utils
@@ -75,7 +76,7 @@ class CdaWebservice(DataProvider):
 
     def __init__(self):
         self.__url = f"{self.BASE_URL}/WS/cdasr/1"
-        DataProvider.__init__(self, provider_name='cda', provider_alt_names=['cdaweb'])
+        DataProvider.__init__(self, provider_name='cda', provider_alt_names=['cdaweb'], min_proxy_version=Version("0.13.0"))
         self._cdf_codec = get_codec('application/x-cdf')
 
     def build_inventory(self, root: SpeasyIndex):

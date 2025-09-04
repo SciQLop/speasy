@@ -97,6 +97,17 @@ class DirectArchiveDownloader(unittest.TestCase):
             provider="test")
         self.assertGreater(len(parameters), 0)
 
+    def test_build_inventory_from_remote_cdf_cda_trick(self):
+        parameters = extract_parameters(
+            url_or_istp_loader="https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/wi_sfsp_3dp_00000000_v01.cdf",
+            provider="cda",
+            enable_cda_trick=True
+        )
+        self.assertGreater(len(parameters), 0)
+        for p in parameters:
+            if p.spz_name() == "FLUX":
+                self.assertEqual(p.VIRTUAL.lower(), "true")
+
     @data(
         # (spz.inventories.data_tree.archive.cda.Arase_ERG.PWE.HFA.erg_pwe_hfa_l3_1min.ne_mgf, "2018-01-06T10",
         # "2018-01-06T12"),
