@@ -22,7 +22,12 @@ def load_master_cdf(path, dataset: DatasetIndex):
     dataset.__dict__.update(
         {fix_name(p.spz_name()): p for p in
          map(lambda p: _patch_parameter(p, dataset), extract_parameters(cdf, provider="cda",
-                                                                        uid_fmt=f"{dataset.serviceprovider_ID}/{{var_name}}"))})
+                                                                        uid_fmt=f"{dataset.serviceprovider_ID}/{{var_name}}",
+                                                                        enable_cda_trick=True
+                                                                        )
+             )
+         }
+    )
     dataset.__dict__.update(filter_dataset_meta(cdf))
 
 

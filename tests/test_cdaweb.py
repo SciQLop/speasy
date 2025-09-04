@@ -292,10 +292,10 @@ class SpecificNonRegression(unittest.TestCase):
         self.assertIsNotNone(data_sum_1)
         self.assertIsNotNone(data_sum_2)
 
-    @unittest.expectedFailure
     def test_get_WI_SFSP_3DP(self):
         # https://github.com/SciQLop/speasy/issues/225
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        self.assertEqual(spz.inventories.tree.cda.Wind.WIND.n_3DP.WI_SFSP_3DP.FLUX.VIRTUAL.lower(), "true")
         data = spz.get_data("cda/WI_SFSP_3DP/FLUX", "2005-01-01", "2005-01-01T01")
         self.assertIsNotNone(data)
 
