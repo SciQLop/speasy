@@ -41,6 +41,7 @@ class SscUiowaEphTool(unittest.TestCase):
 
     @data(
         (spz.inventories.tree.uiowaephtool.Trajectories.Callisto.Co_rotational.Cassini, "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
+        (spz.inventories.tree.uiowaephtool.Trajectories.Saturn_baricentric.KSM.Cassini, "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
         ('Callisto_Cassini_Co-rotational', "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
         (spz.inventories.tree.uiowaephtool.Trajectories.Sun.Ecliptic.Cassini, "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
         ('Sun_Cassini_Ecliptic', "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
