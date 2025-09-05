@@ -2,6 +2,10 @@
 History
 =======
 
+1.6.1 (2025-09-05)
+------------------
+* [UiowaEphTool] Remove coordinate_system kwarg for proxy (leftover from sscweb copy) by @jeandet in https://github.com/SciQLop/speasy/pull/234
+
 1.6.0 (2025-09-05)
 ------------------
 * Add user agent config bit and set it for GH actions by @jeandet in https://github.com/SciQLop/speasy/pull/221
