@@ -316,7 +316,7 @@ def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"uiowaephtool/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_system', 'gse')}
+            'stop_time': f'{stop_time.isoformat()}'}
 
 
 def build_trajectories(origin: str, coordinate_system: str) -> Dict[str, SpeasyIndex]:
