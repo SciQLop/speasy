@@ -2,6 +2,17 @@
 History
 =======
 
+1.6.0 (2025-09-05)
+------------------
+* Add user agent config bit and set it for GH actions by @jeandet in https://github.com/SciQLop/speasy/pull/221
+* Slicing a variable by columns did break with secondary axis by @jeandet in https://github.com/SciQLop/speasy/pull/222
+* Bump PyISTP to cover cases where axis data is in master CDF by @jeandet in https://github.com/SciQLop/speasy/pull/224
+* Fix #225 by @jeandet in https://github.com/SciQLop/speasy/pull/226
+* Add uiowa eph tool by @jeandet in https://github.com/SciQLop/speasy/pull/227
+* Always use certifi provided certificates bundle by @jeandet in https://github.com/SciQLop/speasy/pull/231
+* Is VIRTUAL any product that is VIRTUAL or has a VIRTUAL support data axis by @jeandet in https://github.com/SciQLop/speasy/pull/232
+* [UiowaEphTool] products are registered with UiowaEphTool as provider by @jeandet in https://github.com/SciQLop/speasy/pull/233
+
 1.5.2 (2025-06-03)
 ------------------
 * Handles corner cases with Cluster CDF files by @jeandet in https://github.com/SciQLop/speasy/pull/202
