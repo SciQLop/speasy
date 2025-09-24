@@ -50,7 +50,7 @@ class _CacheTest(unittest.TestCase):
     @UnversionedProviderCache(prefix="", cache_instance=cache, leak_cache=True,
                               cache_retention=timedelta(microseconds=5e5))
     def _make_unversioned_data(self, product, start_time, stop_time, if_newer_than=None):
-        if if_newer_than is None or (if_newer_than + timedelta(seconds=1)) < datetime.utcnow():
+        if if_newer_than is None or (if_newer_than + timedelta(seconds=1)) < datetime.now(tz=timezone.utc):
             self._make_unversioned_data_cntr += 1
             return data_generator(start_time, stop_time)
         return None
@@ -61,6 +61,35 @@ class _CacheTest(unittest.TestCase):
         self.assertEqual(var.time[0], np.datetime64(start, 'ns'))
         self.assertEqual(var.time[-1], np.datetime64(stop - timedelta(minutes=1), 'ns'))
         self.assertEqual(len(var), (stop - start).seconds / 60)
+
+    def test_get_data_unversioned_prefer_cache(self):
+        self._make_unversioned_data_cntr = 0
+        var = self._make_unversioned_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_unversioned_data_cntr, 1)
+        time.sleep(1)
+        var = self._make_unversioned_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_unversioned_data_cntr, 2)
+        var = self._make_unversioned_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10), prefer_cache=True)
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_unversioned_data_cntr, 2)
+
+    def test_get_data_prefer_cache(self):
+        self._make_data_cntr = 0
+        self._version = "1.0.0"
+        var = self._make_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_data_cntr, 1)
+        self._version = "1.0.1"
+        var = self._make_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_data_cntr, 2)
+        self._version = "1.0.2"
+        var = self._make_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10), prefer_cache=True)
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_data_cntr, 2)
+
 
     @data(
         (start_date, start_date + timedelta(minutes=10), "Less than one hour"),

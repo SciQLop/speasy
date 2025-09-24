@@ -93,7 +93,7 @@ def _wait_for_pending_request(url: str, timeout: int):
     return cache_item
 
 
-def _try_lock_request(url: str, timeout: int):
+def _try_lock_request(url: str, timeout: int) -> Optional[CacheItem]:
     cache_item: Optional[CacheItem] = get_item(url)
     if cache_item is None:
         add_item(key=url, item=PendingRequest())
@@ -103,12 +103,20 @@ def _try_lock_request(url: str, timeout: int):
             return _wait_for_pending_request(url, timeout)
     return cache_item
 
+def _is_outdated(entry: CacheItem, url: str) -> bool:
+    try:
+        last_modified = http.head(url).headers.get('last-modified', str(datetime.now()))
+        return last_modified != entry.version
+    except Exception as e:
+        log.warning(f"Could not check if remote file {url} is outdated: {e}")
+        return False
 
-def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb') -> AnyFile:
-    last_modified = http.head(url).headers.get('last-modified', str(datetime.now()))
+def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb',
+                            prefer_cache=False) -> AnyFile:
     entry = _try_lock_request(url, timeout)
-    if type(entry) is not CacheItem or last_modified != entry.version:
+    if not isinstance(entry, CacheItem) or (not prefer_cache and _is_outdated(entry, url)):
         resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+        last_modified = resp.headers.get('last-modified', str(datetime.now()))
         if 'b' in mode:
             entry = CacheItem(data=resp.bytes, version=last_modified)
         else:
@@ -118,7 +126,7 @@ def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: d
 
 
 def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dict] = None, mode='rb',
-                 cache_remote_files=False) -> AnyFile:
+                 cache_remote_files=False, prefer_cache=False) -> AnyFile:
     """Opens a file at the specified URL, whether local or remote.
 
     Parameters
@@ -134,6 +142,9 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dic
     cache_remote_files : bool
         Determines whether remote files are stored in the Speasy cache for future requests. Files are only downloaded
         if they have changed (based on the 'last-modified' header field).
+    prefer_cache : bool
+        If True, the cache is used even if the remote file has changed. This can be useful to avoid repeated downloads of
+        frequently changing files or when working offline.
 
     Returns
     -------
@@ -145,7 +156,7 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dic
         return AnyFile(url, open(url.replace('file://', ''), mode=mode))
     else:
         if cache_remote_files:
-            return _cached_get_remote_file(url, timeout=timeout, headers=headers, mode=mode)
+            return _cached_get_remote_file(url, timeout=timeout, headers=headers, mode=mode, prefer_cache=prefer_cache)
         else:
             return _remote_open(url, timeout=timeout, headers=headers, mode=mode)
 
