@@ -1,8 +1,8 @@
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from speasy import SpeasyVariable
 from speasy.core import progress_bar
@@ -14,7 +14,7 @@ from .cache import CacheItem
 
 log = logging.getLogger(__name__)
 
-CACHE_ALLOWED_KWARGS = ['disable_cache']
+CACHE_ALLOWED_KWARGS = ['disable_cache', 'prefer_cache']
 
 
 def lower_hour_bound(dt: datetime, factor: int):
@@ -22,8 +22,8 @@ def lower_hour_bound(dt: datetime, factor: int):
 
 
 def upper_hour_bound(dt: datetime, factor: int):
-    offsef = int(bool(dt - dt.replace(minute=0, second=0, microsecond=0)))
-    return max(math.ceil((dt.hour + offsef) / factor), 1) * factor
+    offset = int(bool(dt - dt.replace(minute=0, second=0, microsecond=0)))
+    return max(math.ceil((dt.hour + offset) / factor), 1) * factor
 
 
 def round_for_cache(dt_range: DateTimeRange, fragment_hours: int):
@@ -58,7 +58,7 @@ def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwarg
     return f"{prefix}/{product}/{start_time}"
 
 
-def product_name(product: str or ParameterIndex):
+def product_name(product: str | ParameterIndex):
     if type(product) is str:
         return product
     elif isinstance(product, ParameterIndex):
@@ -81,14 +81,15 @@ class _Cacheable:
         self.leak_cache = leak_cache
         self.entry_name = entry_name
 
-    def add_to_cache(self, variable: SpeasyVariable or None, fragments, product, fragment_duration_hours, version,
-                     **kwargs) -> SpeasyVariable or None:
+    def add_to_cache(self, variable: Optional[SpeasyVariable], fragments, product, fragment_duration_hours, version,
+                     lifetime=None,
+                     **kwargs) -> Optional[SpeasyVariable]:
         if variable is not None:
             for fragment in fragments:
                 self.set_cache_entry(fragment, product,
                                      CacheItem(to_dictionary(
                                          variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))]),
-                                         version), **kwargs)
+                                         version, lifetime=lifetime), **kwargs)
         return variable
 
     def set_cache_entry(self, fragment, product: str, entry, **kwargs):
@@ -106,10 +107,10 @@ class _Cacheable:
             log.debug(f"{key} not found inside cache")
         return None
 
-    def get_from_cache(self, fragment, product, version, **kwargs):
+    def get_from_cache(self, fragment, product, version, prefer_cache=False, **kwargs) -> Optional[SpeasyVariable]:
         entry = self.get_cache_entry(fragment, product, **kwargs)
         if entry is not None:
-            if is_up_to_date(entry, version):
+            if is_up_to_date(entry, version) or prefer_cache:
                 try:
                     return from_dictionary(entry.data)
                 except Exception as e:
@@ -125,11 +126,11 @@ class _Cacheable:
         fragments = [cache_dt_range.start_time + i * dt for i in range(math.ceil(cache_dt_range.duration / dt))]
         return fragment_hours, fragments
 
-    def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, **kwargs):
+    def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False, **kwargs)-> List[Optional[SpeasyVariable]]:
         data_fragments = []
         with self.cache.transact():
             for fragment in fragments:
-                data_fragments.append(self.get_from_cache(fragment, product, version, **kwargs))
+                data_fragments.append(self.get_from_cache(fragment, product, version, prefer_cache, **kwargs))
         return data_fragments
 
     def get_cache_entries(self, fragments: List[datetime], product: str, **kwargs):
@@ -155,11 +156,11 @@ class Cacheable(object):
             if kwargs.pop("disable_cache", False):
                 return get_data(wrapped_self, product=product, start_time=dt_range.start_time,
                                 stop_time=dt_range.stop_time, **kwargs)
-
+            prefer_cache = kwargs.pop("prefer_cache", False)
             fragment_hours, fragments = self._cache.fragment_list(product, dt_range)
             fragment_duration = timedelta(hours=fragment_hours)
             data_chunks = self._cache.get_fragments_from_cache(fragments=fragments, product=product, version=version,
-                                                               **kwargs)
+                                                               **kwargs, prefer_cache=prefer_cache)
             missing_fragments = group_contiguous_fragments(
                 [fragment for f_data, fragment in zip(data_chunks, fragments) if f_data is None],
                 duration=fragment_duration)
@@ -198,20 +199,21 @@ class UnversionedProviderCache(object):
                  cache_retention=None):
         self._cache = _Cacheable(prefix, cache_instance=cache_instance, start_time_arg=start_time_arg,
                                  stop_time_arg=stop_time_arg,
-                                 version=lambda x, y: datetime.utcnow().isoformat(),
+                                 version=lambda x, y: datetime.now(tz=timezone.utc).isoformat(),
                                  fragment_hours=fragment_hours, cache_margins=cache_margins, leak_cache=leak_cache,
                                  entry_name=entry_name)
         self.cache_retention = cache_retention or timedelta(days=14)
+        self.version = "1.0.0"
 
-    def split_fragments(self, fragments, product, fragment_duration, **kwargs):
-        entries = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
+    def split_fragments(self, fragments, product, fragment_duration, prefer_cache=False, **kwargs):
+        entries: List[CacheItem] = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
         missing_fragments = []
         data_chunks = []
         maybe_outdated_fragments = []
         for fragment, entry in zip(fragments, entries):
             if entry is None:
                 missing_fragments.append(fragment)
-            elif (entry.version + self.cache_retention) > datetime.utcnow():
+            elif not entry.is_expired() and entry.lifetime is not None or prefer_cache:
                 try:
                     data_chunks.append(from_dictionary(entry.data))
                 except Exception as e:
@@ -240,11 +242,11 @@ class UnversionedProviderCache(object):
             if kwargs.pop("disable_cache", False):
                 return get_data(wrapped_self, product=product, start_time=dt_range.start_time,
                                 stop_time=dt_range.stop_time, **kwargs)
-
+            prefer_cache = kwargs.pop("prefer_cache", False)
             fragment_hours, fragments = self._cache.fragment_list(product, dt_range)
             fragment_duration = timedelta(hours=fragment_hours)
             data_chunks, maybe_outdated_fragments, missing_fragments = self.split_fragments(fragments, product,
-                                                                                            fragment_duration, **kwargs)
+                                                                                            fragment_duration, **kwargs, prefer_cache=prefer_cache)
             data_chunks += \
                 list(filter(lambda d: d is not None, [
                     self._cache.add_to_cache(
@@ -252,26 +254,27 @@ class UnversionedProviderCache(object):
                             wrapped_self, product=product, start_time=fragment_group[0],
                             stop_time=fragment_group[-1] + fragment_duration, **kwargs),
                         fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
-                        version=datetime.utcnow(), **kwargs)
+                        version=self.version, lifetime=self.cache_retention, **kwargs)
                     for fragment_group
                     in progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(
                         missing_fragments)]))
 
             for group in progress_bar(leave=False, desc="Checking if cache fragments are outdated", **kwargs)(
                 maybe_outdated_fragments):
-                oldest = max(group, key=lambda item: item[1].version)[1].version
+                oldest = max(group, key=lambda item: item[1].created)[1].created
                 kwargs['if_newer_than'] = oldest
                 data = get_data(wrapped_self, product=product, start_time=group[0][0],
                                 stop_time=group[-1][0] + fragment_duration, **kwargs)
                 if data is None:
                     for fragment, entry in group:
-                        entry.version = datetime.utcnow()
-                        self._cache.set_cache_entry(fragment, product, entry)
-                        data_chunks.append(entry.data)
+                        self._cache.set_cache_entry(fragment, product, entry.bump_creation_time())
+                        data_chunks.append(from_dictionary(entry.data))
                 else:
                     self._cache.add_to_cache(data, [item[0] for item in group], product,
                                              fragment_duration_hours=fragment_hours,
-                                             version=datetime.now(), **kwargs)
+                                             version=self.version,
+                                             lifetime=self.cache_retention,
+                                             **kwargs)
                     data_chunks.append(data)
 
             if len(data_chunks):

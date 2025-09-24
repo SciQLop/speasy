@@ -1,4 +1,5 @@
 from typing import Union
+from datetime import datetime, timezone, timedelta
 
 import diskcache as dc
 from .version import str_to_version, version_to_str, Version
@@ -9,9 +10,29 @@ cache_version = str_to_version("3.0")
 
 
 class CacheItem:
-    def __init__(self, data, version):
+    def __init__(self, data, version, lifetime=None):
         self.data = data
         self.version = version
+        if lifetime is not None and isinstance(lifetime, (float, int)):
+            lifetime = timedelta(seconds=lifetime)
+        self.lifetime = lifetime
+        self.created = datetime.now(tz=timezone.utc)
+
+    def bump_creation_time(self) -> "CacheItem":
+        self.created = datetime.now(tz=timezone.utc)
+        return self
+
+    def __setstate__(self, state):
+        self.data = state["data"]
+        self.version = state["version"]
+        self.lifetime = state.get("lifetime", None)
+        self.created = state.get("created", datetime.now(tz=timezone.utc))
+
+    def is_expired(self) -> bool:
+        if isinstance(self.lifetime, timedelta):
+            return datetime.now(tz=timezone.utc) > (self.created + self.lifetime)
+        else:
+            return False
 
 
 class Cache:
