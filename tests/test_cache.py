@@ -64,14 +64,14 @@ class _CacheTest(unittest.TestCase):
 
     def test_get_data_unversioned_prefer_cache(self):
         self._make_unversioned_data_cntr = 0
-        var = self._make_unversioned_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date, start_date + timedelta(minutes=10))
         self.assertIsNotNone(var)
         self.assertEqual(self._make_unversioned_data_cntr, 1)
         time.sleep(1)
-        var = self._make_unversioned_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date, start_date + timedelta(minutes=10))
         self.assertIsNotNone(var)
         self.assertEqual(self._make_unversioned_data_cntr, 2)
-        var = self._make_unversioned_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10), prefer_cache=True)
+        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date, start_date + timedelta(minutes=10), prefer_cache=True)
         self.assertIsNotNone(var)
         self.assertEqual(self._make_unversioned_data_cntr, 2)
 

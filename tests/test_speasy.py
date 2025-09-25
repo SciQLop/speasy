@@ -106,6 +106,42 @@ class SpeasyGetData(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)
 
+    @data(
+        {
+            "product": "cdaweb/MMS2_SCM_SRVY_L2_SCSRVY/mms2_scm_acb_gse_scsrvy_srvy_l2",
+            "start_time": datetime(2016, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2016, 6, 1, 0, 10, tzinfo=timezone.utc),
+            "disable_proxy": True
+        },
+        {
+            "product": "cda/THA_L2_FGM/tha_fgl_gsm",
+            "start_time": datetime(2014, 6, 1, tzinfo=timezone.utc),
+            "stop_time": datetime(2014, 6, 1, 0, 10, tzinfo=timezone.utc),
+            "disable_proxy": True
+        },
+        {
+            "product": "sscweb/moon",
+            "start_time": datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2006, 1, 8, 10, 0, 0, tzinfo=timezone.utc),
+            "disable_proxy": True
+        },
+        {
+            "product": 'uiowaephtool/Callisto_Cassini_Co-rotational',
+            "start_time": "2006-01-08T00:00:00",
+            "stop_time": "2006-01-09T00:00:00",
+            "disable_proxy": True
+        },
+        {
+            "product": spz.inventories.data_tree.amda.Catalogs.SharedCatalogs.MARS.MEXShockCrossings
+        }
+    )
+    def test_get_data_prefer_cache(self, kw):
+        """This ensures that prefer_cache is accepted but not necessarily works as expected"""
+        result = spz.get_data(**kw)
+        result = spz.get_data(**kw, prefer_cache=True)
+        self.assertIsNotNone(result)
+        self.assertGreater(len(result), 0)
+
     def test_get_several_product_on_several_ranges(self):
         result = spz.get_data(
             [spz.inventories.data_tree.ssc.Trajectories.ace,
