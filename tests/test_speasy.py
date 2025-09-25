@@ -137,7 +137,7 @@ class SpeasyGetData(unittest.TestCase):
     )
     def test_get_data_prefer_cache(self, kw):
         """This ensures that prefer_cache is accepted but not necessarily works as expected"""
-        result = spz.get_data(**kw)
+        spz.get_data(**kw)
         result = spz.get_data(**kw, prefer_cache=True)
         self.assertIsNotNone(result)
         self.assertGreater(len(result), 0)

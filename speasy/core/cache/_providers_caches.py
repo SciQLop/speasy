@@ -2,7 +2,7 @@ import logging
 import math
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 
 from speasy import SpeasyVariable
 from speasy.core import progress_bar
@@ -58,7 +58,7 @@ def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwarg
     return f"{prefix}/{product}/{start_time}"
 
 
-def product_name(product: str | ParameterIndex):
+def product_name(product: Union[str , ParameterIndex]) -> str:
     if type(product) is str:
         return product
     elif isinstance(product, ParameterIndex):
@@ -213,7 +213,7 @@ class UnversionedProviderCache(object):
         for fragment, entry in zip(fragments, entries):
             if entry is None:
                 missing_fragments.append(fragment)
-            elif not entry.is_expired() and entry.lifetime is not None or prefer_cache:
+            elif (not entry.is_expired() and entry.lifetime is not None) or prefer_cache:
                 try:
                     data_chunks.append(from_dictionary(entry.data))
                 except Exception as e:
