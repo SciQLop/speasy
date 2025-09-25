@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from threading import Lock
 from typing import Callable, List, Optional
@@ -37,6 +37,18 @@ def _get_inventory_args(provider_name, **kwargs):
 
 
 class DataProvider:
+    """Base class for all data providers.
+    Parameters
+    ----------
+    provider_name: str
+        The name of the data provider. This should be a unique identifier.
+    provider_alt_names: List or None
+        Alternative names for the data provider. These will also be used to register the provider's inventory as valid aliases.
+    inventory_disable_proxy: bool
+        If True, the inventory will be fetched directly from the provider, bypassing any proxy settings.
+    min_proxy_version: str
+        Minimum required version of the proxy server to use for fetching the inventory.
+    """
     def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False,
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name
@@ -50,14 +62,21 @@ class DataProvider:
         self.update_inventory()
         PROVIDERS[provider_name] = self
 
+    def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
+        """Override this method to build the inventory tree from the public inventory source."""
+        raise NotImplementedError("You need to implement the build_inventory method in your DataProvider subclass.")
+
     @Proxyfiable(request=GetInventory, arg_builder=_get_inventory_args)
     def _inventory(self, provider_name) -> SpeasyIndex:
         return self.build_inventory(SpeasyIndex(provider=provider_name, name=provider_name, uid=provider_name,
-                                                meta={'build_date': datetime.utcnow().isoformat()}))
+                                                meta={'build_date': datetime.now(tz=timezone.utc).isoformat()}))
+
+    def build_private_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
+        """Override this method to add private inventory items that are not fetched from the public inventory source."""
+        return root
 
     def _update_private_inventory(self, root: SpeasyIndex):
-        if hasattr(self, 'build_private_inventory'):
-            return self.build_private_inventory(root)
+        return self.build_private_inventory(root)
 
     def update_inventory(self):
         lock = Lock()
