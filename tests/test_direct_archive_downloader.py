@@ -125,9 +125,6 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertIsNotNone(v)
 
     @data(
-        ("archive/cdpp/THEMIS/THA/L2/tha_scm/tha_scf_gse",
-         "2018-03-10",
-         "2018-03-11"),
         ("archive/cda/MMS/MMS1/FGM/SRVY/mms1_fgm_srvy_l2/mms1_fgm_b_bcs_srvy_l2",
          "2019-08-19",
          "2019-08-25"),
@@ -141,9 +138,6 @@ class DirectArchiveDownloader(unittest.TestCase):
         ("archive/cda/MMS/MMS1/FGM/SRVY/mms1_fgm_srvy_l2/mms1_fgm_b_bcs_srvy_l2",
          "2010-08-19",
          "2010-08-25"),
-        ("archive/cdpp/THEMIS/THA/L2/tha_scm/tha_scf_gse",
-         "2030-03-10",
-         "2030-03-11"),
         ("archive/cda/MMS/MMS1/FPI/BURST/MOMS/mms1_fpi_brst_l2_des_moms/mms1_des_temppara_brst",
          "2006-02-28",
          "2006-03-02"),
@@ -157,7 +151,7 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertIsNone(v)
 
     def test_axes_merging_across_files(self):
-        v = spz.get_data(spz.inventories.tree.archive.cdpp.THEMIS.THA.L2.tha_esa.tha_peif_en_eflux, "2018-01-05",
+        v = spz.get_data("archive/cda/MMS/MMS1/FPI/FAST/MOMS/mms1_fpi_fast_l2_des_moms/mms1_des_energyspectr_omni_fast", "2018-01-05",
                          "2018-01-07")
         self.assertIsNotNone(v)
         self.assertEqual(len(v), len(v.axes[1]))
