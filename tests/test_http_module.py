@@ -31,6 +31,7 @@ class HttpTests(unittest.TestCase):
 
     def test_basic_http_auth(self):
         # https://authenticationtest.com/HTTPAuth/
+        from urllib3.exceptions import MaxRetryError
 
         import netrc
         try:
@@ -38,11 +39,14 @@ class HttpTests(unittest.TestCase):
         except FileNotFoundError:
             self.skipTest("Netrc file not found, skipping test")
 
-        if netrc_info.authenticators("authenticationtest.com"):
-            from speasy.core import http
-            self.assertEqual(http.get("https://authenticationtest.com/HTTPAuth/").status_code, 200)
-        else:
-            self.skipTest("Netrc authenticator not available")
+        try:
+            if netrc_info.authenticators("authenticationtest.com"):
+                from speasy.core import http
+                self.assertEqual(http.get("https://authenticationtest.com/HTTPAuth/").status_code, 200)
+            else:
+                self.skipTest("Netrc authenticator not available")
+        except MaxRetryError:
+            self.skipTest("SSL Error, likely due to broken certificate on server side or the server is down")
 
 
 if __name__ == '__main__':
