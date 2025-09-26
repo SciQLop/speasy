@@ -91,7 +91,7 @@ class GetProduct:
         kwargs['stop_time'] = stop_time
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        resp = http.get(f"{url}/get_data", params=kwargs)
+        resp = http.get(f"{url}/get_data", params=kwargs, timeout=60*5)
         log.debug(f"Asking data from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
             var = var_from_dict(pickle.loads(decompress(resp.bytes)))
