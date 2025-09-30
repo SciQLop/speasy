@@ -2,31 +2,15 @@ import io
 import logging
 import os
 import re
-import time
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime
 from typing import List, Optional, Union
-from threading import get_native_id
 from speasy.core.cache import CacheCall
-from speasy.core.cache import get_item, add_item, CacheItem
+from speasy.core.cache import get_item, add_item, CacheItem, request_locker
 from . import http
 from .url_utils import is_local_file, extract_path
 
 log = logging.getLogger(__name__)
 _HREF_REGEX = re.compile('''href=['"]([A-Za-z0-9-_./]+)['"]>''')
-
-
-class PendingRequest:
-    def __init__(self):
-        self._start_time = datetime.now(tz=timezone.utc)
-        self._pid = get_native_id()
-
-    @property
-    def elapsed_time(self):
-        return datetime.now(tz=timezone.utc) - self._start_time
-
-    @property
-    def pid(self):
-        return self._pid
 
 
 class AnyFile(io.IOBase):
@@ -82,27 +66,6 @@ def _make_file_from_cache_entry(entry: CacheItem, url: str, mode: str) -> AnyFil
         return AnyFile(url, io.StringIO(entry.data))
 
 
-def _wait_for_pending_request(url: str, timeout: int):
-    cache_item: Optional[CacheItem] = get_item(url)
-    while type(cache_item) is PendingRequest:
-        if cache_item.elapsed_time > timedelta(seconds=timeout):  # pragma: no cover
-            log.warning(f"Pending request for {url} timed out")
-            return None
-        time.sleep(.1)
-        cache_item = get_item(url)
-    return cache_item
-
-
-def _try_lock_request(url: str, timeout: int) -> Optional[CacheItem]:
-    cache_item: Optional[CacheItem] = get_item(url)
-    if cache_item is None:
-        add_item(key=url, item=PendingRequest())
-        cache_item: Optional[CacheItem] = get_item(url)
-    if type(cache_item) is PendingRequest:
-        if cache_item.pid != get_native_id():
-            return _wait_for_pending_request(url, timeout)
-    return cache_item
-
 def _is_outdated(entry: CacheItem, url: str) -> bool:
     try:
         last_modified = http.head(url).headers.get('last-modified', str(datetime.now()))
@@ -113,16 +76,18 @@ def _is_outdated(entry: CacheItem, url: str) -> bool:
 
 def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb',
                             prefer_cache=False) -> AnyFile:
-    entry = _try_lock_request(url, timeout)
-    if not isinstance(entry, CacheItem) or (not prefer_cache and _is_outdated(entry, url)):
-        resp = http.urlopen(url=url, headers=headers, timeout=timeout)
-        last_modified = resp.headers.get('last-modified', str(datetime.now()))
-        if 'b' in mode:
-            entry = CacheItem(data=resp.bytes, version=last_modified)
-        else:
-            entry = CacheItem(data=resp.text, version=last_modified)
-        add_item(key=url, item=entry)
-    return _make_file_from_cache_entry(entry, url, mode)
+
+    with request_locker(url):
+        entry = get_item(url)
+        if not isinstance(entry, CacheItem) or (not prefer_cache and _is_outdated(entry, url)):
+            resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+            last_modified = resp.headers.get('last-modified', str(datetime.now()))
+            if 'b' in mode:
+                entry = CacheItem(data=resp.bytes, version=last_modified)
+            else:
+                entry = CacheItem(data=resp.text, version=last_modified)
+            add_item(key=url, item=entry)
+        return _make_file_from_cache_entry(entry, url, mode)
 
 
 def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dict] = None, mode='rb',

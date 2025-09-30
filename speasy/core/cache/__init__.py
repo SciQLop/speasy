@@ -4,6 +4,7 @@ from .cache import Cache, CacheItem
 from ._function_cache import CacheCall
 from ._providers_caches import CACHE_ALLOWED_KWARGS, Cacheable, UnversionedProviderCache
 from ._instance import _cache
+from ._request_locker import request_locker, PendingRequest
 import logging
 
 log = logging.getLogger(__name__)

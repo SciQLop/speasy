@@ -9,6 +9,7 @@ from speasy.core import progress_bar
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
+from ._request_locker import request_locker
 from ._instance import _cache
 from .cache import CacheItem
 
