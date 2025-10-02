@@ -95,8 +95,7 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
 def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -> Optional[datetime]:
     if isinstance(date, datetime) or date_format is None:
         return make_utc_datetime(date)
-    if date_format is not None:
-        return make_utc_datetime(datetime.strptime(date, date_format))
+    return make_utc_datetime(datetime.strptime(date, date_format))
 
 
 class RandomSplitDirectDownload:
