@@ -4,14 +4,13 @@ import tempfile
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
-
 import dateutil.parser as dt_parser
 import numpy as np
 import packaging.version as Version
 from ddt import data, ddt, unpack
 
 from speasy.core import epoch_to_datetime64
-from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache
+from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache, drop_matching_entries
 from speasy.core.cache.version import str_to_version, version_to_str
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableTimeAxis)
@@ -20,7 +19,6 @@ start_date = datetime(2016, 6, 1, 12, tzinfo=timezone.utc)
 
 dirpath = tempfile.mkdtemp()
 cache = Cache(dirpath)
-
 
 def data_generator(start_time, stop_time):
     index = np.array(
@@ -64,14 +62,17 @@ class _CacheTest(unittest.TestCase):
 
     def test_get_data_unversioned_prefer_cache(self):
         self._make_unversioned_data_cntr = 0
-        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date,
+                                          start_date + timedelta(minutes=10))
         self.assertIsNotNone(var)
         self.assertEqual(self._make_unversioned_data_cntr, 1)
         time.sleep(1)
-        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date, start_date + timedelta(minutes=10))
+        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date,
+                                          start_date + timedelta(minutes=10))
         self.assertIsNotNone(var)
         self.assertEqual(self._make_unversioned_data_cntr, 2)
-        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date, start_date + timedelta(minutes=10), prefer_cache=True)
+        var = self._make_unversioned_data("test_get_data_unversioned_prefer_cache", start_date,
+                                          start_date + timedelta(minutes=10), prefer_cache=True)
         self.assertIsNotNone(var)
         self.assertEqual(self._make_unversioned_data_cntr, 2)
 
@@ -86,10 +87,10 @@ class _CacheTest(unittest.TestCase):
         self.assertIsNotNone(var)
         self.assertEqual(self._make_data_cntr, 2)
         self._version = "1.0.2"
-        var = self._make_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10), prefer_cache=True)
+        var = self._make_data("test_get_data_prefer_cache", start_date, start_date + timedelta(minutes=10),
+                              prefer_cache=True)
         self.assertIsNotNone(var)
         self.assertEqual(self._make_data_cntr, 2)
-
 
     @data(
         (start_date, start_date + timedelta(minutes=10), "Less than one hour"),
@@ -166,6 +167,38 @@ class _CacheTest(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+class CacheRequestsDeduplication(unittest.TestCase):
+
+    def setUp(self):
+        self._make_data_cntr = 0
+        self._version = 0
+        drop_matching_entries(r".*test_deduplication.*")
+
+    def tearDown(self):
+        drop_matching_entries(r".*test_deduplication.*")
+
+    def version(self, product):
+        return self._version
+
+    @Cacheable(prefix="", version=version)
+    def _make_data(self, product, start_time, stop_time):
+        self._make_data_cntr += 1
+        time.sleep(1)
+        return data_generator(start_time, stop_time)
+
+    def test_deduplication(self):
+        tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
+        tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
+        self.assertEqual(self._make_data_cntr, 0)
+        from threading import Thread
+        threads = [Thread(target=self._make_data, args=("test_deduplication_product", tstart, tend)) for _ in range(10)]
+        for p in threads:
+            p.start()
+        for p in threads:
+            p.join()
+        self.assertEqual(self._make_data_cntr, 1)
 
 
 @ddt

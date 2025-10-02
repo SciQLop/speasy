@@ -6,8 +6,7 @@
 import re
 from datetime import timedelta, datetime
 from functools import partial
-import random
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Union
 
 from dateutil.relativedelta import relativedelta
 
@@ -18,6 +17,7 @@ from speasy.core.codecs import get_codec
 from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
+from speasy.core.algorithms import randomized_map
 
 # Change to this when we drop Python 3.8
 # FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
@@ -38,17 +38,8 @@ def apply_date_format(txt: str, date: datetime) -> str:
 def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None) -> Optional[SpeasyVariable]:
     if url is None:
         return None
-    return get_codec('application/x-cdf').load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url, cache_remote_files=True)
-
-
-"""
-The rationale behind the following function is to randomize the order of execution so we minimize the requests collisions and maximize the throughput.
-"""
-def randomized_map(f, l):
-    indexed_list = list(enumerate(l))
-    random.shuffle(indexed_list)
-    result = sorted([(i, f(e)) for i, e in indexed_list], key=lambda x: x[0])
-    return [e for i, e in result]
+    return get_codec('application/x-cdf').load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url,
+                                                        cache_remote_files=True)
 
 
 def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
@@ -101,7 +92,7 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
     raise ValueError(f"Unknown/unimplemented split_frequency: {split_frequency}")
 
 
-def _parse_date(date: str or datetime, date_format: Optional[str] = None) -> datetime:
+def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -> Optional[datetime]:
     if isinstance(date, datetime) or date_format is None:
         return make_utc_datetime(date)
     if date_format is not None:
