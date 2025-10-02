@@ -161,7 +161,7 @@ class Cacheable(object):
             # Recheck if the data is now in cache
             data = self._cache.get_fragments_from_cache(fragments=fragment_group, product=product, version=version,
                                                         **kwargs)
-            if all([d is not None for d in data]):
+            if all(d is not None for d in data):
                 return merge_variables(data)
             # If not get it and add it to the cache
             return self._cache.add_to_cache(

@@ -27,7 +27,7 @@ def all_of_type(collection: Sequence, expected_type: Type) -> bool:
     >>> all_of_type([1,2,3.], int)
     False
     """
-    return all(map(lambda x: type(x) is expected_type, collection))
+    return all(type(x) is expected_type for x in  collection)
 
 
 def is_collection(value: Any) -> bool:
