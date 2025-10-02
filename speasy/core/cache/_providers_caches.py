@@ -5,7 +5,7 @@ from functools import wraps
 from typing import List, Tuple, Optional, Union
 
 from speasy import SpeasyVariable
-from speasy.core import progress_bar
+from speasy.core import progress_bar, randomized_map
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
@@ -52,14 +52,14 @@ def group_fragments_if(fragments, predicate):
 
 
 def group_contiguous_fragments(fragments, duration):
-    return group_fragments_if(fragments, lambda previous, current: (previous + duration * 1.01) > current)
+    return group_fragments_if(fragments, lambda previous, current: (previous + (duration * 1.5)) > current)
 
 
 def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
     return f"{prefix}/{product}/{start_time}"
 
 
-def product_name(product: Union[str , ParameterIndex]) -> str:
+def product_name(product: Union[str, ParameterIndex]) -> str:
     if type(product) is str:
         return product
     elif isinstance(product, ParameterIndex):
@@ -82,14 +82,15 @@ class _Cacheable:
         self.leak_cache = leak_cache
         self.entry_name = entry_name
 
-    def add_to_cache(self, variable: Optional[SpeasyVariable], fragments, product, fragment_duration_hours, version,
+    def add_to_cache(self, variable: Optional[SpeasyVariable], fragments, product: str, fragment_duration: timedelta,
+                     version,
                      lifetime=None,
                      **kwargs) -> Optional[SpeasyVariable]:
         if variable is not None:
             for fragment in fragments:
                 self.set_cache_entry(fragment, product,
                                      CacheItem(to_dictionary(
-                                         variable[fragment:(fragment + timedelta(hours=fragment_duration_hours))]),
+                                         variable[fragment:(fragment + fragment_duration)]),
                                          version, lifetime=lifetime), **kwargs)
         return variable
 
@@ -120,14 +121,16 @@ class _Cacheable:
             log.debug(f"Cache entry is outdated")
         return None
 
-    def fragment_list(self, product, dt_range) -> Tuple[int, List[datetime]]:
+    def fragment_list(self, product, dt_range) -> Tuple[timedelta, List[datetime]]:
         fragment_hours = self.fragment_hours(product)
         cache_dt_range = round_for_cache(dt_range * self.cache_margins, fragment_hours)
-        dt = timedelta(hours=fragment_hours)
-        fragments = [cache_dt_range.start_time + i * dt for i in range(math.ceil(cache_dt_range.duration / dt))]
-        return fragment_hours, fragments
+        fragment_duration = timedelta(hours=fragment_hours)
+        fragments = [cache_dt_range.start_time + i * fragment_duration for i in
+                     range(math.ceil(cache_dt_range.duration / fragment_duration))]
+        return fragment_duration, fragments
 
-    def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False, **kwargs)-> List[Optional[SpeasyVariable]]:
+    def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False,
+                                 **kwargs) -> List[Optional[SpeasyVariable]]:
         data_fragments = []
         with self.cache.transact():
             for fragment in fragments:
@@ -148,46 +151,66 @@ class Cacheable(object):
                                  fragment_hours=fragment_hours, cache_margins=cache_margins, leak_cache=leak_cache,
                                  entry_name=entry_name)
 
+    def _locking_get_data_and_cache_wb(self, fragment_group: List[datetime], duration: timedelta, get_data,
+                                       wrapped_self, product, version, **kwargs) -> Optional[SpeasyVariable]:
+        if len(fragment_group) == 1:
+            key = f"{self._cache.prefix}/{product}/{fragment_group[0].isoformat()}"
+        else:
+            key = f"{self._cache.prefix}/{product}/{fragment_group[0].isoformat()}-{fragment_group[-1].isoformat()}"
+        with request_locker(key):
+            # Recheck if the data is now in cache
+            data = self._cache.get_fragments_from_cache(fragments=fragment_group, product=product, version=version,
+                                                        **kwargs)
+            if all([d is not None for d in data]):
+                return merge_variables(data)
+            # If not get it and add it to the cache
+            return self._cache.add_to_cache(
+                get_data(
+                    wrapped_self, product=product, start_time=fragment_group[0],
+                    stop_time=fragment_group[-1] + duration, **kwargs),
+                fragments=fragment_group, product=product, fragment_duration=duration,
+                version=version, **kwargs)
+
+    def _get_data_with_cache(self, get_data, wrapped_self, product, start_time, stop_time, **kwargs):
+        product = product_name(product)
+        version = self._cache.version(wrapped_self, product)
+        dt_range = DateTimeRange(start_time, stop_time)
+        prefer_cache = kwargs.pop("prefer_cache", False)
+        fragment_duration, fragments = self._cache.fragment_list(product, dt_range)
+        data_chunks = self._cache.get_fragments_from_cache(fragments=fragments, product=product, version=version,
+                                                           **kwargs, prefer_cache=prefer_cache)
+        missing_fragments = group_contiguous_fragments(
+            [fragment for f_data, fragment in zip(data_chunks, fragments) if f_data is None],
+            duration=fragment_duration)
+
+        data_chunks += randomized_map(self._locking_get_data_and_cache_wb, missing_fragments,
+                                      fragment_duration, get_data, wrapped_self,
+                                      product, version, **kwargs)
+
+        data_chunks = list(filter(lambda d: d is not None, data_chunks))
+
+        if len(data_chunks):
+            if len(data_chunks) == 1:
+                return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
+            if data_chunks[0] is not None:
+                data_chunks[0] = data_chunks[0][dt_range.start_time:]
+            if data_chunks[-1] is not None:
+                data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
+            return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
+        return None
+
+    @staticmethod
+    def _get_data_without_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs):
+        product = product_name(product)
+        return get_data(wrapped_self, product=product, start_time=start_time, stop_time=stop_time, **kwargs)
+
     def __call__(self, get_data):
         @wraps(get_data)
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
-            product = product_name(product)
-            version = self._cache.version(wrapped_self, product)
-            dt_range = DateTimeRange(start_time, stop_time)
             if kwargs.pop("disable_cache", False):
-                return get_data(wrapped_self, product=product, start_time=dt_range.start_time,
-                                stop_time=dt_range.stop_time, **kwargs)
-            prefer_cache = kwargs.pop("prefer_cache", False)
-            fragment_hours, fragments = self._cache.fragment_list(product, dt_range)
-            fragment_duration = timedelta(hours=fragment_hours)
-            data_chunks = self._cache.get_fragments_from_cache(fragments=fragments, product=product, version=version,
-                                                               **kwargs, prefer_cache=prefer_cache)
-            missing_fragments = group_contiguous_fragments(
-                [fragment for f_data, fragment in zip(data_chunks, fragments) if f_data is None],
-                duration=fragment_duration)
-
-            data_chunks += [
-                self._cache.add_to_cache(
-                    get_data(
-                        wrapped_self, product=product, start_time=fragment_group[0],
-                        stop_time=fragment_group[-1] + fragment_duration, **kwargs),
-                    fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
-                    version=version, **kwargs)
-                for fragment_group
-                in
-                progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(missing_fragments)]
-
-            data_chunks = list(filter(lambda d: d is not None, data_chunks))
-
-            if len(data_chunks):
-                if len(data_chunks) == 1:
-                    return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
-                if data_chunks[0] is not None:
-                    data_chunks[0] = data_chunks[0][dt_range.start_time:]
-                if data_chunks[-1] is not None:
-                    data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
-                return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
-            return None
+                return self._get_data_without_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs)
+            else:
+                return self._get_data_with_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs)
 
         if self._cache.leak_cache:
             wrapped.cache = self._cache.cache
@@ -235,61 +258,70 @@ class UnversionedProviderCache(object):
             lambda previous, current: (previous[0] + fragment_duration * 1.01) > current[0])
         return data_chunks, maybe_outdated_fragments, missing_fragments
 
+    @staticmethod
+    def _get_data_without_cache(self, get_data, wrapped_self, product, start_time, stop_time, **kwargs):
+        product = product_name(product)
+        return get_data(wrapped_self, product=product, start_time=start_time, stop_time=stop_time, **kwargs)
+
+    def _get_data_with_cache(self, get_data, wrapped_self, product, start_time, stop_time, **kwargs):
+        product = product_name(product)
+        dt_range = DateTimeRange(start_time, stop_time)
+        prefer_cache = kwargs.pop("prefer_cache", False)
+        fragment_duration, fragments = self._cache.fragment_list(product, dt_range)
+        data_chunks, maybe_outdated_fragments, missing_fragments = self.split_fragments(fragments, product,
+                                                                                        fragment_duration, **kwargs,
+                                                                                        prefer_cache=prefer_cache)
+        data_chunks += \
+            list(filter(lambda d: d is not None, [
+                self._cache.add_to_cache(
+                    get_data(
+                        wrapped_self, product=product, start_time=fragment_group[0],
+                        stop_time=fragment_group[-1] + fragment_duration, **kwargs),
+                    fragments=fragment_group, product=product, fragment_duration=fragment_duration,
+                    version=self.version, lifetime=self.cache_retention, **kwargs)
+                for fragment_group
+                in progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(
+                    missing_fragments)]))
+
+        for group in progress_bar(leave=False, desc="Checking if cache fragments are outdated", **kwargs)(
+            maybe_outdated_fragments):
+            oldest = max(group, key=lambda item: item[1].created)[1].created
+            kwargs['if_newer_than'] = oldest
+            data = get_data(wrapped_self, product=product, start_time=group[0][0],
+                            stop_time=group[-1][0] + fragment_duration, **kwargs)
+            if data is None:
+                for fragment, entry in group:
+                    self._cache.set_cache_entry(fragment, product, entry.bump_creation_time())
+                    data_chunks.append(from_dictionary(entry.data))
+            else:
+                self._cache.add_to_cache(data, [item[0] for item in group], product,
+                                         fragment_duration=fragment_duration,
+                                         version=self.version,
+                                         lifetime=self.cache_retention,
+                                         **kwargs)
+                data_chunks.append(data)
+
+        if len(data_chunks):
+            if len(data_chunks) == 1:
+                if data_chunks[0] is not None:
+                    return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
+                else:
+                    return None
+            if data_chunks[0] is not None:
+                data_chunks[0] = data_chunks[0][dt_range.start_time:]
+            if data_chunks[-1] is not None:
+                data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
+            return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
+        return None
+
     def __call__(self, get_data):
         @wraps(get_data)
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
-            product = product_name(product)
-            dt_range = DateTimeRange(start_time, stop_time)
             if kwargs.pop("disable_cache", False):
-                return get_data(wrapped_self, product=product, start_time=dt_range.start_time,
-                                stop_time=dt_range.stop_time, **kwargs)
-            prefer_cache = kwargs.pop("prefer_cache", False)
-            fragment_hours, fragments = self._cache.fragment_list(product, dt_range)
-            fragment_duration = timedelta(hours=fragment_hours)
-            data_chunks, maybe_outdated_fragments, missing_fragments = self.split_fragments(fragments, product,
-                                                                                            fragment_duration, **kwargs, prefer_cache=prefer_cache)
-            data_chunks += \
-                list(filter(lambda d: d is not None, [
-                    self._cache.add_to_cache(
-                        get_data(
-                            wrapped_self, product=product, start_time=fragment_group[0],
-                            stop_time=fragment_group[-1] + fragment_duration, **kwargs),
-                        fragments=fragment_group, product=product, fragment_duration_hours=fragment_hours,
-                        version=self.version, lifetime=self.cache_retention, **kwargs)
-                    for fragment_group
-                    in progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(
-                        missing_fragments)]))
-
-            for group in progress_bar(leave=False, desc="Checking if cache fragments are outdated", **kwargs)(
-                maybe_outdated_fragments):
-                oldest = max(group, key=lambda item: item[1].created)[1].created
-                kwargs['if_newer_than'] = oldest
-                data = get_data(wrapped_self, product=product, start_time=group[0][0],
-                                stop_time=group[-1][0] + fragment_duration, **kwargs)
-                if data is None:
-                    for fragment, entry in group:
-                        self._cache.set_cache_entry(fragment, product, entry.bump_creation_time())
-                        data_chunks.append(from_dictionary(entry.data))
-                else:
-                    self._cache.add_to_cache(data, [item[0] for item in group], product,
-                                             fragment_duration_hours=fragment_hours,
-                                             version=self.version,
-                                             lifetime=self.cache_retention,
-                                             **kwargs)
-                    data_chunks.append(data)
-
-            if len(data_chunks):
-                if len(data_chunks) == 1:
-                    if data_chunks[0] is not None:
-                        return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
-                    else:
-                        return None
-                if data_chunks[0] is not None:
-                    data_chunks[0] = data_chunks[0][dt_range.start_time:]
-                if data_chunks[-1] is not None:
-                    data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
-                return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
-            return None
+                return self._get_data_without_cache(self, get_data, wrapped_self, product, start_time, stop_time,
+                                                    **kwargs)
+            else:
+                return self._get_data_with_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs)
 
         if self._cache.leak_cache:
             wrapped.cache = self._cache.cache
