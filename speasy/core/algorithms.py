@@ -1,3 +1,10 @@
+"""
+.. testsetup:: *
+
+   from speasy.core.algorithms import *
+   import numpy as np
+"""
+
 import random
 from typing import Any, Dict, Callable
 from functools import wraps
@@ -7,8 +14,9 @@ The rationale behind the following function is to randomize the order of executi
 """
 
 
-def randomized_map(f:Callable, l, *args, **kwargs):
+def randomized_map(f: Callable, l, *args, **kwargs):
     """Applies function f to all elements in list l in a randomized order
+
     Parameters
     ----------
     f: Callable
@@ -19,10 +27,12 @@ def randomized_map(f:Callable, l, *args, **kwargs):
         additional positional arguments to pass to f
     kwargs: Any
         additional keyword arguments to pass to f
+
     Returns
     -------
     list
         A list with the results of applying f to each element in l, in the original order
+
     Examples
     --------
     >>> randomized_map(lambda x: x**2, [1,2,3,4])

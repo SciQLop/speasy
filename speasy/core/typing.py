@@ -1,3 +1,10 @@
+"""
+.. testsetup:: *
+
+   from speasy.core.typing import *
+   import numpy as np
+"""
+
 from typing import Union, Any, List, Iterable, Sequence, Type
 from datetime import datetime
 import numpy as np
