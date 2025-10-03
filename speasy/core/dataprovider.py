@@ -38,6 +38,7 @@ def _get_inventory_args(provider_name, **kwargs):
 
 class DataProvider:
     """Base class for all data providers.
+
     Parameters
     ----------
     provider_name: str
@@ -49,6 +50,7 @@ class DataProvider:
     min_proxy_version: str
         Minimum required version of the proxy server to use for fetching the inventory.
     """
+
     def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False,
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name

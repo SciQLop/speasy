@@ -21,6 +21,8 @@
 import os
 import sys
 from glob import glob
+import numpy as np
+np.set_printoptions(precision=4)
 
 src_path = os.path.abspath('..')
 sys.path.insert(0, src_path)

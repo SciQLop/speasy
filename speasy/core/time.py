@@ -1,3 +1,9 @@
+"""
+.. testsetup:: *
+
+   from speasy.core.time import *
+   import numpy as np
+"""
 from typing import Callable
 from datetime import datetime, timezone
 from functools import wraps
