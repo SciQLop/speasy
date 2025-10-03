@@ -203,6 +203,51 @@ class CacheRequestsDeduplication(unittest.TestCase):
 
 
 @ddt
+class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
+
+    @staticmethod
+    def increase_count():
+        from speasy.core.cache import _cache
+        _cache._data.incr("test_deduplication_counter", 1, default=0)
+
+    @property
+    def count(self):
+        from speasy.core.cache import _cache
+        return _cache._data.get("test_deduplication_counter", 0)
+
+    def setUp(self):
+        self._version = 0
+        drop_matching_entries(r".*test_deduplication.*")
+        drop_matching_entries(r"test_deduplication_counter")
+
+    def tearDown(self):
+        drop_matching_entries(r".*test_deduplication.*")
+        drop_matching_entries(r"test_deduplication_counter")
+
+    def version(self, product):
+        return self._version
+
+    @Cacheable(prefix="", version=version)
+    def _make_data(self, product, start_time, stop_time):
+        self.increase_count()
+        time.sleep(.001)
+        return data_generator(start_time, stop_time)
+
+    @data(*list(range(50)))
+    def test_deduplication(self, step):
+        tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
+        tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
+        self.assertEqual(self.count, 0)
+        from multiprocessing import Process
+        processes = [Process(target=self._make_data, args=("test_deduplication_product", tstart, tend)) for _ in range(5)]
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+        self.assertEqual(self.count, 1)
+
+
+@ddt
 class _CacheVersionTest(unittest.TestCase):
 
     @data(
