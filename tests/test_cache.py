@@ -168,7 +168,7 @@ class _CacheTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-
+@ddt
 class CacheRequestsDeduplication(unittest.TestCase):
 
     def setUp(self):
@@ -185,15 +185,16 @@ class CacheRequestsDeduplication(unittest.TestCase):
     @Cacheable(prefix="", version=version)
     def _make_data(self, product, start_time, stop_time):
         self._make_data_cntr += 1
-        time.sleep(1)
+        time.sleep(.001)
         return data_generator(start_time, stop_time)
 
-    def test_deduplication(self):
+    @data(*list(range(20)))
+    def test_deduplication(self, step):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         from threading import Thread
-        threads = [Thread(target=self._make_data, args=("test_deduplication_product", tstart, tend)) for _ in range(10)]
+        threads = [Thread(target=self._make_data, args=("test_deduplication_product", tstart, tend)) for _ in range(5)]
         for p in threads:
             p.start()
         for p in threads:
