@@ -82,7 +82,7 @@ def product_name(product: Union[str, ParameterIndex]) -> str:
 
 
 class _Cacheable:
-    def __init__(self, prefix, cache_instance: Cache = _cache, start_time_arg='start_time', stop_time_arg='stop_time',
+    def __init__(self, prefix, cache_instance: Optional[Cache] = None, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None,
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
                  deduplication_timeout=600
@@ -92,7 +92,7 @@ class _Cacheable:
         self.version = (lambda x, y: 0) if version is None else version
         self.fragment_hours = fragment_hours
         self.cache_margins = cache_margins
-        self.cache: Cache = cache_instance
+        self.cache: Cache = cache_instance or _cache
         self.prefix = prefix
         self.leak_cache = leak_cache
         self.entry_name = entry_name
@@ -262,7 +262,7 @@ class _Cacheable:
 
 
 class Cacheable(object):
-    def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
+    def __init__(self, prefix, cache_instance=None, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None, fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False,
                  entry_name=default_cache_entry_name, deduplication_timeout=600
                  ):
@@ -275,12 +275,18 @@ class Cacheable(object):
 
     def _get_and_wb_fragment_group(self, fragments: List[datetime], fragment_duration: timedelta, get_data,
                                    wrapped_self, product, version, **kwargs) -> Optional[SpeasyVariable]:
-        return self._cache.add_to_cache(
-            get_data(
-                wrapped_self, product=product, start_time=fragments[0],
-                stop_time=fragments[-1] + fragment_duration, **kwargs),
-            fragments=fragments, product=product, fragment_duration=fragment_duration,
-            version=version, **kwargs)
+        try:
+            return self._cache.add_to_cache(
+                get_data(
+                    wrapped_self, product=product, start_time=fragments[0],
+                    stop_time=fragments[-1] + fragment_duration, **kwargs),
+                fragments=fragments, product=product, fragment_duration=fragment_duration,
+                version=version, **kwargs)
+        except Exception as e:
+            # In case of exception, drop all cache entries for the fragments we tried to write and forward the exception
+            for fragment in fragments:
+                self._cache.drop_cache_entry(fragment, product, **kwargs)
+            raise e
 
     def _retrieve_concurrently_requested_fragments(self, fragments: List[datetime], product: str, version, **kwargs):
         return [self._cache.get_from_cache(fragment, product, version, **kwargs) for fragment in fragments]
@@ -300,9 +306,10 @@ class Cacheable(object):
             filter_requests_for_me(maybe_data_chunks, fragments),
             duration=fragment_duration)
 
-        data_chunks += randomized_map(self._get_and_wb_fragment_group, missing_fragments_for_me,
-                                      fragment_duration, get_data, wrapped_self,
-                                      product, version, **kwargs)
+        if len(missing_fragments_for_me):
+            data_chunks += randomized_map(self._get_and_wb_fragment_group, missing_fragments_for_me,
+                                          fragment_duration, get_data, wrapped_self,
+                                          product, version, **kwargs)
 
         data_chunks += self._retrieve_concurrently_requested_fragments(
             filter_requests_locked_by_others(maybe_data_chunks, fragments), product, version, **kwargs)

@@ -16,7 +16,7 @@ class Dataset(SpeasyProduct):
     def __init__(self, name: str, variables: dict, meta: dict):
         super().__init__()
         if not all_of_type(variables.values(), SpeasyVariable):
-            raise TypeError(f"variables must be a {dict} with {SpeasyVariable} as values")
+            raise TypeError(f"variables must be a {dict} with {SpeasyVariable} as values, got {type(variables)} with {set(map(type, variables.values()))}")
         self.name = name
         self.variables = variables
         self.meta = meta
