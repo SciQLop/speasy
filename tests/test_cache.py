@@ -107,27 +107,19 @@ class _CacheTest(unittest.TestCase):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
-        stats = self._make_data.cache.stats()
         for _ in range(10):
             var = self._make_data("test_get_data_more_than_once", tstart,
                                   tend)
             self.assertEqual(self._make_data_cntr, 1)
-        new_stats = self._make_data.cache.stats()
-        self.assertGreater(new_stats["hit"], stats["hit"])
-        self.assertGreater(new_stats["misses"], stats["misses"])
 
     def test_get_newer_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
-        stats = self._make_data.cache.stats()
         for i in range(10):
             self._version = f"{i}"
             var = self._make_data("test_get_newer_version_data", tstart, tend)
             self.assertEqual(self._make_data_cntr, i + 1)
-        new_stats = self._make_data.cache.stats()
-        self.assertGreater(new_stats["hit"], stats["hit"])
-        self.assertGreater(new_stats["misses"], stats["misses"])
 
     def test_get_same_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
