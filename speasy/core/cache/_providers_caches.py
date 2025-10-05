@@ -170,7 +170,7 @@ class _Cacheable:
         # Optimistic lock acquisition, the following get will either return a CacheItem or a PendingRequest
         # it's up to the caller to check which one it is and if it's a PendingRequest to check if it's from
         # the current thread or not
-        self.cache.add(key, PendingRequest())
+        self.cache.add(key, PendingRequest(), expire=self.deduplication_timeout)
         return self.cache.get(key)
 
     def get_from_cache(self, fragment, product, version, prefer_cache=False, wait_for_pending=True, **kwargs) -> \
