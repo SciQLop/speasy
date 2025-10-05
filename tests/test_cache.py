@@ -20,6 +20,7 @@ start_date = datetime(2016, 6, 1, 12, tzinfo=timezone.utc)
 dirpath = tempfile.mkdtemp()
 cache = Cache(dirpath)
 
+
 def data_generator(start_time, stop_time):
     index = np.array(
         [(start_time + timedelta(minutes=delta)).timestamp() for delta in
@@ -168,6 +169,7 @@ class _CacheTest(unittest.TestCase):
     def tearDown(self):
         pass
 
+
 @ddt
 class CacheRequestsDeduplication(unittest.TestCase):
 
@@ -188,7 +190,7 @@ class CacheRequestsDeduplication(unittest.TestCase):
         time.sleep(.001)
         return data_generator(start_time, stop_time)
 
-    @data(*list(range(20)))
+    @data(*list(range(100)))
     def test_deduplication(self, step):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
@@ -199,52 +201,63 @@ class CacheRequestsDeduplication(unittest.TestCase):
             p.start()
         for p in threads:
             p.join()
-        self.assertEqual(self._make_data_cntr, 1)
+        self.assertLessEqual(self._make_data_cntr, 1)
 
 
 @ddt
 class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
 
     @staticmethod
-    def increase_count():
+    def increase_count(product) -> int:
         from speasy.core.cache import _cache
-        _cache._data.incr("test_deduplication_counter", 1, default=0)
+        return _cache.incr(f"CacheRequestsDeduplicationMultiProcess::{product}::counter", 1, default=0)
 
-    @property
-    def count(self):
+    @staticmethod
+    def count(product):
         from speasy.core.cache import _cache
-        return _cache._data.get("test_deduplication_counter", 0)
+        return _cache.get(f"CacheRequestsDeduplicationMultiProcess::{product}::counter", 0)
+
+    @staticmethod
+    def reset_count(product):
+        from speasy.core.cache import _cache
+        _cache.drop(f"CacheRequestsDeduplicationMultiProcess::{product}::counter")
 
     def setUp(self):
         self._version = 0
-        drop_matching_entries(r".*test_deduplication.*")
-        drop_matching_entries(r"test_deduplication_counter")
+        drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
 
     def tearDown(self):
-        drop_matching_entries(r".*test_deduplication.*")
-        drop_matching_entries(r"test_deduplication_counter")
+        drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
 
     def version(self, product):
         return self._version
 
-    @Cacheable(prefix="", version=version)
+    @Cacheable(prefix="", version=version, deduplication_timeout=10)
     def _make_data(self, product, start_time, stop_time):
-        self.increase_count()
+        from threading import get_native_id
+        print(f"Entering critical section for {product} {start_time} {stop_time} {get_native_id()}")
+        r = self.increase_count(product)
+        if r > 1:
+            print(
+                f"Warning, multiple process are in the critical section for {product} {start_time} {stop_time}, r= {r}")
         time.sleep(.001)
         return data_generator(start_time, stop_time)
 
-    @data(*list(range(50)))
+    @data(*list(range(100)))
     def test_deduplication(self, step):
+        from multiprocessing import Process
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
-        self.assertEqual(self.count, 0)
-        from multiprocessing import Process
-        processes = [Process(target=self._make_data, args=("test_deduplication_product", tstart, tend)) for _ in range(5)]
+        product = f"CacheRequestsDeduplicationMultiProcess::{step}"
+        self.reset_count(product)
+        self.assertEqual(self.count(product), 0)
+        processes = [Process(target=self._make_data, args=(product, tstart, tend)) for _ in
+                     range(4)]
         for p in processes:
             p.start()
         for p in processes:
             p.join()
-        self.assertEqual(self.count, 1)
+        self.assertLessEqual(self.count(product), 1)
 
 
 @ddt

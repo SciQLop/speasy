@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 import diskcache as dc
 from .version import str_to_version, version_to_str, Version
 from speasy.config import cache as cache_cfg
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 
 cache_version = str_to_version("3.0")
 
@@ -103,16 +103,35 @@ class Cache:
         with self.transact():
             self._data.set(key, value, expire=expire)
 
+    def add(self, key, value, expire=None):
+        with self.transact():
+            return self._data.add(key, value, expire=expire)
+
     def get(self, key, default_value=None):
         with self.transact():
             return self._data.get(key, default_value)
+
+    def incr(self, key, delta=1, default=0):
+        return self._data.incr(key, delta, default=default)
 
     def drop(self, key):
         with self.transact():
             self._data.delete(key)
 
+    @contextmanager
     def transact(self):
         if self.cache_type != 'Fanout':
-            return self._data.transact()
+            with self._data.transact():
+                yield
         else:
-            return ExitStack()
+            with ExitStack() as stack:
+                yield
+
+    @contextmanager
+    def lock(self, key: str):
+        lock = dc.Lock(self._data, key)
+        lock.acquire()
+        try:
+            yield lock
+        finally:
+            lock.release()

@@ -3,6 +3,7 @@ from ._instance import _cache
 from time import sleep
 from datetime import datetime, timezone
 from threading import get_native_id
+from typing import Optional
 
 
 class PendingRequest:
@@ -13,6 +14,9 @@ class PendingRequest:
     @property
     def elapsed_time(self):
         return datetime.now(tz=timezone.utc) - self._start_time
+
+    def has_timed_out(self, timeout: int) -> bool:
+        return int(self.elapsed_time.total_seconds()) >= timeout
 
     @property
     def pid(self):
@@ -41,8 +45,16 @@ def _is_locked(key: str, timeout: int = 30) -> bool:
     entry = _cache.get(key)
     return isinstance(entry, PendingRequest) and (int(entry.elapsed_time.total_seconds()) < timeout)
 
+
 def _entry_is_outdated(entry: PendingRequest, timeout: int) -> bool:
     return int(entry.elapsed_time.total_seconds()) >= timeout
+
+
+def _try_acquire_lock(key: str) -> Optional[PendingRequest]:
+    with _cache.lock(f"global_lock::{key}"):
+        if key not in _cache:
+            _cache[key] = PendingRequest()
+    return _cache.get(key)
 
 
 @contextmanager
@@ -64,21 +76,20 @@ def request_locker(key: str, timeout: int = 30):
     None
     """
     key = "request_locker::" + key
-    entry = _cache.get(key)
-    if entry is None or _entry_is_outdated(entry, timeout):
-        entry = PendingRequest()
-        _cache.set(key=key, value=entry)
-    elif isinstance(entry, PendingRequest):
-        if not entry.is_from_current_thread:
-            while _is_locked(key, timeout):
+    lock = _try_acquire_lock(key)
+    if isinstance(lock, PendingRequest):
+        if not lock.is_from_current_thread:
+            while not lock.has_timed_out(timeout):
                 sleep(0.01)
-        else:
-            raise ValueError(
-                f"Locking the same request from the same thread: {key}, {entry.pid}, reentrant locking is not supported.")
     else:
-        raise ValueError(f"Internal Speasy error: Cache entry {key} is not a PendingRequest, but {type(entry)}")
+        raise TypeError("Invalid lock type")
     try:
-        yield
+        yield lock
     finally:
-        if isinstance(entry, PendingRequest) and entry.pid == get_native_id():
-            _cache.drop(key)
+        with _cache.transact():
+            entry: Optional[PendingRequest] = _cache.get(key)
+            if entry is not None and entry.is_from_current_thread:
+                _cache.drop(key)
+            elif entry is not None and _entry_is_outdated(entry, timeout):
+                # help clean up stale locks even if not from this thread
+                _cache.drop(key)
