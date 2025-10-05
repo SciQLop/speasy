@@ -36,7 +36,7 @@ class CacheItem:
 
 
 class Cache:
-    __slots__ = ['cache_file', '_data', '_hit', '_miss', 'cache_type']
+    __slots__ = ['cache_file', '_data', 'cache_type']
 
     def __init__(self, cache_path: str = "", cache_type='Cache'):
         cache_path = f"{cache_path}/{cache_type}"
@@ -48,8 +48,7 @@ class Cache:
             raise ValueError(f"Unimplemented cache type: {cache_type}")
 
         self.cache_type = cache_type
-        self._hit = 0
-        self._miss = 0
+        self._data.stats(enable=True, reset=True)
         if self.version < cache_version:
             self._data.clear()
             self.version = cache_version
@@ -66,9 +65,10 @@ class Cache:
         return self._data.volume()
 
     def stats(self):
+        hit, miss = self._data.stats()
         return {
-            "hit": self._hit,
-            "misses": self._miss
+            "hit": hit,
+            "misses": miss,
         }
 
     def __len__(self):
@@ -82,18 +82,10 @@ class Cache:
 
     def __contains__(self, item):
         with self.transact():
-            if item in self._data:
-                self._hit += 1
-                return True
-            self._miss += 1
-            return False
+            return item in self._data
 
     def __getitem__(self, key):
         with self.transact():
-            if key in self._data:
-                self._hit += 1
-            else:
-                self._miss += 1
             return self._data[key]
 
     def __setitem__(self, key, value):
