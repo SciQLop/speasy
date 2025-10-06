@@ -227,7 +227,7 @@ class _Cacheable:
                 return from_dictionary(entry.data)
             except Exception as e:
                 log.warning(f"got an exception {e} while loading fragment {fragment} for {product}")
-        log.debug(f"Cache entry is outdated")
+        log.debug("Cache entry is outdated")
         # either outdated or corrupted
         self.drop_cache_entry(fragment, product, **kwargs)
         return self.get_or_lock_cache_entry(fragment, product, **kwargs)

@@ -88,8 +88,7 @@ def request_locker(key: str, timeout: int = 30):
     finally:
         with _cache.transact():
             entry: Optional[PendingRequest] = _cache.get(key)
-            if entry is not None and entry.is_from_current_thread:
-                _cache.drop(key)
-            elif entry is not None and _entry_is_outdated(entry, timeout):
+            if entry is not None and (entry.is_from_current_thread or entry.has_timed_out(timeout)):
                 # help clean up stale locks even if not from this thread
                 _cache.drop(key)
+
