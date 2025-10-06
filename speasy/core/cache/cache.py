@@ -116,7 +116,7 @@ class Cache:
             with self._data.transact():
                 yield
         else:
-            with ExitStack() as stack:
+            with ExitStack():
                 yield
 
     @contextmanager

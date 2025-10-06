@@ -228,7 +228,7 @@ class MPDataProvider:
         return data_generator(start_time, stop_time)
 
 
-def MP_make_data(product, start_time, stop_time):
+def multi_process_make_data(product, start_time, stop_time):
     provider = MPDataProvider()
     return provider.make_data(product, start_time, stop_time)
 
@@ -252,7 +252,7 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
         provider = MPDataProvider()
         provider.reset_count(product)
         self.assertEqual(provider.count(product), 0)
-        processes = [Process(target=MP_make_data, args=(product, tstart, tend)) for _ in
+        processes = [Process(target=multi_process_make_data, args=(product, tstart, tend)) for _ in
                      range(4)]
         for p in processes:
             p.start()
