@@ -196,8 +196,10 @@ class CacheRequestsDeduplication(unittest.TestCase):
         self.assertLessEqual(self._make_data_cntr, 1)
 
 
-@ddt
-class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
+class MPDataProvider:
+
+    def version(self, product):
+        return 0
 
     @staticmethod
     def increase_count(product) -> int:
@@ -214,18 +216,8 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
         from speasy.core.cache import _cache
         _cache.drop(f"CacheRequestsDeduplicationMultiProcess::{product}::counter")
 
-    def setUp(self):
-        self._version = 0
-        drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
-
-    def tearDown(self):
-        drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
-
-    def version(self, product):
-        return self._version
-
     @Cacheable(prefix="", version=version, deduplication_timeout=10)
-    def _make_data(self, product, start_time, stop_time):
+    def make_data(self, product, start_time, stop_time):
         from threading import get_native_id
         print(f"Entering critical section for {product} {start_time} {stop_time} {get_native_id()}")
         r = self.increase_count(product)
@@ -235,21 +227,38 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
         time.sleep(.001)
         return data_generator(start_time, stop_time)
 
+
+def MP_make_data(product, start_time, stop_time):
+    provider = MPDataProvider()
+    return provider.make_data(product, start_time, stop_time)
+
+
+@ddt
+class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
+
+    def setUp(self):
+        self._version = 0
+        drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
+
+    def tearDown(self):
+        drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
+
     @data(*list(range(100)))
     def test_deduplication(self, step):
         from multiprocessing import Process
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         product = f"CacheRequestsDeduplicationMultiProcess::{step}"
-        self.reset_count(product)
-        self.assertEqual(self.count(product), 0)
-        processes = [Process(target=self._make_data, args=(product, tstart, tend)) for _ in
+        provider = MPDataProvider()
+        provider.reset_count(product)
+        self.assertEqual(provider.count(product), 0)
+        processes = [Process(target=MP_make_data, args=(product, tstart, tend)) for _ in
                      range(4)]
         for p in processes:
             p.start()
         for p in processes:
             p.join()
-        self.assertLessEqual(self.count(product), 1)
+        self.assertLessEqual(provider.count(product), 1)
 
 
 @ddt
