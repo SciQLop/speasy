@@ -81,34 +81,28 @@ class Cache:
         return list(self._data)
 
     def __contains__(self, item):
-        with self.transact():
-            return item in self._data
+        return item in self._data
 
     def __getitem__(self, key):
-        with self.transact():
-            return self._data[key]
+        return self._data[key]
 
     def __setitem__(self, key, value):
         self._data[key] = value
 
     def set(self, key, value, expire=None):
-        with self.transact():
-            self._data.set(key, value, expire=expire)
+        self._data.set(key, value, expire=expire)
 
     def add(self, key, value, expire=None):
-        with self.transact():
-            return self._data.add(key, value, expire=expire)
+        return self._data.add(key, value, expire=expire)
 
     def get(self, key, default_value=None):
-        with self.transact():
-            return self._data.get(key, default_value)
+        return self._data.get(key, default_value)
 
     def incr(self, key, delta=1, default=0):
         return self._data.incr(key, delta, default=default)
 
     def drop(self, key):
-        with self.transact():
-            self._data.delete(key)
+        self._data.delete(key)
 
     @contextmanager
     def transact(self):

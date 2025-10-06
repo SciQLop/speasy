@@ -1,5 +1,5 @@
 import random
-from typing import Any, Dict
+from typing import Any, Dict, Callable
 from functools import wraps
 
 """
@@ -7,11 +7,11 @@ The rationale behind the following function is to randomize the order of executi
 """
 
 
-def randomized_map(f, l, *args, **kwargs):
+def randomized_map(f:Callable, l, *args, **kwargs):
     """Applies function f to all elements in list l in a randomized order
     Parameters
     ----------
-    f: function
+    f: Callable
         function to apply to each element in l
     l: list
         list of elements to process

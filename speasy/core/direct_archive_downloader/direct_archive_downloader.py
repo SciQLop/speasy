@@ -6,7 +6,7 @@
 import re
 from datetime import timedelta, datetime
 from functools import partial
-from typing import Optional, List, Callable, Union
+from typing import Optional, List, Callable, Union, Tuple
 
 from dateutil.relativedelta import relativedelta
 
@@ -98,6 +98,59 @@ def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -
     return make_utc_datetime(datetime.strptime(date, date_format))
 
 
+@CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
+def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[str] = None) -> List[
+    Tuple[str, Tuple[datetime, datetime]]]:
+    if type(fname_regex) is str:
+        fname_regex = re.compile(fname_regex)
+    files: List[re.Match] = list(
+        filter(lambda m: m is not None, map(fname_regex.match,
+                                            list_files(url.rsplit('/', 1)[0],
+                                                       re.compile(url.rsplit('/', 1)[1])))))
+    ranges = []
+    if len(files):
+        if files[0].groupdict().get('stop', None):
+            for index, file in enumerate(files):
+                d = file.groupdict()
+                ranges.append((file.string, (_parse_date(d['start'], date_format),
+                                             _parse_date(d['stop'],
+                                                         date_format))))
+        else:
+            start_dates = [_parse_date(f.groupdict()['start'], date_format) for f in files]
+            start_dates += [None]
+            ranges = list(zip([f.string for f in files], zip(start_dates, start_dates[1:])))
+    return sorted(ranges, key=lambda r: r[1][0])
+
+
+def filter_ranges(ranges: List[Tuple[str, Tuple[datetime, datetime]]], start: AnyDateTimeType,
+                  stop: AnyDateTimeType) -> List[str]:
+    """Given a list of (file, (start, stop)) tuples, filter those that overlap with the specified time range.
+    Parameters
+    ----------
+    ranges : List[Tuple[str, Tuple[datetime, datetime]]]
+        List of (file, (start, stop)) tuples sorted by start time of each range in ascending order.
+    start : AnyDateTimeType
+        Time range start
+    stop : AnyDateTimeType
+        Time range stop
+    Returns
+    -------
+    List[str]
+        List of files that overlap with the specified time range.
+    """
+    start = make_utc_datetime(start)
+    stop = make_utc_datetime(stop)
+    keep = []
+    for f, (s, e) in ranges:
+        if e is None:
+            e = max(stop, s)
+        if intersects((start, stop), (s, e)):
+            keep.append(f)
+        elif len(keep) and stop < s:
+            break
+    return keep
+
+
 class RandomSplitDirectDownload:
 
     @staticmethod
@@ -113,34 +166,20 @@ class RandomSplitDirectDownload:
                    fname_regex: str, date_format=None):
 
         keep = []
+        #fname_regex = re.compile(fname_regex)
         start_time = make_utc_datetime(start_time)
         stop_time = make_utc_datetime(stop_time)
         for start in spilt_range(split_frequency, start_time, stop_time):
 
             base_ulr = apply_date_format(url_pattern, start)
             folder_url, rx = base_ulr.rsplit('/', 1)
-            files: List[re.Match] = list(
-                filter(lambda m: m is not None, map(re.compile(fname_regex).match,
-                                                    list_files(folder_url,
-                                                               re.compile(rx)))))
-            if len(files):
-                for index, file in enumerate(files[:-1]):
-                    d = file.groupdict()
-                    if RandomSplitDirectDownload.overlaps_range(range_start=start_time, range_stop=stop_time,
-                                                                start=_parse_date(d['start'], date_format),
-                                                                stop=_parse_date(d.get('stop',
-                                                                                       files[index + 1].groupdict()[
-                                                                                           'start']), date_format)):
-                        keep.append(f'{folder_url}/{file.string}')
 
-                d = files[-1].groupdict()
-                if RandomSplitDirectDownload.overlaps_range(range_start=start_time, range_stop=stop_time,
-                                                            start=_parse_date(d['start'], date_format),
-                                                            stop=_parse_date(d.get('stop', max(stop_time,
-                                                                                               _parse_date(d['start'],
-                                                                                                           date_format))),
-                                                                             date_format)):
-                    keep.append(f'{folder_url}/{files[-1].string}')
+            files = filter_ranges(
+                map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format),
+                start_time, stop_time)
+
+            if len(files):
+                keep.extend([f'{folder_url}/{f}' for f in files])
         return keep
 
     @staticmethod
