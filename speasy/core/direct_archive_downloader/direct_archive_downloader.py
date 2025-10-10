@@ -166,13 +166,12 @@ class RandomSplitDirectDownload:
                    fname_regex: str, date_format=None):
 
         keep = []
-        #fname_regex = re.compile(fname_regex)
         start_time = make_utc_datetime(start_time)
         stop_time = make_utc_datetime(stop_time)
         for start in spilt_range(split_frequency, start_time, stop_time):
 
             base_ulr = apply_date_format(url_pattern, start)
-            folder_url, rx = base_ulr.rsplit('/', 1)
+            folder_url = base_ulr.rsplit('/', 1)[0]
 
             files = filter_ranges(
                 map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format),
