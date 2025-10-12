@@ -53,6 +53,8 @@ class AnyFile(io.IOBase):
 
 def _remote_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
     resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+    if resp.status != 200:
+        raise IOError(f"Could not open remote file {url}: HTTP {resp.status}")
     if 'b' in mode:
         return AnyFile(url, io.BytesIO(resp.bytes))
     else:
