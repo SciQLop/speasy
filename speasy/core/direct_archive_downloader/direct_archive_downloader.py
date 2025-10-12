@@ -163,7 +163,7 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def list_files(split_frequency, url_pattern: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                   fname_regex: str, date_format=None):
+                   fname_regex: str, date_format=None, force_refresh=False) -> List[str]:
 
         keep = []
         start_time = make_utc_datetime(start_time)
@@ -174,7 +174,7 @@ class RandomSplitDirectDownload:
             folder_url = base_ulr.rsplit('/', 1)[0]
 
             files = filter_ranges(
-                map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format),
+                map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format, force_refresh=force_refresh),
                 start_time, stop_time)
 
             if len(files):
@@ -185,13 +185,30 @@ class RandomSplitDirectDownload:
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
                     file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> Optional[SpeasyVariable]:
-        v = merge(
-            randomized_map(partial(file_reader, variable=variable, **kwargs),
-                           RandomSplitDirectDownload.list_files(split_frequency=split_frequency,
-                                                                url_pattern=url_pattern,
-                                                                start_time=start_time, stop_time=stop_time,
-                                                                fname_regex=fname_regex,
-                                                                date_format=date_format)))
+
+        force_refresh = kwargs.pop('force_refresh', False)
+        downloader = lambda force_refresh: merge(
+            randomized_map(
+                partial(file_reader, variable=variable, **kwargs),
+                RandomSplitDirectDownload.list_files(split_frequency=split_frequency,
+                                                     url_pattern=url_pattern,
+                                                     start_time=start_time, stop_time=stop_time,
+                                                     fname_regex=fname_regex,
+                                                     date_format=date_format,
+                                                     force_refresh=force_refresh
+                                                     )
+            )
+        )
+
+        try:
+            v = downloader(force_refresh=force_refresh)
+        except IOError as e:
+            if '404' in str(e):
+                # try once more forcing a refresh of the file list cache in case file names have changed recently
+                # this could happen for example when a new version of the data is released
+                v = downloader(force_refresh=True)
+            else:
+                raise e
         if v is not None:
             return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
         return None
