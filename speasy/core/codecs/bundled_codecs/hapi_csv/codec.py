@@ -9,6 +9,7 @@ from speasy.core.codecs import CodecInterface, register_codec
 from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.cache import CacheCall
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
+from speasy.products.variable import same_time_axis
 from .csv_file import HapiCsvFile, HapiCsvParameter
 
 log = logging.getLogger(__name__)
@@ -50,13 +51,6 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     return meta
 
 
-def _same_time_axis(variables: List[SpeasyVariable]) -> bool:
-    if len(variables) < 2:
-        return True
-    ref_time_axis = variables[0].time
-    return all([np.all(var.time == ref_time_axis) for var in variables[1:]])
-
-
 def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
     time_axis = VariableTimeAxis(values=hapi_csv_file.time_axis, meta=hapi_csv_file.time_axis_meta)
     loaded_vars = {}
@@ -80,7 +74,7 @@ def _make_hapi_csv_time_axis(time_axis: VariableTimeAxis) -> HapiCsvParameter:
 
 
 def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFile:
-    if not _same_time_axis(variables):
+    if not same_time_axis(variables):
         raise ValueError("All variables must have the same time axis")
     if len(variables) == 0:
         raise ValueError("No variables to save")
