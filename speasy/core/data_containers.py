@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import deepcopy, copy
 from datetime import datetime, timezone
 from sys import getsizeof
 from typing import Dict, List, Protocol, TypeVar, Union, Any
@@ -212,7 +212,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         return self.__values.dtype
 
     def astype(self, dtype) -> "DataContainer":
-        return DataContainer(values=self.__values.astype(dtype), meta=self.__meta, name=self.__name,
+        return DataContainer(values=self.__values.astype(dtype), meta=copy(self.__meta), name=self.__name,
                              is_time_dependent=self.__is_time_dependent)
 
     @property
