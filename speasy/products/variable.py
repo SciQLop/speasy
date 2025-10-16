@@ -22,6 +22,7 @@ def _values(input: Any) -> Any:
         return input.values
     return input
 
+
 def _check_time_axis(axis: VariableTimeAxis, values: DataContainer):
     if not isinstance(axis, VariableTimeAxis):
         raise TypeError(
@@ -626,7 +627,8 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     @staticmethod
-    def from_dataframe(df: pds.DataFrame, meta:Optional[Dict[str, Any]]=None, name:str="Unknown") -> "SpeasyVariable":
+    def from_dataframe(df: pds.DataFrame, meta: Optional[Dict[str, Any]] = None,
+                       name: str = "Unknown") -> "SpeasyVariable":
         """Load from pandas.DataFrame object.
 
         Parameters
@@ -746,18 +748,16 @@ class SpeasyVariable(SpeasyProduct):
         sanitized: removes fill and invalid values
         """
         # @TODO replace by a match case when Python 3.9 is EOL
+        need_convert = convert_to_float and not np.issubdtype(self.dtype, np.floating)
         if inplace:
             res = self
-            if convert_to_float and not np.issubdtype(self.dtype, np.floating):
+            if need_convert:
                 res.__values_container = res.__values_container.astype(float)
+        elif not need_convert:
+            res = deepcopy(self)
         else:
-            if convert_to_float and not np.issubdtype(self.dtype, np.floating):
-                res = self.astype(float)
-            else:
-                res = deepcopy(self)
+            res = self.astype(float)
         if (fill_value := self.fill_value) is not None:
-            if convert_to_float and not np.issubdtype(res.dtype, np.floating):
-                res.__values_container = res.__values_container.astype(float)
             res[res == fill_value] = np.nan
         return res
 
