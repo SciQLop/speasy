@@ -65,6 +65,8 @@ def _check_extra_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], val
 
 
 def _check_axes(axes: List[VariableAxis or VariableTimeAxis], values: DataContainer):
+    if len(axes) == 0:
+        raise ValueError("At least one axis (time axis) must be provided")
     _check_time_axis(axes[0], values)
     _check_extra_axes(axes[0], axes[1:], values)
 
@@ -306,9 +308,6 @@ class SpeasyVariable(SpeasyProduct):
         return np.add(self, other)
 
     def __radd__(self, other):
-        if type(other) is np.timedelta64:
-            raise ValueError(
-                "timedelta64 +  SpeasyVariable is not supported, only SpeasyVariable + timedelta64 is supported")
         return np.add(other, self)
 
     def __sub__(self, other):
@@ -319,9 +318,6 @@ class SpeasyVariable(SpeasyProduct):
         return np.subtract(self, other)
 
     def __rsub__(self, other):
-        if type(other) is np.timedelta64:
-            raise ValueError(
-                "timedelta64 -  SpeasyVariable is not supported, only SpeasyVariable - timedelta64 is supported")
         return np.subtract(other, self)
 
     def __truediv__(self, other):

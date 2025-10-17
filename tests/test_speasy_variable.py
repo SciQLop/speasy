@@ -161,6 +161,18 @@ class SpeasyVariableSlice(unittest.TestCase):
         self.assertTrue(np.all(y.values[:, 0] == var.values[:, 1]))
         self.assertTrue(np.all(y.axes == var.axes))
 
+    def test_cant_slice_columns_with_collection_of_invalid_type(self):
+        var = make_simple_var_2cols(1., 10., 1., 1.)
+        with self.assertRaises(ValueError) as e:
+            var[[1, 2]]
+        self.assertIn("No idea how to slice SpeasyVariable with given value", str(e.exception))
+
+    def test_cant_slice_columns_with_invalid_type(self):
+        var = make_simple_var_2cols(1., 10., 1., 1.)
+        with self.assertRaises(ValueError) as e:
+            var[var]
+        self.assertIn("No idea how to slice SpeasyVariable with given value", str(e.exception))
+
     def test_cant_slice_columns_a_3d_variable(self):
         var = make_3d_var(1., 10., 1., 1., 32, 16)
         var.columns.append("x")  # just a hack to enter the filter_columns meth
@@ -229,6 +241,23 @@ class SpeasyVariableMerge(unittest.TestCase):
         make_2d_var,
         make_2d_var_1d_y
     )
+    def test_several_with_full_overlap(self, ctor):
+        global_start = 1.
+        global_stop = 20.
+        var = merge([
+            ctor(global_start, 5., 1., 10.),
+            ctor(5., 15., 1., 10.),
+            ctor(5., 16., 1., 10.),
+            ctor(10., global_stop, 1., 10.)
+        ])
+        self.assertListEqual(var.time.tolist(),
+                             ctor(global_start, global_stop, 1., 10.).time.tolist())
+
+    @data(
+        make_simple_var,
+        make_2d_var,
+        make_2d_var_1d_y
+    )
     def test_two_with_partial_overlap(self, ctor):
         var1 = ctor(1., 10., 1., 10.)
         var2 = ctor(5., 15., 1., 10.)
@@ -251,6 +280,68 @@ class SpeasyVariableMerge(unittest.TestCase):
 
 @ddt
 class ASpeasyVariable(unittest.TestCase):
+
+    def test_ctor_should_raise_on_invalid_arguments(self):
+        with self.assertRaises(ValueError) as e:
+            SpeasyVariable(axes=[], values=DataContainer(values=np.array([1., 2., 3.])))
+        self.assertIn("At least one axis", str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            SpeasyVariable(axes=[VariableTimeAxis(values=np.array([1, 2], dtype="datetime64[ns]"))],
+                           values=DataContainer(values=np.array([1., 2., 3.])))
+        self.assertIn("Time and data must have the same length", str(e.exception))
+
+        with self.assertRaises(TypeError) as e:
+            SpeasyVariable(axes=[VariableAxis(name='x', values=np.array([1., 2., 3.]))],
+                           values=DataContainer(values=np.array([1., 2., 3.])))
+        self.assertIn("must be a VariableTimeAxis", str(e.exception))
+
+        with self.assertRaises(TypeError) as e:
+            SpeasyVariable(axes=[
+                VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]")),
+                np.array([1., 2., 3.])
+            ],
+                values=np.array([1., 2., 3.]))
+        self.assertIn("must be a VariableAxis instance, got", str(e.exception))
+
+        with self.assertRaises(TypeError) as e:
+            SpeasyVariable(axes=[VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]"))],
+                           values=np.array([1., 2., 3.]))
+        self.assertIn("must be a DataContainer", str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            SpeasyVariable(
+                axes=[
+                    VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]")),
+                    VariableAxis(name='wriong_size', values=np.array([1., 2.]), is_time_dependent=True)
+                ],
+                values=DataContainer(values=np.array([[1., 2.], [3., 4.], [5., 6.]])),
+                columns=["OnlyOneColumn"]
+            )
+            self.assertIn("Time dependent axis must have the same length than time axis,", str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            SpeasyVariable(
+                axes=[
+                    VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]")),
+                    VariableAxis(name='correct_len_wrong_shapoe', values=np.arange(6).reshape(3, 2),
+                                 is_time_dependent=True)
+                ],
+                values=DataContainer(values=np.arange(9).reshape(3, 3)),
+                columns=["OnlyOneColumn"]
+            )
+            self.assertIn("must match data shape,", str(e.exception))
+
+        with self.assertRaises(ValueError) as e:
+            SpeasyVariable(
+                axes=[
+                    VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]")),
+                    VariableAxis(name='wrong_shape', values=np.arange(8), is_time_dependent=False),
+                ],
+                values=DataContainer(values=np.arange(27).reshape(3, 3, 3)),
+                columns=["OnlyOneColumn"]
+            )
+            self.assertIn("must match data shape, got", str(e.exception))
 
     def test_to_dataframe(self):
         var = make_simple_var(1., 10., 1., 10.)
@@ -316,6 +407,23 @@ class ASpeasyVariable(unittest.TestCase):
         except ImportError:
             self.skipTest("Can't import matplotlib")
 
+    def test_has_ipython_repr(self):
+        from IPython.lib.pretty import RepresentationPrinter, pprint
+        from io import StringIO
+        out = StringIO()
+        var = make_simple_var(1., 10., 1., 10.)
+        printer = RepresentationPrinter(out, max_width=80)
+        printer.pretty(var)
+        printer.flush()
+        str_repr = out.getvalue()
+        self.assertIn("SpeasyVariable", str_repr)
+        self.assertIn("Name:", str_repr)
+        self.assertIn("Time Range:", str_repr)
+        self.assertIn("Shape:", str_repr)
+        self.assertIn("Columns:", str_repr)
+        self.assertIn("Meta:", str_repr)
+        self.assertIn("Size:", str_repr)
+
     def test_overrides_plot_arguments(self):
         try:
             import matplotlib.pyplot as plt
@@ -359,6 +467,14 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertFalse(np.isnan(var.values[4, 0]))
         var.replace_fillval_by_nan(inplace=True, convert_to_float=True)
         self.assertTrue(np.isnan(var.values[4, 0]))
+
+        var_without_fillval = make_simple_var(1., 10., 1., 10.).astype(np.int32)
+        self.assertIsNone(var_without_fillval.fill_value)
+        cleaned_copy_no_fillval = var_without_fillval.replace_fillval_by_nan(inplace=False, convert_to_float=True)
+        self.assertTrue(np.all(cleaned_copy_no_fillval.values == var_without_fillval.values))
+        self.assertIsNot(cleaned_copy_no_fillval.values, var_without_fillval.values)
+        var_without_fillval.replace_fillval_by_nan(inplace=True, convert_to_float=True)
+        self.assertTrue(np.all(var_without_fillval.values == var_without_fillval.values))
 
     def test_clamps(self):
         var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.})
@@ -422,24 +538,40 @@ class TestSpeasyVariableMath(unittest.TestCase):
     def test_addition(self):
         var = self.var + 1
         self.assertTrue(np.all(var.values == self.var.values + 1))
+        self.assertTrue(np.all((1 + self.var).values == 1 + self.var.values))
+
+    def test_power(self):
+        var = self.var ** 2
+        self.assertTrue(np.all(var.values == self.var.values ** 2))
+        self.assertTrue(np.all((self.var ** 2).values == self.var.values ** 2))
 
     def test_subtraction(self):
         var = self.var - 1
         self.assertTrue(np.all(var.values == self.var.values - 1))
+        self.assertTrue(np.all((1 - self.var).values == 1 - self.var.values))
 
     def test_multiplication(self):
         var = self.var * 2
         self.assertTrue(np.all(var.values == self.var.values * 2))
+        self.assertTrue(self.var * 2 == 2 * self.var)
 
     def test_division(self):
         var = self.var / 2
         self.assertTrue(np.all(var.values == self.var.values / 2))
+        self.assertTrue(np.all((0.5 / self.var).values == 0.5 / self.var.values))
 
     def test_time_shift(self):
         for shift in (np.timedelta64(1, 'D'), -np.timedelta64(1, 'D')):
             var = self.var + shift
             self.assertTrue(np.all(var.values == self.var.values))
             self.assertTrue(np.all(var.time == self.var.time + shift))
+            var = self.var - shift
+            self.assertTrue(np.all(var.values == self.var.values))
+            self.assertTrue(np.all(var.time == self.var.time - shift))
+        with self.assertRaises(Exception):
+            _ = np.timedelta64(1, 'D') + self.var
+        with self.assertRaises(Exception):
+            _ = np.timedelta64(1, 'D') - self.var
 
 
 @ddt
@@ -502,7 +634,6 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
             diff = np.diff(var.axes[0])
             self.assertTrue(np.all(diff.values == np.diff(var.time)))
 
-
     def test_zeros_like(self):
         var = np.zeros_like(self.var)
         self.assertEqual(self.var.shape, var.shape)
@@ -563,10 +694,35 @@ class DataContainerNumpyInterface(unittest.TestCase):
 
 class SpeasyVariableCompare(unittest.TestCase):
     def setUp(self):
-        pass
+        self.var = make_simple_var(1., 10., 1., 10.)
+        self.vector = make_simple_var_3cols(1., 10., 1., 10.)
+        self.spectro = make_2d_var(start=1., stop=10., step=1., coef=10., height=32)
+        self.var3d = make_3d_var(start=1., stop=10., step=1., coef=10., height=32, depth=16)
 
     def tearDown(self):
         pass
+
+    def test_equal(self):
+        self.assertTrue(self.var * 1. == self.var * 1.)
+        self.assertTrue(self.vector * 1. == self.vector * 1.)
+        self.assertTrue(self.spectro * 1. == self.spectro * 1.)
+        self.assertTrue(self.var3d * 1. == self.var3d * 1.)
+
+        self.assertFalse(self.var == make_simple_var(1., 9., 1., 10.))
+        self.assertFalse(self.vector == make_simple_var_3cols(1., 9., 1., 10.))
+        self.assertFalse(self.spectro == make_2d_var(1., 9., 10., 32))
+        self.assertFalse(self.var3d == make_3d_var(1., 9., 10., 32, 16))
+
+    def test_not_equal(self):
+        self.assertTrue(self.var != make_simple_var(1., 9., 1., 10.))
+        self.assertTrue(self.vector != make_simple_var_3cols(1., 9., 1., 10.))
+        self.assertTrue(self.spectro != make_2d_var(1., 9., 10., 32))
+        self.assertTrue(self.var3d != make_3d_var(1., 9., 10., 32, 16))
+
+        self.assertFalse(self.var * 1. != self.var * 1.)
+        self.assertFalse(self.vector * 1. != self.vector * 1.)
+        self.assertFalse(self.spectro * 1. != self.spectro * 1.)
+        self.assertFalse(self.var3d * 1. != self.var3d * 1.)
 
 
 if __name__ == '__main__':
