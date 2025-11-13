@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import platform
 import re
 import time
@@ -7,7 +8,7 @@ from functools import partial, cache
 from typing import Optional, Dict
 
 import urllib3.response
-from urllib3 import PoolManager
+from urllib3 import PoolManager, ProxyManager
 from urllib3.util.retry import Retry
 import certifi
 import netrc
@@ -32,8 +33,23 @@ RETRY_AFTER_LIST = [429, 503]  # Note: Specific treatment for 429 & 503 error co
 
 _HREF_REGEX = re.compile(' href="([A-Za-z0-9.-_]+)">')
 
-pool = PoolManager(num_pools=core_config.urlib_num_pools.get(), maxsize=core_config.urlib_pool_size.get(),
-                   cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+
+def _connection_manager_builder():
+    kwargs = {
+        'num_pools': core_config.urlib_num_pools.get(),
+        'maxsize': core_config.urlib_pool_size.get(),
+        'cert_reqs': 'CERT_REQUIRED',
+        'ca_certs': certifi.where()
+    }
+    if os.environ.get("HTTP_PROXY", None) is not None:
+        proxy_url = os.environ["HTTP_PROXY"]
+        log.info(f"Using HTTP proxy: {proxy_url}")
+        return ProxyManager(proxy_url, **kwargs)
+    else:
+        return PoolManager(**kwargs)
+
+
+pool = _connection_manager_builder()
 
 
 class Response:
@@ -76,8 +92,9 @@ class Response:
     def __exit__(self, *exc):
         return False
 
+
 @cache
-def _auth(hostname:str)-> Dict[str, str]:
+def _auth(hostname: str) -> Dict[str, str]:
     """
     Authenticates a user for a specified hostname by retrieving credentials from
     the user's `.netrc` file if it exists. Utilizes caching for performance.
@@ -100,6 +117,7 @@ def _auth(hostname:str)-> Dict[str, str]:
         pass
     return {}
 
+
 @ApplyRewriteRules()
 def auth_header(url: str) -> Dict[str, str]:
     """
@@ -120,7 +138,7 @@ def auth_header(url: str) -> Dict[str, str]:
     Raises:
         None
     """
-    hostname,_ = host_and_port(url)
+    hostname, _ = host_and_port(url)
     return _auth(hostname)
 
 
@@ -163,10 +181,12 @@ class _HttpVerb:
         self._verb = partial(pool.request, method=verb, retries=retry_strategy)
 
     @ApplyRewriteRules(is_method=True)
-    def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT, **kwargs) -> Response:
+    def __call__(self, url, headers: dict = None, params: dict = None, timeout: int = DEFAULT_TIMEOUT,
+                 **kwargs) -> Response:
         # self._adapter.timeout = timeout
         return Response(
-            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params, timeout=timeout, **kwargs))
+            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params, timeout=timeout,
+                       **kwargs))
 
 
 get = _HttpVerb("GET")
@@ -175,7 +195,7 @@ head = _HttpVerb("HEAD")
 
 
 @ApplyRewriteRules()
-def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None)-> Response:
+def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None) -> Response:
     return Response(
         pool.urlopen(method="GET", url=url, headers=_build_headers(url=url, headers=headers), timeout=timeout))
 
