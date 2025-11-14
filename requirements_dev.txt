@@ -21,3 +21,4 @@ scipy
 tqdm
 watchdog
 certifi
+pysocks
