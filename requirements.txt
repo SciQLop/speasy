@@ -15,3 +15,4 @@ pyistp>=0.7.2
 scipy
 tqdm
 certifi
+pysocks
