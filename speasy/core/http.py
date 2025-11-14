@@ -230,18 +230,18 @@ def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Op
         host, port = host_and_port(url)
     elif host is None or port is None:
         raise ValueError("Either url or host and port must be provided")
-    import socket
-    try:
-        for _ in range(retries):
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    import socks
+    for _ in range(retries):
+        try:
+            sock = socks.socksocket()
+            if os.environ.get("HTTP_PROXY", None) is not None:
+                proxy_host, proxy_port = host_and_port(os.environ["HTTP_PROXY"])
+                sock.set_proxy(socks.HTTP, proxy_host, proxy_port)
             sock.settimeout(timeout)
-            result = sock.connect_ex((host, int(port)))
+            sock.connect((host, int(port)))
             sock.close()
-            if result == 0:
-                return True
+            return True
+        except Exception as e:
             log.debug(f"Server {host}:{port} not up yet, retrying in 1 second")
             time.sleep(1.)
-        return False
-    except Exception as e:
-        log.error(f"Error while checking server status: {e}")
-        return False
+    return False
