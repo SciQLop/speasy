@@ -1,6 +1,5 @@
 appdirs
 astropy
-astroquery
 diskcache
 humanize
 matplotlib

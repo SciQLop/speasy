@@ -34,7 +34,6 @@ classifiers = [
 dependencies = ['PyYAML',
  'appdirs',
  'astropy',
- 'astroquery',
  'diskcache',
  'humanize',
  'matplotlib',
