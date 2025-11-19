@@ -82,7 +82,7 @@ def request_locker(key: str, timeout: int = 30):
             while not lock.has_timed_out(timeout):
                 sleep(0.01)
     else:
-        raise TypeError("Invalid lock type")
+        raise TypeError(f"Invalid lock type for key {key}: {type(lock)}")
     try:
         yield lock
     finally:
