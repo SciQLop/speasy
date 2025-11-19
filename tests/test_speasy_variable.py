@@ -318,7 +318,7 @@ class ASpeasyVariable(unittest.TestCase):
                 values=DataContainer(values=np.array([[1., 2.], [3., 4.], [5., 6.]])),
                 columns=["OnlyOneColumn"]
             )
-            self.assertIn("Time dependent axis must have the same length than time axis,", str(e.exception))
+        self.assertIn("Time dependent axis must have the same length than time axis,", str(e.exception))
 
         with self.assertRaises(ValueError) as e:
             SpeasyVariable(
@@ -330,7 +330,7 @@ class ASpeasyVariable(unittest.TestCase):
                 values=DataContainer(values=np.arange(9).reshape(3, 3)),
                 columns=["OnlyOneColumn"]
             )
-            self.assertIn("must match data shape,", str(e.exception))
+        self.assertIn("must match data shape,", str(e.exception))
 
         with self.assertRaises(ValueError) as e:
             SpeasyVariable(
@@ -341,7 +341,7 @@ class ASpeasyVariable(unittest.TestCase):
                 values=DataContainer(values=np.arange(27).reshape(3, 3, 3)),
                 columns=["OnlyOneColumn"]
             )
-            self.assertIn("must match data shape, got", str(e.exception))
+        self.assertIn("must match data shape, got", str(e.exception))
 
     def test_to_dataframe(self):
         var = make_simple_var(1., 10., 1., 10.)
@@ -474,7 +474,7 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertTrue(np.all(cleaned_copy_no_fillval.values == var_without_fillval.values))
         self.assertIsNot(cleaned_copy_no_fillval.values, var_without_fillval.values)
         var_without_fillval.replace_fillval_by_nan(inplace=True, convert_to_float=True)
-        self.assertTrue(np.all(var_without_fillval.values == var_without_fillval.values))
+        self.assertTrue(np.all(var_without_fillval.values == cleaned_copy_no_fillval.values))
 
     def test_clamps(self):
         var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.})
@@ -553,12 +553,12 @@ class TestSpeasyVariableMath(unittest.TestCase):
     def test_multiplication(self):
         var = self.var * 2
         self.assertTrue(np.all(var.values == self.var.values * 2))
-        self.assertTrue(self.var * 2 == 2 * self.var)
+        self.assertEqual(self.var * 2, 2 * self.var)
 
     def test_division(self):
         var = self.var / 2
         self.assertTrue(np.all(var.values == self.var.values / 2))
-        self.assertTrue(np.all((0.5 / self.var).values == 0.5 / self.var.values))
+        self.assertTrue(np.all((0.5 / self.var).values == 0.5 / self.var.values)) # NOSONAR (S1244) "This is expected to produce the exact same result"
 
     def test_time_shift(self):
         for shift in (np.timedelta64(1, 'D'), -np.timedelta64(1, 'D')):
@@ -703,26 +703,26 @@ class SpeasyVariableCompare(unittest.TestCase):
         pass
 
     def test_equal(self):
-        self.assertTrue(self.var * 1. == self.var * 1.)
-        self.assertTrue(self.vector * 1. == self.vector * 1.)
-        self.assertTrue(self.spectro * 1. == self.spectro * 1.)
-        self.assertTrue(self.var3d * 1. == self.var3d * 1.)
+        self.assertEqual(self.var * 1., self.var * 1.)
+        self.assertEqual(self.vector * 1., self.vector * 1.)
+        self.assertEqual(self.spectro * 1., self.spectro * 1.)
+        self.assertEqual(self.var3d * 1., self.var3d * 1.)
 
-        self.assertFalse(self.var == make_simple_var(1., 9., 1., 10.))
-        self.assertFalse(self.vector == make_simple_var_3cols(1., 9., 1., 10.))
-        self.assertFalse(self.spectro == make_2d_var(1., 9., 10., 32))
-        self.assertFalse(self.var3d == make_3d_var(1., 9., 10., 32, 16))
+        self.assertNotEqual(self.var, make_simple_var(1., 9., 1., 10.))
+        self.assertNotEqual(self.vector, make_simple_var_3cols(1., 9., 1., 10.))
+        self.assertNotEqual(self.spectro, make_2d_var(1., 9., 10., 32))
+        self.assertNotEqual(self.var3d, make_3d_var(1., 9., 10., 32, 16))
 
     def test_not_equal(self):
-        self.assertTrue(self.var != make_simple_var(1., 9., 1., 10.))
-        self.assertTrue(self.vector != make_simple_var_3cols(1., 9., 1., 10.))
-        self.assertTrue(self.spectro != make_2d_var(1., 9., 10., 32))
-        self.assertTrue(self.var3d != make_3d_var(1., 9., 10., 32, 16))
+        self.assertNotEqual(self.var, make_simple_var(1., 9., 1., 10.))
+        self.assertNotEqual(self.vector, make_simple_var_3cols(1., 9., 1., 10.))
+        self.assertNotEqual(self.spectro, make_2d_var(1., 9., 10., 32))
+        self.assertNotEqual(self.var3d, make_3d_var(1., 9., 10., 32, 16))
 
-        self.assertFalse(self.var * 1. != self.var * 1.)
-        self.assertFalse(self.vector * 1. != self.vector * 1.)
-        self.assertFalse(self.spectro * 1. != self.spectro * 1.)
-        self.assertFalse(self.var3d * 1. != self.var3d * 1.)
+        self.assertEqual(self.var * 1., self.var * 1.)
+        self.assertEqual(self.vector * 1., self.vector * 1.)
+        self.assertEqual(self.spectro * 1., self.spectro * 1.)
+        self.assertEqual(self.var3d * 1., self.var3d * 1.)
 
 
 if __name__ == '__main__':
