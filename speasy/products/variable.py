@@ -750,9 +750,9 @@ class SpeasyVariable(SpeasyProduct):
             if need_convert:
                 res.__values_container = res.__values_container.astype(float)
         elif not need_convert:
-            res = deepcopy(self)
+            res = deepcopy(self)  # no need to convert, just copy because not inplace
         else:
-            res = self.astype(float)
+            res = self.astype(float)  # need to convert, do it on a new variable
         if (fill_value := self.fill_value) is not None:
             res[res == fill_value] = np.nan
         return res

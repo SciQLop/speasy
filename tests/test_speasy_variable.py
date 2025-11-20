@@ -558,7 +558,9 @@ class TestSpeasyVariableMath(unittest.TestCase):
     def test_division(self):
         var = self.var / 2
         self.assertTrue(np.all(var.values == self.var.values / 2))
-        self.assertTrue(np.all((0.5 / self.var).values == 0.5 / self.var.values)) # NOSONAR (S1244) "This is expected to produce the exact same result"
+        left = (0.5 / self.var).values
+        right = 0.5 / self.var.values
+        self.assertTrue(np.all(left == right))  # NOSONAR (S1244) "This is expected to produce the exact same result"
 
     def test_time_shift(self):
         for shift in (np.timedelta64(1, 'D'), -np.timedelta64(1, 'D')):
@@ -703,26 +705,26 @@ class SpeasyVariableCompare(unittest.TestCase):
         pass
 
     def test_equal(self):
+        # must use * 1. on both sides because otherwise they have different names
         self.assertEqual(self.var * 1., self.var * 1.)
         self.assertEqual(self.vector * 1., self.vector * 1.)
         self.assertEqual(self.spectro * 1., self.spectro * 1.)
         self.assertEqual(self.var3d * 1., self.var3d * 1.)
-
-        self.assertNotEqual(self.var, make_simple_var(1., 9., 1., 10.))
-        self.assertNotEqual(self.vector, make_simple_var_3cols(1., 9., 1., 10.))
-        self.assertNotEqual(self.spectro, make_2d_var(1., 9., 10., 32))
-        self.assertNotEqual(self.var3d, make_3d_var(1., 9., 10., 32, 16))
 
     def test_not_equal(self):
         self.assertNotEqual(self.var, make_simple_var(1., 9., 1., 10.))
+        self.assertNotEqual(self.var, make_simple_var(1., 10., 1., 10., meta={"NEW_META": 1}))
         self.assertNotEqual(self.vector, make_simple_var_3cols(1., 9., 1., 10.))
         self.assertNotEqual(self.spectro, make_2d_var(1., 9., 10., 32))
         self.assertNotEqual(self.var3d, make_3d_var(1., 9., 10., 32, 16))
 
-        self.assertEqual(self.var * 1., self.var * 1.)
-        self.assertEqual(self.vector * 1., self.vector * 1.)
-        self.assertEqual(self.spectro * 1., self.spectro * 1.)
-        self.assertEqual(self.var3d * 1., self.var3d * 1.)
+        self.assertNotEqual(self.var, self.vector)
+        self.assertNotEqual(self.vector, self.vector * 2.)
+        # not the same name
+        self.assertNotEqual(self.var, self.var * 1.)
+        self.assertNotEqual(self.vector, self.vector * 1.)
+        self.assertNotEqual(self.spectro, self.spectro * 1.)
+        self.assertNotEqual(self.var3d, self.var3d * 1.)
 
 
 if __name__ == '__main__':
