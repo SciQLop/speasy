@@ -313,7 +313,7 @@ class ASpeasyVariable(unittest.TestCase):
             SpeasyVariable(
                 axes=[
                     VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]")),
-                    VariableAxis(name='wriong_size', values=np.array([1., 2.]), is_time_dependent=True)
+                    VariableAxis(name='wrong_size', values=np.array([1., 2.]), is_time_dependent=True)
                 ],
                 values=DataContainer(values=np.array([[1., 2.], [3., 4.], [5., 6.]])),
                 columns=["OnlyOneColumn"]
@@ -324,7 +324,7 @@ class ASpeasyVariable(unittest.TestCase):
             SpeasyVariable(
                 axes=[
                     VariableTimeAxis(values=np.array([1, 2, 3], dtype="datetime64[ns]")),
-                    VariableAxis(name='correct_len_wrong_shapoe', values=np.arange(6).reshape(3, 2),
+                    VariableAxis(name='correct_len_wrong_shape', values=np.arange(6).reshape(3, 2),
                                  is_time_dependent=True)
                 ],
                 values=DataContainer(values=np.arange(9).reshape(3, 3)),
