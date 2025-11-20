@@ -46,6 +46,10 @@ def init_amda(ignore_disabled_status=False):
 
 def init_csa(ignore_disabled_status=False):
     global csa
+    if os.environ.get("HTTP_PROXY", None) is not None:
+        log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
+        log.warning("See https://github.com/astropy/astroquery/issues/3228")
+        return
     if ignore_disabled_status or 'csa' not in core_cfg.disabled_providers():
         if is_server_up(CsaWebservice.BASE_URL):
             csa = CsaWebservice()
