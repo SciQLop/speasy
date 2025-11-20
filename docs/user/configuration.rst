@@ -52,3 +52,9 @@ Or from Python:
         >>> import speasy as spz
         >>> spz.config.cache.path.set('/path/to/cache') # doctest: +SKIP
         >>> spz.config.cache.size.set(1e9)              # doctest: +SKIP
+
+Connecting behind an HTTP proxy
+--------------------------------
+
+If you are behind an HTTP proxy, Speasy will automatically use the HTTP_PROXY environment variable.
+Note that you won't be able to access the CSA database until https://github.com/astropy/astroquery/issues/3228 is resolved.
