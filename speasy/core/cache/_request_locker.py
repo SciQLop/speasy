@@ -52,9 +52,10 @@ def _entry_is_outdated(entry: PendingRequest, timeout: int) -> bool:
 
 def _try_acquire_lock(key: str) -> Optional[PendingRequest]:
     with _cache.lock(f"global_lock::{key}"):
-        if key not in _cache:
-            _cache[key] = PendingRequest()
-    return _cache.get(key)
+        value = _cache.get(key, None)
+        if value is None:
+            _cache[key] = value = PendingRequest()
+        return value
 
 
 @contextmanager
@@ -91,4 +92,3 @@ def request_locker(key: str, timeout: int = 30):
             if entry is not None and (entry.is_from_current_thread or entry.has_timed_out(timeout)):
                 # help clean up stale locks even if not from this thread
                 _cache.drop(key)
-
