@@ -38,8 +38,8 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-Space Physics WebServices Client could always use more documentation, whether as part of the
-official Space Physics WebServices Client docs, in docstrings, or even on the web in blog posts,
+Speasy could always use more documentation, whether as part of the
+official Speasy docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
@@ -57,18 +57,21 @@ If you are proposing a feature:
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `SPEASY` for local development.
+Ready to contribute? Here's how to set up `Speasy` for local development.
 
-1. Fork the `SPEASY` repo on GitHub.
+1. Fork the `Speasy` repo on GitHub.
 2. Clone your fork locally::
 
     $ git clone git@github.com:your_name_here/speasy.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+3. Install your local copy into a virtual environment if you use one (highly
+   recommended). Then install the development requirements::
 
-    $ mkvirtualenv speasy
     $ cd speasy/
-    $ python setup.py develop
+    $ python -m venv venv # Create a virtual environment inside Speasy directory
+    $ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+    $ python -m pip install -e .
+    $ python -m pip install -r requirements_dev.txt
 
 4. Create a branch for local development::
 
@@ -80,9 +83,13 @@ Ready to contribute? Here's how to set up `SPEASY` for local development.
    tests, including testing other Python versions with tox::
 
     $ make lint
-    $ make test-all
+    $ make test-all # it will run all tests and run code examples in the docs
 
-   To get flake8 and tox, just pip install them into your virtualenv.
+    Alternatively, if just want to run quick tests for the current Python version, run::
+
+    $ make test
+    $ make docs-test
+
 
 6. Commit your changes and push your branch to GitHub::
 
@@ -101,7 +108,7 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python from 3.6 to 3.9, and for PyPy. Check
+3. The pull request should work for Python from 3.10 to 3.14. Check
    https://github.com/SciQLop/speasy/actions
    and make sure that the tests pass for all supported Python versions.
 
