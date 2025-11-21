@@ -54,6 +54,9 @@ If you are proposing a feature:
 * Remember that this is a volunteer-driven project, and that contributions
   are welcome :)
 
+If you are fixing a bug, remember to include a test that reproduces the bug first. You can
+point to the issue that you are fixing in the non regression test.
+
 Get Started!
 ------------
 
@@ -111,6 +114,19 @@ Before you submit a pull request, check that it meets these guidelines:
 3. The pull request should work for Python from 3.10 to 3.14. Check
    https://github.com/SciQLop/speasy/actions
    and make sure that the tests pass for all supported Python versions.
+
+Coding guidelines
+-----------------
+
+* Follow PEP 8 style guidelines. You can use `flake8` to check your code.
+* Use `numpy` docstring style for docstrings.
+* Write docstrings for any new functions or classes you add. Follow the existing style. Those docstrings will be used to generate the developers documentation.
+* Write tests for any new functionality you add. Look at existing tests for examples.
+* Reuse as much as possible existing functionalities from `speasy.core`. For example,
+  if you need to do some web requests, use the `speasy.core.http` module.
+* If you want to add a new data provider, follow the existing structure in the `speasy.data_providers` module.
+  You can have a look at existing providers such as sscweb or uiowa_eph_tool for reference.
+* If you want to add a new data format, create a new CODEC in the `speasy.core.codecs` module.
 
 Tips
 ----
