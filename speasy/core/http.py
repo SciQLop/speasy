@@ -241,7 +241,7 @@ def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Op
             sock.connect((host, int(port)))
             sock.close()
             return True
-        except socks.ProxyError:
+        except (socks.ProxyError, OSError):
             log.debug(f"Server {host}:{port} not up yet, retrying in 1 second")
             time.sleep(1.)
     return False
