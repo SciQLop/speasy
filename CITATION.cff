@@ -7,8 +7,19 @@ authors:
 - family-names: "Schulz"
   given-names: "Alexandre"
   orcid: "https://orcid.org/0009-0009-7151-8089"
+- family-names: "Aunai"
+  given-names: "Nicolas"
+  orcid: "https://orcid.org/0000-0002-9862-4318"
+- family-names: "Renard"
+  given-names: "Benjamin"
+- family-names: "Génot"
+  given-names: "Vincent"
+  orcid: "https://orcid.org/0000-0002-7708-8077"
+- family-names: "André"
+  given-names: "Nicolas"
+  orcid: "https://orcid.org/0000-0001-8017-5676"
 title: "Speasy"
 version: 1.7.0
-doi: 10.5281/zenodo.17065425
-date-released: 2025-09-05
+doi: 10.5281/zenodo.17712772
+date-released: 2025-11-25
 url: "https://github.com/SciQLop/speasy"

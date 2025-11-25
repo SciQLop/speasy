@@ -2,6 +2,21 @@
 History
 =======
 
+1.7.0 (2025-11-25)
+------------------
+## What's Changed
+* More cache control by @jeandet in https://github.com/SciQLop/speasy/pull/238
+* Disable CDPP Themis archive since the connection is not that reliable by @jeandet in https://github.com/SciQLop/speasy/pull/239
+* Increase proxy request timeout from 1 minute (default) to 5 minutes by @jeandet in https://github.com/SciQLop/speasy/pull/240
+* Ensure identical requests deduplication on AMDA by @jeandet in https://github.com/SciQLop/speasy/pull/241
+* Cache file timerange maping for direct archive modules by @jeandet in https://github.com/SciQLop/speasy/pull/243
+* Fixes broken doctests (repr) by @jeandet in https://github.com/SciQLop/speasy/pull/242
+* Actions update by @jeandet in https://github.com/SciQLop/speasy/pull/244
+* Update contributing guidelines by @jeandet in https://github.com/SciQLop/speasy/pull/249
+* Cleanup and coverage by @jeandet in https://github.com/SciQLop/speasy/pull/245
+* add support for http proxies by @jeandet in https://github.com/SciQLop/speasy/pull/247
+* Unlike the documentation says socks does not only return ProxyError by @jeandet in https://github.com/SciQLop/speasy/pull/250
+
 1.6.1 (2025-09-05)
 ------------------
 * [UiowaEphTool] Remove coordinate_system kwarg for proxy (leftover from sscweb copy) by @jeandet in https://github.com/SciQLop/speasy/pull/234
