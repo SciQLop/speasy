@@ -8,7 +8,7 @@ authors:
   given-names: "Alexandre"
   orcid: "https://orcid.org/0009-0009-7151-8089"
 title: "Speasy"
-version: 1.6.1
+version: 1.7.0
 doi: 10.5281/zenodo.17065425
 date-released: 2025-09-05
 url: "https://github.com/SciQLop/speasy"
