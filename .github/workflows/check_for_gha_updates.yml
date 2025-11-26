@@ -10,6 +10,6 @@ jobs:
   gha-updates:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Check action updates
       uses: rahulinux/gh-check-action@v1.0.0
