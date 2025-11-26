@@ -79,7 +79,7 @@ jobs:
         twine upload --repository testpypi --skip-existing dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
