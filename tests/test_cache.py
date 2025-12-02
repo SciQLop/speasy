@@ -10,7 +10,7 @@ import packaging.version as Version
 from ddt import data, ddt, unpack
 
 from speasy.core import epoch_to_datetime64
-from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache, drop_matching_entries
+from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache, drop_matching_entries, CacheCall
 from speasy.core.cache.version import str_to_version, version_to_str
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableTimeAxis)
@@ -293,6 +293,24 @@ class _CacheVersionTest(unittest.TestCase):
     @unpack
     def test_conversion(self, version_str, op):
         self.assertEqual(op(version_to_str(str_to_version(version_str))), op(version_str))
+
+
+@CacheCall(cache_retention=timedelta(minutes=10), is_pure=True, cache_instance=cache, leak_cache=True)
+def cache_test_function(key):
+    return f"value_for_{key}"
+
+
+class TestFunctionCache(unittest.TestCase):
+    def test_can_clear_entries(self):
+        cache = cache_test_function.cache
+        cache["at least one key"] = True
+        initial_keys_count = len(cache.keys())
+        self.assertGreater(len(cache.keys()), 0)
+        for i in range(10):
+            cache_test_function(f"key_{i}")
+        self.assertEqual(len(cache.keys()), initial_keys_count + 10)
+        cache_test_function.drop_entries()
+        self.assertEqual(len(cache.keys()), initial_keys_count)
 
 
 if __name__ == '__main__':

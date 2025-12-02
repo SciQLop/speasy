@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import re
 from .cache import Cache, CacheItem
 from ._function_cache import CacheCall
@@ -79,16 +79,15 @@ def get_item(key, default_value=None):
     return _cache.get(key, default_value)
 
 
-def drop_matching_entries(pattern: Union[str, re.Pattern]):
+def drop_matching_entries(pattern: Union[str, re.Pattern], cache_instance: Optional[Cache] = None):
     """Drop all cache entries that match a given pattern
 
     Parameters
     ----------
     pattern : str or re.Pattern
         The pattern to match cache keys against
+    cache_instance : Cache, optional
+        The cache instance to operate on, by default None (uses the default global cache)
     """
-    if isinstance(pattern, str):
-        pattern = re.compile(pattern)
-    for key in filter(pattern.match, _cache.keys()):
-        log.debug(f"Dropping cache entry {key}")
-        _cache.drop(key)
+    cache_instance = cache_instance or _cache
+    cache_instance.drop_matching_entries(pattern)

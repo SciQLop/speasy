@@ -2,7 +2,7 @@ import base64
 import inspect
 from datetime import timedelta
 from functools import wraps
-from typing import Callable
+from typing import Callable, Optional
 
 from ._instance import _cache
 from .cache import CacheItem
@@ -16,7 +16,7 @@ def make_key_from_args(*args, **kwargs):
 
 
 class CacheCall(object):
-    def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache, version=1):
+    def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False):
         if type(cache_retention) is timedelta:
             cache_retention = cache_retention.total_seconds()
         self.cache_retention = cache_retention
@@ -24,6 +24,8 @@ class CacheCall(object):
         self.is_methode = False
         self.is_pure = is_pure
         self.version = version
+        self._cache_entry_prefix: Optional[str] = None
+        self._leak_cache = leak_cache
 
     def add_to_cache(self, cache_entry, value):
         if value is not None:
@@ -40,19 +42,23 @@ class CacheCall(object):
             return entry
         return None
 
+    def drop_entries(self):
+        if self._cache_entry_prefix is not None:
+            self.cache.drop_matching_entries(f"^{self._cache_entry_prefix}/.*$")
+
     def __call__(self, function: Callable):
         spec = inspect.getfullargspec(function)
         if len(spec.args) and 'self' == spec.args[0]:
             self.is_methode = True
         if self.is_pure:
-            cache_entry_prefix = f"__internal__/CacheCall/{function.__module__}/{function.__qualname__}"
+            self._cache_entry_prefix = f"__internal__/CacheCall/{function.__module__}/{function.__qualname__}"
         else:
-            cache_entry_prefix = f"__internal__/CacheCall/{hash(function)}"
+            self._cache_entry_prefix = f"__internal__/CacheCall/{hash(function)}"
 
         @wraps(function)
         def wrapped(*args, disable_cache=False, force_refresh=False, prefer_cache=False, **kwargs):
             args_to_hash = args[1:] if self.is_methode and self.is_pure else args
-            cache_entry = cache_entry_prefix + "/" + make_key_from_args(*args_to_hash, **kwargs)
+            cache_entry = self._cache_entry_prefix + "/" + make_key_from_args(*args_to_hash, **kwargs)
             if disable_cache:
                 return function(*args, **kwargs)
             if force_refresh:
@@ -62,4 +68,7 @@ class CacheCall(object):
                                                                                                         function(*args,
                                                                                                                  **kwargs))
 
+        setattr(wrapped, "drop_entries", self.drop_entries)
+        if self._leak_cache:
+            setattr(wrapped, "cache", self.cache)
         return wrapped

@@ -5,8 +5,12 @@ import diskcache as dc
 from .version import str_to_version, version_to_str, Version
 from speasy.config import cache as cache_cfg
 from contextlib import ExitStack, contextmanager
+import re
+import logging
 
 cache_version = str_to_version("3.0")
+
+log = logging.getLogger(__name__)
 
 
 class CacheItem:
@@ -103,6 +107,20 @@ class Cache:
 
     def drop(self, key):
         self._data.delete(key)
+
+    def drop_matching_entries(self, pattern: Union[str, re.Pattern]):
+        """Drop all cache entries that match a given pattern
+
+        Parameters
+        ----------
+        pattern : str or re.Pattern
+            The pattern to match cache keys against
+        """
+        if isinstance(pattern, str):
+            pattern = re.compile(pattern)
+        for key in filter(pattern.match, self.keys()):
+            log.debug(f"Dropping cache entry {key}")
+            self.drop(key)
 
     @contextmanager
     def transact(self):
