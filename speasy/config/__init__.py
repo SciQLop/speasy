@@ -161,7 +161,7 @@ core = ConfigSection("CORE",
 The main benefit of disabling providers is to speedup speasy loading.""",
                                          "type_ctor": lambda x: set(x.split(','))},
                      http_rewrite_rules={"default": {
-                         "https://cdaweb.gsfc.nasa.gov/pub/": "http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"},
+                         "https://cdaweb.gsfc.nasa.gov/pub/": "https://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"},
                          "description": """A dictionary of rules to rewrite URLs before sending requests.
 The keys are the URL to match and the values are the replacement URL.
 Example: {"http://example.com": "http://localhost:8000"}""",

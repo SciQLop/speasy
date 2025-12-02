@@ -26,7 +26,7 @@ if proxy_cfg.url() == "" or proxy_cfg.enabled() == False:
 use the following python snippet to configure proxy server:
 ===========================================================================
 import speasy as spz
-spz.config.proxy.url.set("http://sciqlop.lpp.polytechnique.fr/cache")
+spz.config.proxy.url.set("https://sciqlop.lpp.polytechnique.fr/cache")
 spz.config.proxy.enabled.set(True)
 ===========================================================================
             """, stacklevel=0)
