@@ -2,14 +2,19 @@ from contextlib import contextmanager
 from ._instance import _cache
 from time import sleep
 from datetime import datetime, timezone
-import threading
+import platform
 from typing import Optional
+
+if platform.system().lower() == 'emscripten':
+   get_native_id = lambda : 0
+else:
+   from threading import get_native_id
 
 
 class PendingRequest:
     def __init__(self):
         self._start_time = datetime.now(tz=timezone.utc)
-        self._pid = threading.get_native_id()
+        self._pid = get_native_id()
 
     @property
     def elapsed_time(self):
@@ -24,7 +29,7 @@ class PendingRequest:
 
     @property
     def is_from_current_thread(self):
-        return self._pid == threading.get_native_id()
+        return self._pid == get_native_id()
 
 
 def _is_locked(key: str, timeout: int = 30) -> bool:
