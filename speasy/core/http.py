@@ -9,13 +9,14 @@ from typing import Optional, Dict
 
 import urllib3.response
 from urllib3 import PoolManager, ProxyManager
-from urllib3.util.retry import Retry
+from urllib3.util.retry import Retry, MaxRetryError
 import certifi
 import netrc
 
 from speasy import __version__
 from speasy.config import core as core_config
 from .url_utils import host_and_port, ApplyRewriteRules
+from .platform import is_running_on_wasm
 
 log = logging.getLogger(__name__)
 
@@ -200,6 +201,25 @@ def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None) -> Respon
         pool.urlopen(method="GET", url=url, headers=_build_headers(url=url, headers=headers), timeout=timeout))
 
 
+def _wasm_is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Optional[int] = None,
+                       timeout: int = 5,
+                       retries=5) -> bool:
+    log.warning("server availability check implementation can't use sockets on WASM, using HTTP GET instead")
+    if url is None:
+        if host is None or port is None:
+            raise ValueError("Either url or host and port must be provided")
+        url = f"https://{host}:{port}"  # assuming HTTPS on WASM
+    for _ in range(retries):
+        try:
+            resp = get(url, timeout=timeout)
+            if resp.status_code == 200:
+                return True
+        except MaxRetryError:
+            log.debug(f"Server {url} not up yet, retrying in 1 second")
+            time.sleep(1.)
+    return False
+
+
 @ApplyRewriteRules()
 def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Optional[int] = None, timeout: int = 5,
                  retries=5) -> bool:
@@ -215,6 +235,8 @@ def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Op
         port to check, if provided host must be provided as well
     timeout : int
         timeout in seconds
+    retries : int
+        number of retries
 
     Returns
     -------
@@ -226,8 +248,12 @@ def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Op
     ValueError
         If neither url nor host and port are provided
     """
+    if is_running_on_wasm():
+        return _wasm_is_server_up(f"{host}:{port}", timeout=timeout, retries=retries)
+
     if url is not None:
         host, port = host_and_port(url)
+
     elif host is None or port is None:
         raise ValueError("Either url or host and port must be provided")
     import socks
