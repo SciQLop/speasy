@@ -1,14 +1,15 @@
 from contextlib import contextmanager
 from ._instance import _cache
+from ..platform import is_running_on_wasm
 from time import sleep
 from datetime import datetime, timezone
 import platform
 from typing import Optional
 
-if platform.system().lower() == 'emscripten':
-   get_native_id = lambda : 0
+if is_running_on_wasm():
+    get_native_id = lambda: 0
 else:
-   from threading import get_native_id
+    from threading import get_native_id
 
 
 class PendingRequest:
