@@ -2,6 +2,7 @@ import os
 import sys
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
+import traceback
 
 import numpy as np
 import logging
@@ -11,10 +12,10 @@ from ..datetime_range import DateTimeRange
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  DatasetIndex, ParameterIndex,
                                  SpeasyIndex, TimetableIndex)
-from ...config import core as core_cfg, amda as amda_cfg
+from ...config import core as core_cfg
 from ...products import *
 from ...data_providers import (AmdaWebservice, CdaWebservice, CsaWebservice,
-                               SscWebservice, GenericArchive)
+                               SscWebservice, GenericArchive, UiowaEphTool)
 from ..http import is_server_up
 
 log = logging.getLogger(__name__)
@@ -33,76 +34,87 @@ archive = None
 uiowaephtool = None
 
 
+def _is_server_up(ws_class):
+    """Check if the webservice server is up. Will first look for an 'is_server_up' method in the class,
+    then for a 'BASE_URL' attribute to use the generic 'is_server_up' function finally returns True if none of these are found.
+
+    Parameters
+    ----------
+    ws_class : class
+        The webservice class to check.
+    Returns
+    -------
+    bool
+        True if the server is up, False otherwise.
+    """
+    if hasattr(ws_class, 'is_server_up'):
+        return ws_class.is_server_up()
+    elif hasattr(ws_class, 'BASE_URL'):
+        return is_server_up(ws_class.BASE_URL)
+    return True
+
+
+def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
+    """Initialize a data provider safely, catching exceptions and disabling the provider if initialization fails.
+
+    Parameters
+    ----------
+    ws_class : class
+        The webservice class to initialize.
+    names : list of str
+        The names under which to register the provider, the first name is considered the main name.
+    ignore_disabled_status : bool, optional
+        If True, ignore the disabled status from configuration and attempt to initialize the provider anyway.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    RuntimeError
+        If the server is not running.
+    """
+    try:
+        if ignore_disabled_status or not core_cfg.disabled_providers().intersection(set(names)):
+            main_name = names[0]
+            if _is_server_up(ws_class):
+                globals()[main_name] = ws_class()
+                for name in names:
+                    PROVIDERS[name] = globals()[main_name]
+            else:
+                raise RuntimeError(f'{main_name} is not running')
+    except Exception:  # pylint: disable=broad-except
+        log.warning(f"Provider {names} initialization failed, disabling provider")
+        log.warning(f"Exception: {traceback.format_exc()}")
+
+
 def init_amda(ignore_disabled_status=False):
-    global amda
-    if ignore_disabled_status or 'amda' not in core_cfg.disabled_providers():
-        if AmdaWebservice.is_server_up():
-            amda = AmdaWebservice()
-            sys.modules[__name__].amda = amda
-            PROVIDERS['amda'] = amda
-        else:
-            log.warning(f"AMDA server {amda_cfg.entry_point()} is down, disabling AMDA provider")
+    _safe_init_provider(AmdaWebservice, ['amda'], ignore_disabled_status=ignore_disabled_status)
 
 
 def init_csa(ignore_disabled_status=False):
-    global csa
     if os.environ.get("HTTP_PROXY", None) is not None:
         log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
         log.warning("See https://github.com/astropy/astroquery/issues/3228")
-        return
-    if ignore_disabled_status or 'csa' not in core_cfg.disabled_providers():
-        if is_server_up(CsaWebservice.BASE_URL):
-            csa = CsaWebservice()
-            sys.modules[__name__].csa = csa
-            PROVIDERS['csa'] = csa
-        else:
-            log.warning(f"CSA server {CsaWebservice.BASE_URL} is down, disabling CSA provider")
+    else:
+        _safe_init_provider(CsaWebservice, ['csa'], ignore_disabled_status=ignore_disabled_status)
 
 
 def init_cdaweb(ignore_disabled_status=False):
-    global cda
-    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'cda', 'cdaweb'}):
-        if is_server_up(CdaWebservice.BASE_URL):
-            cda = CdaWebservice()
-            sys.modules[__name__].cda = cda
-            PROVIDERS['cda'] = cda
-            PROVIDERS['cdaweb'] = cda
-        else:
-            log.warning(f"CDA server {CdaWebservice.BASE_URL} is down, disabling CDA provider")
+    _safe_init_provider(CdaWebservice, ['cda', 'cdaweb'], ignore_disabled_status=ignore_disabled_status)
 
 
 def init_sscweb(ignore_disabled_status=False):
-    global ssc
-    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'ssc', 'sscweb'}):
-        if is_server_up(SscWebservice.BASE_URL):
-            ssc = SscWebservice()
-            sys.modules[__name__].ssc = ssc
-            PROVIDERS['ssc'] = ssc
-            PROVIDERS['sscweb'] = ssc
-        else:
-            log.warning(f"SSC server {SscWebservice.BASE_URL} is down, disabling SSC provider")
+    _safe_init_provider(SscWebservice, ['ssc', 'sscweb'], ignore_disabled_status=ignore_disabled_status)
 
 
 def init_archive(ignore_disabled_status=False):
-    global archive
-    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'archive', 'generic_archive'}):
-        archive = GenericArchive()
-        sys.modules[__name__].archive = archive
-        PROVIDERS['archive'] = archive
-        PROVIDERS['generic_archive'] = archive
+    _safe_init_provider(GenericArchive, ['archive', 'generic_archive'], ignore_disabled_status=ignore_disabled_status)
 
 
 def init_uiowaephtool(ignore_disabled_status=False):
-    global uiowaephtool
-    if ignore_disabled_status or not core_cfg.disabled_providers().intersection({'UiowaEphTool', 'uiowaephtool'}):
-        if is_server_up("https://planet.physics.uiowa.edu"):
-            from ...data_providers.uiowa_eph_tool import UiowaEphTool
-            uiowaephtool = UiowaEphTool()
-            sys.modules[__name__].uiowaephtool = uiowaephtool
-            PROVIDERS['uiowaephtool'] = uiowaephtool
-            PROVIDERS['UiowaEphTool'] = uiowaephtool
-        else:
-            log.warning("UiowaEphTool server https://planet.physics.uiowa.edu is down, disabling UiowaEphTool provider")
+    _safe_init_provider(UiowaEphTool, ['uiowaephtool', 'UiowaEphTool'], ignore_disabled_status=ignore_disabled_status)
 
 
 def init_providers(ignore_disabled_status=False):
