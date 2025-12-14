@@ -1,5 +1,4 @@
 import os
-import sys
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
 import traceback
