@@ -202,7 +202,7 @@ def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None) -> Respon
 
 
 def _wasm_is_server_up(*args, **kwargs) -> bool:
-    log.warning(
+    log.debug(
         "server availability check implementation can't be performed in WASM environment, assuming server is up")
     return True
 
