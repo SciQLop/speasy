@@ -56,6 +56,9 @@ class CacheCall(object):
             self._cache_entry_prefix = f"__internal__/CacheCall/{function.__module__}/{function.__qualname__}"
         else:
             self._cache_entry_prefix = f"__internal__/CacheCall/{hash(function)}"
+        if rtype := spec.annotations.get('return', None):
+            if rtype in [bool, int, float, str]:
+                self._disable_cache = False
 
         @wraps(function)
         def wrapped(*args, disable_cache=False, force_refresh=False, prefer_cache=False, **kwargs):
