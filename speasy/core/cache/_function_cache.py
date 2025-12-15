@@ -17,6 +17,7 @@ def make_key_from_args(*args, **kwargs):
 
 class CacheCall(object):
     def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False):
+        from ..platform import is_running_on_wasm
         if type(cache_retention) is timedelta:
             cache_retention = cache_retention.total_seconds()
         self.cache_retention = cache_retention
@@ -26,6 +27,7 @@ class CacheCall(object):
         self.version = version
         self._cache_entry_prefix: Optional[str] = None
         self._leak_cache = leak_cache
+        self._disable_cache = is_running_on_wasm()
 
     def add_to_cache(self, cache_entry, value):
         if value is not None:
@@ -59,7 +61,7 @@ class CacheCall(object):
         def wrapped(*args, disable_cache=False, force_refresh=False, prefer_cache=False, **kwargs):
             args_to_hash = args[1:] if self.is_methode and self.is_pure else args
             cache_entry = self._cache_entry_prefix + "/" + make_key_from_args(*args_to_hash, **kwargs)
-            if disable_cache:
+            if self._disable_cache or disable_cache:
                 return function(*args, **kwargs)
             if force_refresh:
                 return self.add_to_cache(cache_entry, function(*args, **kwargs))

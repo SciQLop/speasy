@@ -13,6 +13,7 @@ from speasy.products.variable import merge as merge_variables, to_dictionary, fr
 from ._request_locker import PendingRequest
 from ._instance import _cache
 from .cache import CacheItem, Cache
+from ..platform import is_running_on_wasm
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +83,8 @@ def product_name(product: Union[str, ParameterIndex]) -> str:
 
 
 class _Cacheable:
-    def __init__(self, prefix, cache_instance: Optional[Cache] = None, start_time_arg='start_time', stop_time_arg='stop_time',
+    def __init__(self, prefix, cache_instance: Optional[Cache] = None, start_time_arg='start_time',
+                 stop_time_arg='stop_time',
                  version=None,
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
                  deduplication_timeout=600
@@ -272,6 +274,7 @@ class Cacheable(object):
                                  fragment_hours=fragment_hours, cache_margins=cache_margins, leak_cache=leak_cache,
                                  entry_name=entry_name,
                                  deduplication_timeout=deduplication_timeout)
+        self._disable_cache = is_running_on_wasm()
 
     def _get_and_wb_fragment_group(self, fragments: List[datetime], fragment_duration: timedelta, get_data,
                                    wrapped_self, product, version, **kwargs) -> Optional[SpeasyVariable]:
@@ -333,8 +336,8 @@ class Cacheable(object):
 
     def __call__(self, get_data):
         @wraps(get_data)
-        def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
-            if kwargs.pop("disable_cache", False):
+        def wrapped(wrapped_self, product, start_time, stop_time, disable_cache=False, **kwargs):
+            if disable_cache or self._disable_cache:
                 return self._get_data_without_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs)
             else:
                 return self._get_data_with_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs)
@@ -355,6 +358,7 @@ class UnversionedProviderCache(object):
                                  entry_name=entry_name)
         self.cache_retention = cache_retention or timedelta(days=14)
         self.version = "1.0.0"
+        self._disable_cache = is_running_on_wasm()
 
     def split_fragments(self, fragments, product, fragment_duration, prefer_cache=False, **kwargs):
         entries: List[CacheItem] = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
@@ -443,8 +447,8 @@ class UnversionedProviderCache(object):
 
     def __call__(self, get_data):
         @wraps(get_data)
-        def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
-            if kwargs.pop("disable_cache", False):
+        def wrapped(wrapped_self, product, start_time, stop_time, disable_cache=False, **kwargs):
+            if disable_cache or self._disable_cache:
                 return self._get_data_without_cache(self, get_data, wrapped_self, product, start_time, stop_time,
                                                     **kwargs)
             else:
