@@ -31,6 +31,8 @@ spz.config.proxy.enabled.set(True)
 ===========================================================================
             """, stacklevel=0)
 
+class ProxyError(Exception):
+    pass
 
 def query_proxy_version():
     global _CURRENT_PROXY_SERVER_VERSION
@@ -128,7 +130,7 @@ class GetInventory:
             return inventory
         if resp.status_code == 304:
             return saved_inventory
-        return None
+        raise ProxyError(f"Can't get inventory for provider {provider} from proxy server {proxy_cfg.url()}, status code {resp.status_code}")
 
 
 class Proxyfiable(object):
