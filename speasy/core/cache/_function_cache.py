@@ -48,7 +48,7 @@ class CacheCall(object):
         if self._cache_entry_prefix is not None:
             self.cache.drop_matching_entries(f"^{self._cache_entry_prefix}/.*$")
 
-    def __call__(self, function: Callable):
+    def _analyse_function(self, function: Callable):
         spec = inspect.getfullargspec(function)
         if len(spec.args) and 'self' == spec.args[0]:
             self.is_methode = True
@@ -59,6 +59,9 @@ class CacheCall(object):
         if rtype := spec.annotations.get('return', None):
             if rtype in [bool, int, float, str]:
                 self._disable_cache = False
+
+    def __call__(self, function: Callable):
+        self._analyse_function(function)
 
         @wraps(function)
         def wrapped(*args, disable_cache=False, force_refresh=False, prefer_cache=False, **kwargs):
