@@ -1,7 +1,7 @@
 import logging
 import pickle
 import warnings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from dateutil import parser
@@ -9,7 +9,7 @@ from packaging.version import Version
 
 from speasy.config import inventories as inventories_cfg
 from speasy.config import proxy as proxy_cfg
-from .. import http
+from .. import http, make_utc_datetime
 from ..index import index
 from ..inventory.indexes import from_dict as inventory_from_dict
 from ... import SpeasyIndex
@@ -91,7 +91,7 @@ class GetProduct:
         kwargs['stop_time'] = stop_time
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
-        resp = http.get(f"{url}/get_data", params=kwargs, timeout=60*5)
+        resp = http.get(f"{url}/get_data", params=kwargs, timeout=60 * 5)
         log.debug(f"Asking data from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
             var = var_from_dict(pickle.loads(decompress(resp.bytes)))
@@ -103,8 +103,10 @@ class GetInventory:
     @staticmethod
     def get(provider: str, **kwargs):
         saved_inventory: SpeasyIndex = index.get("proxy_inventories", provider, None)
-        saved_inventory_dt: datetime = index.get("proxy_inventories_save_date", provider, datetime.utcfromtimestamp(0))
-        if saved_inventory_dt + timedelta(days=inventories_cfg.cache_retention_days.get()) > datetime.utcnow():
+        saved_inventory_dt: datetime = make_utc_datetime(
+            index.get("proxy_inventories_save_date", provider, datetime.fromtimestamp(0, tz=timezone.utc)))
+        if saved_inventory_dt + timedelta(days=inventories_cfg.cache_retention_days.get()) > datetime.now(
+            tz=timezone.utc):
             return saved_inventory
 
         url = proxy_cfg.url()
@@ -122,7 +124,7 @@ class GetInventory:
         if resp.status_code == 200:
             inventory = inventory_from_dict(pickle.loads(decompress(resp.bytes)), version=2)
             index.set("proxy_inventories", provider, inventory)
-            index.set("proxy_inventories_save_date", provider, datetime.utcnow())
+            index.set("proxy_inventories_save_date", provider, datetime.now(tz=timezone.utc))
             return inventory
         if resp.status_code == 304:
             return saved_inventory
