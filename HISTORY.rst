@@ -2,6 +2,21 @@
 History
 =======
 
+1.7.1 (2025-12-25)
+------------------
+## What's Changed
+* Bump actions/checkout from 5 to 6 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/251
+* Bump github/codeql-action from 2 to 4 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/252
+* Bump codecov/codecov-action from 4 to 5 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/253
+* Lazily use threading.get_native_id by @martinRenou in https://github.com/SciQLop/speasy/pull/255
+* Use HTTPS everywhere possible (HTTP is rejected within WASM) by @jeandet in https://github.com/SciQLop/speasy/pull/256
+* Adds a function to drop all cache entries for a specific cached function by @jeandet in https://github.com/SciQLop/speasy/pull/257
+* Make Speasy init a bit more robust by @jeandet in https://github.com/SciQLop/speasy/pull/259
+* Is server up wasm  by @jeandet in https://github.com/SciQLop/speasy/pull/258
+* Replace deprecated datetime utcxxx functions by xxx(tz=utc) by @jeandet in https://github.com/SciQLop/speasy/pull/261
+* Fix Speasy crash when provider is disabled on the proxy by @jeandet in https://github.com/SciQLop/speasy/pull/262
+
+
 1.7.0 (2025-11-25)
 ------------------
 ## What's Changed
