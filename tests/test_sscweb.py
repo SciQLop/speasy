@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
-import os
+import os, time
 import unittest
 from datetime import datetime, timezone
 import numpy as np
 from ddt import data, ddt
+from tempfile import TemporaryDirectory
 
 from speasy.data_providers import ssc
 from speasy.products import SpeasyVariable
+from speasy.core.codecs import get_codec
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -134,6 +136,38 @@ class SscWeb(unittest.TestCase):
     def test_raises_if_user_passes_unexpected_kwargs_to_get_orbit(self, kwargs):
         with self.assertRaises(TypeError):
             self.ssc.get_data('moon', "2018-01-01", "2018-01-02", **kwargs)
+
+
+class SscWebNonRegressionTests(unittest.TestCase):
+    def setUp(self):
+        self.ssc = ssc.SscWebservice()
+
+    def test_cdf_export_sets_variable_name_correctly(self):
+        import pycdfpp
+        result = self.ssc.get_data('ace', "2018-01-01", "2018-01-02",
+                                   disable_cache=True,
+                                   disable_proxy=True)
+        self.assertIsNotNone(result)
+        self.assertIsNotNone(result.name)
+        self.assertNotEqual(result.name, "")
+        cdf_codec = get_codec('cdf')
+        with TemporaryDirectory() as tmp_dir:
+            tmp_file = f"{tmp_dir}/temp.cdf"
+            data = cdf_codec.save_variables([result])
+            with open(tmp_file, 'wb') as f:
+                f.write(data)
+            self.assertIn(result.name, pycdfpp.load(tmp_file))
+            # This cleanup is needed on Windows where the file can remain locked for a short time
+            # we should not need this but ¯\_(ツ)_/¯
+            deleted = False
+            retry = 10
+            while not deleted and retry > 0:
+                try:
+                    os.remove(tmp_file)
+                    deleted = True
+                except PermissionError:
+                    time.sleep(0.1)
+                    retry -= 1
 
 
 class SscWebTrajectoriesPlots(unittest.TestCase):

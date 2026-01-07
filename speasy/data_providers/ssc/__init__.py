@@ -65,6 +65,7 @@ def parse_trajectory(trajectory: str) -> Optional[SpeasyVariable]:
         return SpeasyVariable(
             axes=[VariableTimeAxis(values=time_axis)],
             values=DataContainer(values,
+                                 name='Position',
                                  meta={'CoordinateSystem': coordinates.find('CoordinateSystem').text.upper(),
                                        'UNITS': 'km'}),
             columns=['X', 'Y', 'Z']
