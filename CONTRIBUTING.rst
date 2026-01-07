@@ -91,7 +91,7 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     Alternatively, if just want to run quick tests for the current Python version, run::
 
     $ make test
-    $ make docs-test
+    $ make doctest
 
 
 6. Commit your changes and push your branch to GitHub::
