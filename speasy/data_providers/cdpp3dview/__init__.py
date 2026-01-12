@@ -9,7 +9,7 @@ __version__ = "0.1.0"
 import json
 import logging
 from typing import Dict
-from urllib.request import urlopen
+from ...core.http import urlopen
 
 from speasy.core.dataprovider import DataProvider
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
@@ -104,16 +104,16 @@ class Cdpp3dViewWebservice(DataProvider):
     def _get_bodies(self):
         URL = f"{self.BASE_URL}/get_bodies"
 
-        with urlopen(URL) as response:
-            data = json.load(response)
+        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+            data = response.json()
 
         return data["bodies"]
 
     def _get_frames(self):
         URL = f"{self.BASE_URL}/get_frames"
 
-        with urlopen(URL) as response:
-            data = json.load(response)
+        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+            data = response.json()
 
         return data["frames"]
 
