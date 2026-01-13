@@ -11,8 +11,8 @@ import logging
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-from speasy import SpeasyVariable
 
+from speasy import SpeasyVariable
 from speasy.core.data_containers import DataContainer, VariableTimeAxis
 from speasy.core.dataprovider import DataProvider
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
@@ -40,7 +40,7 @@ def body_to_paramindex(body: Dict) -> ParameterIndex:
     coverage = body.pop("coverage")
     body["start_date"] = coverage[0]
     body["stop_date"] = coverage[1]
-    node = ParameterIndex(name=name, provider="ssc", uid=body["Id"], meta=body)
+    node = ParameterIndex(name=name, provider="ssc", uid=name, meta=body)
     return node
 
 
@@ -62,7 +62,7 @@ def frame_to_paramindex(frame: Dict) -> SpeasyIndex:
     frame["Desc"] = frame.pop("desc")
     frame["Center"] = frame.pop("center")
     node = ParameterIndex(name=name, provider="ssc",
-                          uid=frame["Id"], meta=frame)
+                          uid=name, meta=frame)
     return node
 
 
@@ -71,7 +71,7 @@ def parse_trajectory_json(json_data: str) -> Tuple[np.ndarray, np.ndarray]:
 
     entries = data['values']
 
-    time_axis = np.array([np.datetime64(entry['time'][:-1], 'ns') 
+    time_axis = np.array([np.datetime64(entry['time'][:-1], 'ns')
                           for entry in entries])
 
     positions = np.array([entry['position'] for entry in entries])
