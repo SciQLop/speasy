@@ -74,7 +74,7 @@ jobs:
 
 
     - name: Install browser for selenium tests
-      uses: pyodide/pyodide-actions/install-browser@525cc382c812e88474a0d9db3a9d45df4b3c234f
+      uses: pyodide/pyodide-actions/install-browser@0876419b7ac412db2b84e86499bc95ff3b64b004
       with:
         runner: selenium
         browser: chrome
