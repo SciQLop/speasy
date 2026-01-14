@@ -22,50 +22,6 @@ from ...core.http import urlopen
 log = logging.getLogger(__name__)
 
 
-def body_to_paramindex(body: Dict) -> ParameterIndex:
-    """Build a ParameterIndex from a body dictionary.
-
-    Parameters
-    ----------
-    body : Dict
-        A body from the cddp 3dview webservice.
-
-    Returns
-    -------
-    ParameterIndex
-        the corresponding ParameterIndex.
-    """
-    name = body.pop("name")
-    body["Id"] = body.pop("id")
-    coverage = body.pop("coverage")
-    body["start_date"] = coverage[0]
-    body["stop_date"] = coverage[1]
-    node = ParameterIndex(name=name, provider="ssc", uid=name, meta=body)
-    return node
-
-
-def frame_to_paramindex(frame: Dict) -> SpeasyIndex:
-    """Build a ParameterIndex from a frame dictionary.
-
-    Parameters
-    ----------
-    frame : Dict
-        A frame from the cddp 3dview webservice.
-
-    Returns
-    -------
-    SpeasyIndex
-        the corresponding SpeasyIndex.
-    """
-    name = frame.pop("name")
-    frame["Id"] = frame.pop("id")
-    frame["Desc"] = frame.pop("desc")
-    frame["Center"] = frame.pop("center")
-    node = ParameterIndex(name=name, provider="ssc",
-                          uid=name, meta=frame)
-    return node
-
-
 def parse_trajectory_json(json_data: str) -> Tuple[np.ndarray, np.ndarray]:
     data = json.loads(json_data)
 
@@ -120,20 +76,76 @@ class Cdpp3dViewWebservice(DataProvider):
         return None
 
     def build_inventory(self, root: SpeasyIndex):
-        bodies_index = list(map(body_to_paramindex, self._get_bodies()))
-        root.Bodies = SpeasyIndex(
-            name="Bodies",
-            provider="ssc",
-            uid="Bodies",
-            meta={item.Id: item for item in bodies_index},
+        from speasy.core import fix_name
+        from speasy.core.inventory.indexes import make_inventory_node
+
+        # Create root node Trajectories
+        trajectory_node = make_inventory_node(
+            root,
+            SpeasyIndex,
+            provider="cdpp3dview",
+            uid="Trajectories",
+            name="Trajectories",
         )
-        frames_index = list(map(frame_to_paramindex, self._get_frames()))
-        root.Frames = SpeasyIndex(
-            name="Frames",
-            provider="ssc",
-            uid="Frames",
-            meta={item.Id: item for item in frames_index},
-        )
+
+        # Get datas
+        bodies = self._get_bodies()
+        frames = self._get_frames()
+
+        # Group bodies by type (Spacecraft, Comet, ...)
+        bodies_by_type = {}
+        for body in bodies:
+            body_type = body.get('type', 'SPACECRAFT')
+            if body_type not in bodies_by_type:
+                bodies_by_type[body_type] = []
+            bodies_by_type[body_type].append(body)
+
+        # Build inventory hierarchy
+        for body_type, bodies_list in bodies_by_type.items():
+            # Create node <body_type>
+            type_node = make_inventory_node(
+                trajectory_node,
+                SpeasyIndex,
+                provider="cdpp3dview",
+                uid=body_type,
+                name=fix_name(body_type),
+                description=f"{body_type} bodies"
+            )
+
+            # For each body
+            for body in bodies_list:
+                body_name = body['name']
+
+                # Create body node
+                body_node = make_inventory_node(
+                    type_node,
+                    SpeasyIndex,
+                    provider="cdpp3dview",
+                    uid=body_name,
+                    name=fix_name(body_name),
+                    description=f"{body_name} trajectories",
+                    start_date=body['coverage'][0],
+                    stop_date=body['coverage'][1]
+                )
+
+                # Filtrer les frames compatibles avec ce body
+                compatible_frames = [
+                    f for f in frames
+                    if f.get('center') in ['Sun', body_name, 'Earth', '']
+                ]
+
+                # add each frame as ParameterIndex
+                for frame in compatible_frames:
+                    frame_name = frame['name']
+                    param = ParameterIndex(
+                        name=fix_name(frame_name),
+                        provider="cdpp3dview",
+                        uid=f"{body_name}/{frame_name}",
+                        meta=frame
+                    )
+                    # Ajouter directement comme attribut
+                    setattr(body_node, fix_name(frame_name), param)
+
         return root
 
     def version(self, product):
