@@ -7,12 +7,15 @@ __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 from speasy import SpeasyVariable
-from speasy.core.data_containers import DataContainer, VariableTimeAxis
-from speasy.core.dataprovider import DataProvider
+from speasy.core.algorithms import AllowedKwargs
+from speasy.core.cache._providers_caches import CACHE_ALLOWED_KWARGS
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS
+from speasy.core.typing import AnyDateTimeType
 
 from ...core.http import urlopen
 
@@ -39,31 +42,6 @@ class Cdpp3dViewWebservice(DataProvider):
         DataProvider.__init__(
             self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
         )
-
-    # TODO: add decorators
-    # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
-    # @Proxyfiable(GetProduct, get_parameter_args_ws)
-    # @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['sampling'])
-    # @EnsureUTCDateTime()
-    # @ParameterRangeCheck()
-    # TODO: change signature
-    def get_data(self, body: str, frame: str, start: str, stop: str,
-                 sampling: int = 3600,
-                 format: str = "json") -> Optional[SpeasyVariable]:
-        time_axis, values = self._get_trajectory(body, frame, start, stop,
-                                                 sampling, format)
-        try:
-            # TODO: Maybe should come from _get_trajectory ?
-            return SpeasyVariable(
-                axes=[VariableTimeAxis(values=time_axis)],
-                values=DataContainer(values,
-                                     meta={'CoordinateSystem': 'GSE',
-                                           'UNITS': 'km, km/s'}),
-                columns=['X', 'Y', 'Z', 'Vx', 'Vy', 'Vz']
-            )
-        except Exception as e:
-            log.error(f"Error parsing trajectory: {e}")
-        return None
 
     # TODO: move to _inventory_builder.build_inventory
     def build_inventory(self, root: SpeasyIndex):
@@ -120,6 +98,25 @@ class Cdpp3dViewWebservice(DataProvider):
                 )
         return root
 
+    # TODO: add decorators
+    # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
+    # @Proxyfiable(GetProduct, get_parameter_args_ws)
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS +
+                   GET_DATA_ALLOWED_KWARGS + ['sampling', 'format'])
+    # @EnsureUTCDateTime()
+    # @ParameterRangeCheck()
+    # TODO: change signature
+    def get_data(self, product: str,
+                 start_time: AnyDateTimeType,
+                 stop_time: AnyDateTimeType,
+                 **kwargs) -> Optional[SpeasyVariable]:
+
+        var = self._get_trajectory(product=product,
+                                   start=start_time,
+                                   stop=stop_time,
+                                   **kwargs)
+        return var
+
     def version(self, product):
         return 1
 
@@ -142,14 +139,22 @@ class Cdpp3dViewWebservice(DataProvider):
     # TODO: write accordingly to 3dview REST api
     #       get cdf format
     #       build  and return SpeasyVariable ?
-    def _get_trajectory(self, body, frame, start, stop, sampling=3600,
-                        format="json"):
-        URL = (
-            f"{self.BASE_URL}/get_trajectory?"
-            f"body={body}&frame={frame}&start={start}&stop={stop}"
-            f"&sampling={sampling}&format={format}"
-        )
-        with urlopen(URL) as response:
-            data = response.json()
+    def _get_trajectory(self, product: str,
+                        start: AnyDateTimeType,
+                        stop: AnyDateTimeType,
+                        sampling=3600,
+                        format="csv") -> Optional[SpeasyVariable]:
+        product = self._to_parameter_index(product)
 
-        return data
+        #
+        # how to extract body name and frame name from product ?
+
+        # URL = (
+        #     f"{self.BASE_URL}/get_trajectory"
+        #     f"body={body}&frame={frame}&start={start}&stop={stop}"
+        #     f"&sampling={sampling}&format={format}"
+        # )
+
+        # Do wahaterver with cdflib to return a SpeasyVariable
+        # return var
+        return None
