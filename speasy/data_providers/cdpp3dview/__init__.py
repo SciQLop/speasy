@@ -19,6 +19,8 @@ from speasy.core.typing import AnyDateTimeType
 
 from ...core.http import urlopen
 
+from ._coordinate_frames import _COORDINATE_FRAMES
+
 log = logging.getLogger(__name__)
 
 
@@ -129,12 +131,8 @@ class Cdpp3dViewWebservice(DataProvider):
         return data["bodies"]
 
     def _get_frames(self):
-        URL = f"{self.BASE_URL}/get_frames"
-
-        with urlopen(URL, headers={"Accept": "application/json"}) as response:
-            data = response.json()
-
-        return data["frames"]
+        frames = [f.name for f in _COORDINATE_FRAMES]
+        return frames
 
     # TODO: write accordingly to 3dview REST api
     #       get cdf format
