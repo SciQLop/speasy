@@ -110,7 +110,7 @@ class Cdpp3dViewWebservice(DataProvider):
                 # Create body node
                 body_node = make_inventory_node(
                     type_node,
-                    SpeasyIndex,
+                    ParameterIndex,
                     provider="cdpp3dview",
                     uid=body_name,
                     name=fix_name(body_name),
@@ -118,25 +118,6 @@ class Cdpp3dViewWebservice(DataProvider):
                     start_date=body['coverage'][0],
                     stop_date=body['coverage'][1]
                 )
-
-                # TODO: Filter frames ?
-                compatible_frames = [
-                    f for f in frames
-                    if f.get('center') in ['Sun', body_name, 'Earth', '']
-                ]
-
-                # add each frame as ParameterIndex
-                for frame in compatible_frames:
-                    frame_name = frame['name']
-                    param = ParameterIndex(
-                        name=fix_name(frame_name),
-                        provider="cdpp3dview",
-                        uid=f"{body_name}/{frame_name}",
-                        meta=frame
-                    )
-                    # TODO: Add as attr ?
-                    setattr(body_node, fix_name(frame_name), param)
-
         return root
 
     def version(self, product):
