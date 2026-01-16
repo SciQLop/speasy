@@ -13,9 +13,15 @@ from speasy import SpeasyVariable
 from speasy.core.algorithms import AllowedKwargs
 from speasy.core.cache._providers_caches import CACHE_ALLOWED_KWARGS
 from speasy.core.codecs.codecs_registry import get_codec
-from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider
+from speasy.core.dataprovider import (
+    GET_DATA_ALLOWED_KWARGS,
+    DataProvider,
+    ParameterRangeCheck,
+)
+from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS
+from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
 
 from ...core.http import urlopen
@@ -108,11 +114,10 @@ class Cdpp3dViewWebservice(DataProvider):
         PROXY_ALLOWED_KWARGS
         + CACHE_ALLOWED_KWARGS
         + GET_DATA_ALLOWED_KWARGS
-        + ["sampling", "format"]
+        + ["coordinate_frame", "sampling", "format"]
     )
-    # @EnsureUTCDateTime()
-    # @ParameterRangeCheck()
-    # TODO: change signature
+    @EnsureUTCDateTime()
+    @ParameterRangeCheck()
     def get_data(
         self,
         product: str,
@@ -122,10 +127,12 @@ class Cdpp3dViewWebservice(DataProvider):
         **kwargs,
     ) -> Optional[SpeasyVariable]:
         if coordinate_frame not in self._get_frames():
-            raise ValueError(
-                f"Coordinate frame '{coordinate_frame}' is not available. "
+
+            log.warning(
+                f"Coordinate frame '{coordinate_frame}' is not available.\n"
                 f"Available frames are: {self._get_frames()}"
             )
+            return None
 
         var = self._get_trajectory(
             product=product,
@@ -135,6 +142,29 @@ class Cdpp3dViewWebservice(DataProvider):
             **kwargs,
         )
         return var
+
+    def parameter_range(self, parameter_id: str | ParameterIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.ssc.parameter_range("solarorbiter")
+        <DateTimeRange: 2020-02-10T04:56:30+00:00 -> ...>
+
+        """
+        return self._parameter_range(parameter_id)
 
     def version(self, product):
         return 1
@@ -167,7 +197,6 @@ class Cdpp3dViewWebservice(DataProvider):
             f"body={body}&frame={coordinate_frame}&start={start}&stop={stop}"
             f"&sampling={sampling}&format={format}"
         )
-        print(URL)
         # TODO: saniticheck returns None
         var = self._cdf_codec.load_variables(variables=['pos'], file=URL)
 
