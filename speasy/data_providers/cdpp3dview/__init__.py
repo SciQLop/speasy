@@ -61,7 +61,6 @@ class Cdpp3dViewWebservice(DataProvider):
             self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
         )
 
-    # TODO: move to _inventory_builder.build_inventory and call it
     def build_inventory(self, root: SpeasyIndex):
         from speasy.core import fix_name
         from speasy.core.inventory.indexes import make_inventory_node
@@ -127,6 +126,7 @@ class Cdpp3dViewWebservice(DataProvider):
         start_time: AnyDateTimeType,
         stop_time: AnyDateTimeType,
         coordinate_frame: str = "J2000",
+        sampling: str = "600",
         if_newer_than: Optional[AnyDateTimeType] = None,
         **kwargs,
     ) -> Optional[SpeasyVariable]:
@@ -144,6 +144,7 @@ class Cdpp3dViewWebservice(DataProvider):
             start_time=start_time,
             stop_time=stop_time,
             coordinate_frame=coordinate_frame,
+            sampling=sampling,
             if_newer_than=if_newer_than,
             ** kwargs,
         )
@@ -192,7 +193,9 @@ class Cdpp3dViewWebservice(DataProvider):
         return data["bodies"]
 
     def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
-        return f"{prefix}/{product}/{kwargs.get('coordinate_frame', 'J2000')}/{start_time}"
+        coordinate_frame = kwargs.get('coordinate_frame', 'J2000')
+        sampling = kwargs.get('sampling', '600')
+        return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
 
     # TODO: add decorators
     # @Proxyfiable(GetProduct, get_parameter_args_ws)
@@ -208,7 +211,7 @@ class Cdpp3dViewWebservice(DataProvider):
         start_time: AnyDateTimeType,
         stop_time: AnyDateTimeType,
         coordinate_frame: str,
-        sampling="600",
+        sampling: str = "600",
         if_newer_than: Optional[AnyDateTimeType] = None,
         format="cdf",
     ):
@@ -241,4 +244,3 @@ class Cdpp3dViewWebservice(DataProvider):
                 f'Failed to get data with request: {URL}, got {resp.status_code} HTTP response')
         else:
             return None
-        return None
