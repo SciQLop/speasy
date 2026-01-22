@@ -32,6 +32,10 @@ from ...core.http import urlopen
 log = logging.getLogger(__name__)
 
 
+class Cdpp3dViewWebException(Exception):
+    pass
+
+
 class Cdpp3dViewWebservice(DataProvider):
     """Cdpp3dViewWebservice Class
 
@@ -125,12 +129,11 @@ class Cdpp3dViewWebservice(DataProvider):
         # question: move to __init__ ?
         self._frames = self.get_frames()
         if coordinate_frame not in self._frames:
-            # TODO: raise exception !
-            log.warning(
+            execption_msg = (
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"
                 f"Available frames are: {self._frames}"
             )
-            return None
+            raise Cdpp3dViewWebException(execption_msg)
 
         var = self._get_trajectory(
             product=product,
