@@ -10,6 +10,7 @@ import logging
 from typing import Dict, List, Optional
 
 from speasy import SpeasyVariable
+from speasy.core import http
 from speasy.core.algorithms import AllowedKwargs
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.cache._providers_caches import (
@@ -118,7 +119,7 @@ class Cdpp3dViewWebservice(DataProvider):
         PROXY_ALLOWED_KWARGS
         + CACHE_ALLOWED_KWARGS
         + GET_DATA_ALLOWED_KWARGS
-        + ["coordinate_frame", "sampling"]
+        + ["coordinate_frame", "sampling", "if_newer_than"],
     )
     def get_data(
         self,
@@ -126,6 +127,7 @@ class Cdpp3dViewWebservice(DataProvider):
         start_time: AnyDateTimeType,
         stop_time: AnyDateTimeType,
         coordinate_frame: str = "J2000",
+        if_newer_than: Optional[AnyDateTimeType] = None,
         **kwargs,
     ) -> Optional[SpeasyVariable]:
         # question: move to __init__ ?
@@ -142,10 +144,10 @@ class Cdpp3dViewWebservice(DataProvider):
             start_time=start_time,
             stop_time=stop_time,
             coordinate_frame=coordinate_frame,
-            **kwargs,
+            if_newer_than=if_newer_than,
+            ** kwargs,
         )
         return var
-
 
     @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
     def get_frames(self) -> List[str]:
@@ -192,11 +194,11 @@ class Cdpp3dViewWebservice(DataProvider):
     def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
         return f"{prefix}/{product}/{kwargs.get('coordinate_frame', 'J2000')}/{start_time}"
 
-
     # TODO: add decorators
     # @Proxyfiable(GetProduct, get_parameter_args_ws)
     # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
+
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
@@ -207,6 +209,7 @@ class Cdpp3dViewWebservice(DataProvider):
         stop_time: AnyDateTimeType,
         coordinate_frame: str,
         sampling="600",
+        if_newer_than: Optional[AnyDateTimeType] = None,
         format="cdf",
     ):
         body = self._to_parameter_index(product).spz_name()
@@ -220,8 +223,22 @@ class Cdpp3dViewWebservice(DataProvider):
             f"start={start_date}&stop={stop_date}&"
             f"&sampling={sampling}&format={format}"
         )
-
-        # TODO: saniticheck returns None
-        var = self._cdf_codec.load_variables(variables=['pos'], file=URL)
-
-        return var['pos']
+        headers = {"Accept": "application/json"}
+        if if_newer_than is not None:
+            headers["If-Modified-Since"] = if_newer_than.ctime()
+        # if extra_http_headers is not None:
+        #     headers.update(extra_http_headers)
+        resp = http.get(URL, headers=headers)
+        from pprint import pprint
+        if resp.status_code == 200:
+            return self._cdf_codec.load_variable(file=resp.bytes, variable='pos')
+        elif not resp.ok:
+            if resp.status_code == 404 and "No data available" in resp.json().get('Message', [""])[0]:
+                log.warning(
+                    f"Got 404 'No data available' from 3dView with {URL}")
+                return None
+            raise Cdpp3dViewWebException(
+                f'Failed to get data with request: {URL}, got {resp.status_code} HTTP response')
+        else:
+            return None
+        return None
