@@ -11,7 +11,10 @@ from typing import Dict, Optional
 
 from speasy import SpeasyVariable
 from speasy.core.algorithms import AllowedKwargs
-from speasy.core.cache._providers_caches import CACHE_ALLOWED_KWARGS
+from speasy.core.cache._providers_caches import (
+    CACHE_ALLOWED_KWARGS,
+    UnversionedProviderCache,
+)
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.dataprovider import (
     GET_DATA_ALLOWED_KWARGS,
@@ -107,17 +110,12 @@ class Cdpp3dViewWebservice(DataProvider):
                 )
         return root
 
-    # TODO: add decorators
-    # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
-    # @Proxyfiable(GetProduct, get_parameter_args_ws)
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS
         + CACHE_ALLOWED_KWARGS
         + GET_DATA_ALLOWED_KWARGS
-        + ["coordinate_frame", "sampling", "format"]
+        + ["coordinate_frame", "sampling"]
     )
-    @EnsureUTCDateTime()
-    @ParameterRangeCheck()
     def get_data(
         self,
         product: str,
@@ -128,6 +126,7 @@ class Cdpp3dViewWebservice(DataProvider):
     ) -> Optional[SpeasyVariable]:
         if coordinate_frame not in self._get_frames():
 
+            # TODO: exception !
             log.warning(
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"
                 f"Available frames are: {self._get_frames()}"
@@ -181,6 +180,13 @@ class Cdpp3dViewWebservice(DataProvider):
         frames = [f["name"] for f in _COORDINATE_FRAMES]
         return frames
 
+    # TODO: add decorators
+    # @Proxyfiable(GetProduct, get_parameter_args_ws)
+    # @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
+    # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
+    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
+    @EnsureUTCDateTime()
+    @ParameterRangeCheck()
     def _get_trajectory(
         self,
         product: str,
@@ -192,11 +198,17 @@ class Cdpp3dViewWebservice(DataProvider):
     ):
         body = self._to_parameter_index(product).spz_name()
 
+        date_format = "%Y-%m-%dT%H:%M:%S.%f"
+        start_date = start.strftime(date_format)
+        stop_date = stop.strftime(date_format)
         URL = (
             f"{self.BASE_URL}/get_trajectory?"
-            f"body={body}&frame={coordinate_frame}&start={start}&stop={stop}"
+            f"body={body}&frame={coordinate_frame}&"
+            f"start={start_date}&stop={stop_date}&"
             f"&sampling={sampling}&format={format}"
         )
+
+        print(URL)
         # TODO: saniticheck returns None
         var = self._cdf_codec.load_variables(variables=['pos'], file=URL)
 
