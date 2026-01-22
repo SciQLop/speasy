@@ -28,7 +28,6 @@ from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
 
 from ...core.http import urlopen
-from ._coordinate_frames import _COORDINATE_FRAMES
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +70,6 @@ class Cdpp3dViewWebservice(DataProvider):
 
         # Get datas
         bodies = self._get_bodies()
-        frames = self._get_frames()
 
         # Group bodies by type (Spacecraft, Comet, ...)
         bodies_by_type = {}
@@ -124,23 +122,31 @@ class Cdpp3dViewWebservice(DataProvider):
         coordinate_frame: str = "J2000",
         **kwargs,
     ) -> Optional[SpeasyVariable]:
-        if coordinate_frame not in self._get_frames():
-
-            # TODO: exception !
+        # question: move to __init__ ?
+        self._frames = self.get_frames()
+        if coordinate_frame not in self._frames:
+            # TODO: raise exception !
             log.warning(
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"
-                f"Available frames are: {self._get_frames()}"
+                f"Available frames are: {self._frames}"
             )
             return None
 
         var = self._get_trajectory(
             product=product,
-            start=start_time,
-            stop=stop_time,
+            start_time=start_time,
+            stop_time=stop_time,
             coordinate_frame=coordinate_frame,
             **kwargs,
         )
         return var
+
+    def get_frames(self):
+        URL = f"{self.BASE_URL}/get_frames"
+        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+            data = response.json()
+        frames = [f["name"] for f in data['frames']]
+        return frames
 
     def parameter_range(self, parameter_id: str | ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.
@@ -176,31 +182,27 @@ class Cdpp3dViewWebservice(DataProvider):
 
         return data["bodies"]
 
-    def _get_frames(self):
-        frames = [f["name"] for f in _COORDINATE_FRAMES]
-        return frames
-
     # TODO: add decorators
     # @Proxyfiable(GetProduct, get_parameter_args_ws)
     # @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
-    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
+    # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     def _get_trajectory(
         self,
         product: str,
-        start: AnyDateTimeType,
-        stop: AnyDateTimeType,
+        start_time: AnyDateTimeType,
+        stop_time: AnyDateTimeType,
         coordinate_frame: str,
         sampling="600",
         format="cdf",
     ):
         body = self._to_parameter_index(product).spz_name()
 
-        date_format = "%Y-%m-%dT%H:%M:%S.%f"
-        start_date = start.strftime(date_format)
-        stop_date = stop.strftime(date_format)
+        date_format = "%Y-%m-%dT%H:%M:%S"
+        start_date = start_time.strftime(date_format)
+        stop_date = stop_time.strftime(date_format)
         URL = (
             f"{self.BASE_URL}/get_trajectory?"
             f"body={body}&frame={coordinate_frame}&"
@@ -208,7 +210,6 @@ class Cdpp3dViewWebservice(DataProvider):
             f"&sampling={sampling}&format={format}"
         )
 
-        print(URL)
         # TODO: saniticheck returns None
         var = self._cdf_codec.load_variables(variables=['pos'], file=URL)
 
