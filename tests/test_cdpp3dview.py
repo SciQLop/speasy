@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `view3d` package."""
-import os
 import unittest
-from ddt import data, ddt
+from ddt import ddt
 
 from speasy.data_providers import cdpp3dview
 
