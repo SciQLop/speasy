@@ -7,12 +7,14 @@ __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from speasy import SpeasyVariable
 from speasy.core.algorithms import AllowedKwargs
+from speasy.core.cache._function_cache import CacheCall
 from speasy.core.cache._providers_caches import (
     CACHE_ALLOWED_KWARGS,
+    Cacheable,
     UnversionedProviderCache,
 )
 from speasy.core.codecs.codecs_registry import get_codec
@@ -144,7 +146,9 @@ class Cdpp3dViewWebservice(DataProvider):
         )
         return var
 
-    def get_frames(self):
+
+    @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
+    def get_frames(self) -> List[str]:
         URL = f"{self.BASE_URL}/get_frames"
         with urlopen(URL, headers={"Accept": "application/json"}) as response:
             data = response.json()
@@ -185,13 +189,17 @@ class Cdpp3dViewWebservice(DataProvider):
 
         return data["bodies"]
 
+    def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
+        return f"{prefix}/{product}/{kwargs.get('coordinate_frame', 'J2000')}/{start_time}"
+
+
     # TODO: add decorators
     # @Proxyfiable(GetProduct, get_parameter_args_ws)
-    # @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
+    @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     def _get_trajectory(
         self,
         product: str,
