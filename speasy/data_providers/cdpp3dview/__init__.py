@@ -38,6 +38,10 @@ log = logging.getLogger(__name__)
 class Cdpp3dViewWebException(Exception):
     pass
 
+def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
+    coordinate_frame = kwargs.get('coordinate_frame', 'J2000')
+    sampling = kwargs.get('sampling', '600')
+    return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
 
 class Cdpp3dViewWebservice(DataProvider):
     """Cdpp3dViewWebservice Class
@@ -60,6 +64,9 @@ class Cdpp3dViewWebservice(DataProvider):
         DataProvider.__init__(
             self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
         )
+
+    def version(self, product):
+        return 1
 
     def build_inventory(self, root: SpeasyIndex):
         from speasy.core import fix_name
@@ -114,12 +121,6 @@ class Cdpp3dViewWebservice(DataProvider):
                 )
         return root
 
-    @AllowedKwargs(
-        PROXY_ALLOWED_KWARGS
-        + CACHE_ALLOWED_KWARGS
-        + GET_DATA_ALLOWED_KWARGS
-        + ["coordinate_frame", "sampling", "if_newer_than"],
-    )
     def get_data(
         self,
         product: str,
@@ -150,61 +151,19 @@ class Cdpp3dViewWebservice(DataProvider):
         )
         return var
 
-    @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
-    def get_frames(self) -> List[str]:
-        URL = f"{self.BASE_URL}/get_frames"
-        with urlopen(URL, headers={"Accept": "application/json"}) as response:
-            data = response.json()
-        frames = [f["name"] for f in data['frames']]
-        return frames
-
-    def parameter_range(self, parameter_id: str | ParameterIndex) -> Optional[DateTimeRange]:
-        """Get product time range.
-
-        Parameters
-        ----------
-        parameter_id: str or ParameterIndex
-            parameter id
-
-        Returns
-        -------
-        Optional[DateTimeRange]
-            Data time range
-
-        Examples
-        --------
-
-        >>> import speasy as spz
-        >>> spz.ssc.parameter_range("solarorbiter")
-        <DateTimeRange: 2020-02-10T04:56:30+00:00 -> ...>
-
-        """
-        return self._parameter_range(parameter_id)
-
-    def version(self, product):
-        return 1
-
-    def _get_bodies(self):
-        URL = f"{self.BASE_URL}/get_bodies"
-
-        with urlopen(URL, headers={"Accept": "application/json"}) as response:
-            data = response.json()
-
-        return data["bodies"]
-
-    def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
-        coordinate_frame = kwargs.get('coordinate_frame', 'J2000')
-        sampling = kwargs.get('sampling', '600')
-        return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
-
-    # TODO: add decorators
+    # TODO: add decorators ?
     # @Proxyfiable(GetProduct, get_parameter_args_ws)
     # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
-
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
+    @AllowedKwargs(
+        PROXY_ALLOWED_KWARGS
+        + CACHE_ALLOWED_KWARGS
+        + GET_DATA_ALLOWED_KWARGS
+        + ["coordinate_frame", "sampling", "if_newer_than", "format"],
+    )
     def _get_trajectory(
         self,
         product: str,
@@ -244,3 +203,44 @@ class Cdpp3dViewWebservice(DataProvider):
                 f'Failed to get data with request: {URL}, got {resp.status_code} HTTP response')
         else:
             return None
+
+    @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
+    def get_frames(self) -> List[str]:
+        URL = f"{self.BASE_URL}/get_frames"
+        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+            data = response.json()
+        frames = [f["name"] for f in data['frames']]
+        return frames
+
+    def parameter_range(self, parameter_id: str | ParameterIndex) -> Optional[DateTimeRange]:
+        """Get product time range.
+
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            parameter id
+
+        Returns
+        -------
+        Optional[DateTimeRange]
+            Data time range
+
+        Examples
+        --------
+
+        >>> import speasy as spz
+        >>> spz.cdpp3dview.parameter_range("Pioneer10")
+        <DateTimeRange: 1972-03-05T12:00:00+00:00 -> 2049-12-31T00:00:00+00:00>
+
+        """
+        return self._parameter_range(parameter_id)
+
+    def _get_bodies(self):
+        URL = f"{self.BASE_URL}/get_bodies"
+
+        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+            data = response.json()
+
+        return data["bodies"]
+
+
