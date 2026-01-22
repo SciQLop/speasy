@@ -7,7 +7,7 @@ __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from speasy import SpeasyVariable
 from speasy.core import http
@@ -16,7 +16,6 @@ from speasy.core.cache._function_cache import CacheCall
 from speasy.core.cache._providers_caches import (
     CACHE_ALLOWED_KWARGS,
     Cacheable,
-    UnversionedProviderCache,
 )
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.dataprovider import (
@@ -38,10 +37,12 @@ log = logging.getLogger(__name__)
 class Cdpp3dViewWebException(Exception):
     pass
 
+
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
     coordinate_frame = kwargs.get('coordinate_frame', 'J2000')
     sampling = kwargs.get('sampling', '600')
     return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
+
 
 class Cdpp3dViewWebservice(DataProvider):
     """Cdpp3dViewWebservice Class
@@ -109,7 +110,7 @@ class Cdpp3dViewWebservice(DataProvider):
                 body_name = body['name']
 
                 # Create body node
-                body_node = make_inventory_node(
+                make_inventory_node(
                     type_node,
                     ParameterIndex,
                     provider="cdpp3dview",
@@ -191,16 +192,17 @@ class Cdpp3dViewWebservice(DataProvider):
         # if extra_http_headers is not None:
         #     headers.update(extra_http_headers)
         resp = http.get(URL, headers=headers)
-        from pprint import pprint
         if resp.status_code == 200:
-            return self._cdf_codec.load_variable(file=resp.bytes, variable='pos')
+            return self._cdf_codec.load_variable(file=resp.bytes,
+                                                 variable='pos')
         elif not resp.ok:
-            if resp.status_code == 404 and "No data available" in resp.json().get('Message', [""])[0]:
+            if resp.status_code == 404:
                 log.warning(
                     f"Got 404 'No data available' from 3dView with {URL}")
                 return None
             raise Cdpp3dViewWebException(
-                f'Failed to get data with request: {URL}, got {resp.status_code} HTTP response')
+                f'Failed to get data with request: {URL},'
+                f'got {resp.status_code} HTTP response')
         else:
             return None
 
@@ -212,7 +214,9 @@ class Cdpp3dViewWebservice(DataProvider):
         frames = [f["name"] for f in data['frames']]
         return frames
 
-    def parameter_range(self, parameter_id: str | ParameterIndex) -> Optional[DateTimeRange]:
+    def parameter_range(
+        self, parameter_id: str | ParameterIndex
+    ) -> Optional[DateTimeRange]:
         """Get product time range.
 
         Parameters
@@ -242,5 +246,3 @@ class Cdpp3dViewWebservice(DataProvider):
             data = response.json()
 
         return data["bodies"]
-
-
