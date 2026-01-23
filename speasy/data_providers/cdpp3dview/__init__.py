@@ -25,7 +25,7 @@ from speasy.core.dataprovider import (
 )
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
-from speasy.core.proxy import PROXY_ALLOWED_KWARGS
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, Proxyfiable
 from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
 
@@ -153,18 +153,18 @@ class Cdpp3dViewWebservice(DataProvider):
         return var
 
     # TODO: add decorators ?
-    # @Proxyfiable(GetProduct, get_parameter_args_ws)
     # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
-    @EnsureUTCDateTime()
-    @ParameterRangeCheck()
-    @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS
         + CACHE_ALLOWED_KWARGS
         + GET_DATA_ALLOWED_KWARGS
         + ["coordinate_frame", "sampling", "if_newer_than", "format"],
     )
+    @EnsureUTCDateTime()
+    @ParameterRangeCheck()
+    @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
+    # @Proxyfiable(GetProduct, get_parameter_args_ws)
     def _get_trajectory(
         self,
         product: str,
@@ -174,6 +174,7 @@ class Cdpp3dViewWebservice(DataProvider):
         sampling: str = "600",
         if_newer_than: Optional[AnyDateTimeType] = None,
         format="cdf",
+        **kwargs,
     ):
         body = self._to_parameter_index(product).spz_name()
 
