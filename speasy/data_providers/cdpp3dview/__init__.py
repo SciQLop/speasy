@@ -10,7 +10,7 @@ import logging
 from typing import List, Optional
 
 from speasy import SpeasyVariable
-from speasy.core import http
+from speasy.core import fix_name, http
 from speasy.core.algorithms import AllowedKwargs
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.cache._providers_caches import (
@@ -25,7 +25,11 @@ from speasy.core.dataprovider import (
     ParameterRangeCheck,
 )
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.inventory.indexes import (
+    ParameterIndex,
+    SpeasyIndex,
+    make_inventory_node,
+)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, Proxyfiable
 from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
@@ -64,20 +68,7 @@ class Cdpp3dViewWebservice(DataProvider):
         _frames = [f["name"] for f in data['frames']]
         return _frames
 
-    def build_inventory(self, root: SpeasyIndex):
-        from speasy.core import fix_name
-        from speasy.core.inventory.indexes import make_inventory_node
-
-        self._frames = self._build_frames_list()
-
-        trajectory_node = make_inventory_node(
-            root,
-            SpeasyIndex,
-            provider="cdpp3dview",
-            uid="Trajectories",
-            name="Trajectories",
-        )
-
+    def _build_bodies_tree(self, trajectory_node: SpeasyIndex):
         bodies = self._get_bodies()
 
         # Group bodies by type (Spacecraft, Comet, ...)
@@ -111,6 +102,20 @@ class Cdpp3dViewWebservice(DataProvider):
                     start_date=body['coverage'][0],
                     stop_date=body['coverage'][1]
                 )
+
+    def build_inventory(self, root: SpeasyIndex):
+
+        self._frames = self._build_frames_list()
+
+        trajectory_node = make_inventory_node(
+            root,
+            SpeasyIndex,
+            provider="cdpp3dview",
+            uid="Trajectories",
+            name="Trajectories",
+        )
+        self._build_bodies_tree(trajectory_node)
+
         return root
 
     def get_data(
