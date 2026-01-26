@@ -163,21 +163,6 @@ class Cdpp3dViewTest(unittest.TestCase):
         self.assertIsInstance(param_range[1], datetime)
         self.assertLess(param_range[0], param_range[1])
 
-    def test_get_trajectory(self):
-        start_time = datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc)
-        stop_time = datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc)
-        trajectory = self.cdpp3d._get_trajectory(
-            product='GEOTAIL',
-            start_time=start_time,
-            stop_time=stop_time,
-            coordinate_frame='J2000',
-            sampling='60',
-            disable_cache=True,
-            disable_proxy=True
-        )
-        self.assertIsNotNone(trajectory)
-        self.assertGreater(len(trajectory), 0)
-
 
 @ddt
 class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
@@ -192,15 +177,15 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
             "product": "GEOTAIL",
             "start_time": datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc),
-            "coordinate_frame": 'j2000',
+            "coordinate_frame": 'J2000',
             "sampling": "60",
         }
     )
-    def test_get_trajectory_wrong_kwarg(self, kw):
+    def test_get_data_wrong_kwarg(self, kw):
         with self.assertRaises(TypeError):
-            self.cdpp3d._get_trajectory(**kw,
-                                        wrong_arg=True,
-                                        )
+            self.cdpp3d.get_data(**kw,
+                                 wrong_arg=True,
+                                 )
 
     @data(
         {
