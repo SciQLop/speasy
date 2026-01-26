@@ -99,7 +99,7 @@ class SscWebservice(DataProvider):
 
     def build_inventory(self, root: SpeasyIndex):
         inv = list(map(make_index, self.get_observatories()))
-        root.Trajectories = SpeasyIndex(name='Trajectories', provider='cdpp3dview', uid='Trajectories',
+        root.Trajectories = SpeasyIndex(name='Trajectories', provider='ssc', uid='Trajectories',
                                         meta={item.Id: item for item in inv})
         return root
 

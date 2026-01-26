@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `view3d` package."""
+"""Tests for `cdpp3dview` package."""
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from ddt import data, ddt
 
@@ -152,7 +152,7 @@ class Cdpp3dViewTest(unittest.TestCase):
     def test_get_bodies(self):
         bodies = self.cdpp3d._get_bodies()
         self.assertGreater(len(bodies), 0)
-        bodies_names = [b['name'] for b in bodies]  
+        bodies_names = [b['name'] for b in bodies]
         self.assertIn('GEOTAIL', bodies_names)
         self.assertIn('MEX', bodies_names)
 
@@ -180,7 +180,7 @@ class Cdpp3dViewTest(unittest.TestCase):
 
 
 @ddt
-class Cdpp3dViewTestErrorsCatched(unittest.TestCase):
+class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
     def setUp(self):
         self.cdpp3d = cdpp3dview.Cdpp3dViewWebservice()
 
