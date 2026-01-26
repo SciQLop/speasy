@@ -48,6 +48,7 @@ class Cdpp3dViewWebservice(DataProvider):
     BASE_URL = "https://3dview.irap.omp.eu/webresources"
 
     def __init__(self):
+        self._frames: List[str] = []
         self._cdf_codec = get_codec('application/x-cdf')
         DataProvider.__init__(
             self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
@@ -56,9 +57,18 @@ class Cdpp3dViewWebservice(DataProvider):
     def version(self, product):
         return 1
 
+    def _build_frames_list(self):
+        URL = f"{self.BASE_URL}/get_frames"
+        with http.urlopen(URL, headers={"Accept": "application/json"}) as response:
+            data = response.json()
+        _frames = [f["name"] for f in data['frames']]
+        return _frames
+
     def build_inventory(self, root: SpeasyIndex):
         from speasy.core import fix_name
         from speasy.core.inventory.indexes import make_inventory_node
+
+        self._frames = self._build_frames_list()
 
         trajectory_node = make_inventory_node(
             root,
@@ -113,7 +123,6 @@ class Cdpp3dViewWebservice(DataProvider):
         if_newer_than: Optional[AnyDateTimeType] = None,
         **kwargs,
     ) -> Optional[SpeasyVariable]:
-        # question: move to __init__ ?
         self._frames = self.get_frames()
         if coordinate_frame not in self._frames:
             exception_msg = (
@@ -166,7 +175,7 @@ class Cdpp3dViewWebservice(DataProvider):
             f"start={start_date}&stop={stop_date}&"
             f"sampling={sampling}&format={format}"
         )
-        headers = {"Accept": "application/json"}
+        headers = {}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
         resp = http.get(URL, headers=headers)
@@ -184,13 +193,8 @@ class Cdpp3dViewWebservice(DataProvider):
         else:
             return None
 
-    @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
     def get_frames(self) -> List[str]:
-        URL = f"{self.BASE_URL}/get_frames"
-        with http.urlopen(URL, headers={"Accept": "application/json"}) as response:
-            data = response.json()
-        frames = [f["name"] for f in data['frames']]
-        return frames
+        return self._frames
 
     def parameter_range(
         self, parameter_id: str | ParameterIndex
