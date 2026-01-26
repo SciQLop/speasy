@@ -57,7 +57,7 @@ class DirectArchiveDownloader(unittest.TestCase):
 
     @data(
         (
-                "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v04_09.cdf",
+                "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v04_10.cdf",
                 "regular", "ne_mgf", "2018-02-01", "2018-02-02"),
         (
                 "http://themis.ssl.berkeley.edu/data/themis/thb/l2/scm/{Y}/thb_l2_scm_{Y}{M:02d}{D:02d}_v01.cdf",
@@ -78,7 +78,7 @@ class DirectArchiveDownloader(unittest.TestCase):
 
     def test_get_product_with_custom_loader(self):
         v = get_product(
-            url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v04_09.cdf",
+            url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v04_10.cdf",
             split_rule="regular",
             variable="ne_mgf", start_time="2018-02-01", stop_time="2018-02-02",
             file_reader=_custom_cdf_loader)
@@ -86,7 +86,7 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertTrue(v.meta.get("_custom_cdf_loader"))
 
     @data(
-        "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/2018/erg_pwe_hfa_l3_1min_20180102_v04_09.cdf",
+        "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/2018/erg_pwe_hfa_l3_1min_20180102_v04_10.cdf",
         "http://themis.ssl.berkeley.edu/data/themis/thb/l2/gmom/0000/thb_l2_gmom_00000000_v01.cdf",
         "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/erg_orb_l3_t89_00000000_v01.cdf"
 
