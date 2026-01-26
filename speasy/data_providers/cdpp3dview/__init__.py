@@ -16,6 +16,7 @@ from speasy.core.cache._function_cache import CacheCall
 from speasy.core.cache._providers_caches import (
     CACHE_ALLOWED_KWARGS,
     Cacheable,
+    UnversionedProviderCache,
 )
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.dataprovider import (
@@ -28,8 +29,6 @@ from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, Proxyfiable
 from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
-
-from ...core.http import urlopen
 
 log = logging.getLogger(__name__)
 
@@ -45,18 +44,6 @@ def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
 
 
 class Cdpp3dViewWebservice(DataProvider):
-    """Cdpp3dViewWebservice Class
-
-    Parameters
-    ----------
-    DataProvider : speasy.core.dataprovider.DataProvider
-        core DataProvider class
-
-    Returns
-    -------
-    Cdpp3dViewWebservice
-        Cdpp3dViewWebservice instance
-    """
 
     BASE_URL = "https://3dview.irap.omp.eu/webresources"
 
@@ -73,7 +60,6 @@ class Cdpp3dViewWebservice(DataProvider):
         from speasy.core import fix_name
         from speasy.core.inventory.indexes import make_inventory_node
 
-        # Create root node Trajectories
         trajectory_node = make_inventory_node(
             root,
             SpeasyIndex,
@@ -82,7 +68,6 @@ class Cdpp3dViewWebservice(DataProvider):
             name="Trajectories",
         )
 
-        # Get datas
         bodies = self._get_bodies()
 
         # Group bodies by type (Spacecraft, Comet, ...)
@@ -93,9 +78,7 @@ class Cdpp3dViewWebservice(DataProvider):
                 bodies_by_type[body_type] = []
             bodies_by_type[body_type].append(body)
 
-        # Build inventory hierarchy
         for body_type, bodies_list in bodies_by_type.items():
-            # Create node <body_type>
             type_node = make_inventory_node(
                 trajectory_node,
                 SpeasyIndex,
@@ -105,11 +88,9 @@ class Cdpp3dViewWebservice(DataProvider):
                 description=f"{body_type} bodies"
             )
 
-            # For each body
             for body in bodies_list:
                 body_name = body['name']
 
-                # Create body node
                 make_inventory_node(
                     type_node,
                     ParameterIndex,
@@ -135,11 +116,11 @@ class Cdpp3dViewWebservice(DataProvider):
         # question: move to __init__ ?
         self._frames = self.get_frames()
         if coordinate_frame not in self._frames:
-            execption_msg = (
+            exception_msg = (
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"
                 f"Available frames are: {self._frames}"
             )
-            raise Cdpp3dViewWebException(execption_msg)
+            raise Cdpp3dViewWebException(exception_msg)
 
         var = self._get_trajectory(
             product=product,
@@ -152,9 +133,7 @@ class Cdpp3dViewWebservice(DataProvider):
         )
         return var
 
-    # TODO: add decorators ?
-    # @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
-    # @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=24)
+    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24)
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS
         + CACHE_ALLOWED_KWARGS
@@ -185,13 +164,11 @@ class Cdpp3dViewWebservice(DataProvider):
             f"{self.BASE_URL}/get_trajectory?"
             f"body={body}&frame={coordinate_frame}&"
             f"start={start_date}&stop={stop_date}&"
-            f"&sampling={sampling}&format={format}"
+            f"sampling={sampling}&format={format}"
         )
         headers = {"Accept": "application/json"}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
-        # if extra_http_headers is not None:
-        #     headers.update(extra_http_headers)
         resp = http.get(URL, headers=headers)
         if resp.status_code == 200:
             return self._cdf_codec.load_variable(file=resp.bytes,
@@ -210,7 +187,7 @@ class Cdpp3dViewWebservice(DataProvider):
     @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
     def get_frames(self) -> List[str]:
         URL = f"{self.BASE_URL}/get_frames"
-        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+        with http.urlopen(URL, headers={"Accept": "application/json"}) as response:
             data = response.json()
         frames = [f["name"] for f in data['frames']]
         return frames
@@ -243,7 +220,7 @@ class Cdpp3dViewWebservice(DataProvider):
     def _get_bodies(self):
         URL = f"{self.BASE_URL}/get_bodies"
 
-        with urlopen(URL, headers={"Accept": "application/json"}) as response:
+        with http.urlopen(URL, headers={"Accept": "application/json"}) as response:
             data = response.json()
 
         return data["bodies"]
