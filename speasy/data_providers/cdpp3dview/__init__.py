@@ -189,7 +189,7 @@ class Cdpp3dViewWebservice(DataProvider):
         headers = {}
         if if_newer_than is not None:
             headers["If-Modified-Since"] = if_newer_than.ctime()
-        resp = http.get(URL, headers=headers)
+        resp = http.get(URL, headers=headers, timeout=5*60)
         if resp.status_code == 200:
             return self._cdf_codec.load_variable(file=resp.bytes,
                                                  variable='pos')
