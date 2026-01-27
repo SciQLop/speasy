@@ -65,7 +65,7 @@ class Cdpp3dViewWebservice(DataProvider):
             self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
         )
 
-    def version(self, product):
+    def version(self, product): # NOSONAR (S11172)
         return 1
 
     def _build_frames_list(self):
