@@ -147,7 +147,6 @@ class Cdpp3dViewWebservice(DataProvider):
         )
         return var
 
-    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24)
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS
         + CACHE_ALLOWED_KWARGS
@@ -156,8 +155,7 @@ class Cdpp3dViewWebservice(DataProvider):
     )
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
-    @Cacheable(prefix="3dview_trajectories", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
-    # @Proxyfiable(GetProduct, get_parameter_args_ws)
+    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24)
     def _get_trajectory(
         self,
         product: str,
