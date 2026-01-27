@@ -6,6 +6,7 @@ __author__ = """Richard Hitier"""
 __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
+from datetime import datetime
 import logging
 from typing import List, Optional
 
@@ -30,7 +31,7 @@ from speasy.core.inventory.indexes import (
     SpeasyIndex,
     make_inventory_node,
 )
-from speasy.core.proxy import PROXY_ALLOWED_KWARGS, Proxyfiable
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
 
@@ -45,6 +46,12 @@ def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
     coordinate_frame = kwargs.get('coordinate_frame', 'J2000')
     sampling = kwargs.get('sampling', '600')
     return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
+
+
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+    return {'path': f"cdpp3dview/{product}", 'start_time': f'{start_time.isoformat()}',
+            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_frame', 'J2000'),
+            'sampling': kwargs.get('sampling', '600')}
 
 
 class Cdpp3dViewWebservice(DataProvider):
@@ -156,6 +163,7 @@ class Cdpp3dViewWebservice(DataProvider):
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24)
+    @Proxyfiable(GetProduct, get_parameter_args)
     def _get_trajectory(
         self,
         product: str,
