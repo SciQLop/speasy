@@ -162,7 +162,7 @@ class Cdpp3dViewWebservice(DataProvider):
     )
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
-    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24)
+    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24, entry_name=_make_cache_entry_name)
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_trajectory(
         self,
