@@ -113,22 +113,6 @@ class Cdpp3dViewTest(unittest.TestCase):
     def test_get_data_on_frames(self, kw):
         self._assert_get_data_not_empty(kw)
 
-    @data(*SOME_PRODUCTS)
-    def test_get_data_on_products(self, kw):
-        result = self.cdpp3d.get_data(**kw,
-                                      disable_cache=True,
-                                      disable_proxy=True)
-        self.assertIsNotNone(result)
-        self.assertGreater(len(result), 0)
-
-    @data(*GEOTAIL_FRAMES)
-    def test_get_data_on_frames(self, kw):
-        result = self.cdpp3d.get_data(**kw,
-                                      disable_cache=True,
-                                      disable_proxy=True)
-        self.assertIsNotNone(result)
-        self.assertGreater(len(result), 0)
-
     @data(*GEOTAIL_SAMPLINGS)
     def test_get_data_on_samplings(self, kw):
         result = self.cdpp3d.get_data(**kw,
@@ -182,9 +166,6 @@ class Cdpp3dViewTest(unittest.TestCase):
 class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
     def setUp(self):
         self.cdpp3d = cdpp3dview.Cdpp3dViewWebservice()
-
-    def tearDown(self):
-        pass
 
     @data(
         {
