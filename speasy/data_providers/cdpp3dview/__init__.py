@@ -6,8 +6,8 @@ __author__ = """Richard Hitier"""
 __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import List, Optional
 
 from speasy import SpeasyVariable
@@ -65,7 +65,7 @@ class Cdpp3dViewWebservice(DataProvider):
             self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
         )
 
-    def version(self, product): # NOSONAR (S11172)
+    def version(self, product):  # NOSONAR (S1172)
         return 1
 
     def _build_frames_list(self):
@@ -150,7 +150,7 @@ class Cdpp3dViewWebservice(DataProvider):
             coordinate_frame=coordinate_frame,
             sampling=sampling,
             if_newer_than=if_newer_than,
-            ** kwargs,
+            **kwargs,
         )
         return var
 
@@ -172,7 +172,7 @@ class Cdpp3dViewWebservice(DataProvider):
         coordinate_frame: str,
         sampling: str = "600",
         if_newer_than: Optional[AnyDateTimeType] = None,
-        format="cdf",
+        format: str = "cdf",
         **kwargs,
     ):
         body = self._to_parameter_index(product).spz_name()
