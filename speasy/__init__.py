@@ -9,7 +9,7 @@
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '1.7.1'
-__all__ = ['amda', 'cda', 'ssc', 'csa', 'get_data', 'archive', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
+__all__ = ['amda', 'cda', 'ssc', 'csa', 'cdpp3dview', 'get_data', 'archive', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 
 from typing import List
@@ -18,7 +18,7 @@ from speasy.core.inventory.indexes import SpeasyIndex
 from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
 
 # keep this import last
-from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive, uiowaephtool
+from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive, uiowaephtool, cdpp3dview
 
 
 # @TODO implement me, this function should be able to look inside all servers

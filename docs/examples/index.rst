@@ -23,3 +23,4 @@ Browse example folder on Google Colab:
    ./alfvenic
    ./Filtering
    ./Resampling
+   ./Cdpp3dView
