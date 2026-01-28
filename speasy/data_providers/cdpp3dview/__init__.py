@@ -135,11 +135,15 @@ class Cdpp3dViewWebservice(DataProvider):
         if_newer_than: Optional[AnyDateTimeType] = None,
         **kwargs,
     ) -> Optional[SpeasyVariable]:
-        self._frames = self.get_frames()
-        if coordinate_frame not in self._frames:
+        available_frames = self.get_frames()
+        if not available_frames:
+            log.warning(
+                "No available coordinate frames retrieved from 3dView.")
+            coordinate_frame = "J2000"
+        elif coordinate_frame not in available_frames:
             exception_msg = (
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"
-                f"Available frames are: {self._frames}"
+                f"Available frames are: {available_frames}"
             )
             raise Cdpp3dViewWebException(exception_msg)
 
