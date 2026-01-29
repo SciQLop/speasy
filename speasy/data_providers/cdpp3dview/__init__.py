@@ -13,12 +13,8 @@ from typing import List, Optional
 from speasy import SpeasyVariable
 from speasy.core import fix_name, http
 from speasy.core.algorithms import AllowedKwargs
-from speasy.core.cache._function_cache import CacheCall
-from speasy.core.cache._providers_caches import (
-    CACHE_ALLOWED_KWARGS,
-    Cacheable,
-    UnversionedProviderCache,
-)
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
+
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.dataprovider import (
     GET_DATA_ALLOWED_KWARGS,
@@ -60,10 +56,10 @@ class Cdpp3dViewWebservice(DataProvider):
 
     def __init__(self):
         self._frames: List[str] = []
-        self._cdf_codec = get_codec('application/x-cdf')
         DataProvider.__init__(
-            self, provider_name="cdpp3dview", provider_alt_names=["cdpp3d"]
+            self, provider_name="cdpp3dview", provider_alt_names=["3DView"]
         )
+        self._cdf_codec = get_codec('application/x-cdf')
 
     def version(self, product):  # NOSONAR (S1172)
         return 1
@@ -163,7 +159,7 @@ class Cdpp3dViewWebservice(DataProvider):
         + CACHE_ALLOWED_KWARGS
         + GET_DATA_ALLOWED_KWARGS
         + ["coordinate_frame", "sampling", "if_newer_than", "format"],
-    )
+        )
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24, entry_name=_make_cache_entry_name)
