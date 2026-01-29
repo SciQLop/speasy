@@ -27,7 +27,7 @@ from speasy.core.inventory.indexes import (
     SpeasyIndex,
     make_inventory_node,
 )
-from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable, Version
 from speasy.core.time import EnsureUTCDateTime
 from speasy.core.typing import AnyDateTimeType
 
@@ -49,6 +49,7 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_frame', 'J2000'),
             'sampling': kwargs.get('sampling', '600')}
 
+CDPP3DVIEW_MIN_PROXY_VERSION = Version('0.14.0')
 
 class Cdpp3dViewWebservice(DataProvider):
 
@@ -57,7 +58,8 @@ class Cdpp3dViewWebservice(DataProvider):
     def __init__(self):
         self._frames: List[str] = []
         DataProvider.__init__(
-            self, provider_name="cdpp3dview", provider_alt_names=["3DView"]
+            self, provider_name="cdpp3dview", provider_alt_names=["3DView"],
+            min_proxy_version=CDPP3DVIEW_MIN_PROXY_VERSION
         )
         self._cdf_codec = get_codec('application/x-cdf')
 
@@ -163,7 +165,7 @@ class Cdpp3dViewWebservice(DataProvider):
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24, entry_name=_make_cache_entry_name)
-    @Proxyfiable(GetProduct, get_parameter_args)
+    @Proxyfiable(GetProduct, get_parameter_args, min_version=CDPP3DVIEW_MIN_PROXY_VERSION)
     def _get_trajectory(
         self,
         product: str,
