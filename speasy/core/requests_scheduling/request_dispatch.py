@@ -119,7 +119,7 @@ def init_uiowaephtool(ignore_disabled_status=False):
 
 
 def init_cdpp3dview(ignore_disabled_status=False):
-    _safe_init_provider(Cdpp3dViewWebservice, ['cdpp3dview'],
+    _safe_init_provider(Cdpp3dViewWebservice, ['cdpp3dview', '3DView'],
                         ignore_disabled_status=ignore_disabled_status)
 
 
