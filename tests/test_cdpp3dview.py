@@ -93,11 +93,9 @@ SOME_PRODUCTS = [
 
 @ddt
 class Cdpp3dViewTest(unittest.TestCase):
-    def setUp(self):
-        self.cdpp3d = cdpp3dview.Cdpp3dViewWebservice()
 
     def _assert_get_data_not_empty(self, kw):
-        result = self.cdpp3d.get_data(
+        result = spz.cdpp3dview.get_data(
             **kw,
             disable_cache=True,
             disable_proxy=True,
@@ -115,7 +113,7 @@ class Cdpp3dViewTest(unittest.TestCase):
 
     @data(*GEOTAIL_SAMPLINGS)
     def test_get_data_on_samplings(self, kw):
-        result = self.cdpp3d.get_data(**kw,
+        result = spz.cdpp3dview.get_data(**kw,
                                       disable_cache=True,
                                       disable_proxy=True)
         self.assertIsNotNone(result)
@@ -142,20 +140,20 @@ class Cdpp3dViewTest(unittest.TestCase):
             spz.inventories.tree.cdpp3dview.Trajectories.ASTEROID.Dimorphos, ParameterIndex)
 
     def test_get_frames(self):
-        frames = self.cdpp3d.get_frames()
+        frames = spz.cdpp3dview.get_frames()
         self.assertGreater(len(frames), 0)
         self.assertIn('J2000', frames)
         self.assertIn('GSE', frames)
 
     def test_get_bodies(self):
-        bodies = self.cdpp3d._get_bodies()
+        bodies = spz.cdpp3dview._get_bodies()
         self.assertGreater(len(bodies), 0)
         bodies_names = [b['name'] for b in bodies]
         self.assertIn('GEOTAIL', bodies_names)
         self.assertIn('MEX', bodies_names)
 
     def test_parameter_range(self):
-        param_range = self.cdpp3d.parameter_range('GEOTAIL')
+        param_range = spz.cdpp3dview.parameter_range('GEOTAIL')
         self.assertIsNotNone(param_range)
         self.assertIsInstance(param_range[0], datetime)
         self.assertIsInstance(param_range[1], datetime)
@@ -164,8 +162,6 @@ class Cdpp3dViewTest(unittest.TestCase):
 
 @ddt
 class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
-    def setUp(self):
-        self.cdpp3d = cdpp3dview.Cdpp3dViewWebservice()
 
     @data(
         {
@@ -178,7 +174,7 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
     )
     def test_get_data_wrong_kwarg(self, kw):
         with self.assertRaises(TypeError):
-            self.cdpp3d.get_data(**kw,
+            spz.cdpp3dview.get_data(**kw,
                                  wrong_arg=True,
                                  )
 
@@ -193,7 +189,7 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
     )
     def test_get_data_wrong_frame(self, kw):
         with self.assertRaises(cdpp3dview.Cdpp3dViewWebException):
-            self.cdpp3d.get_data(**kw,
+            spz.cdpp3dview.get_data(**kw,
                                  disable_cache=True,
                                  disable_proxy=True
                                  )
@@ -210,11 +206,11 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
     def test_get_data_off_range(self, kw):
 
         with self.assertLogs(level="WARNING") as cm:
-            data = self.cdpp3d.get_data(**kw,
+            traj = spz.cdpp3dview.get_data(**kw,
                                         disable_cache=True,
                                         disable_proxy=True
                                         )
-        self.assertIsNone(data)
+        self.assertIsNone(traj)
         self.assertIn(
             f"You are requesting {kw.get('product')} outside of its definition range", cm.output[0])
 
