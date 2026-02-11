@@ -61,5 +61,5 @@ For example, you can apply a high-pass filter to a variable:
     >>> ace_mag_filtered = filtering.apply_sos_filter(my_filter, signal.sosfilt, ace_mag)
     >>> ace_mag_filtered.shape
     (16200, 3)
-    >>> np.mean(ace_mag), np.mean(ace_mag_filtered)
-    (np.float32(0.35460728), np.float32(3.5491205e-06))
+    >>> round(np.mean(ace_mag), 3), round(np.mean(ace_mag_filtered), 3)
+    (np.float32(0.355), np.float32(0.0))

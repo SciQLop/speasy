@@ -27,6 +27,9 @@ np.set_printoptions(precision=4)
 src_path = os.path.abspath('..')
 sys.path.insert(0, src_path)
 os.environ['PYTHONPATH'] = src_path
+if "SPEASY_CORE_DISABLED_PROVIDERS" not in os.environ:
+        os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = ""
+
 
 if os.environ.get("READTHEDOCS", "") == "True":
     if "html_context" not in globals():
