@@ -91,6 +91,7 @@ SOME_PRODUCTS = [
 ]
 
 
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}), "cdpp3dview provider not available")
 @ddt
 class Cdpp3dViewTest(unittest.TestCase):
 
@@ -160,6 +161,7 @@ class Cdpp3dViewTest(unittest.TestCase):
         self.assertLess(param_range[0], param_range[1])
 
 
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}), "cdpp3dview provider not available")
 @ddt
 class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
 

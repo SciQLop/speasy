@@ -11,6 +11,7 @@ jobs:
     env:
       SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
       SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
+      SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -61,6 +62,7 @@ jobs:
         SPEASY_INVENTORY_TESTS: ""
         SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
         SPEASY_CORE_HTTP_USER_AGENT: "speasy-test-github-actions"
+        SPEASY_CORE_DISABLED_PROVIDERS: ""
       run: |
         sudo apt update && sudo apt install -y texlive pandoc
         pip install pytest pytest-cov sphinx pandoc
