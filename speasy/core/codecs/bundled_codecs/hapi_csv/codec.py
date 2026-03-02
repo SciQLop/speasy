@@ -53,15 +53,32 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> VariableAxis:
-    _centers = json_bin["centers"]
-    if type(_centers) is str:
-        _hapi_parameter = hap_csv_file.get_parameter(_centers)
-        _variable_axis = VariableAxis(values=_hapi_parameter.values, meta=_hapi_parameter.meta)
-    elif type(_centers) is list:
-        _variable_axis = VariableAxis(values=np.array(_centers), meta={"name": "centers"})
+    centers = json_bin.get("centers")
+    if centers is None:
+        raise ValueError("Invalid bin specification: missing 'centers' field")
+    if isinstance(centers, str):
+        hapi_parameter = hap_csv_file.get_parameter(centers)
+        variable_axis = VariableAxis(values=hapi_parameter.values, meta=hapi_parameter.meta, is_time_dependent=True)
+    elif isinstance(centers, list):
+        try:
+            axis_values = np.array(centers, dtype=float)
+        except ValueError:
+            raise ValueError("Invalid bin specification: 'centers' list must contain numeric values")
+        variable_axis = VariableAxis(values=axis_values, meta={"name": "centers"}, is_time_dependent=False)
     else:
         raise ValueError("Invalid bin specification: 'centers' must be either a string or a list")
-    return _variable_axis
+    return variable_axis
+
+
+def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiCsvFile) -> List[VariableAxis]:
+    axes = []
+    for json_bin in json_bins:
+        try:
+            axis = _bin_to_axis(json_bin, hap_csv_file)
+            axes.append(axis)
+        except ValueError as e:
+            log.warning(f"Skipping invalid bin specification: {e}")
+    return axes
 
 
 def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
@@ -69,10 +86,14 @@ def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[An
     loaded_vars = {}
     for var_name in variables:
         parameter = hapi_csv_file.get_parameter(var_name)
-        if parameter is not None:
-            loaded_vars[var_name] = SpeasyVariable(axes=[time_axis], values=DataContainer(parameter.values,
-                                                                                          meta=_decode_meta(
-                                                                                              parameter.meta)))
+        if parameter is None:
+            continue
+        _axes = [time_axis]
+        if 'bins' in parameter.meta.keys():
+            _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_csv_file))
+        loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
+                                                                                meta=_decode_meta(
+                                                                                parameter.meta)))
     return loaded_vars
 
 
