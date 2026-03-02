@@ -1,10 +1,13 @@
+import os
 import unittest
 
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 
-import os
-from speasy.core.codecs import get_codec, CodecInterface
+from speasy.core.codecs import CodecInterface, get_codec
+from speasy.core.codecs.bundled_codecs.hapi_csv.codec import _bin_to_axis
+from speasy.core.codecs.bundled_codecs.hapi_csv.reader import load_hapi_csv
+from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable
 
 __HERE__ = os.path.dirname(__file__)
@@ -78,3 +81,14 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertEqual(variables['Magnitude'].meta['description'], 'B-field magnitude')
             self.assertEqual(variables['SC_pos_GSE'].unit, 'km')
             self.assertEqual(variables['SC_pos_GSE'].meta['description'], 'ACE s/c position, 3 comp. in GSE coord.')
+
+    @data(
+        ('HAPI_ndData_TimeVarying_Axis.csv', { "centers": "frequency_centers_time_varying" }),
+        ('HAPI_ndData_TimeVarying_Axis.csv', {"centers": [0.1, 0.2, 0.3]})
+    )
+    @unpack
+    def test_bin_to_axis(self, csv_file, json_bin):
+        with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
+            hapi_csv_file = load_hapi_csv(f)
+            axis = _bin_to_axis(json_bin, hapi_csv_file)
+            self.assertIsInstance(axis, VariableAxis)
