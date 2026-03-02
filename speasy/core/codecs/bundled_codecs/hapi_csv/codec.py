@@ -8,6 +8,7 @@ import numpy as np
 from speasy.core.codecs import CodecInterface, register_codec
 from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.cache import CacheCall
+from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
 from speasy.products.variable import same_time_axis
 from .csv_file import HapiCsvFile, HapiCsvParameter
@@ -49,6 +50,18 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     if "units" in meta:
         meta["UNITS"] = meta.pop("units")
     return meta
+
+
+def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> VariableAxis:
+    _centers = json_bin["centers"]
+    if type(_centers) is str:
+        _hapi_parameter = hap_csv_file.get_parameter(_centers)
+        _variable_axis = VariableAxis(values=_hapi_parameter.values, meta=_hapi_parameter.meta)
+    elif type(_centers) is list:
+        _variable_axis = VariableAxis(values=np.array(_centers), meta={"name": "centers"})
+    else:
+        raise ValueError("Invalid bin specification: 'centers' must be either a string or a list")
+    return _variable_axis
 
 
 def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
