@@ -106,3 +106,9 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertEqual(len(axes), len(json_bins))
             for axis in axes:
                 self.assertIsInstance(axis, VariableAxis)
+
+    def test_load_multi_axis_variable(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
+            self.assertIn('spectra_time_dependent_bins', variables)
