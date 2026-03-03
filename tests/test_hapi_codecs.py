@@ -33,8 +33,8 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertEqual(v.meta['description'], description)
 
     @data(
-        ('HAPI_sample_csv.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000Z"), np.datetime64("1997-09-03T23:00:00.000Z")),
-        ('HAPI_sample_csv_multiple_vars.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000Z"), np.datetime64("1997-09-03T23:00:00.000Z"))
+        ('HAPI_sample_csv.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000"), np.datetime64("1997-09-03T23:00:00.000")),
+        ('HAPI_sample_csv_multiple_vars.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000"), np.datetime64("1997-09-03T23:00:00.000"))
     )
     @unpack
     def test_load_time_index(self, fname, var_name, first_value, last_value):
