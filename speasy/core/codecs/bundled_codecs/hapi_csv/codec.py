@@ -98,7 +98,7 @@ def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[An
 
 
 def _make_hapi_csv_parameter(variable: SpeasyVariable) -> HapiCsvParameter:
-    return HapiCsvParameter(values=variable.values.values,
+    return HapiCsvParameter(values=variable.values,
                             meta=_create_meta(variable))
 
 
@@ -113,7 +113,7 @@ def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFil
     if len(variables) == 0:
         raise ValueError("No variables to save")
     hapi_csv_file = HapiCsvFile()
-    hapi_csv_file.add_parameter(_make_hapi_csv_time_axis(variables[0].time))
+    hapi_csv_file.add_parameter(_make_hapi_csv_time_axis(variables[0].axes[0]))
     for var in variables:
         hapi_csv_file.add_parameter(_make_hapi_csv_parameter(var))
     return hapi_csv_file
