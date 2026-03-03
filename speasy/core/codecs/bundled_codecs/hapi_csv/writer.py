@@ -16,10 +16,17 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
             },
             "parameters": [column.meta for column in hapi_csv_file.parameters]
         }
-        dest.write(f'#{json.dumps(headers)}\n')
+        dest.write(f'#{json.dumps(headers)}\n'.encode('utf-8'))
+
     data = {}
     for param in hapi_csv_file.parameters:
-        data[param.name] = param.values
+        vals = param.values
+        if vals.ndim == 1:
+            data[param.name] = vals
+        else:
+            for i in range(vals.shape[1]):
+                data[f"{param.name}_{i}"] = vals[:, i]
+
     df = pds.DataFrame(data)
     df.to_csv(dest, index=False, header=False, date_format='%Y-%m-%dT%H:%M:%S.%fZ', float_format='%.3g')
     return True
