@@ -118,3 +118,12 @@ class TestHapiCsvCodec(unittest.TestCase):
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
             variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
             self.assertIn('ace_epam_de_e', variables)
+
+    def test_speasy_to_csv(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        # with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv'), 'r') as f:
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=['Magnitude'], disable_cache=True)
+            print(variables.values())
+            hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file='test_output.csv')
+            self.assertTrue(hapi_csv_file)
