@@ -92,6 +92,7 @@ def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[An
         if 'bins' in parameter.meta.keys():
             _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_csv_file))
         loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
+                                                                                name=parameter.name,
                                                                                 meta=_decode_meta(
                                                                                 parameter.meta)))
     return loaded_vars
