@@ -1,12 +1,15 @@
 import os
+import tempfile
 import unittest
 
 import numpy as np
 from ddt import data, ddt, unpack
+import pandas as pd
 
+import speasy as spz
 from speasy.core.codecs import CodecInterface, get_codec
 from speasy.core.codecs.bundled_codecs.hapi_csv.codec import _bin_to_axis, _bins_to_axes
-from speasy.core.codecs.bundled_codecs.hapi_csv.reader import load_hapi_csv
+from speasy.core.codecs.bundled_codecs.hapi_csv.reader import _extract_headers, load_hapi_csv
 from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable
 
@@ -127,9 +130,24 @@ class TestHapiCsvCodec(unittest.TestCase):
 
     def test_speasy_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        # with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv'), 'r') as f:
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['Magnitude'], disable_cache=True)
-            print(variables.values())
-            hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file='test_output.csv')
+        var_names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=var_names, disable_cache=True)
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
+            output_csv_file = tmp.name
+            hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
             self.assertTrue(hapi_csv_file)
+            self.assertTrue(os.path.exists(output_csv_file))
+            df = pd.read_csv(output_csv_file, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
+            self.assertEqual(10, df.shape[1])
+            with open(output_csv_file, 'r') as f:
+                headers = _extract_headers(f)
+            csv_names = [p['name'] for p in headers['parameters'][1:]]
+            self.assertListEqual(var_names, csv_names)
+
+
+    def test_spz_getdata_to_csv(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
+        hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file='test_output.csv')
+        self.assertTrue(hapi_csv_file)
