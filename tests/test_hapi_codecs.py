@@ -113,6 +113,12 @@ class TestHapiCsvCodec(unittest.TestCase):
             variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
             self.assertIn('spectra_time_dependent_bins', variables)
 
+    def test_load_variable_name(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=['Magnitude'], disable_cache=True)
+            self.assertEqual(variables['Magnitude'].name, 'Magnitude')
+
     def test_load_time_independant_axis(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
