@@ -16,7 +16,10 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
             },
             "parameters": [column.meta for column in hapi_csv_file.parameters]
         }
-        dest.write(f'#{json.dumps(headers)}\n'.encode('utf-8'))
+        json_str = json.dumps(headers, indent=2)
+        commented = "\n".join("#" + line for line in json_str.splitlines())
+        dest.write((commented + "\n").encode("utf-8"))
+
 
     data = {}
     for param in hapi_csv_file.parameters:
