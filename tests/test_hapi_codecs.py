@@ -110,23 +110,31 @@ class TestHapiCsvCodec(unittest.TestCase):
             for axis in axes:
                 self.assertIsInstance(axis, VariableAxis)
 
-    def test_load_multi_axis_variable(self):
-        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
-            self.assertIn('spectra_time_dependent_bins', variables)
-
     def test_load_variable_name(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv'), 'r') as f:
             variables = hapi_csv_codec.load_variables(file=f, variables=['Magnitude'], disable_cache=True)
             self.assertEqual(variables['Magnitude'].name, 'Magnitude')
 
+    def test_load_time_varying_axis(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
+            self.show_spz_var_axis(variables['spectra_time_dependent_bins'])
+            self.assertIn('spectra_time_dependent_bins', variables)
+
     def test_load_time_independant_axis(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
             variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
             self.assertIn('ace_epam_de_e', variables)
+
+    def test_spz_getdata_to_csv(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
+        hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file='test_output.csv')
+        self.assertTrue(hapi_csv_file)
+
 
     def test_speasy_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
@@ -144,10 +152,3 @@ class TestHapiCsvCodec(unittest.TestCase):
                 headers = _extract_headers(f)
             csv_names = [p['name'] for p in headers['parameters'][1:]]
             self.assertListEqual(var_names, csv_names)
-
-
-    def test_spz_getdata_to_csv(self):
-        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
-        hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file='test_output.csv')
-        self.assertTrue(hapi_csv_file)
