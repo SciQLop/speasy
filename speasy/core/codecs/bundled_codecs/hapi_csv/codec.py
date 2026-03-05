@@ -54,17 +54,24 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
 
 def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> VariableAxis:
     centers = json_bin.get("centers")
+    name = json_bin.get("name", "bin_axis")
     if centers is None:
         raise ValueError("Invalid bin specification: missing 'centers' field")
     if isinstance(centers, str):
         hapi_parameter = hap_csv_file.get_parameter(centers)
-        variable_axis = VariableAxis(values=hapi_parameter.values, meta=hapi_parameter.meta, is_time_dependent=True)
+        variable_axis = VariableAxis(values=hapi_parameter.values,
+                                     meta=hapi_parameter.meta,
+                                     is_time_dependent=True,
+                                     name=name)
     elif isinstance(centers, list):
         try:
             axis_values = np.array(centers, dtype=float)
         except ValueError:
             raise ValueError("Invalid bin specification: 'centers' list must contain numeric values")
-        variable_axis = VariableAxis(values=axis_values, meta={"name": "centers"}, is_time_dependent=False)
+        variable_axis = VariableAxis(values=axis_values,
+                                     meta={"name": "centers"},
+                                     is_time_dependent=False,
+                                     name=name)
     else:
         raise ValueError("Invalid bin specification: 'centers' must be either a string or a list")
     return variable_axis
