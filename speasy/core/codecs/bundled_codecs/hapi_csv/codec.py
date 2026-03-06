@@ -18,6 +18,12 @@ from .reader import load_hapi_csv
 from .writer import save_hapi_csv
 
 
+def _time_dependent_axis_name(ax: VariableAxis) -> str:
+    return f"{ax.name}_centers_time_varying"
+
+def _get_variable_axes(variable: SpeasyVariable, is_time_dependent: bool) -> List[VariableAxis]:
+    return [ax for ax in variable.axes[1:] if ax.is_time_dependent == is_time_dependent]
+
 def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     meta = {
         "name": variable.name,
@@ -44,12 +50,23 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     if  len(variable.values.shape) > 1:
         meta["size"] = variable.values.shape[1:]
 
-    time_independent_axes = [ax for ax in variable.axes[1:] if not ax.is_time_dependent]
+    bins = []
+    time_independent_axes = _get_variable_axes(variable, is_time_dependent=False)
     if time_independent_axes:
-        meta["bins"] = [
-            {"name": ax.name, "units": ax.unit, "centers": ax.values.tolist()}
+        bins.extend([
+            {"name": ax.name, "unit": ax.unit, "centers": ax.values.tolist()}
             for ax in time_independent_axes
-        ]
+        ])
+
+    time_dependent_axes = _get_variable_axes(variable, is_time_dependent=True)
+    if time_dependent_axes:
+        bins.extend([
+            {"name": ax.name, "unit": ax.unit, "centers": _time_dependent_axis_name(ax)}
+            for ax in time_dependent_axes
+        ])
+
+    if bins:
+        meta["bins"] = bins
 
     return meta
 
@@ -67,8 +84,9 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> Variabl
         raise ValueError("Invalid bin specification: missing 'centers' field")
     if isinstance(centers, str):
         hapi_parameter = hap_csv_file.get_parameter(centers)
+        _meta = _decode_meta(hapi_parameter.meta)
         variable_axis = VariableAxis(values=hapi_parameter.values,
-                                     meta=hapi_parameter.meta,
+                                     meta=_meta,
                                      is_time_dependent=True,
                                      name=name)
     elif isinstance(centers, list):
@@ -77,7 +95,7 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> Variabl
         except ValueError:
             raise ValueError("Invalid bin specification: 'centers' list must contain numeric values")
         variable_axis = VariableAxis(values=axis_values,
-                                     meta={"name": "centers"},
+                                     meta={"name": "centers", "UNITS": json_bin.get("units", None)},
                                      is_time_dependent=False,
                                      name=name)
     else:
@@ -122,6 +140,18 @@ def _make_hapi_csv_time_axis(time_axis: VariableTimeAxis) -> HapiCsvParameter:
     return HapiCsvParameter(values=time_axis.values,
                             meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 30, "fill": None})
 
+def _get_hapi_csv_varying_axes(variable: SpeasyVariable) -> List[HapiCsvParameter]:
+    result = []
+    for ax in _get_variable_axes(variable, is_time_dependent=True):
+        meta = {
+            "name": _time_dependent_axis_name(ax),
+            "type": "double",
+            "units": ax.unit,
+            "size": [ax.values.shape[1]]
+        }
+        result.append(HapiCsvParameter(values=ax.values, meta=meta))
+    return result
+
 
 def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFile:
     if not same_time_axis(variables):
@@ -132,6 +162,8 @@ def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFil
     hapi_csv_file.add_parameter(_make_hapi_csv_time_axis(variables[0].axes[0]))
     for var in variables:
         hapi_csv_file.add_parameter(_make_hapi_csv_parameter(var))
+        for hapi_axis_parameter in _get_hapi_csv_varying_axes(var):
+            hapi_csv_file.add_parameter(hapi_axis_parameter) 
     return hapi_csv_file
 
 
