@@ -153,7 +153,7 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertListEqual(var_names, csv_names)
 
 
-    def test_time_independant_axis_to_csv(self):
+    def test_time_independent_axis_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
             variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
@@ -164,3 +164,13 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
 
+    def test_time_varying_axis_to_csv(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
+            self.assertIn('spectra_time_dependent_bins', variables)
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
+            output_csv_file = tmp.name
+            hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
+            self.assertTrue(hapi_csv_file)
+            self.assertTrue(os.path.exists(output_csv_file))
