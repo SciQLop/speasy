@@ -43,6 +43,14 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
 
     if  len(variable.values.shape) > 1:
         meta["size"] = variable.values.shape[1:]
+
+    time_independent_axes = [ax for ax in variable.axes[1:] if not ax.is_time_dependent]
+    if time_independent_axes:
+        meta["bins"] = [
+            {"name": ax.name, "units": ax.unit, "centers": ax.values.tolist()}
+            for ax in time_independent_axes
+        ]
+
     return meta
 
 
