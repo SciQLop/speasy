@@ -9,8 +9,8 @@ import pandas as pd
 
 import speasy as spz
 from speasy.core.codecs import CodecInterface, get_codec
-from speasy.core.codecs.bundled_codecs.hapi_csv.codec import _bin_to_axis, _bins_to_axes
-from speasy.core.codecs.bundled_codecs.hapi_csv.reader import _extract_headers, load_hapi_csv
+import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
+import speasy.core.codecs.bundled_codecs.hapi.binary as hapi_binary
 from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable
 
@@ -93,8 +93,8 @@ class TestHapiCsvCodec(unittest.TestCase):
     @unpack
     def test_bin_to_axis(self, csv_file, json_bin):
         with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
-            hapi_csv_file = load_hapi_csv(f)
-            axis = _bin_to_axis(json_bin, hapi_csv_file)
+            hapi_csv_file = hapi_csv.reader.load_hapi_csv(f)
+            axis = hapi_csv.codec._bin_to_axis(json_bin, hapi_csv_file)
             self.assertIsInstance(axis, VariableAxis)
 
     @data(
@@ -105,8 +105,8 @@ class TestHapiCsvCodec(unittest.TestCase):
     @unpack
     def test_bins_to_axes(self, csv_file, json_bins):
         with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
-            hapi_csv_file = load_hapi_csv(f)
-            axes = _bins_to_axes(json_bins, hapi_csv_file)
+            hapi_csv_file = hapi_csv.reader.load_hapi_csv(f)
+            axes = hapi_csv.codec._bins_to_axes(json_bins, hapi_csv_file)
             self.assertEqual(len(axes), len(json_bins))
             for axis in axes:
                 self.assertIsInstance(axis, VariableAxis)
@@ -151,7 +151,7 @@ class TestHapiCsvCodec(unittest.TestCase):
             df = pd.read_csv(output_csv_file, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
             self.assertEqual(10, df.shape[1])
             with open(output_csv_file, 'r') as f:
-                headers = _extract_headers(f)
+                headers = hapi_csv.reader._extract_headers(f)
             csv_names = [p['name'] for p in headers['parameters'][1:]]
             self.assertListEqual(var_names, csv_names)
 
@@ -186,7 +186,7 @@ class TestHapiCsvCodec(unittest.TestCase):
             hapi_csv_codec.save_variables(variables=list(variables.values()), file=tmp)
             self.assertTrue(os.path.exists(tmp.name))
             with open(tmp.name, 'r') as f:
-                headers = _extract_headers(f)
+                headers = hapi_csv.reader._extract_headers(f)
                 for key in ["HAPI", "startDate", "stopDate", "format", "status", "parameters"]:
                     self.assertIn(key, headers)
 
@@ -203,3 +203,22 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertAlmostEqual(float(df.iloc[0, 0]), float(imf_data.values[0, 0]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 1]), float(imf_data.values[0, 1]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 2]), float(imf_data.values[0, 2]), places=3)
+@ddt
+class TestHapiBinaryCodec(unittest.TestCase):
+
+    @data(
+        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "vector parameter description")
+    )
+    @unpack
+    def test_loads_binary_headers(self, fname, var_name, unit, description):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        with open(os.path.join(__HERE__, 'resources', fname), 'br') as f:
+            headers = hapi_binary.reader._extract_headers(f)
+            time_param = headers['parameters'][0]
+            self.assertEqual(time_param['units'], 'UTC')
+            self.assertEqual(time_param['type'], 'isotime') 
+            self.assertEqual(time_param['length'], 24)
+            vector_param = headers['parameters'][1]
+            self.assertEqual(vector_param['name'], var_name)
+            self.assertEqual(vector_param['units'], unit)
+            self.assertEqual(vector_param['description'], 'vector parameter description')
