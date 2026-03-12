@@ -4,7 +4,7 @@ SciPy compatibility
 .. toctree::
    :maxdepth: 1
 
-Speasy wraps few `scipy <https://www.scipy.org/>`_ functions to provide additional functionalities such as interpolation, filtering and resampling. You can use these functions on Speasy variables.
+Speasy wraps a few `scipy <https://www.scipy.org/>`_ functions to provide interpolation, filtering, and resampling capabilities for Speasy variables.
 
 Interpolation
 -------------

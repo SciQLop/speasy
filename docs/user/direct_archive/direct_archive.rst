@@ -14,9 +14,9 @@ ensures compatibility and smooth data access.
 
 This module supports both regularly split files (one file per day for example) and randomly split files such as burst data.
 
-To add your favourite products into Speasy, you need to add or edit an yaml file either located in Speasy lookup
-path, default user lookup path can be retrieved with ``spz.data_providers.generic_archive.user_inventory_dir()``. You need to
-add an entry per dataset with the following information:
+To add your own products to Speasy, create or edit a YAML file in Speasy's user inventory directory.
+You can find this directory with ``spz.data_providers.generic_archive.user_inventory_dir()``.
+Each dataset requires one entry in the YAML file with the following information:
 
 - For a regularly split dataset, you can configure it using the following YAML structure:
 
@@ -30,13 +30,14 @@ add an entry per dataset with the following information:
       url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/efi/{Y}/tha_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
       use_file_list: true
 
-Here's an explanation of the parameters::
-    - **tha_efi**: The name you want to assign to your dataset.
-    - **inventory_path:**: The desired inventory path for your dataset. In this example, it can be found in ``spz.inventories.data_tree.archive.cdpp.THEMIS.THA.L2.tha_efi``.
-    - **master_cdf:**: The URL or path to download a master CDF or any sample CDF for this dataset. Speasy requires it to complete the inventory with the dataset's `data variables <https://spdf.gsfc.nasa.gov/istp_guide/variables.html#Data>`_. It is recommended to use master CDFs as they contain sufficient information while being smaller in size.
-    - **split_frequency:**: The frequency at which your dataset is split. For example, if you have one file per day, month, or year. Allowed values are *daily*, *monthly*, *yearly*.
-    - **url_pattern:**: The URL pattern to access each file. When requesting data within a specific interval, Speasy utilizes the *split_frequency* to determine the number of files to download and replaces the date/time information accordingly. It uses python *{}* format syntax, and available date/time placeholders are year (**Y**), month (**M**) and day (**D**) are available. You can also utilize Python regular expressions if you are unable to predict certain parts of the file name, such as the file version, but you have set *use_file_list* to true.
-    - **use_file_list:**: If set to true, Speasy lists the files in the specified directory after generating the URL based on the *url_pattern*. It then selects the last matching file.
+Parameters:
+
+- **tha_efi** — the name you want to assign to your dataset.
+- **inventory_path** — the desired inventory path. In this example, the product will appear at ``spz.inventories.data_tree.archive.cdpp.THEMIS.THA.L2.tha_efi``.
+- **master_cdf** — URL or path to a master CDF (or any sample CDF). Speasy needs it to discover the dataset's `data variables <https://spdf.gsfc.nasa.gov/istp_guide/variables.html#Data>`_. Master CDFs are preferred because they are smaller.
+- **split_frequency** — how often files are split: ``daily``, ``monthly``, or ``yearly``.
+- **url_pattern** — URL pattern to access each file. Uses Python ``{}`` format syntax with placeholders: **Y** (year), **M** (month), **D** (day). You can include Python regular expressions for unpredictable parts (e.g. file version) when *use_file_list* is ``true``.
+- **use_file_list** — if ``true``, Speasy lists files in the directory matching the *url_pattern* and selects the last match. Required when the URL contains regex patterns.
 
 - For a randomly split dataset, you can configure it using the following YAML structure:
 
@@ -51,17 +52,15 @@ Here's an explanation of the parameters::
         split_frequency: "monthly"
         fname_regex: 'mms2_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
 
-Here's an explanation of the parameters::
-    - **mms2_fpi_brst_l2_des_moms**: The name you want to assign to your dataset.
-    - **inventory_path:**: The desired inventory path for your dataset. In this example, it can be found in ``spz.inventories.data_tree.archive.cda.MMS.MMS2.FPI.BURST.MOMS.mms2_fpi_brst_l2_des_moms``.
-    - **master_cdf:**: The URL or path to download a master CDF or any sample CDF for this dataset. Speasy requires it to complete the inventory with the dataset's `data variables <https://spdf.gsfc.nasa.gov/istp_guide/variables.html#Data>`_. It is recommended to use master CDFs as they contain sufficient information while being smaller in size.
-    - **split_frequency:**: The frequency at which folders are is split for this dataset. For example, if you have one folder per day, month, or year. Allowed values are *daily*, *monthly*, *yearly*.
-    - **url_pattern:**: The URL pattern to access files covering the current time range. When requesting data within a specific interval, Speasy utilizes the *split_frequency* to determine the number of folders to scan and replaces the date/time information accordingly. It uses python *{}* format syntax, and available date/time placeholders are year (**Y**), month (**M**) and day (**D**) are available. With randomly split datasets, it is important to ensure that the URL pattern includes the fixed and deterministic parts and rely on the **fname_regex** field to match files that cover the requested time range.
-    - **use_file_list:**: If set to true, Speasy lists the files in the specified directory after generating the URL based on the *url_pattern*. It then selects the last matching file.
-    - **fname_regex**: This regular expression is used to extract information such as the start date, stop date, and file version from the file names. It follows Python's regular expression syntax and captures specific groups. The expected or supported groups are:
-        - `start`: Start date, it should be parsable by ``dateutil.parser.parse`` (mandatory)
-        - `stop`: Stop date, same as start date (optional)
-        - `version`: Dataset version (optional)
+The parameters are the same as for regularly split datasets, with these differences:
+
+- **split_frequency** — for randomly split datasets, this controls the folder granularity (how often folders change), not file granularity.
+- **url_pattern** — should cover the fixed, deterministic parts of the URL. The ``fname_regex`` field handles matching individual files within each folder.
+- **fname_regex** — a Python regular expression to extract metadata from file names. Supported named groups:
+
+  - ``start`` — start date, must be parsable by ``dateutil.parser.parse`` (mandatory)
+  - ``stop`` — stop date (optional)
+  - ``version`` — dataset version (optional)
 
 
 Custom file format support (advanced users)

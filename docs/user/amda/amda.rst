@@ -4,9 +4,10 @@ Automated Multi-Dataset Analysis (AMDA)
 .. toctree::
    :maxdepth: 1
 
-`AMDA <http://amda.irap.omp.eu/>`__ is one of the main data providers handled by speasy. All products are either available using directly the AMDA module or using :meth:`speasy.get_data()`.
-:meth:`speasy.get_data()` usage should be preferred over AMDA module methods since it is more flexible and it's interface is guaranteed to be more stable.
-The following documentation will focus on AMDA module specific usage.
+`AMDA <http://amda.irap.omp.eu/>`__ is one of the main data providers handled by Speasy. All products are available either
+through the AMDA module directly or through :meth:`speasy.get_data()`.
+Using :meth:`speasy.get_data()` should be preferred over AMDA module methods since it is more flexible and its interface is guaranteed to be more stable.
+The following documentation focuses on AMDA module specific usage.
 
 
 Basics: Getting data from AMDA
@@ -66,8 +67,8 @@ Then simply:
     >>> len(mms4_fgm_btot.time)
     57600
 
-2. Second scenario, your are not much familiar with AMDA, then you can simply browse speasy dynamic inventory. In
-the following example, we alias AMDA data tree as amdatree, note that Python completion works and you will be able to discover
+2. Second scenario, you are not familiar with AMDA. You can browse Speasy's dynamic inventory instead. In
+the following example, we alias AMDA's data tree as ``amdatree``. Tab-completion works, so you can discover
 AMDA products directly from your Python terminal or notebook:
 
     >>> import speasy as spz
@@ -204,9 +205,9 @@ Once we have magnetic field measurements inside each cloud, we will as an exampl
     >>> plt.legend() # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
     >>> # Now let's get MFI data for each cloud
-    >>> b_mfi_coulds = spz.get_data(amda_parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag, Magnetic_Clouds)
+    >>> b_mfi_clouds = spz.get_data(amda_parameters.Wind.MFI.wnd_mfi_kp.wnd_bmag, Magnetic_Clouds)
     >>> # compute mean of B for each cloud and ignore NaNs
-    >>> b_mean_mfi_clouds = [ np.nanmean(cloud.values) for cloud in b_mfi_coulds ]
+    >>> b_mean_mfi_clouds = [ np.nanmean(cloud.values) for cloud in b_mfi_clouds ]
     >>> plt.hist(b_mean_mfi_clouds, label="B mean in Magnetic Clouds (nT)") # doctest: +SKIP
     >>> plt.legend() # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
@@ -230,8 +231,8 @@ Advanced: AMDA module configuration options
 AMDA user login
 ^^^^^^^^^^^^^^^
 
-Most AMDA features are available without login except user created product from web user interface. You can configure
-speasy to store your AMDA login, from your favourite python terminal:
+Most AMDA features are available without login, except for user-created products from the AMDA web interface. You can configure
+Speasy to store your AMDA credentials:
 
     >>> from speasy import config
     >>> config.amda.username.set('my_username') # doctest: +SKIP
@@ -241,7 +242,7 @@ speasy to store your AMDA login, from your favourite python terminal:
     ('my_username', 'my_password')
 
 
-Then if you correctly typed your login you should be able to list and get user products:
+Once configured, you can list and get user products:
 
     >>> from speasy import amda
     >>> # list user products
@@ -259,12 +260,10 @@ Then if you correctly typed your login you should be able to list and get user p
 AMDA cache retention
 ^^^^^^^^^^^^^^^^^^^^
 
-While parameter download cache is not configurable and relies on product version to decide if local data is up to date
-compared to remote data. Requests like catalogs or time-tables download have a different dedicated cache
-based on duration, by default they will be cached for 15 minutes. As a consequence if a time-table has changed on AMDA servers
-it might take up to the configured duration to see it.
-This cache has been designed with interactive usage of speasy in mind where we want to minimize penalty of running
-multiple times the same command/line in a short amount of time.
+Parameter downloads rely on product version to decide if local data is up to date compared to remote data.
+Catalogs and timetables use a different time-based cache: by default they are cached for 15 minutes.
+If a timetable or catalog has changed on AMDA servers, it may take up to the configured duration before the update is visible.
+This cache is designed for interactive usage where you may run the same command multiple times in a short amount of time.
 
 To change this cache duration value:
 
