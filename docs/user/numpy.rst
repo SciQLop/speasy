@@ -1,16 +1,18 @@
-Numpy compatibility
+NumPy compatibility
 ===================
 
 .. toctree::
    :maxdepth: 1
 
-
-Speasy is compatible with `numpy <https://numpy.org/>`_ and uses it internally to perform various operations. You can also pass Speasy variables to most numpy functions.
+``SpeasyVariable`` objects behave like NumPy arrays: you can use arithmetic operators, pass them to NumPy functions,
+and index them with boolean masks or integer arrays. The result is always a ``SpeasyVariable`` when the shape
+allows it (i.e. when the time axis is preserved), and a scalar or plain array otherwise.
 
 Arithmetic operations
 ---------------------
 
-For example, you can perform arithmetic operations on Speasy variables:
+Standard arithmetic operators (``+``, ``-``, ``*``, ``/``, ``**``) work directly on Speasy variables
+and return a new ``SpeasyVariable`` with the same time axis:
 
     >>> import speasy as spz
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
@@ -19,12 +21,12 @@ For example, you can perform arithmetic operations on Speasy variables:
     <class 'speasy.products.variable.SpeasyVariable'>
 
 
-Numpy functions
+NumPy functions
 ---------------
 
-You can also use numpy functions on Speasy variables, depending on the function, the result will be a Speasy variable or a scalar value:
+Most NumPy functions accept Speasy variables directly.
 
-In the following example, np.mean and np.std return scalar values:
+**Reduction functions** (like ``np.mean``, ``np.std``) collapse the data and return scalar values:
 
     >>> import speasy as spz
     >>> import numpy as np
@@ -35,7 +37,7 @@ In the following example, np.mean and np.std return scalar values:
     >>> np.std(ace_mag) / np.std(mag_divided_offset)
     np.float32(3.0)
 
-In the following example, np.linalg.norm returns a Speasy variable with the same number of rows as the input variable:
+**Per-row functions** (like ``np.linalg.norm`` with ``axis=1``) preserve the time axis and return a ``SpeasyVariable``:
 
     >>> import speasy as spz
     >>> import numpy as np
@@ -49,10 +51,10 @@ In the following example, np.linalg.norm returns a Speasy variable with the same
     (16200, 1)
 
 
-Indexing
---------
+Indexing and slicing
+--------------------
 
-Speasy variables support several indexing methods, including boolean indexing:
+**Boolean indexing** — select rows where a condition is true across all columns:
 
     >>> import speasy as spz
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
@@ -61,7 +63,7 @@ Speasy variables support several indexing methods, including boolean indexing:
     >>> ace_mag[ace_mag > 0].shape, ace_mag.shape
     ((1157, 3), (16200, 3))
 
-You can also use integer indexing as with :meth:`numpy.where(...) <numpy.where>`:
+**Integer indexing** with ``np.where``:
 
     >>> import numpy as np
     >>> import speasy as spz
@@ -70,3 +72,36 @@ You can also use integer indexing as with :meth:`numpy.where(...) <numpy.where>`
     <speasy.products.variable.SpeasyVariable object at ...>
     >>> ace_mag[np.where(ace_mag>0)].shape, ace_mag.shape
     ((1157, 3), (16200, 3))
+
+**Column selection** — select one or more columns by name:
+
+    >>> import speasy as spz
+    >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+    >>> ace_mag.columns
+    ['bx', 'by', 'bz']
+    >>> bx = ace_mag["bx"]
+    >>> bx.shape
+    (16200, 1)
+
+**Time slicing** — slice by ``np.datetime64`` or ``datetime`` objects:
+
+    >>> import speasy as spz
+    >>> import numpy as np
+    >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+    >>> one_hour = ace_mag[np.datetime64("2016-06-02"):np.datetime64("2016-06-02T01:00:00")]
+    >>> one_hour.shape[0] < ace_mag.shape[0]
+    True
+
+
+Pandas conversion
+-----------------
+
+You can convert a ``SpeasyVariable`` to a Pandas ``DataFrame`` and back:
+
+    >>> import speasy as spz
+    >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+    >>> df = ace_mag.to_dataframe()
+    >>> type(df)
+    <class 'pandas.core.frame.DataFrame'>
+    >>> df.shape
+    (16200, 3)
