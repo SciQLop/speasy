@@ -24,6 +24,14 @@ def _time_dependent_axis_name(ax: VariableAxis) -> str:
 def _get_variable_axes(variable: SpeasyVariable, is_time_dependent: bool) -> List[VariableAxis]:
     return [ax for ax in variable.axes[1:] if ax.is_time_dependent == is_time_dependent]
 
+def _numpy_dtype_to_hapi_type(dtype: np.dtype) -> str:
+    if  np.issubdtype(dtype, np.integer):
+        return "int"
+    elif np.issubdtype(dtype, np.floating):
+        return "double"
+    else:
+        raise ValueError(f"Unsupported data type {dtype}")
+
 def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     meta = {
         "name": variable.name,
@@ -31,12 +39,7 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
         "fill": variable.fill_value,
         "description": variable.meta.get("description", "")
     }
-    if  np.issubdtype(variable.values.dtype, np.integer):
-        meta["type"] = "int"
-    elif np.issubdtype(variable.values.dtype, np.floating):
-        meta["type"] = "double"
-    else:
-        raise ValueError(f"Unsupported data type {variable.values.dtype}")
+    meta["type"] = _numpy_dtype_to_hapi_type(variable.values.dtype)
 
     labels  =  variable.columns
     if labels is not None and len(labels) > 0:
@@ -54,14 +57,14 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     time_independent_axes = _get_variable_axes(variable, is_time_dependent=False)
     if time_independent_axes:
         bins.extend([
-            {"name": ax.name, "unit": ax.unit, "centers": ax.values.tolist()}
+            {"name": ax.name, "units": ax.unit, "centers": ax.values.tolist()}
             for ax in time_independent_axes
         ])
 
     time_dependent_axes = _get_variable_axes(variable, is_time_dependent=True)
     if time_dependent_axes:
         bins.extend([
-            {"name": ax.name, "unit": ax.unit, "centers": _time_dependent_axis_name(ax)}
+            {"name": ax.name, "units": ax.unit, "centers": _time_dependent_axis_name(ax)}
             for ax in time_dependent_axes
         ])
 
@@ -137,18 +140,20 @@ def _make_hapi_csv_parameter(variable: SpeasyVariable) -> HapiCsvParameter:
 
 
 def _make_hapi_csv_time_axis(time_axis: VariableTimeAxis) -> HapiCsvParameter:
-    return HapiCsvParameter(values=time_axis.values,
+    return HapiCsvParameter(values=time_axis,
                             meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 30, "fill": None})
 
 def _get_hapi_csv_varying_axes(variable: SpeasyVariable) -> List[HapiCsvParameter]:
     result = []
     for ax in _get_variable_axes(variable, is_time_dependent=True):
+        # VariableTimeAxis has member 'unit' not 'units'
+        # but HAPICSVParameter expects 'units' in meta
         meta = {
             "name": _time_dependent_axis_name(ax),
-            "type": "double",
             "units": ax.unit,
             "size": [ax.values.shape[1]]
         }
+        meta["type"] = _numpy_dtype_to_hapi_type(ax.values.dtype)
         result.append(HapiCsvParameter(values=ax.values, meta=meta))
     return result
 
@@ -159,7 +164,7 @@ def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFil
     if len(variables) == 0:
         raise ValueError("No variables to save")
     hapi_csv_file = HapiCsvFile()
-    hapi_csv_file.add_parameter(_make_hapi_csv_time_axis(variables[0].axes[0]))
+    hapi_csv_file.add_parameter(_make_hapi_csv_time_axis(variables[0].time))
     for var in variables:
         hapi_csv_file.add_parameter(_make_hapi_csv_parameter(var))
         for hapi_axis_parameter in _get_hapi_csv_varying_axes(var):
