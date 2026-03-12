@@ -5,14 +5,14 @@ Satellite Situation Center (SSCWeb)
    :maxdepth: 1
 
 
-`SSCWeb <https://sscweb.gsfc.nasa.gov/>`_ provides trajectories for our solar system space objects such as planets, moons and spacecrafts
-in different coordinate systems. It's integration into speasy makes easy to get any available object trajectory on any time range.
+`SSCWeb <https://sscweb.gsfc.nasa.gov/>`_ provides trajectories for solar system objects such as planets, moons, and spacecraft
+in different coordinate systems. Its integration into Speasy makes it easy to get any available trajectory for any time range.
 
 Basics: Getting data from SSCWeb module
 ---------------------------------------
 
-First you need to ensure that the trajectory you want to get is available with this module. The easiest solution is use
-speasy dynamic inventory so you will always get an up to date inventory:
+First, check that the trajectory you want is available. The easiest way is to browse
+Speasy's dynamic inventory, which is always up to date:
 
     >>> import speasy as spz
     >>> # Let's only print the first 10 objects
@@ -21,10 +21,9 @@ speasy dynamic inventory so you will always get an up to date inventory:
 
 Note that you can also use your python terminal completion and browse `spz.inventories.data_tree.ssc.Trajectories` to find
 your trajectory.
-Once you have found your trajectory, you may also want to chose in which coordinates system your data will be downloaded.
-The following coordinates systems are available: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**.
-By default **gse** is used.
-Now you can get your trajectory:
+Once you have found your trajectory, you can choose the coordinate system for the download.
+Available coordinate systems: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**.
+The default is **gse**.
 
     >>> import speasy as spz
     >>> # Let's assume you wanted to get MMS1 trajectory

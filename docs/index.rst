@@ -49,7 +49,7 @@ Space Physics made EASY
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg
    :target: https://doi.org/10.5281/zenodo.4118780
-   :alt: Zendoo DOI
+   :alt: Zenodo DOI
 
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples
@@ -61,10 +61,10 @@ Space Physics made EASY
 
 
 Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
-data sources, whether it is online and public such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`__ and `AMDA <http://amda.irap.omp.eu/>`__,
-or any described archive, local or remote.
-This task, where any science project starts, would seem easy a priori but, considering the very
-diverse array of missions and instrument nowaday available, proves to be one of the major bottleneck,
+data sources, whether online and public such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`__ and `AMDA <http://amda.irap.omp.eu/>`__,
+or any local or remote archive.
+Finding and loading data is where any science project starts. It would seem easy a priori but, considering the
+diverse array of missions and instruments available nowadays, it proves to be one of the major bottlenecks,
 especially for students and newcomers.
 Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
 
@@ -92,9 +92,9 @@ Getting data is as simple as:
    :width: 49%
    :alt: ACE IMF data
 
-Where amda is the webservice and imf is the product id you will get with this request.
+Where ``amda`` is the data provider and ``imf`` is the product ID.
 
-Using the dynamic inventory this can be even simpler:
+Using the dynamic inventory, this can be even more discoverable:
 
 .. code-block:: python
 
@@ -102,8 +102,8 @@ Using the dynamic inventory this can be even simpler:
     amda_tree = spz.inventories.data_tree.amda
     ace_mag = spz.get_data(amda_tree.Parameters.ACE.MFI.ace_imf_all.imf, "2016-6-2", "2016-6-5")
 
-Will produce the exact same result than previous example but has the advantage to be easier to manipulate since you can
-discover available data from your favourite Python environment completion such as IPython or notebooks (might not work from IDEs).
+This produces the same result as the previous example but lets you discover available data
+through tab-completion in IPython, Jupyter notebooks, or any Python environment that supports it.
 
 This also works with `SSCWEB <https://sscweb.gsfc.nasa.gov/>`__, you can easily download trajectories:
 
@@ -140,8 +140,8 @@ Features
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`__ API
 - Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__, `CSA <https://csa.esac.esa.int/csa-web/>`__, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__
-- Can retrieve any data from any local or remote archive with a `simple configuration file <user/direct_archive/direct_archive>`__
-- Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
+- Can retrieve data from any local or remote archive with a :doc:`simple configuration file <user/direct_archive/direct_archive>`
+- Also available as `Speasy.jl <https://github.com/SciQLop/Speasy.jl>`__ for Julia users
 
 Examples
 ========

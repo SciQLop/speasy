@@ -5,8 +5,8 @@ CDPP 3DView Data Provider
    :maxdepth: 1
 
 
-`CDPP 3DView <https://3dview.irap.omp.eu/>`_ provides planets, spacecrafts and comets trajectories in different
-coordinate systems. Its integration into speasy makes easy to get trajectory data for various missions
+`CDPP 3DView <https://3dview.irap.omp.eu/>`_ provides planet, spacecraft, and comet trajectories in different
+coordinate systems. Its integration into Speasy makes it easy to get trajectory data for various missions
 on any time range.
 
 Basics: Getting data from Cdpp3dView module

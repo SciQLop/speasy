@@ -88,7 +88,7 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     $ make lint
     $ make test-all # it will run all tests and run code examples in the docs
 
-    Alternatively, if just want to run quick tests for the current Python version, run::
+    Alternatively, if you just want to run quick tests for the current Python version::
 
     $ make test
     $ make doctest
@@ -110,7 +110,7 @@ Before you submit a pull request, check that it meets these guidelines:
 1. The pull request should include tests.
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
-   feature to the list in README.rst.
+   feature to the list in README.md.
 3. The pull request should work for Python from 3.10 to 3.14. Check
    https://github.com/SciQLop/speasy/actions
    and make sure that the tests pass for all supported Python versions.

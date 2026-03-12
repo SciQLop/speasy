@@ -1,13 +1,16 @@
 Configuration
 =============
 
-Speasy is configured using the config module or setting environment variables or editing an ini file.
-The default location can be found by running:
+Speasy can be configured through the ``config`` module, environment variables, or by editing an INI file directly.
+
+The configuration file is an INI file located in your platform's user config directory under ``speasy/LPP/config.ini``
+(e.g. ``~/.config/speasy/LPP/config.ini`` on Linux, ``~/Library/Application Support/speasy/LPP/config.ini`` on macOS).
+You can also find the exact path programmatically:
 
     >>> import speasy as spz
     >>> print(spz.config.SPEASY_CONFIG_FILE) # doctest: +SKIP
 
-Speasy current configuration can be displayed by running:
+To display the current configuration:
 
     >>> import speasy as spz
     >>> spz.config.show() # doctest: +SKIP
@@ -22,7 +25,7 @@ Disabling data providers
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes you may want to disable some data providers either to speed up Speasy import or because you don't need them.
-This can be done by adding the provider name to the `disabled_providers` list in the configuration file.
+This can be done by adding the provider name to the ``disabled_providers`` list in the configuration file.
 
 For example, to disable AMDA and CDAWeb, add the following to the configuration file:
 
@@ -39,7 +42,8 @@ Or from Python:
 Cache section
 -------------
 
-You can configure the cache location and maximum size by editing the `cache` section of the configuration file.
+You can configure the cache location and maximum size (in bytes) by editing the ``cache`` section of the configuration file.
+The default maximum cache size is 20 GB (20e9 bytes).
 
 .. code-block:: ini
 
@@ -56,5 +60,4 @@ Or from Python:
 Connecting behind an HTTP proxy
 --------------------------------
 
-If you are behind an HTTP proxy, Speasy will automatically use the HTTP_PROXY environment variable.
-Note that you won't be able to access the CSA database until https://github.com/astropy/astroquery/issues/3228 is resolved.
+Speasy automatically uses the ``HTTP_PROXY`` and ``HTTPS_PROXY`` environment variables if they are set.
