@@ -122,7 +122,7 @@ class TestHapiCsvCodec(unittest.TestCase):
             variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
             self.assertIn('spectra_time_dependent_bins', variables)
 
-    def test_load_time_independant_axis(self):
+    def test_load_time_independent_axis(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
             variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
@@ -131,8 +131,11 @@ class TestHapiCsvCodec(unittest.TestCase):
     def test_spz_getdata_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
-        hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file='test_output.csv')
-        self.assertTrue(hapi_csv_file)
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
+            output_csv_file = tmp.name
+            hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file=output_csv_file)
+            self.assertTrue(hapi_csv_file)
+            self.assertTrue(os.path.exists(output_csv_file))
 
 
     def test_speasy_to_csv(self):
