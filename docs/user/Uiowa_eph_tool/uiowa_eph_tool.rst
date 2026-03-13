@@ -5,8 +5,8 @@ University of Iowa Cassini Ephemeris Tool
    :maxdepth: 1
 
 
-`UiowaEphTool <https://space.physics.uiowa.edu/~jbg/cas.html>`_ provides trajectories for Cassini, Ulysses, Voyager 1 and Voyager 2 spacecrafts
-in different coordinate systems. It's integration into speasy makes easy to get any available object trajectory on any time range.
+`UiowaEphTool <https://space.physics.uiowa.edu/~jbg/cas.html>`_ provides trajectories for Cassini, Ulysses, Voyager 1, and Voyager 2
+in different coordinate systems. Its integration into Speasy makes it easy to get any available trajectory for any time range.
 
 Basics: Getting data from UiowaEphTool module
 ---------------------------------------------
