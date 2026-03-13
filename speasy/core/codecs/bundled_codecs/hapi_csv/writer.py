@@ -7,9 +7,16 @@ import pandas as pds
 
 
 def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bool:
+    np_start_date = hapi_csv_file.time_axis[0]
+    np_stop_date = hapi_csv_file.time_axis[-1]
+    start_date  = np_start_date.astype("datetime64[us]").astype("O")
+    stop_date = np_stop_date.astype("datetime64[us]").astype("O")
     if with_headers:
         headers = {
             "HAPI": "3.2",
+            "startDate": start_date.isoformat() + "Z",
+            "stopDate": stop_date.isoformat() + "Z",
+            "format": "csv",
             "status": {
                 "code": 1200,
                 "message": "OK request successful"
@@ -17,7 +24,6 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
             "parameters": [column.meta for column in hapi_csv_file.parameters]
         }
         dest.write(("#" + json.dumps(headers) + "\n").encode("utf-8"))
-
 
     data = {}
     for param in hapi_csv_file.parameters:
@@ -33,9 +39,6 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
     return True
 
 
-
-
-
 def save_hapi_csv(hapi_csv_file: HapiCsvFile, file: Optional[Union[str, io.IOBase]] = None) -> Union[bool, Buffer]:
     if type(file) is str:
         with open(file, 'wb') as f:
@@ -47,5 +50,3 @@ def save_hapi_csv(hapi_csv_file: HapiCsvFile, file: Optional[Union[str, io.IOBas
         _to_csv(hapi_csv_file, buff)
         return buff.getvalue()
     raise ValueError("Invalid file type")
-
-

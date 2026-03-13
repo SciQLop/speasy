@@ -1,6 +1,6 @@
 #{
 #  "startDate": "1997-08-30T17:01:00Z",
-#  "stopDate": "2025-09-18T23:54:00Z",
+#  "stopDate": "1997-08-30T18:40:00Z",
 #  "cadence": "PT5M",
 #  "description": "ACE Electron Proton Alpha Monitor (EPAM) 5-min Level 2 Data<br/> Sampling: 5M<br/> Provider: CDAWeb",
 #  "resourceID": "spase://CNES/NumericalData/CDPP-AMDA/ACE/EPAM/ace-epam-de",
