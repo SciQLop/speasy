@@ -35,7 +35,7 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
                 data[f"{param.name}_{i}"] = vals[:, i]
 
     df = pds.DataFrame(data)
-    df.to_csv(dest, index=False, header=False, date_format='%Y-%m-%dT%H:%M:%S.%fZ', float_format='%.3g')
+    df.to_csv(dest, index=False, header=False, date_format='%Y-%m-%dT%H:%M:%S.%fZ', float_format='%.7g')
     return True
 
 
