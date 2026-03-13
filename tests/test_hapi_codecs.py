@@ -189,3 +189,17 @@ class TestHapiCsvCodec(unittest.TestCase):
                 headers = _extract_headers(f)
                 for key in ["HAPI", "startDate", "stopDate", "format", "status", "parameters"]:
                     self.assertIn(key, headers)
+
+    def test_hapi_csv_precision(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        imf_data = spz.get_data(
+            spz.inventories.tree.amda.Parameters.ACE.MFI.ace_imf_all.imf,
+            "2008-01-01",
+            "2008-01-02",
+        )
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
+            hapi_csv_codec.save_variables(variables=[imf_data], file=tmp)
+            df = pd.read_csv(tmp.name, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
+            self.assertAlmostEqual(float(df.iloc[0, 0]), float(imf_data.values[0, 0]), places=3)
+            self.assertAlmostEqual(float(df.iloc[0, 1]), float(imf_data.values[0, 1]), places=3)
+            self.assertAlmostEqual(float(df.iloc[0, 2]), float(imf_data.values[0, 2]), places=3)
