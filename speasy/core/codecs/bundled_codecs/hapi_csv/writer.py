@@ -39,14 +39,14 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
     return True
 
 
-def save_hapi_csv(hapi_csv_file: HapiCsvFile, file: Optional[Union[str, io.IOBase]] = None) -> Union[bool, Buffer]:
+def save_hapi_csv(hapi_csv_file: HapiCsvFile, file: Optional[Union[str, io.IOBase]] = None, with_headers: bool = True) -> Union[bool, Buffer]:
     if type(file) is str:
         with open(file, 'wb') as f:
-            return _to_csv(hapi_csv_file, f)
+            return _to_csv(hapi_csv_file, f, with_headers=with_headers)
     elif hasattr(file, 'write'):
-        return _to_csv(hapi_csv_file, file)
+        return _to_csv(hapi_csv_file, file, with_headers=with_headers)
     elif file is None:
         buff = io.BytesIO()
-        _to_csv(hapi_csv_file, buff)
+        _to_csv(hapi_csv_file, buff, with_headers=with_headers)
         return buff.getvalue()
     raise ValueError("Invalid file type")
