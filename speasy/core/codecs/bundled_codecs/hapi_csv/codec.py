@@ -197,7 +197,7 @@ class HapiCsv(CodecInterface):
                        **kwargs
                        ) -> Union[bool, Buffer]:
         hapi_csv_file = _speasy_variables_to_hapi_csv(variables)
-        return save_hapi_csv(hapi_csv_file, file)
+        return save_hapi_csv(hapi_csv_file, file, **kwargs)
 
     @property
     def supported_extensions(self) -> List[str]:
