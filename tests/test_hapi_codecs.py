@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import tempfile
 import unittest
@@ -137,7 +138,6 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
 
-
     def test_speasy_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         var_names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
@@ -154,7 +154,6 @@ class TestHapiCsvCodec(unittest.TestCase):
                 headers = _extract_headers(f)
             csv_names = [p['name'] for p in headers['parameters'][1:]]
             self.assertListEqual(var_names, csv_names)
-
 
     def test_time_independent_axis_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
@@ -177,3 +176,16 @@ class TestHapiCsvCodec(unittest.TestCase):
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
+
+    def test_hapi_csv_compliant_headers(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
+            variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
+            print(f"Saving to {tmp.name}")
+            hapi_csv_codec.save_variables(variables=list(variables.values()), file=tmp)
+            self.assertTrue(os.path.exists(tmp.name))
+            with open(tmp.name, 'r') as f:
+                headers = _extract_headers(f)
+                for key in ["HAPI", "startDate", "stopDate", "format", "status", "parameters"]:
+                    self.assertIn(key, headers)
