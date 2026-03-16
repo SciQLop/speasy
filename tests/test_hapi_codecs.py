@@ -226,15 +226,15 @@ class TestHapiBinaryCodec(unittest.TestCase):
 
 
     @data(
-        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "vector parameter description")
+        ( "HAPI_sample_TestData3.3.binary",)
     )
     @unpack
-    def test_load_hapi_binary(self, fname, var_name, first_value, last_value):
+    def test_load_hapi_binary(self, fname):
         file_path = os.path.join(__HERE__, 'resources', fname)
         hapi_binary_file = hapi_binary.reader.load_hapi_binary(file_path)
 
     @data(
-        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "vector parameter description")
+        ( "HAPI_sample_TestData3.3.binary", "vector parameter", np.datetime64("1970-01-01T00:00:00.000"), np.datetime64("1970-01-01T00:00:59.000"))
     )
     @unpack
     def test_load_time_index_binary(self, fname, var_name, first_value, last_value):
