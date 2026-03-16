@@ -4,6 +4,7 @@ from typing import AnyStr, List, Mapping, Optional, Union
 
 
 from speasy.core.cache._function_cache import CacheCall
+from speasy.core.codecs.bundled_codecs.hapi.binary.reader import load_hapi_binary
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.codecs.codec_interface import Buffer
@@ -16,9 +17,9 @@ class HapiBinary(CodecInterface):
 
     def load_variables(self, variables: List[AnyStr], file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
                        **kwargs) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
-        # hapi_csv_file = load_hapi_binary(file)
-        # if hapi_csv_file is not None:
-        #     return _hapi_csv_to_speasy_variables(hapi_csv_file, variables)
+        hapi_binary_file = load_hapi_binary(file)
+        # if hapi_binary_file is not None:
+            # return _hapi_binary_to_speasy_variables(hapi_csv_file, variables)
         return None
 
     @CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)
