@@ -84,7 +84,7 @@ def load_hapi_binary(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiBinary
     if data is not None and headers is not None:
         time_header = headers["parameters"][0]
         assert time_header["type"] == "isotime"
-        data_time = np.char.rstrip(data["Time"].astype("U24"), "Z").astype("datetime64[ms]")
+        data_time = np.char.rstrip(data["Time"].astype("U24"), "Z").astype("datetime64[ns]")
         hapi_binary_file.create_parameter(data_time,
                                        meta=time_header)
         for i, param_meta in enumerate(headers["parameters"][1:]):

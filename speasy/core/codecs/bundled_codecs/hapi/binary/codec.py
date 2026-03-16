@@ -4,12 +4,29 @@ from typing import AnyStr, List, Mapping, Optional, Union
 
 
 from speasy.core.cache._function_cache import CacheCall
-from speasy.core.codecs.bundled_codecs.hapi.binary.reader import load_hapi_binary
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.codecs.codec_interface import Buffer
+from speasy.core.data_containers import DataContainer, VariableTimeAxis
 from speasy.products.variable import SpeasyVariable
 
+from .binary_file import HapiBinaryFile
+from .reader import load_hapi_binary
+
+def _hapi_binary_to_speasy_variables(hapi_csv_file: HapiBinaryFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
+    time_axis = VariableTimeAxis(values=hapi_csv_file.time_axis, meta=hapi_csv_file.time_axis_meta)
+    loaded_vars = {}
+    for var_name in variables:
+        parameter = hapi_csv_file.get_parameter(var_name)
+        if parameter is None:
+            continue
+        _axes = [time_axis]
+        # if 'bins' in parameter.meta.keys():
+        #     _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_csv_file))
+        loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
+                                                                                name=parameter.name,
+                                                                                meta= parameter.meta))
+    return loaded_vars
 
 @register_codec
 class HapiBinary(CodecInterface):
@@ -18,8 +35,8 @@ class HapiBinary(CodecInterface):
     def load_variables(self, variables: List[AnyStr], file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
                        **kwargs) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
         hapi_binary_file = load_hapi_binary(file)
-        # if hapi_binary_file is not None:
-            # return _hapi_binary_to_speasy_variables(hapi_csv_file, variables)
+        if hapi_binary_file is not None:
+            return _hapi_binary_to_speasy_variables(hapi_binary_file, variables)
         return None
 
     @CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)
