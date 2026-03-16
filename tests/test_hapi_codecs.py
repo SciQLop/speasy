@@ -44,7 +44,7 @@ class TestHapiCsvCodec(unittest.TestCase):
     def test_load_time_index(self, fname, var_name, first_value, last_value):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         v: SpeasyVariable = hapi_csv_codec.load_variable(
-            file=str(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')), variable=var_name,
+            file=str(os.path.join(__HERE__, 'resources', fname)), variable=var_name,
             disable_cache=True)
         self.assertEqual(v.time[0], first_value)
         self.assertEqual(v.time[-1], last_value)
@@ -203,14 +203,15 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertAlmostEqual(float(df.iloc[0, 0]), float(imf_data.values[0, 0]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 1]), float(imf_data.values[0, 1]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 2]), float(imf_data.values[0, 2]), places=3)
+
 @ddt
 class TestHapiBinaryCodec(unittest.TestCase):
 
     @data(
-        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "vector parameter description")
+        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "")
     )
     @unpack
-    def test_loads_binary_headers(self, fname, var_name, unit, description):
+    def test_load_headers_binary(self, fname, var_name, unit, description):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         with open(os.path.join(__HERE__, 'resources', fname), 'br') as f:
             headers = hapi_binary.reader._extract_headers(f)
@@ -222,3 +223,24 @@ class TestHapiBinaryCodec(unittest.TestCase):
             self.assertEqual(vector_param['name'], var_name)
             self.assertEqual(vector_param['units'], unit)
             self.assertEqual(vector_param['description'], 'vector parameter description')
+
+
+    @data(
+        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "vector parameter description")
+    )
+    @unpack
+    def test_load_hapi_binary(self, fname, var_name, first_value, last_value):
+        file_path = os.path.join(__HERE__, 'resources', fname)
+        hapi_binary_file = hapi_binary.reader.load_hapi_binary(file_path)
+
+    @data(
+        ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "vector parameter description")
+    )
+    @unpack
+    def test_load_time_index_binary(self, fname, var_name, first_value, last_value):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        v: SpeasyVariable = hapi_binary_codec.load_variable(
+            file=str(os.path.join(__HERE__, 'resources', fname)), variable=var_name,
+            disable_cache=True)
+        self.assertEqual(v.time[0], first_value)
+        self.assertEqual(v.time[-1], last_value)
