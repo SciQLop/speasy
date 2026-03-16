@@ -25,7 +25,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
     - name: add test logins
-      uses: extractions/netrc@v2
+      uses: extractions/netrc@v3
       with:
         machine: authenticationtest.com
         username: user
