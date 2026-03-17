@@ -211,7 +211,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
         ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "")
     )
     @unpack
-    def test_load_headers_binary(self, fname, var_name, unit, description):
+    def test_load_headers(self, fname, var_name, unit, description):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         with open(os.path.join(__HERE__, 'resources', fname), 'br') as f:
             headers = hapi_binary.reader._extract_headers(f)
@@ -228,7 +228,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
         ( "HAPI_sample_TestData3.3.binary",)
     )
     @unpack
-    def test_load_hapi_binary(self, fname):
+    def test_load_hapi(self, fname):
         file_path = os.path.join(__HERE__, 'resources', fname)
         hapi_binary_file = hapi_binary.reader.load_hapi_binary(file_path)
         self.assertTrue(hapi_binary)
@@ -237,7 +237,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
         ( "HAPI_sample_TestData3.3.binary", "vector parameter", np.datetime64("1970-01-01T00:00:00.000"), np.datetime64("1970-01-01T00:00:59.000"))
     )
     @unpack
-    def test_load_time_index_binary(self, fname, var_name, first_value, last_value):
+    def test_load_time_index(self, fname, var_name, first_value, last_value):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         v: SpeasyVariable = hapi_binary_codec.load_variable(
             file=str(os.path.join(__HERE__, 'resources', fname)), variable=var_name,
@@ -245,7 +245,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
         self.assertEqual(v.time[0], first_value)
         self.assertEqual(v.time[-1], last_value)
 
-    def test_load_multiple_variables_binary(self):
+    def test_load_multiple_variables(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         fname = "HAPI_amda_imf_all.binary"
         file=str(os.path.join(__HERE__, 'resources', fname))
