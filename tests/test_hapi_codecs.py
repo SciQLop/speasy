@@ -262,3 +262,9 @@ class TestHapiBinaryCodec(unittest.TestCase):
             self.assertEqual(variables['imf'].unit, 'nT')
             self.assertEqual(variables['imf'].values.shape, (48,3))
             self.assertEqual(variables['imf'].meta['description'], "Magnetic field vector in GSE Cartesian coordinates (16 sec)")
+
+    def test_load_time_independent_axis(self):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.binary'), 'br') as f:
+            variables = hapi_binary_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
+            self.assertIn('ace_epam_de_e', variables)
