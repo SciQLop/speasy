@@ -1,6 +1,6 @@
 from datetime import timedelta
 import io
-from typing import AnyStr, List, Mapping, Optional, Union
+from typing import AnyStr, List, Mapping, Optional, Union, Dict, Any
 
 
 from speasy.core.cache._function_cache import CacheCall
@@ -12,6 +12,11 @@ from speasy.products.variable import SpeasyVariable
 
 from .binary_file import HapiBinaryFile
 from .reader import load_hapi_binary
+
+def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
+    if "units" in meta:
+        meta["UNITS"] = meta.pop("units")
+    return meta
 
 def _hapi_binary_to_speasy_variables(hapi_csv_file: HapiBinaryFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
     time_axis = VariableTimeAxis(values=hapi_csv_file.time_axis, meta=hapi_csv_file.time_axis_meta)
@@ -25,7 +30,8 @@ def _hapi_binary_to_speasy_variables(hapi_csv_file: HapiBinaryFile, variables: L
         #     _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_csv_file))
         loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
                                                                                 name=parameter.name,
-                                                                                meta= parameter.meta))
+                                                                                meta=_decode_meta(
+                                                                                parameter.meta)))
     return loaded_vars
 
 @register_codec
