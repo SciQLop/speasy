@@ -128,6 +128,11 @@ class TestHapiCsvCodec(unittest.TestCase):
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
             variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
             self.assertIn('ace_epam_de_e', variables)
+            v: SpeasyVariable = variables['ace_epam_de_e']
+            v_axis: VariableAxis = v.axes[1]
+            self.assertFalse(v_axis.is_time_dependent)
+            self.assertEqual(v_axis.shape, (4,))
+            self.assertEqual(v_axis.unit, "MeV")
 
     def test_spz_getdata_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
@@ -268,3 +273,10 @@ class TestHapiBinaryCodec(unittest.TestCase):
         with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.binary'), 'br') as f:
             variables = hapi_binary_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
             self.assertIn('ace_epam_de_e', variables)
+            v: SpeasyVariable = variables['ace_epam_de_e']
+            self.assertEqual(v.values.shape[0], 1106)
+            self.assertEqual(len(v.axes), 2)
+            v_axis: VariableAxis = v.axes[1]
+            self.assertFalse(v_axis.is_time_dependent)
+            self.assertEqual(v_axis.shape, (4,))
+            self.assertEqual(v_axis.unit, "MeV")
