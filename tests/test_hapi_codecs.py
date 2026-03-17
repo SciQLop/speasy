@@ -222,8 +222,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
             vector_param = headers['parameters'][1]
             self.assertEqual(vector_param['name'], var_name)
             self.assertEqual(vector_param['units'], unit)
-            self.assertEqual(vector_param['description'], 'vector parameter description')
-
+            self.assertEqual(vector_param['description'], description)
 
     @data(
         ( "HAPI_sample_TestData3.3.binary",)
@@ -232,6 +231,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
     def test_load_hapi_binary(self, fname):
         file_path = os.path.join(__HERE__, 'resources', fname)
         hapi_binary_file = hapi_binary.reader.load_hapi_binary(file_path)
+        self.assertTrue(hapi_binary)
 
     @data(
         ( "HAPI_sample_TestData3.3.binary", "vector parameter", np.datetime64("1970-01-01T00:00:00.000"), np.datetime64("1970-01-01T00:00:59.000"))
@@ -244,3 +244,21 @@ class TestHapiBinaryCodec(unittest.TestCase):
             disable_cache=True)
         self.assertEqual(v.time[0], first_value)
         self.assertEqual(v.time[-1], last_value)
+
+    def test_load_multiple_variables_binary(self):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        fname = "HAPI_amda_imf_all.binary"
+        file=str(os.path.join(__HERE__, 'resources', fname))
+        var_names = ["imf_mag", "imf"]
+        with open(file, 'br') as f:
+            variables = hapi_binary_codec.load_variables(file=f, variables=var_names, disable_cache=True)
+            self.assertEqual(len(variables), len(var_names))
+            for v in variables.values():
+                self.assertEqual(v.values.shape[0], 48)
+            self.assertListEqual(list(variables.keys()), var_names)
+            self.assertEqual(variables['imf_mag'].unit, 'nT')
+            self.assertEqual(variables['imf_mag'].values.shape, (48,1))
+            self.assertEqual(variables['imf_mag'].meta['description'], "Magnetic field magnitude")
+            self.assertEqual(variables['imf'].unit, 'nT')
+            self.assertEqual(variables['imf'].values.shape, (48,3))
+            self.assertEqual(variables['imf'].meta['description'], "Magnetic field vector in GSE Cartesian coordinates (16 sec)")
