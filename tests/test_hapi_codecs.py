@@ -280,3 +280,17 @@ class TestHapiBinaryCodec(unittest.TestCase):
             self.assertFalse(v_axis.is_time_dependent)
             self.assertEqual(v_axis.shape, (4,))
             self.assertEqual(v_axis.unit, "MeV")
+
+    def test_load_time_varying_axis(self):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.binary'), 'rb') as f:
+            var_name = 'spectra_time_dependent_bins'
+            variables = hapi_binary_codec.load_variables(file=f, variables=[var_name], disable_cache=True)
+            self.assertIn(var_name, variables)
+            v: SpeasyVariable = variables[var_name]
+            self.assertEqual(v.values.shape[0], 71)
+            self.assertEqual(len(v.axes), 2)
+            self.assertTrue(v.axes[1].is_time_dependent)
+            self.assertEqual(v.axes[1].name, 'frequency')
+            self.assertEqual(v.axes[1].shape, (71, 10))
+            self.assertEqual(v.axes[1].unit, "Hz")
