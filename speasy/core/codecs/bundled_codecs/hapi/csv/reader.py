@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pds
 import json
 
+from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.any_files import any_loc_open
-from .csv_file import HapiCsvFile
 
 log = logging.getLogger(__name__)
 
@@ -48,9 +48,9 @@ def _load_csv(file: Union[Buffer, str, io.IOBase]) -> Tuple[Optional[pds.DataFra
     return None, None
 
 
-def load_hapi_csv(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiCsvFile]:
+def load_hapi_csv(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
     data, headers = _load_csv(file)
-    hapi_csv_file = HapiCsvFile()
+    hapi_csv_file = HapiFile()
     if data is not None and headers is not None:
         time_header = headers["parameters"][0]
         assert time_header["type"] == "isotime"

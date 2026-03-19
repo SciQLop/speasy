@@ -1,12 +1,12 @@
 from typing import Union, Optional
 import io
+from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
-from .csv_file import HapiCsvFile
 import json
 import pandas as pds
 
 
-def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bool:
+def _to_csv(hapi_csv_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
     np_start_date = hapi_csv_file.time_axis[0]
     np_stop_date = hapi_csv_file.time_axis[-1]
     start_date  = np_start_date.astype("datetime64[us]").astype("O")
@@ -39,7 +39,7 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
     return True
 
 
-def save_hapi_csv(hapi_csv_file: HapiCsvFile, file: Optional[Union[str, io.IOBase]] = None, with_headers: bool = True) -> Union[bool, Buffer]:
+def save_hapi_csv(hapi_csv_file: HapiFile, file: Optional[Union[str, io.IOBase]] = None, with_headers: bool = True) -> Union[bool, Buffer]:
     if type(file) is str:
         with open(file, 'wb') as f:
             return _to_csv(hapi_csv_file, f, with_headers=with_headers)

@@ -6,12 +6,12 @@ from datetime import timedelta
 import numpy as np
 
 from speasy.core.codecs import CodecInterface, register_codec
+from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile, HapiParameter
 from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.cache import CacheCall
 from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
 from speasy.products.variable import same_time_axis
-from .csv_file import HapiCsvFile, HapiCsvParameter
 
 log = logging.getLogger(__name__)
 from .reader import load_hapi_csv
@@ -80,7 +80,7 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     return meta
 
 
-def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> VariableAxis:
+def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiFile) -> VariableAxis:
     centers = json_bin.get("centers")
     name = json_bin.get("name", "bin_axis")
     if centers is None:
@@ -106,7 +106,7 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiCsvFile) -> Variabl
     return variable_axis
 
 
-def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiCsvFile) -> List[VariableAxis]:
+def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiFile) -> List[VariableAxis]:
     axes = []
     for json_bin in json_bins:
         try:
@@ -117,7 +117,7 @@ def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiCsvFile) ->
     return axes
 
 
-def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
+def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
     time_axis = VariableTimeAxis(values=hapi_csv_file.time_axis, meta=hapi_csv_file.time_axis_meta)
     loaded_vars = {}
     for var_name in variables:
@@ -134,16 +134,16 @@ def _hapi_csv_to_speasy_variables(hapi_csv_file: HapiCsvFile, variables: List[An
     return loaded_vars
 
 
-def _make_hapi_csv_parameter(variable: SpeasyVariable) -> HapiCsvParameter:
-    return HapiCsvParameter(values=variable.values,
+def _make_hapi_csv_parameter(variable: SpeasyVariable) -> HapiParameter:
+    return HapiParameter(values=variable.values,
                             meta=_create_meta(variable))
 
 
-def _make_hapi_csv_time_axis(time_axis: VariableTimeAxis) -> HapiCsvParameter:
-    return HapiCsvParameter(values=time_axis,
+def _make_hapi_csv_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
+    return HapiParameter(values=time_axis,
                             meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 30, "fill": None})
 
-def _get_hapi_csv_varying_axes(variable: SpeasyVariable) -> List[HapiCsvParameter]:
+def _get_hapi_csv_varying_axes(variable: SpeasyVariable) -> List[HapiParameter]:
     result = []
     for ax in _get_variable_axes(variable, is_time_dependent=True):
         # VariableTimeAxis has member 'unit' not 'units'
@@ -154,16 +154,16 @@ def _get_hapi_csv_varying_axes(variable: SpeasyVariable) -> List[HapiCsvParamete
             "size": [ax.values.shape[1]]
         }
         meta["type"] = _numpy_dtype_to_hapi_type(ax.values.dtype)
-        result.append(HapiCsvParameter(values=ax.values, meta=meta))
+        result.append(HapiParameter(values=ax.values, meta=meta))
     return result
 
 
-def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiCsvFile:
+def _speasy_variables_to_hapi_csv(variables: List[SpeasyVariable]) -> HapiFile:
     if not same_time_axis(variables):
         raise ValueError("All variables must have the same time axis")
     if len(variables) == 0:
         raise ValueError("No variables to save")
-    hapi_csv_file = HapiCsvFile()
+    hapi_csv_file = HapiFile()
     hapi_csv_file.add_parameter(_make_hapi_csv_time_axis(variables[0].time))
     for var in variables:
         hapi_csv_file.add_parameter(_make_hapi_csv_parameter(var))

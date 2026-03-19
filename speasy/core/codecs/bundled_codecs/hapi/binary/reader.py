@@ -6,7 +6,7 @@ from typing import Optional, Union, Dict, Any, Tuple
 import numpy as np
 
 from speasy.core.any_files import any_loc_open
-from speasy.core.codecs.bundled_codecs.hapi.binary.binary_file import HapiBinaryFile
+from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
 
 def _extract_headers(file: io.IOBase) -> Dict[str, Any]:
@@ -78,9 +78,9 @@ def _load_binary(file: Union[Buffer, str, io.IOBase]) -> Tuple[Optional[np.array
     return None, None
 
 
-def load_hapi_binary(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiBinaryFile]:
+def load_hapi_binary(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
     data, headers = _load_binary(file)
-    hapi_binary_file = HapiBinaryFile()
+    hapi_binary_file = HapiFile()
     if data is not None and headers is not None:
         time_header = headers["parameters"][0]
         assert time_header["type"] == "isotime"

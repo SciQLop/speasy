@@ -7,6 +7,7 @@ import numpy as np
 
 
 from speasy.core.cache._function_cache import CacheCall
+from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.codecs.codec_interface import Buffer
@@ -14,7 +15,6 @@ from speasy.core.data_containers import DataContainer, VariableAxis, VariableTim
 from speasy.products.variable import SpeasyVariable
 
 log = logging.getLogger(__name__)
-from .binary_file import HapiBinaryFile
 from .reader import load_hapi_binary
 
 def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
@@ -22,7 +22,7 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
         meta["UNITS"] = meta.pop("units")
     return meta
 
-def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiBinaryFile) -> VariableAxis:
+def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiFile) -> VariableAxis:
     centers = json_bin.get("centers")
     name = json_bin.get("name", "bin_axis")
     if centers is None:
@@ -48,7 +48,7 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_csv_file: HapiBinaryFile) -> Vari
     return variable_axis
 
 
-def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiBinaryFile) -> List[VariableAxis]:
+def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiFile) -> List[VariableAxis]:
     axes = []
     for json_bin in json_bins:
         try:
@@ -58,7 +58,7 @@ def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_csv_file: HapiBinaryFile)
             log.warning(f"Skipping invalid bin specification: {e}")
     return axes
 
-def _hapi_binary_to_speasy_variables(hapi_csv_file: HapiBinaryFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
+def _hapi_binary_to_speasy_variables(hapi_csv_file: HapiFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
     time_axis = VariableTimeAxis(values=hapi_csv_file.time_axis, meta=hapi_csv_file.time_axis_meta)
     loaded_vars = {}
     for var_name in variables:
@@ -98,8 +98,8 @@ class HapiBinary(CodecInterface):
                        file: Optional[Union[str, io.IOBase]] = None,
                        **kwargs
                        ) -> Union[bool, Buffer]:
-        # hapi_csv_file = _speasy_variables_to_hapi_csv(variables)
-        # return save_hapi_csv(hapi_csv_file, file)
+        # hapi_binary_file = _speasy_variables_to_hapi_binary(variables)
+        # return save_hapi_binary(hapi_binary_file, file)
         return True
 
     @property
