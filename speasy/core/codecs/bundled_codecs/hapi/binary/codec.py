@@ -6,6 +6,7 @@ import numpy as np
 
 
 from speasy.core.cache._function_cache import CacheCall
+from speasy.core.codecs.bundled_codecs.hapi.binary.writer import save_hapi_binary
 from speasy.core.codecs.bundled_codecs.hapi.codec import _bins_to_axes, _decode_meta, _speasy_variables_to_hapi
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import CodecInterface
@@ -58,8 +59,7 @@ class HapiBinary(CodecInterface):
                        **kwargs
                        ) -> Union[bool, Buffer]:
         hapi_binary_file = _speasy_variables_to_hapi(variables)
-        # return save_hapi_binary(hapi_binary_file, file)
-        return True
+        return save_hapi_binary(hapi_binary_file, file)
 
     @property
     def supported_extensions(self) -> List[str]:

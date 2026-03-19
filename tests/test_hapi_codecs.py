@@ -297,3 +297,14 @@ class TestHapiBinaryCodec(unittest.TestCase):
             self.assertEqual(v.axes[1].name, 'frequency')
             self.assertEqual(v.axes[1].shape, (71, 10))
             self.assertEqual(v.axes[1].unit, "Hz")
+
+    def test_spz_getdata_to_binary(self):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
+        print(spz_var.name)
+        with tempfile.NamedTemporaryFile(suffix='.binary', delete=False) as tmp:
+            output_binary_file = tmp.name
+            print(output_binary_file)
+            hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
+            self.assertTrue(hapi_binary_file)
+            self.assertTrue(os.path.exists(output_binary_file))

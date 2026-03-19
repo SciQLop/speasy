@@ -7,9 +7,9 @@ import json
 import pandas as pds
 
 
-def _to_csv(hapi_csv_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
-    np_start_date = hapi_csv_file.time_axis[0]
-    np_stop_date = hapi_csv_file.time_axis[-1]
+def _to_csv(hapi_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
+    np_start_date = hapi_file.time_axis[0]
+    np_stop_date = hapi_file.time_axis[-1]
     start_date  = np_start_date.astype("datetime64[us]").astype("O")
     stop_date = np_stop_date.astype("datetime64[us]").astype("O")
     if with_headers:
@@ -22,12 +22,12 @@ def _to_csv(hapi_csv_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
                 "code": 1200,
                 "message": "OK request successful"
             },
-            "parameters": [column.meta for column in hapi_csv_file.parameters]
+            "parameters": [column.meta for column in hapi_file.parameters]
         }
         dest.write(("#" + json.dumps(headers) + "\n").encode("utf-8"))
 
     data = {}
-    for param in hapi_csv_file.parameters:
+    for param in hapi_file.parameters:
         vals = param.values
         if vals.ndim == 1:
             data[param.name] = vals
