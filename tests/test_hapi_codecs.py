@@ -11,6 +11,7 @@ import speasy as spz
 from speasy.core.codecs import CodecInterface, get_codec
 import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
 import speasy.core.codecs.bundled_codecs.hapi.binary as hapi_binary
+from speasy.core.codecs.bundled_codecs.hapi.codec import _bin_to_axis
 from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable
 
@@ -94,7 +95,7 @@ class TestHapiCsvCodec(unittest.TestCase):
     def test_bin_to_axis(self, csv_file, json_bin):
         with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
             hapi_csv_file = hapi_csv.reader.load_hapi_csv(f)
-            axis = hapi_csv.codec._bin_to_axis(json_bin, hapi_csv_file)
+            axis = _bin_to_axis(json_bin, hapi_csv_file)
             self.assertIsInstance(axis, VariableAxis)
 
     @data(
