@@ -143,6 +143,8 @@ class TestHapiCsvCodec(unittest.TestCase):
             hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
+            with open(output_csv_file) as f:
+                hapi_csv_codec.load_variable(file=f, variable="Proton_Flux")
 
     def test_speasy_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
