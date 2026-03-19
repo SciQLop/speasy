@@ -1,6 +1,7 @@
 from typing import Union, Optional
 import io
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
+from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi
 from speasy.core.codecs.codec_interface import Buffer
 import json
 import pandas as pds
@@ -39,14 +40,9 @@ def _to_csv(hapi_csv_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
     return True
 
 
-def save_hapi_csv(hapi_csv_file: HapiFile, file: Optional[Union[str, io.IOBase]] = None, with_headers: bool = True) -> Union[bool, Buffer]:
-    if type(file) is str:
-        with open(file, 'wb') as f:
-            return _to_csv(hapi_csv_file, f, with_headers=with_headers)
-    elif hasattr(file, 'write'):
-        return _to_csv(hapi_csv_file, file, with_headers=with_headers)
-    elif file is None:
-        buff = io.BytesIO()
-        _to_csv(hapi_csv_file, buff, with_headers=with_headers)
-        return buff.getvalue()
-    raise ValueError("Invalid file type")
+def save_hapi_csv(
+    hapi_file: HapiFile,
+    file: Optional[Union[str, io.IOBase]] = None,
+    with_headers: bool = True,
+) -> Union[bool, Buffer]:
+    return save_hapi(hapi_file, file, _to_csv, with_headers=with_headers)
