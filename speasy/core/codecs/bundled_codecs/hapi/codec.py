@@ -25,7 +25,7 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
 
 def _make_hapi_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
     return HapiParameter(values=time_axis,
-                            meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 30, "fill": None})
+                            meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 24, "fill": None})
 
 def _make_hapi_parameter(variable: SpeasyVariable) -> HapiParameter:
     return HapiParameter(values=variable.values,
