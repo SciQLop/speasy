@@ -1,4 +1,3 @@
-from ast import Tuple
 import io
 import json
 from typing import Optional, Union, Dict, Any, Tuple
@@ -71,7 +70,7 @@ def _parse_hapi_binary(file: io.IOBase) -> Tuple[np.array, Dict[str, Any]]:
 
 def _load_binary(file: Union[Buffer, str, io.IOBase]) -> Tuple[Optional[np.array], Optional[Dict[str, Any]]]:
     if isinstance(file, str):
-        with any_loc_open(file, cache_remote_files=False, mode='br') as f:
+        with any_loc_open(file, cache_remote_files=False, mode='rb') as f:
             return _parse_hapi_binary(f)
     if isinstance(file, io.IOBase) or hasattr(file, 'read'):
         return _parse_hapi_binary(file)

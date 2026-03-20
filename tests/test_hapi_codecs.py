@@ -221,7 +221,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
     )
     @unpack
     def test_load_headers(self, fname, var_name, unit, description):
-        with open(os.path.join(__HERE__, 'resources', fname), 'br') as f:
+        with open(os.path.join(__HERE__, 'resources', fname), 'rb') as f:
             headers = hapi_binary.reader._extract_headers(f)
             time_param = headers['parameters'][0]
             self.assertEqual(time_param['units'], 'UTC')
@@ -258,7 +258,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
         fname = "HAPI_amda_imf_all.binary"
         file=str(os.path.join(__HERE__, 'resources', fname))
         var_names = ["imf_mag", "imf"]
-        with open(file, 'br') as f:
+        with open(file, 'rb') as f:
             variables = hapi_binary_codec.load_variables(file=f, variables=var_names, disable_cache=True)
             self.assertEqual(len(variables), len(var_names))
             for v in variables.values():
@@ -273,7 +273,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
 
     def test_load_time_independent_axis(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.binary'), 'br') as f:
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.binary'), 'rb') as f:
             variables = hapi_binary_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
             self.assertIn('ace_epam_de_e', variables)
             v: SpeasyVariable = variables['ace_epam_de_e']
@@ -310,7 +310,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
 
     def test_save_time_varying_axis(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.binary'), 'br') as f:
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.binary'), 'rb') as f:
             # read to generate spz_vars
             var_name = 'spectra_time_dependent_bins'
             variables = hapi_binary_codec.load_variables(file=f, variables=[var_name], disable_cache=True)

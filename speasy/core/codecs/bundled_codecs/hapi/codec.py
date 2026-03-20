@@ -27,7 +27,7 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     return meta
 
 def _make_hapi_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
-    return HapiParameter(values=time_axis,
+    return HapiParameter(values=time_axis.values,
                             meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 24, "fill": None})
 
 def _make_hapi_parameter(variable: SpeasyVariable) -> HapiParameter:
@@ -105,7 +105,7 @@ def _speasy_variables_to_hapi(variables: List[SpeasyVariable]) -> HapiFile:
     if len(variables) == 0:
         raise ValueError("No variables to save")
     hapi_file = HapiFile()
-    hapi_file.add_parameter(_make_hapi_time_axis(variables[0].time))
+    hapi_file.add_parameter(_make_hapi_time_axis(variables[0].axes[0]))
     for spz_var in variables:
         # add spz_var as hapi_param
         hapi_file.add_parameter(_make_hapi_parameter(spz_var))
