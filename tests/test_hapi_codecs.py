@@ -239,7 +239,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
     def test_load_hapi(self, fname):
         file_path = os.path.join(__HERE__, 'resources', fname)
         hapi_binary_file = hapi_binary.reader.load_hapi_binary(file_path)
-        self.assertTrue(hapi_binary)
+        self.assertTrue(hapi_binary_file)
 
     @data(
         ( "HAPI_sample_TestData3.3.binary", "vector parameter", np.datetime64("1970-01-01T00:00:00.000"), np.datetime64("1970-01-01T00:00:59.000"))
@@ -301,10 +301,28 @@ class TestHapiBinaryCodec(unittest.TestCase):
     def test_spz_getdata_to_binary(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
-        print(spz_var.name)
-        with tempfile.NamedTemporaryFile(suffix='.binary', delete=False) as tmp:
+        self.assertFalse(spz_var.axes[1].is_time_dependent)
+        with tempfile.NamedTemporaryFile(suffix='.binary', delete=True) as tmp:
             output_binary_file = tmp.name
-            print(output_binary_file)
             hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
             self.assertTrue(hapi_binary_file)
             self.assertTrue(os.path.exists(output_binary_file))
+
+    def test_save_time_varying_axis(self):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.binary'), 'br') as f:
+            # read to generate spz_vars
+            var_name = 'spectra_time_dependent_bins'
+            variables = hapi_binary_codec.load_variables(file=f, variables=[var_name], disable_cache=True)
+            spz_var = variables[var_name]
+            self.assertTrue(spz_var.axes[1].is_time_dependent)
+            with tempfile.NamedTemporaryFile(suffix='.binary', delete=True) as tmp:
+                # write to binary file, main test
+                output_binary_file = tmp.name
+                hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
+                self.assertTrue(hapi_binary_file)
+                self.assertTrue(os.path.exists(output_binary_file))
+                # read again to make sure writen format was right
+                variables = hapi_binary_codec.load_variables(file=output_binary_file, variables=[var_name], disable_cache=True)
+                spz_var = variables[var_name]
+                self.assertTrue(spz_var.axes[1].is_time_dependent)
