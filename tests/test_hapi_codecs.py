@@ -9,6 +9,7 @@ import pandas as pd
 
 import speasy as spz
 from speasy.core.codecs import CodecInterface, get_codec
+import speasy.core.codecs.bundled_codecs.hapi as hapi_base
 import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
 import speasy.core.codecs.bundled_codecs.hapi.binary as hapi_binary
 from speasy.core.codecs.bundled_codecs.hapi.codec import _bin_to_axis
@@ -107,7 +108,7 @@ class TestHapiCsvCodec(unittest.TestCase):
     def test_bins_to_axes(self, csv_file, json_bins):
         with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
             hapi_csv_file = hapi_csv.reader.load_hapi_csv(f)
-            axes = hapi_csv.codec._bins_to_axes(json_bins, hapi_csv_file)
+            axes = hapi_base.codec._bins_to_axes(json_bins, hapi_csv_file)
             self.assertEqual(len(axes), len(json_bins))
             for axis in axes:
                 self.assertIsInstance(axis, VariableAxis)
@@ -220,7 +221,6 @@ class TestHapiBinaryCodec(unittest.TestCase):
     )
     @unpack
     def test_load_headers(self, fname, var_name, unit, description):
-        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         with open(os.path.join(__HERE__, 'resources', fname), 'br') as f:
             headers = hapi_binary.reader._extract_headers(f)
             time_param = headers['parameters'][0]
