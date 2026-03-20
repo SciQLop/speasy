@@ -1,9 +1,12 @@
+from datetime import timedelta
 
 import numpy as np
 
-from typing import Any, Dict, List
+from typing import Any, AnyStr, Dict, List, Mapping
 
-from speasy.core.data_containers import VariableAxis, VariableTimeAxis
+from speasy.core.cache._function_cache import CacheCall
+from speasy.core.codecs.codec_interface import CodecInterface
+from speasy.core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
 from speasy.products.variable import SpeasyVariable, same_time_axis
 
 from .hapi_file import HapiFile, HapiParameter
@@ -146,3 +149,48 @@ def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_file: HapiFile) -> List[V
         except ValueError as e:
             log.warning(f"Skipping invalid bin specification: {e}")
     return axes
+
+def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
+    time_axis = VariableTimeAxis(values=hapi_file.time_axis, meta=hapi_file.time_axis_meta)
+    loaded_vars = {}
+    for var_name in variables:
+        parameter = hapi_file.get_parameter(var_name)
+        if parameter is None:
+            continue
+        _axes = [time_axis]
+        if 'bins' in parameter.meta.keys():
+            _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_file))
+        loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
+                                                                                name=parameter.name,
+                                                                                meta=_decode_meta(
+                                                                                parameter.meta)))
+    return loaded_vars
+
+
+class HapiBaseCodec(CodecInterface):
+
+    def __init__(self, loader, saver):
+        self._loader = loader
+        self._saver = saver
+
+    def load_variables(self, variables, file, cache_remote_files=True, **kwargs):
+        hapi_file = self._loader(file)
+        if hapi_file is not None:
+            return _hapifile_to_speasy_variables(hapi_file, variables)
+        return None
+
+    @CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)
+    def load_variable(self, variable, file, cache_remote_files=True, **kwargs):
+        return self.load_variables([variable], file, cache_remote_files)[variable]
+
+    def save_variables(self, variables, file=None, **kwargs):
+        hapi_file = _speasy_variables_to_hapi(variables)
+        return self._saver(hapi_file, file, **kwargs)
+
+    @property
+    def supported_extensions(self):
+        return []
+
+    @property
+    def supported_mimetypes(self):
+        return []
