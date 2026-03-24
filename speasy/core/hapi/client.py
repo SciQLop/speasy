@@ -39,14 +39,6 @@ class HapiClient:
 
         raise RuntimeError(f"Unsupported HAPI version: {version}")
 
-    def _build_url(self, endpoint: Optional[HapiEndpoint] = None, query_parameters: Optional[Dict] = None) -> str:
-        hapi_url = f"{self.server_url}/hapi"
-        if endpoint is None:
-            return hapi_url
-        if not isinstance(endpoint, HapiEndpoint):
-            raise TypeError(f"endpoint must be a HapiEndpoint, got {type(endpoint)}")
-        return f"{hapi_url}/{endpoint.value}"
-
     def _build_url(
         self,
         endpoint: Optional[HapiEndpoint] = None,
@@ -111,7 +103,6 @@ class HapiClient:
 
     def get_about(self) -> Dict:
         return self._endpoint_to_json(HapiEndpoint.ABOUT)
-
 
     def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
         base_params = {}
