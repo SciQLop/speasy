@@ -17,19 +17,18 @@ class TestHapiClient(unittest.TestCase):
         amda_about_url = hapi_client._build_url(endpoint=HapiEndpoint.ABOUT)
         self.assertEqual(f"{AMDA_SERVER_ROOT}/hapi/about", amda_about_url)
 
-    def test_build_url_info_with_dataset(self): ...
-    def test_build_url_data_with_params(self): ...
+    def test_get_info_bad_dataset(self):
+        hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
+        with self.assertRaises(HapiRequestError) as rc:
+            hapi_client.get_info('wrong_dataset_name')
+        self.assertEqual(1406, rc.exception.code)
 
-    def test_get_info_returns_json(self): ...
-    # mock requests.get → 200 + json valide
+    def test_get_info_bad_parameter(self):
+        hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
+        with self.assertRaises(HapiRequestError) as rc:
+            hapi_client.get_info('dataset1', ['wrong_parameter'])
+        self.assertEqual(1407, rc.exception.code)
 
-    def test_raises_on_http_error(self): ...
-    # mock requests.get → 500
-
-    def test_check_status_raises_hapi_request_error_on_1401(self): ...
-    def test_check_status_raises_hapi_server_error_on_1500(self): ...
-    def test_check_status_raises_hapi_no_data_on_1201(self): ...
-    def test_check_status_does_not_raise_on_1200(self): ...
 
 @ddt
 class TestHapiProvider(unittest.TestCase):
