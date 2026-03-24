@@ -1,6 +1,6 @@
 from enum import Enum
 from json import JSONDecodeError
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from urllib.parse import urlencode
 
 from speasy.core import http
@@ -19,6 +19,25 @@ class HapiEndpoint(Enum):
 class HapiClient:
     def __init__(self, server_url: str):
         self.server_url = server_url.rstrip('/')
+        self._dataset_param_name = self._init_dataset_param_name()
+
+    def _init_dataset_param_name(self) -> str:
+        """ Starting from HAPI-3.0, 'id' parameter becomes 'dataset'
+            set by major version number
+        """
+        version = self.get_capabilities().get("HAPI")
+
+        if not version:
+            raise RuntimeError("HAPI version not provided by server")
+
+        major = int(version.split('.')[0])
+
+        if major == 2:
+            return "id"
+        elif  major == 3:
+            return "dataset"
+
+        raise RuntimeError(f"Unsupported HAPI version: {version}")
 
     def _build_url(self, endpoint: Optional[HapiEndpoint] = None, query_parameters: Optional[Dict] = None) -> str:
         hapi_url = f"{self.server_url}/hapi"
@@ -94,13 +113,18 @@ class HapiClient:
     def get_about(self) -> Dict:
         return self._endpoint_to_json(HapiEndpoint.ABOUT)
 
-    def get_info(self, dataset: str, ) -> Dict:
-        # Starting from HAPI-3.0 'id' parameter becomes 'dataset' 
-        try:
-            r_json = self._endpoint_to_json(HapiEndpoint.INFO, {'id': dataset})
-        except HapiRequestError:
-            r_json = self._endpoint_to_json(HapiEndpoint.INFO, {'dataset': dataset})
-        return r_json
+
+    def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
+        base_params = {}
+
+        if parameters:
+            if isinstance(parameters, str):
+                parameters = [parameters]
+            base_params["parameters"] = ",".join(parameters)
+
+        return self._endpoint_to_json(
+            HapiEndpoint.INFO, {self._dataset_param_name: dataset, **base_params}
+        )
 
     def get_data(self, dataset: str, start: str, stop: str,
                  parameters: Optional[str] = None) -> bytes: ...
