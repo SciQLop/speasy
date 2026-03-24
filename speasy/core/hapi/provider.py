@@ -19,7 +19,8 @@ class HapiProvider:
     def catalog(self) -> dict:
         return self.hapi_client.get_catalog()
 
-    def info(self, dataset: str) -> dict: ...
+    def info(self, dataset: str) -> dict:
+        return self.hapi_client.get_info(dataset)
 
     def data(self, dataset: str, start: str, stop: str,
              parameters: Optional[str] = None) -> Optional[SpeasyVariable]: ...

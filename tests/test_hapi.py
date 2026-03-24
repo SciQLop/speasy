@@ -70,7 +70,7 @@ class TestHapiProvider(unittest.TestCase):
     def test_catalog(self, root_url):
         hapi_provider = HapiProvider(root_url)
         data = hapi_provider.catalog()
-           
+
         self.assertIn("catalog", data)
         self.assertIsInstance(data["catalog"], list)
         for item in data["catalog"][-2:-1]:
@@ -81,8 +81,20 @@ class TestHapiProvider(unittest.TestCase):
         self.assertIn("status", data)
         self.assertEqual(data["status"]["code"], 1200)
         self.assertEqual(data["status"]["message"].lower(), "ok")
-    
-    
+
+    @data(
+        (HAPITEST33_SERVER_ROOT,"dataset1", 2),
+        (CDAWEB_SERVER_ROOT, "AC_OR_SSC", 6),
+    )
+    @unpack
+    def test_info(self, root_url, dataset, paramlist_len):
+        # will 
+        hapi_provider = HapiProvider(root_url)
+        data = hapi_provider.info(dataset)
+        self.assertIn("HAPI", data)
+        self.assertIn("parameters", data)
+        self.assertEqual(len(data['parameters']), paramlist_len)
+
     def test_data_raises_hapi_no_data_on_1201(self): ...
     def test_data_raises_hapi_request_error_on_unknown_dataset(self): ...
     def test_data_raises_hapi_request_error_on_bad_time_format(self): ...
