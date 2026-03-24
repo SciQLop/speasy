@@ -34,14 +34,14 @@ class TestHapiClient(unittest.TestCase):
 @ddt
 class TestHapiProvider(unittest.TestCase):
 
-    def test_capabilities_returns_dict(self):
+    def test_capabilities(self):
         hapi_provider = HapiProvider(CDAWEB_SERVER_ROOT)
         result = hapi_provider.capabilities()
         from pprint import pprint
         self.assertEqual( result["HAPI"], "2.0")
         self.assertCountEqual( result["outputFormats"], ['json', 'csv', 'binary'])
 
-    def test_about_returns_dict(self):
+    def test_about(self):
         hapi_provider = HapiProvider(HAPITEST33_SERVER_ROOT)
         result = hapi_provider.about()
         self.assertEqual(result["HAPI"], "3.3")
@@ -54,18 +54,35 @@ class TestHapiProvider(unittest.TestCase):
         (CDAWEB_SERVER_ROOT, ["data", "info"]),
     )
     @unpack
-    def test_hapi_returns_html(self, root_url, contents):
+    def test_hapi(self, root_url, contents):
         hapi_provider = HapiProvider(root_url)
         html_hapi = hapi_provider.hapi()
         self.assertIn("<html", html_hapi.lower())
         for c in contents:
             self.assertIn(c, html_hapi)
 
-    def test_catalog_returns_dict(self): ...
-    def test_info_returns_dict(self): ...
+    @data (
+        (HAPITEST33_SERVER_ROOT,),
+        (AMDA_SERVER_ROOT,),
+        (CDAWEB_SERVER_ROOT,)
+    )
+    @unpack
+    def test_catalog(self, root_url):
+        hapi_provider = HapiProvider(root_url)
+        data = hapi_provider.catalog()
+           
+        self.assertIn("catalog", data)
+        self.assertIsInstance(data["catalog"], list)
+        for item in data["catalog"][-2:-1]:
+            self.assertIn("id", item)
 
-    def test_data_returns_speasy_variable(self): ...
+        self.assertIn("HAPI", data)
 
+        self.assertIn("status", data)
+        self.assertEqual(data["status"]["code"], 1200)
+        self.assertEqual(data["status"]["message"].lower(), "ok")
+    
+    
     def test_data_raises_hapi_no_data_on_1201(self): ...
     def test_data_raises_hapi_request_error_on_unknown_dataset(self): ...
     def test_data_raises_hapi_request_error_on_bad_time_format(self): ...
