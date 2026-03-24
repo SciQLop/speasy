@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from speasy.products.variable import SpeasyVariable
 
@@ -19,8 +19,8 @@ class HapiProvider:
     def catalog(self) -> dict:
         return self.hapi_client.get_catalog()
 
-    def info(self, dataset: str) -> dict:
-        return self.hapi_client.get_info(dataset)
+    def info(self, dataset: str, parameters: Optional[List]=None) -> dict:
+        return self.hapi_client.get_info(dataset, parameters)
 
     def data(self, dataset: str, start: str, stop: str,
              parameters: Optional[str] = None) -> Optional[SpeasyVariable]: ...

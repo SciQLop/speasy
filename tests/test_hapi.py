@@ -36,7 +36,6 @@ class TestHapiProvider(unittest.TestCase):
     def test_capabilities(self):
         hapi_provider = HapiProvider(CDAWEB_SERVER_ROOT)
         result = hapi_provider.capabilities()
-        from pprint import pprint
         self.assertEqual( result["HAPI"], "2.0")
         self.assertCountEqual( result["outputFormats"], ['json', 'csv', 'binary'])
 
@@ -86,15 +85,19 @@ class TestHapiProvider(unittest.TestCase):
         (CDAWEB_SERVER_ROOT, "AC_OR_SSC", 6),
     )
     @unpack
-    def test_info(self, root_url, dataset, paramlist_len):
-        # will 
+    def test_info_dataset_only(self, root_url, dataset, nb_params):
         hapi_provider = HapiProvider(root_url)
         data = hapi_provider.info(dataset)
         self.assertIn("HAPI", data)
         self.assertIn("parameters", data)
-        self.assertEqual(len(data['parameters']), paramlist_len)
+        self.assertEqual(len(data['parameters']), nb_params)
 
-    def test_data_raises_hapi_no_data_on_1201(self): ...
-    def test_data_raises_hapi_request_error_on_unknown_dataset(self): ...
-    def test_data_raises_hapi_request_error_on_bad_time_format(self): ...
-    def test_data_raises_hapi_server_error_on_1500(self): ...
+    @data(
+        (HAPITEST33_SERVER_ROOT, "dataset1", ['vector']),
+        (CDAWEB_SERVER_ROOT, "AC_OR_SSC", ["GSE_LAT", "GSE_LON"]) ,
+    )
+    @unpack
+    def test_info_with_parameters(self, root_url, dataset, parameters):
+        hapi_provider = HapiProvider(root_url)
+        data = hapi_provider.info(dataset, parameters)
+        self.assertEqual(len(data['parameters']), 1+len(parameters))
