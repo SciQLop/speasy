@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError
 from speasy.products.variable import SpeasyVariable
 
 from .client import HapiClient
@@ -20,7 +21,16 @@ class HapiProvider:
         return self.hapi_client.get_catalog()
 
     def info(self, dataset: str, parameters: Optional[List]=None) -> dict:
-        return self.hapi_client.get_info(dataset, parameters)
+        try:
+            return self.hapi_client.get_info(dataset, parameters)
+        except (HapiRequestError, HapiServerError) as e:
+            error_type = "request" if isinstance(e, HapiRequestError) else "server"
+            error =  {
+                "error": error_type,
+                "code": getattr(e, "code", None),
+                "message": str(e),
+            }
+            return error
 
     def data(self, dataset: str, start: str, stop: str,
              parameters: Optional[str] = None) -> Optional[SpeasyVariable]: ...

@@ -99,7 +99,6 @@ class HapiClient:
 
     def get_hapi(self) -> Dict:
         url = self._build_url()
-        print(url)
         with http.urlopen(url) as response:
             html_page = response.text
         return html_page
