@@ -101,3 +101,31 @@ class TestHapiProvider(unittest.TestCase):
         hapi_provider = HapiProvider(root_url)
         data = hapi_provider.info(dataset, parameters)
         self.assertEqual(len(data['parameters']), 1+len(parameters))
+
+    @data (
+        (HAPITEST33_SERVER_ROOT,),
+        (AMDA_SERVER_ROOT,),
+        (CDAWEB_SERVER_ROOT,)
+    )
+    @unpack
+    def test_info_with_wrong_dataset(self, server_root):
+        hapi_provider = HapiProvider(server_root)
+        err_response = hapi_provider.info('wrongdataset')
+        self.assertIn("error", err_response)
+        self.assertIn("code", err_response)
+        self.assertIn("message", err_response)
+        self.assertEqual(err_response["error"], "request")
+        self.assertEqual(1406, err_response["code"])
+
+    @data(
+        (HAPITEST33_SERVER_ROOT, "dataset1"),
+        (CDAWEB_SERVER_ROOT, "AC_OR_SSC"),
+        # (AMDA_SERVER_ROOT, "ace-epam-ca60") should return 1407 not 1401
+    )
+    @unpack
+    def test_info_with_wrong_parameters(self, server_root, dataset):
+        hapi_provider = HapiProvider(server_root)
+        err_response = hapi_provider.info(dataset, ['wrongparam'])
+        self.assertIn("message", err_response)
+        self.assertEqual("request", err_response["error"])
+        self.assertEqual(1407, err_response["code"])
