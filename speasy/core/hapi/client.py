@@ -47,7 +47,7 @@ class HapiClient:
         return self._jsondict_from_simple_url(HapiEndpoint.CAPABILITIES)
 
     def get_catalog(self) -> Dict:
-        ...
+        return self._jsondict_from_simple_url(HapiEndpoint.CATALOG)
 
     def get_info(self, dataset: str) -> Dict: ...
 

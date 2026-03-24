@@ -16,7 +16,8 @@ class HapiProvider:
     def capabilities(self) -> dict:
         return self.hapi_client.get_capabilities()
 
-    def catalog(self) -> dict: ...
+    def catalog(self) -> dict:
+        return self.hapi_client.get_catalog()
 
     def info(self, dataset: str) -> dict: ...
 
