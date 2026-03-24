@@ -1,5 +1,5 @@
-
 import unittest
+from ddt import data, ddt, unpack
 
 from speasy.core.hapi.client import HapiClient, HapiEndpoint
 from speasy.core.hapi.provider import HapiProvider
@@ -31,6 +31,7 @@ class TestHapiClient(unittest.TestCase):
     def test_check_status_raises_hapi_no_data_on_1201(self): ...
     def test_check_status_does_not_raise_on_1200(self): ...
 
+@ddt
 class TestHapiProvider(unittest.TestCase):
 
     def test_capabilities_returns_dict(self):
@@ -46,6 +47,19 @@ class TestHapiProvider(unittest.TestCase):
         self.assertEqual(result["HAPI"], "3.3")
         self.assertEqual( result["status"]["code"], 1200)
         self.assertIsInstance(result["note"], list)
+
+    @data (
+        (HAPITEST33_SERVER_ROOT, ["data", "info"]),
+        (AMDA_SERVER_ROOT, ["data", "info"]),
+        (CDAWEB_SERVER_ROOT, ["data", "info"]),
+    )
+    @unpack
+    def test_hapi_returns_html(self, root_url, contents):
+        hapi_provider = HapiProvider(root_url)
+        html_hapi = hapi_provider.hapi()
+        self.assertIn("<html", html_hapi.lower())
+        for c in contents:
+            self.assertIn(c, html_hapi)
 
     def test_catalog_returns_dict(self): ...
     def test_info_returns_dict(self): ...

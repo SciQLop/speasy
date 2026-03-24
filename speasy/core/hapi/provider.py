@@ -10,6 +10,9 @@ class HapiProvider:
     def __init__(self, server_url: str):
         self.hapi_client = HapiClient(server_url)
 
+    def hapi(self) -> dict:
+        return self.hapi_client.get_hapi()
+
     def capabilities(self) -> dict:
         return self.hapi_client.get_capabilities()
 
