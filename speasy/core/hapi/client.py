@@ -59,6 +59,23 @@ class HapiClient:
 
         return url
 
+    def _endpoint_to_csv(
+            self,
+            endpoint: Optional[HapiEndpoint] = None,
+            query_parameters: Optional[Dict] = None
+    ) -> str:
+        url = self._build_url(endpoint, query_parameters)
+        response = http.get(url)
+
+        if not response.ok:
+            try:
+                self._check_hapi_status(response.json())
+            except ValueError:
+                self._check_http_status(response.status_code, response.text)
+
+        # TODO: parse csv to spz_var instead
+        return response.text
+
     def _endpoint_to_json(
             self,
             endpoint: Optional[HapiEndpoint] = None,
@@ -104,17 +121,36 @@ class HapiClient:
     def get_about(self) -> Dict:
         return self._endpoint_to_json(HapiEndpoint.ABOUT)
 
-    def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
-        base_params = {}
+    def _build_query_parameters(self, parameters: List[str] = None) -> Dict:
+        query_params = {}
 
-        if parameters:
+        if parameters is not None:
             if isinstance(parameters, str):
                 parameters = [parameters]
-            base_params["parameters"] = ",".join(parameters)
+            query_params["parameters"] = ",".join(parameters)
+        return query_params
+
+    def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
+
+        query_params = self._build_query_parameters(parameters)
 
         return self._endpoint_to_json(
-            HapiEndpoint.INFO, {self._dataset_param_name: dataset, **base_params}
+            HapiEndpoint.INFO, {self._dataset_param_name: dataset, **query_params}
         )
 
-    def get_data(self, dataset: str, start: str, stop: str,
-                 parameters: Optional[str] = None) -> bytes: ...
+
+    def get_data(
+        self, dataset: str, start: str, stop: str, parameters: Optional[str] = None
+    ) -> bytes:
+
+        query_params = {
+            **self._build_query_parameters(parameters),
+            "start": start,
+            "stop": stop,
+            "format": "csv",
+            "include": "header",
+        }
+
+        return self._endpoint_to_csv(
+            HapiEndpoint.DATA, {self._dataset_param_name: dataset, **query_params}
+        )

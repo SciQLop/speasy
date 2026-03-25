@@ -10,6 +10,7 @@ AMDA_SERVER_ROOT = "https://amda.irap.omp.eu/service"
 HAPITEST33_SERVER_ROOT = "https://hapi-server.org/servers/TestData3.3"
 CDAWEB_SERVER_ROOT = "https://cdaweb.gsfc.nasa.gov"
 
+@ddt
 class TestHapiClient(unittest.TestCase):
 
     def test_build_url(self):
@@ -28,6 +29,20 @@ class TestHapiClient(unittest.TestCase):
         with self.assertRaises(HapiRequestError) as rc:
             hapi_client.get_info('dataset1', ['wrong_parameter'])
         self.assertEqual(1407, rc.exception.code)
+
+    @data(
+            ('dataset1', '1970-01-02', '1970-01-01', [], 1404 ), # start time >= stop time
+            ('dataset1', '1970-01-01', '1970-01-02', [], 1405 ), # times outside valid ranges
+            ('wrong_dataset_name', '1970-01-01', '1970-01-02', [], 1406 ), # wrong dataset id
+            ('dataset1', '1970-01-01', '1970-01-02', ['no_such_parameter'], 1407 ) # wrong dataset parameter id
+    )
+    @unpack
+    def test_get_data_bad_request(self, dataset, start, stop, parameters, expected_err_code):
+        hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
+        with self.assertRaises(HapiRequestError) as rc:
+            hapi_client.get_data(dataset, start, stop, parameters)
+        self.assertEqual(expected_err_code, rc.exception.code)
+
 
 
 @ddt
@@ -108,7 +123,7 @@ class TestHapiProvider(unittest.TestCase):
         (CDAWEB_SERVER_ROOT,)
     )
     @unpack
-    def test_info_with_wrong_dataset(self, server_root):
+    def test_info_wrong_dataset(self, server_root):
         hapi_provider = HapiProvider(server_root)
         err_response = hapi_provider.info('wrongdataset')
         self.assertIn("error", err_response)
@@ -123,9 +138,24 @@ class TestHapiProvider(unittest.TestCase):
         # (AMDA_SERVER_ROOT, "ace-epam-ca60") should return 1407 not 1401
     )
     @unpack
-    def test_info_with_wrong_parameters(self, server_root, dataset):
+    def test_info_wrong_parameters(self, server_root, dataset):
         hapi_provider = HapiProvider(server_root)
         err_response = hapi_provider.info(dataset, ['wrongparam'])
         self.assertIn("message", err_response)
         self.assertEqual("request", err_response["error"])
         self.assertEqual(1407, err_response["code"])
+
+
+    @data(
+            ('dataset1', '1970-01-02', '1970-01-01', [], 1404 ), # start time >= stop time
+            ('dataset1', '1970-01-01', '1970-01-02', [], 1405 ), # times outside valid ranges
+            ('wrong_dataset_name', '1970-01-01', '1970-01-02', [], 1406 ), # wrong dataset id
+            ('dataset1', '1970-01-01', '1970-01-02', ['no_such_parameter'], 1407 ) # wrong dataset parameter id
+    )
+    @unpack
+    def test_data_bad_request(self, dataset, start, stop, parameters, expected_err_code):
+        hapi_provider = HapiProvider(HAPITEST33_SERVER_ROOT)
+        err_response = hapi_provider.data(dataset, start, stop, parameters)
+        self.assertIn("message", err_response)
+        self.assertEqual("request", err_response["error"])
+        self.assertEqual(expected_err_code, err_response["code"])
