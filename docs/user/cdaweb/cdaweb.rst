@@ -26,13 +26,13 @@ Once you have found your product, then simply ask CDA module to get data for the
 Specific CDAWeb options
 -----------------------
 
-The CDAWeb module allows to choose the method to get data among 'BEST', 'FILE', 'API', default is 'BEST'.
+The CDAWeb module lets you choose the access method among ``BEST``, ``FILE``, and ``API``. The default is ``BEST``.
 
-* 'BEST' will try to choose the best method between 'FILE' and 'API' for each dataset.
-* 'FILE' will download the data files from the CDAWeb server directly using the `archive` module.
-* 'API' will get the data using the CDAWeb API.
+* ``BEST`` — automatically selects between ``FILE`` and ``API`` for each dataset.
+* ``FILE`` — downloads CDF files directly from the CDAWeb archive.
+* ``API`` — retrieves data through the CDAWeb REST API.
 
-User can specify the method to use to get the data by passing the `method` argument to the `spz.get_data` function.
+You can specify the method by passing the ``method`` argument to ``spz.get_data()``.
 
     >>> import speasy as spz
     >>> # Let's assume you wanted to get Solar Orbiter 'Magnetic field vector in RTN coordinates'
@@ -42,7 +42,7 @@ User can specify the method to use to get the data by passing the `method` argum
     >>> solo_mag_rtn.values.shape
     (1438, 3)
 
-User can also set the default method to use to get the data by setting the `spz.config.cdaweb.preferred_access_method` configuration variable.
+You can also set the default method globally:
 
     >>> import speasy as spz
     >>> spz.config.cdaweb.preferred_access_method.set('BEST')
