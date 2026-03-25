@@ -6,6 +6,15 @@ from speasy.products.variable import SpeasyVariable
 from .client import HapiClient
 from .parser import HapiParser
 
+def _exception_to_error_message(e):
+    error_type = "request" if isinstance(e, HapiRequestError) else "server"
+    error_message =  {
+        "error": error_type,
+        "code": getattr(e, "code", None),
+        "message": str(e),
+    }
+    return error_message
+
 
 class HapiProvider:
     def __init__(self, server_url: str):
@@ -20,20 +29,20 @@ class HapiProvider:
     def catalog(self) -> dict:
         return self.hapi_client.get_catalog()
 
+    def about(self) -> dict:
+        return self.hapi_client.get_about()
+
     def info(self, dataset: str, parameters: Optional[List]=None) -> dict:
         try:
             return self.hapi_client.get_info(dataset, parameters)
         except (HapiRequestError, HapiServerError) as e:
-            error_type = "request" if isinstance(e, HapiRequestError) else "server"
-            error =  {
-                "error": error_type,
-                "code": getattr(e, "code", None),
-                "message": str(e),
-            }
-            return error
+            error_msg = _exception_to_error_message(e)
+            return error_msg
 
     def data(self, dataset: str, start: str, stop: str,
-             parameters: Optional[str] = None) -> Optional[SpeasyVariable]: ...
-
-    def about(self) -> dict:
-        return self.hapi_client.get_about()
+             parameters: Optional[str] = None) -> Optional[SpeasyVariable]:
+        try: 
+            return self.hapi_client.get_data(dataset, start, stop, parameters)
+        except Exception as e:
+            error_msg = _exception_to_error_message(e)
+            return error_msg
