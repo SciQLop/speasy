@@ -11,10 +11,7 @@ from speasy.core.codecs.codec_interface import Buffer
 def _extract_headers(file: io.IOBase) -> Dict[str, Any]:
     file.seek(0)
     header_lines = []
-    while True:
-        line = file.readline()
-        if not line.startswith(b"#"):
-            break
+    while (line := file.readline()).startswith(b"#"):
         header_lines.append(line[1:])
 
     if not header_lines:
