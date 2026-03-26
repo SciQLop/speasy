@@ -1,11 +1,15 @@
 from enum import Enum
+import io
 from json import JSONDecodeError
 from typing import Dict, List, Optional
 from urllib.parse import urlencode
 
 from speasy.core import http
+from speasy.core.codecs.codec_interface import CodecInterface
+from speasy.core.codecs.codecs_registry import get_codec
+from speasy.products.variable import SpeasyVariable
 
-from .exceptions import HapiRequestError, HapiServerError, HapiNoData
+from .exceptions import HapiError, HapiRequestError, HapiServerError, HapiNoData
 
 
 class HapiEndpoint(Enum):
@@ -46,9 +50,8 @@ class HapiClient:
     ) -> str:
         base = f"{self.server_url}/hapi"
         url = f"{base}/{endpoint.value}" if endpoint else base
-        
 
-        # flattening parameters list to pass as argument to url
+        # Flatten "parameters" into a comma-separated query string
         if query_parameters:
             query_params_copy = query_parameters.copy()
             parameters = query_params_copy.get("parameters")
@@ -59,14 +62,13 @@ class HapiClient:
 
             url = f"{url}?{urlencode(query_params_copy)}"
 
-        print(url)
         return url
 
-    def _endpoint_to_csv(
+    def _data_endpoint_to_spzvar(
             self,
             endpoint: HapiEndpoint,
             query_parameters: Dict
-    ) -> str:
+    ) -> List[SpeasyVariable]:
         parameters = query_parameters.get("parameters", []) 
         url = self._build_url(endpoint, query_parameters)
         response = http.get(url)
@@ -77,8 +79,13 @@ class HapiClient:
             except ValueError:
                 self._check_http_status(response.status_code, response.text)
 
-        # TODO: parse csv to spz_var instead
-        return response.text
+        if parameters:
+            hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+            f = io.StringIO(response.text)
+            variables = hapi_csv_codec.load_variables(file=f, variables=parameters, disable_cache=True)
+        else:
+            raise HapiError(f"Wrong 'parameters' argument to hapi.load_variables: {parameters}")
+        return variables
 
     def _endpoint_to_json(
             self,
@@ -154,4 +161,4 @@ class HapiClient:
             "format": "csv",
             "include": "header",
         }
-        return self._endpoint_to_csv(HapiEndpoint.DATA, query_params)
+        return self._data_endpoint_to_spzvar(HapiEndpoint.DATA, query_params)
