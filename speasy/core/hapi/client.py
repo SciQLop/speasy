@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from speasy.core import http
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import get_codec
+from speasy.core.hapi.parser import _parse_hapi_csv
 from speasy.products.variable import SpeasyVariable
 
 from .exceptions import HapiError, HapiRequestError, HapiServerError, HapiNoData
@@ -18,6 +19,34 @@ class HapiEndpoint(Enum):
     ABOUT        = "about"
     INFO         = "info"
     DATA         = "data"
+
+
+def _fetch_response(url: str):
+    response = http.get(url)
+    _check_response(response)
+    return response
+
+def _check_hapi_status(data: Dict) -> None:
+    code = data["status"]["code"]
+    message = data["status"]["message"]
+    if code == 1201:
+        raise HapiNoData()
+    elif 1400 <= code < 1500:
+        raise HapiRequestError(code, message)
+    elif code >= 1500:
+        raise HapiServerError(code, message)
+
+def _check_http_status(status_code: int, text: str) -> None:
+    if 400 <= status_code < 500:
+        raise HapiRequestError(status_code, text)
+    elif status_code >= 500:
+        raise HapiServerError(status_code, text)
+
+def _check_response(response) -> None:
+    try:
+        _check_hapi_status(response.json())
+    except (ValueError, JSONDecodeError):
+        _check_http_status(response.status_code, response.text)
 
 
 class HapiClient:
@@ -43,6 +72,14 @@ class HapiClient:
 
         raise RuntimeError(f"Unsupported HAPI version: {version}")
 
+
+    def _fetch_variables(self, query_parameters: Dict) -> List[SpeasyVariable]:
+        parameters = query_parameters.get("parameters", [])
+        url = self._build_url(HapiEndpoint.DATA, query_parameters)
+        f = io.StringIO(_fetch_response(url).text)
+        return _parse_hapi_csv(f, parameters)
+
+
     def _build_url(
         self,
         endpoint: Optional[HapiEndpoint] = None,
@@ -64,58 +101,13 @@ class HapiClient:
 
         return url
 
-    def _data_endpoint_to_spzvar(
-            self,
-            endpoint: HapiEndpoint,
-            query_parameters: Dict
-    ) -> List[SpeasyVariable]:
-        parameters = query_parameters.get("parameters", []) 
-        url = self._build_url(endpoint, query_parameters)
-        response = http.get(url)
-
-        if not response.ok:
-            try:
-                self._check_hapi_status(response.json())
-            except ValueError:
-                self._check_http_status(response.status_code, response.text)
-
-        if parameters:
-            hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-            f = io.StringIO(response.text)
-            variables = hapi_csv_codec.load_variables(file=f, variables=parameters, disable_cache=True)
-        else:
-            raise HapiError(f"Wrong 'parameters' argument to hapi.load_variables: {parameters}")
-        return variables
-
     def _endpoint_to_json(
             self,
             endpoint: HapiEndpoint,
             query_parameters: Optional[Dict] = None
     ) -> Dict:
         url = self._build_url(endpoint, query_parameters)
-        r = http.get(url)
-        try:
-            data = r.json()
-            self._check_hapi_status(data)
-            return data
-        except JSONDecodeError:
-            self._check_http_status(r.status_code, r.text)
-
-    def _check_hapi_status(self, data: Dict) -> None:
-        code = data["status"]["code"]
-        message = data["status"]["message"]
-        if code == 1201:
-            raise HapiNoData()
-        elif 1400 <= code < 1500:
-            raise HapiRequestError(code, message)
-        elif code >= 1500:
-            raise HapiServerError(code, message)
-
-    def _check_http_status(self, status_code: int, text: str) -> None:
-        if 400 <= status_code < 500:
-            raise HapiRequestError(status_code, text)
-        elif status_code >= 500:
-            raise HapiServerError(status_code, text)
+        return _fetch_response(url).json()
 
     def get_hapi(self) -> Dict:
         url = self._build_url()
@@ -132,15 +124,6 @@ class HapiClient:
     def get_about(self) -> Dict:
         return self._endpoint_to_json(HapiEndpoint.ABOUT)
 
-    def _build_query_parameters(self, parameters: List[str] = None) -> Dict:
-        query_params = {}
-
-        if parameters is not None:
-            if isinstance(parameters, str):
-                parameters = [parameters]
-            query_params["parameters"] = ",".join(parameters)
-        return query_params
-
     def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
         query_params = {
             self._dataset_param_name: dataset,
@@ -152,13 +135,13 @@ class HapiClient:
 
     def get_data(
         self, dataset: str, start: str, stop: str, parameters: List[str]
-    ) -> bytes:
+    ) -> List[SpeasyVariable]:
         query_params = {
             self._dataset_param_name: dataset,
-            "parameters": parameters,  # List[str], to be flatten in _build_url
+            "parameters": parameters,
             "start": start,
             "stop": stop,
             "format": "csv",
             "include": "header",
         }
-        return self._data_endpoint_to_spzvar(HapiEndpoint.DATA, query_params)
+        return self._fetch_variables(query_params)
