@@ -45,25 +45,29 @@ class HapiClient:
         query_parameters: Optional[Dict] = None
     ) -> str:
         base = f"{self.server_url}/hapi"
+        url = f"{base}/{endpoint.value}" if endpoint else base
+        
 
-        if endpoint is None:
-            url = base
-        else:
-            if not isinstance(endpoint, HapiEndpoint):
-                raise TypeError(f"endpoint must be a HapiEndpoint, got {type(endpoint)}")
-            url = f"{base}/{endpoint.value}"
-
+        # flattening parameters list to pass as argument to url
         if query_parameters:
-            query_string = urlencode(query_parameters)
-            url = f"{url}?{query_string}"
+            query_params_copy = query_parameters.copy()
+            parameters = query_params_copy.get("parameters")
+            if parameters:
+                query_params_copy["parameters"] = ",".join(parameters)
+            else:
+                query_params_copy.pop("parameters", None)
 
+            url = f"{url}?{urlencode(query_params_copy)}"
+
+        print(url)
         return url
 
     def _endpoint_to_csv(
             self,
-            endpoint: Optional[HapiEndpoint] = None,
-            query_parameters: Optional[Dict] = None
+            endpoint: HapiEndpoint,
+            query_parameters: Dict
     ) -> str:
+        parameters = query_parameters.get("parameters", []) 
         url = self._build_url(endpoint, query_parameters)
         response = http.get(url)
 
@@ -78,7 +82,7 @@ class HapiClient:
 
     def _endpoint_to_json(
             self,
-            endpoint: Optional[HapiEndpoint] = None,
+            endpoint: HapiEndpoint,
             query_parameters: Optional[Dict] = None
     ) -> Dict:
         url = self._build_url(endpoint, query_parameters)
@@ -131,26 +135,23 @@ class HapiClient:
         return query_params
 
     def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
+        query_params = {
+            self._dataset_param_name: dataset,
+        }
+        if parameters is not None:
+            query_params["parameters"] = parameters  # List[str], will be flatten in _build_url
 
-        query_params = self._build_query_parameters(parameters)
-
-        return self._endpoint_to_json(
-            HapiEndpoint.INFO, {self._dataset_param_name: dataset, **query_params}
-        )
-
+        return self._endpoint_to_json(HapiEndpoint.INFO, query_params)
 
     def get_data(
-        self, dataset: str, start: str, stop: str, parameters: Optional[str] = None
+        self, dataset: str, start: str, stop: str, parameters: List[str]
     ) -> bytes:
-
         query_params = {
-            **self._build_query_parameters(parameters),
+            self._dataset_param_name: dataset,
+            "parameters": parameters,  # List[str], to be flatten in _build_url
             "start": start,
             "stop": stop,
             "format": "csv",
             "include": "header",
         }
-
-        return self._endpoint_to_csv(
-            HapiEndpoint.DATA, {self._dataset_param_name: dataset, **query_params}
-        )
+        return self._endpoint_to_csv(HapiEndpoint.DATA, query_params)
