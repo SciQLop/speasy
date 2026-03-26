@@ -1,7 +1,7 @@
 from enum import Enum
 import io
 from json import JSONDecodeError
-from typing import Dict, List, Optional
+from typing import Dict, List, Mapping, Optional
 from urllib.parse import urlencode
 
 from speasy.core import http
@@ -73,7 +73,7 @@ class HapiClient:
         raise RuntimeError(f"Unsupported HAPI version: {version}")
 
 
-    def _fetch_variables(self, query_parameters: Dict) -> List[SpeasyVariable]:
+    def _fetch_variables(self, query_parameters: Dict) -> Mapping[str, SpeasyVariable]:
         parameters = query_parameters.get("parameters", [])
         url = self._build_url(HapiEndpoint.DATA, query_parameters)
         f = io.StringIO(_fetch_response(url).text)
@@ -109,7 +109,7 @@ class HapiClient:
         url = self._build_url(endpoint, query_parameters)
         return _fetch_response(url).json()
 
-    def get_hapi(self) -> Dict:
+    def get_hapi(self) -> str:
         url = self._build_url()
         with http.urlopen(url) as response:
             html_page = response.text
@@ -135,7 +135,7 @@ class HapiClient:
 
     def get_data(
         self, dataset: str, start: str, stop: str, parameters: List[str]
-    ) -> List[SpeasyVariable]:
+    ) -> Mapping[str, SpeasyVariable]:
         query_params = {
             self._dataset_param_name: dataset,
             "parameters": parameters,
