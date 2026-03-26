@@ -1,12 +1,12 @@
 import io
-from typing import List
+from typing import List, Mapping
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.hapi.exceptions import HapiError
 from speasy.products.variable import SpeasyVariable
 
 
-def _parse_hapi_csv( file: io.IOBase, parameters: List[str]) -> List[SpeasyVariable]:
+def _parse_hapi_csv( file: io.IOBase, parameters: List[str]) -> Mapping[str, SpeasyVariable]:
     """Converts the CSV returned by /data into a SpeasyVariable.
     """
     if not parameters:

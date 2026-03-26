@@ -130,12 +130,9 @@ class TestHapiProvider(unittest.TestCase):
     @unpack
     def test_info_wrong_dataset(self, server_root):
         hapi_provider = HapiProvider(server_root)
-        err_response = hapi_provider.info('wrongdataset')
-        self.assertIn("error", err_response)
-        self.assertIn("code", err_response)
-        self.assertIn("message", err_response)
-        self.assertEqual(err_response["error"], "request")
-        self.assertEqual(1406, err_response["code"])
+        with self.assertRaises(HapiRequestError) as rc:
+            hapi_provider.info('wrongdatasetname')
+        self.assertEqual(1406, rc.exception.code)
 
     @data(
         (HAPITEST33_SERVER_ROOT, "dataset1"),
@@ -145,10 +142,9 @@ class TestHapiProvider(unittest.TestCase):
     @unpack
     def test_info_wrong_parameters(self, server_root, dataset):
         hapi_provider = HapiProvider(server_root)
-        err_response = hapi_provider.info(dataset, ['wrongparam'])
-        self.assertIn("message", err_response)
-        self.assertEqual("request", err_response["error"])
-        self.assertEqual(1407, err_response["code"])
+        with self.assertRaises(HapiRequestError) as rc:
+            hapi_provider.info(dataset, ['wrongparam'])
+        self.assertEqual(1407, rc.exception.code)
 
 
     @data(
@@ -160,10 +156,9 @@ class TestHapiProvider(unittest.TestCase):
     @unpack
     def test_data_bad_request(self, dataset, start, stop, parameters, expected_err_code):
         hapi_provider = HapiProvider(HAPITEST33_SERVER_ROOT)
-        err_response = hapi_provider.data(dataset, start, stop, parameters)
-        self.assertIn("message", err_response)
-        self.assertEqual("request", err_response["error"])
-        self.assertEqual(expected_err_code, err_response["code"])
+        with self.assertRaises(HapiRequestError) as rc:
+             hapi_provider.data(dataset, start, stop, parameters)
+        self.assertEqual(expected_err_code, rc.exception.code)
 
     def test_data_good_request(self):
         hapi_provider = HapiProvider(HAPITEST33_SERVER_ROOT)
