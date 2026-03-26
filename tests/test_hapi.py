@@ -4,6 +4,7 @@ from ddt import data, ddt, unpack
 from speasy.core.hapi.client import HapiClient, HapiEndpoint
 from speasy.core.hapi.provider import HapiProvider
 from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError, HapiNoData
+from speasy.products.variable import SpeasyVariable
 
 
 AMDA_SERVER_ROOT = "https://amda.irap.omp.eu/service"
@@ -43,6 +44,10 @@ class TestHapiClient(unittest.TestCase):
             hapi_client.get_data(dataset, start, stop, parameters)
         self.assertEqual(expected_err_code, rc.exception.code)
 
+    def test_get_data_good_request(self):
+        hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
+        result = hapi_client.get_data('dataset1', '1970-01-01Z', '1970-01-01T00:01:11Z', ['vector'])
+        self.assertIsInstance(result['vector'], SpeasyVariable)
 
 
 @ddt
@@ -159,3 +164,10 @@ class TestHapiProvider(unittest.TestCase):
         self.assertIn("message", err_response)
         self.assertEqual("request", err_response["error"])
         self.assertEqual(expected_err_code, err_response["code"])
+
+    def test_data_good_request(self):
+        hapi_provider = HapiProvider(HAPITEST33_SERVER_ROOT)
+        result = hapi_provider.data('dataset1', '1970-01-01Z', '1970-01-01T00:01:11Z', ['vector'])
+
+        self.assertEqual(60, len(result['vector'].time))
+        self.assertIsInstance(result['vector'], SpeasyVariable)
