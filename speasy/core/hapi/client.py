@@ -45,7 +45,7 @@ def _check_http_status(status_code: int, text: str) -> None:
 def _check_response(response) -> None:
     try:
         _check_hapi_status(response.json())
-    except (ValueError, JSONDecodeError):
+    except (JSONDecodeError, KeyError):
         _check_http_status(response.status_code, response.text)
 
 
