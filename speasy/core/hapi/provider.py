@@ -40,7 +40,7 @@ class HapiProvider:
             return error_msg
 
     def data(self, dataset: str, start: str, stop: str,
-             parameters: Optional[str] = None) -> Optional[SpeasyVariable]:
+             parameters: List[str] = None) -> Optional[SpeasyVariable]:
         try: 
             return self.hapi_client.get_data(dataset, start, stop, parameters)
         except Exception as e:
