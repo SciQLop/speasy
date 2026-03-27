@@ -13,6 +13,7 @@ import speasy.core.codecs.bundled_codecs.hapi as hapi_base
 import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
 import speasy.core.codecs.bundled_codecs.hapi.binary as hapi_binary
 from speasy.core.codecs.bundled_codecs.hapi.codec import _bin_to_axis
+from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers
 from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable
 
@@ -33,10 +34,10 @@ class TestHapiCsvCodec(unittest.TestCase):
     @unpack
     def test_loads_headers(self, fname, var_name, unit, description):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', fname), 'r') as f:
-            v: SpeasyVariable = hapi_csv_codec.load_variable(file=f, variable=var_name, disable_cache=True)
-            self.assertEqual(v.unit, unit)
-            self.assertEqual(v.meta['description'], description)
+        filepath = os.path.join(__HERE__, 'resources', fname)
+        v: SpeasyVariable = hapi_csv_codec.load_variable(file=filepath, variable=var_name, disable_cache=True)
+        self.assertEqual(v.unit, unit)
+        self.assertEqual(v.meta['description'], description)
 
     @data(
         ('HAPI_sample_csv.csv', 'Magnitude', np.datetime64("1997-09-02T00:00:00.000"), np.datetime64("1997-09-03T23:00:00.000")),
@@ -76,17 +77,17 @@ class TestHapiCsvCodec(unittest.TestCase):
 
     def test_load_multiple_variables(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv'), 'r') as f:
-            names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
-            variables = hapi_csv_codec.load_variables(file=f, variables=names, disable_cache=True)
-            self.assertEqual(len(variables), len(names))
-            for v in variables.values():
-                self.assertEqual(v.values.shape[0], 48)
-            self.assertListEqual(list(variables.keys()), names)
-            self.assertEqual(variables['Magnitude'].unit, 'nT')
-            self.assertEqual(variables['Magnitude'].meta['description'], 'B-field magnitude')
-            self.assertEqual(variables['SC_pos_GSE'].unit, 'km')
-            self.assertEqual(variables['SC_pos_GSE'].meta['description'], 'ACE s/c position, 3 comp. in GSE coord.')
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')
+        names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=names, disable_cache=True)
+        self.assertEqual(len(variables), len(names))
+        for v in variables.values():
+            self.assertEqual(v.values.shape[0], 48)
+        self.assertListEqual(list(variables.keys()), names)
+        self.assertEqual(variables['Magnitude'].unit, 'nT')
+        self.assertEqual(variables['Magnitude'].meta['description'], 'B-field magnitude')
+        self.assertEqual(variables['SC_pos_GSE'].unit, 'km')
+        self.assertEqual(variables['SC_pos_GSE'].meta['description'], 'ACE s/c position, 3 comp. in GSE coord.')
 
     @data(
         ('HAPI_ndData_TimeVarying_Axis.csv', { "centers": "frequency_centers_time_varying" }),
@@ -94,10 +95,10 @@ class TestHapiCsvCodec(unittest.TestCase):
     )
     @unpack
     def test_bin_to_axis(self, csv_file, json_bin):
-        with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
-            hapi_csv_file = hapi_csv.reader.load_hapi_csv(f)
-            axis = _bin_to_axis(json_bin, hapi_csv_file)
-            self.assertIsInstance(axis, VariableAxis)
+        filepath = os.path.join(__HERE__, 'resources', csv_file)
+        hapi_csv_file = hapi_csv.reader.load_hapi_csv(filepath)
+        axis = _bin_to_axis(json_bin, hapi_csv_file)
+        self.assertIsInstance(axis, VariableAxis)
 
     @data(
         ('HAPI_ndData_TimeVarying_Axis.csv',[
@@ -106,35 +107,35 @@ class TestHapiCsvCodec(unittest.TestCase):
     )
     @unpack
     def test_bins_to_axes(self, csv_file, json_bins):
-        with open(os.path.join(__HERE__, 'resources', csv_file), 'r') as f:
-            hapi_csv_file = hapi_csv.reader.load_hapi_csv(f)
-            axes = hapi_base.codec._bins_to_axes(json_bins, hapi_csv_file)
-            self.assertEqual(len(axes), len(json_bins))
-            for axis in axes:
-                self.assertIsInstance(axis, VariableAxis)
+        filepath = os.path.join(__HERE__, 'resources', csv_file)
+        hapi_csv_file = hapi_csv.reader.load_hapi_csv(filepath)
+        axes = hapi_base.codec._bins_to_axes(json_bins, hapi_csv_file)
+        self.assertEqual(len(axes), len(json_bins))
+        for axis in axes:
+            self.assertIsInstance(axis, VariableAxis)
 
     def test_load_variable_name(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['Magnitude'], disable_cache=True)
-            self.assertEqual(variables['Magnitude'].name, 'Magnitude')
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=['Magnitude'], disable_cache=True)
+        self.assertEqual(variables['Magnitude'].name, 'Magnitude')
 
     def test_load_time_varying_axis(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
-            self.assertIn('spectra_time_dependent_bins', variables)
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=['spectra_time_dependent_bins'], disable_cache=True)
+        self.assertIn('spectra_time_dependent_bins', variables)
 
     def test_load_time_independent_axis(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
-            self.assertIn('ace_epam_de_e', variables)
-            v: SpeasyVariable = variables['ace_epam_de_e']
-            v_axis: VariableAxis = v.axes[1]
-            self.assertFalse(v_axis.is_time_dependent)
-            self.assertEqual(v_axis.shape, (4,))
-            self.assertEqual(v_axis.unit, "MeV")
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=['ace_epam_de_e'], disable_cache=True)
+        self.assertIn('ace_epam_de_e', variables)
+        v: SpeasyVariable = variables['ace_epam_de_e']
+        v_axis: VariableAxis = v.axes[1]
+        self.assertFalse(v_axis.is_time_dependent)
+        self.assertEqual(v_axis.shape, (4,))
+        self.assertEqual(v_axis.unit, "MeV")
 
     def test_spz_getdata_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
@@ -144,14 +145,13 @@ class TestHapiCsvCodec(unittest.TestCase):
             hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
-            with open(output_csv_file) as f:
-                hapi_csv_codec.load_variable(file=f, variable="Proton_Flux")
+            hapi_csv_codec.load_variable(file=output_csv_file, variable="Proton_Flux")
 
     def test_speasy_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         var_names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=var_names, disable_cache=True)
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=var_names, disable_cache=True)
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
             output_csv_file = tmp.name
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
@@ -159,16 +159,16 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertTrue(os.path.exists(output_csv_file))
             df = pd.read_csv(output_csv_file, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
             self.assertEqual(10, df.shape[1])
-            with open(output_csv_file, 'r') as f:
-                headers = hapi_csv.reader._extract_headers(f)
+            with open(output_csv_file, 'rb') as f:
+                headers =_extract_headers(f)
             csv_names = [p['name'] for p in headers['parameters'][1:]]
             self.assertListEqual(var_names, csv_names)
 
     def test_time_independent_axis_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
-            self.assertIn('ace_epam_de_e', variables)
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=['ace_epam_de_e'], disable_cache=True)
+        self.assertIn('ace_epam_de_e', variables)
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
             output_csv_file = tmp.name
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
@@ -177,9 +177,9 @@ class TestHapiCsvCodec(unittest.TestCase):
 
     def test_time_varying_axis_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['spectra_time_dependent_bins'], disable_cache=True)
-            self.assertIn('spectra_time_dependent_bins', variables)
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=['spectra_time_dependent_bins'], disable_cache=True)
+        self.assertIn('spectra_time_dependent_bins', variables)
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
             output_csv_file = tmp.name
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
@@ -188,14 +188,14 @@ class TestHapiCsvCodec(unittest.TestCase):
 
     def test_hapi_csv_compliant_headers(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
-        with open(os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv'), 'r') as f:
-            variables = hapi_csv_codec.load_variables(file=f, variables=['ace_epam_de_e'], disable_cache=True)
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv')
+        variables = hapi_csv_codec.load_variables(file=filepath, variables=['ace_epam_de_e'], disable_cache=True)
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
             print(f"Saving to {tmp.name}")
             hapi_csv_codec.save_variables(variables=list(variables.values()), file=tmp)
             self.assertTrue(os.path.exists(tmp.name))
-            with open(tmp.name, 'r') as f:
-                headers = hapi_csv.reader._extract_headers(f)
+            with open(tmp.name, 'rb') as f:
+                headers =_extract_headers(f)
                 for key in ["HAPI", "startDate", "stopDate", "format", "status", "parameters"]:
                     self.assertIn(key, headers)
 
@@ -220,9 +220,9 @@ class TestHapiBinaryCodec(unittest.TestCase):
         ( "HAPI_sample_TestData3.3.binary", "vector parameter", 'm', "")
     )
     @unpack
-    def test_load_headers(self, fname, var_name, unit, description):
+    def test_loads_headers(self, fname, var_name, unit, description):
         with open(os.path.join(__HERE__, 'resources', fname), 'rb') as f:
-            headers = hapi_binary.reader._extract_headers(f)
+            headers = _extract_headers(f)
             time_param = headers['parameters'][0]
             self.assertEqual(time_param['units'], 'UTC')
             self.assertEqual(time_param['type'], 'isotime') 
