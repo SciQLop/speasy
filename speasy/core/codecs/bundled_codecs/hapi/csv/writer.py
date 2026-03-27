@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import IO, Union, Optional
 import io
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi
@@ -7,7 +7,7 @@ import json
 import pandas as pds
 
 
-def _to_csv(hapi_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
+def _to_csv(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
     np_start_date = hapi_file.time_axis[0]
     np_stop_date = hapi_file.time_axis[-1]
     start_date  = np_start_date.astype("datetime64[us]").astype("O")

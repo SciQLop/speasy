@@ -120,6 +120,8 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_file: HapiFile) -> VariableAxis:
         raise ValueError("Invalid bin specification: missing 'centers' field")
     if isinstance(centers, str):
         hapi_parameter = hap_file.get_parameter(centers)
+        if hapi_parameter is None:
+            raise ValueError(f"Unknown parameter referenced in bins: {centers}")
         _meta = _decode_meta(hapi_parameter.meta)
         variable_axis = VariableAxis(values=hapi_parameter.values,
                                      meta=_meta,
@@ -149,14 +151,14 @@ def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_file: HapiFile) -> List[V
             log.warning(f"Skipping invalid bin specification: {e}")
     return axes
 
-def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[AnyStr]) -> Mapping[str, SpeasyVariable]:
+def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[str]) -> Mapping[str, SpeasyVariable]:
     time_axis = VariableTimeAxis(values=hapi_file.time_axis, meta=hapi_file.time_axis_meta)
     loaded_vars = {}
     for var_name in variables:
         parameter = hapi_file.get_parameter(var_name)
         if parameter is None:
             continue
-        _axes = [time_axis]
+        _axes: List[VariableAxis] = [time_axis]
         if 'bins' in parameter.meta.keys():
             _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_file))
         loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
