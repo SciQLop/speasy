@@ -76,7 +76,7 @@ class HapiClient:
     def _fetch_variables(self, query_parameters: Dict) -> Mapping[str, SpeasyVariable]:
         parameters = query_parameters.get("parameters", [])
         url = self._build_url(HapiEndpoint.DATA, query_parameters)
-        f = io.StringIO(_fetch_response(url).text)
+        f = io.BytesIO(_fetch_response(url).text.encode("utf-8"))
         return _parse_hapi_csv(f, parameters)
 
 
