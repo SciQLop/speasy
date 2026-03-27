@@ -1,6 +1,6 @@
 import io
 import json
-from typing import Optional, Union
+from typing import IO, Optional, Union
 
 import numpy as np
 
@@ -35,7 +35,7 @@ def _get_np_type(p):
     return (base, shape) if shape else base
 
 
-def _to_binary(hapi_file: HapiFile, dest:io.IOBase, with_headers=True) -> bool:
+def _to_binary(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
 
     if with_headers:
         np_start_date = hapi_file.time_axis[0].astype("datetime64[us]").astype("O")
