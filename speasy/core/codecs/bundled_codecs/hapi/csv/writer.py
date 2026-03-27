@@ -1,14 +1,15 @@
-from typing import Union, Optional
+from typing import IO, Union, Optional
 import io
+from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
+from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi
 from speasy.core.codecs.codec_interface import Buffer
-from .csv_file import HapiCsvFile
 import json
 import pandas as pds
 
 
-def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bool:
-    np_start_date = hapi_csv_file.time_axis[0]
-    np_stop_date = hapi_csv_file.time_axis[-1]
+def _to_csv(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
+    np_start_date = hapi_file.time_axis[0]
+    np_stop_date = hapi_file.time_axis[-1]
     start_date  = np_start_date.astype("datetime64[us]").astype("O")
     stop_date = np_stop_date.astype("datetime64[us]").astype("O")
     if with_headers:
@@ -21,12 +22,12 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
                 "code": 1200,
                 "message": "OK request successful"
             },
-            "parameters": [column.meta for column in hapi_csv_file.parameters]
+            "parameters": [column.meta for column in hapi_file.parameters]
         }
         dest.write(("#" + json.dumps(headers) + "\n").encode("utf-8"))
 
     data = {}
-    for param in hapi_csv_file.parameters:
+    for param in hapi_file.parameters:
         vals = param.values
         if vals.ndim == 1:
             data[param.name] = vals
@@ -35,18 +36,14 @@ def _to_csv(hapi_csv_file: HapiCsvFile, dest:io.IOBase, with_headers=True) -> bo
                 data[f"{param.name}_{i}"] = vals[:, i]
 
     df = pds.DataFrame(data)
+    df["Time"] = df["Time"].dt.strftime("%Y-%m-%dT%H:%M:%S.%f").str[:-3] + "Z"
     df.to_csv(dest, index=False, header=False, date_format='%Y-%m-%dT%H:%M:%S.%fZ', float_format='%.7g')
     return True
 
 
-def save_hapi_csv(hapi_csv_file: HapiCsvFile, file: Optional[Union[str, io.IOBase]] = None, with_headers: bool = True) -> Union[bool, Buffer]:
-    if type(file) is str:
-        with open(file, 'wb') as f:
-            return _to_csv(hapi_csv_file, f, with_headers=with_headers)
-    elif hasattr(file, 'write'):
-        return _to_csv(hapi_csv_file, file, with_headers=with_headers)
-    elif file is None:
-        buff = io.BytesIO()
-        _to_csv(hapi_csv_file, buff, with_headers=with_headers)
-        return buff.getvalue()
-    raise ValueError("Invalid file type")
+def save_hapi_csv(
+    hapi_file: HapiFile,
+    file: Optional[Union[str, io.IOBase]] = None,
+    with_headers: bool = True,
+) -> Union[bool, Buffer]:
+    return save_hapi(hapi_file, file, _to_csv, with_headers=with_headers)

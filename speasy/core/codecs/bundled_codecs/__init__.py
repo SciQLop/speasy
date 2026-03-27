@@ -1,2 +1,3 @@
 from .istp_cdf import IstpCdf
-from .hapi_csv import HapiCsv
+from .hapi.csv import HapiCsv
+from .hapi.binary import HapiBinary
