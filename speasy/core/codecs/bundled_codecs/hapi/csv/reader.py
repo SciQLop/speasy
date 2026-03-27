@@ -4,9 +4,8 @@ import logging
 
 import numpy as np
 import pandas as pds
-import json
 
-from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers
+from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers, _load_hapi
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.any_files import any_loc_open
@@ -14,29 +13,14 @@ from speasy.core.any_files import any_loc_open
 log = logging.getLogger(__name__)
 
 
-def _extract_data_csv(file: io.IOBase) -> pds.DataFrame:
+def _extract_data_csv(file: io.IOBase, headers: Dict[str, Any]) -> pds.DataFrame:
     data = io.BytesIO(file.read())
     return pds.read_csv(data, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
 
 
-def _parse_hapi_csv(file: io.IOBase) -> Tuple[pds.DataFrame, Dict[str, Any]]:
-    headers = _extract_headers(file)
-    assert headers["parameters"][0]["type"] == "isotime"
-    data = _extract_data_csv(file)
-    return data, headers
-
-
-def _load_csv(file: Union[Buffer, str, io.IOBase]) -> Tuple[Optional[pds.DataFrame], Optional[Dict[str, Any]]]:
-    if isinstance(file, str):
-        with any_loc_open(file, cache_remote_files=False, mode='rb') as f:
-            return _parse_hapi_csv(f)
-    if isinstance(file, io.IOBase) or hasattr(file, 'read'):
-        return _parse_hapi_csv(file)
-    return None, None
-
 
 def load_hapi_csv(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
-    data, headers = _load_csv(file)
+    data, headers = _load_hapi(file, _extract_data_csv)
     hapi_csv_file = HapiFile()
     if data is not None and headers is not None:
         time_header = headers["parameters"][0]
