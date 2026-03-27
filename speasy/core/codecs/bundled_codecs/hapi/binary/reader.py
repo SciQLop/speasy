@@ -5,20 +5,10 @@ from typing import Optional, Union, Dict, Any, Tuple
 import numpy as np
 
 from speasy.core.any_files import any_loc_open
+from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
 
-def _extract_headers(file: io.IOBase) -> Dict[str, Any]:
-    file.seek(0)
-    header_lines = []
-    while (line := file.readline()).startswith(b"#"):
-        header_lines.append(line[1:])
-
-    if not header_lines:
-        return None
-
-    header_bytes = b"".join(header_lines)
-    return json.loads(header_bytes.decode("utf-8"))
 
 
 def _hapi_header_to_parameters(header):
@@ -50,19 +40,15 @@ def _hapi_parameters_to_dtype(hapi_parameters):
 
     return np.dtype(fields)
 
-def _extract_data(file: io.IOBase, headers):
-    file.seek(0)
+def _extract_data_binary(file: io.IOBase, headers: Dict[str, Any]) -> np.ndarray:
     _params = _hapi_header_to_parameters(headers)
     _dtype = _hapi_parameters_to_dtype(_params)
-    file.seek(len(file.readline()))  # Skip header line
-    data = file.read()
-    data = np.frombuffer(data, dtype=_dtype)
-    return data
+    return np.frombuffer(file.read(), dtype=_dtype)
 
 def _parse_hapi_binary(file: io.IOBase) -> Tuple[np.array, Dict[str, Any]]:
     headers = _extract_headers(file)
     assert headers["parameters"][0]["type"] == "isotime"
-    data = _extract_data(file, headers)
+    data = _extract_data_binary(file, headers)
     return data, headers
 
 def _load_binary(file: Union[Buffer, str, io.IOBase]) -> Tuple[Optional[np.array], Optional[Dict[str, Any]]]:

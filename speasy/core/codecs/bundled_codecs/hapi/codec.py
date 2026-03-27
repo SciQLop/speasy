@@ -20,7 +20,6 @@ def _time_dependent_axis_name(ax: VariableAxis) -> str:
 def _get_variable_axes(variable: SpeasyVariable, is_time_dependent: bool) -> List[VariableAxis]:
     return [ax for ax in variable.axes[1:] if ax.is_time_dependent == is_time_dependent]
 
-
 def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     if "units" in meta:
         meta["UNITS"] = meta.pop("units")
