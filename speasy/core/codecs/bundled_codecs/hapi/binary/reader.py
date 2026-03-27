@@ -1,11 +1,9 @@
 import io
-import json
-from typing import Optional, Union, Dict, Any, Tuple
+from typing import Optional, Union, Dict, Any
 
 import numpy as np
 
-from speasy.core.any_files import any_loc_open
-from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers
+from speasy.core.codecs.bundled_codecs.hapi.reader import _load_hapi
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
 
@@ -45,23 +43,8 @@ def _extract_data_binary(file: io.IOBase, headers: Dict[str, Any]) -> np.ndarray
     _dtype = _hapi_parameters_to_dtype(_params)
     return np.frombuffer(file.read(), dtype=_dtype)
 
-def _parse_hapi_binary(file: io.IOBase) -> Tuple[np.array, Dict[str, Any]]:
-    headers = _extract_headers(file)
-    assert headers["parameters"][0]["type"] == "isotime"
-    data = _extract_data_binary(file, headers)
-    return data, headers
-
-def _load_binary(file: Union[Buffer, str, io.IOBase]) -> Tuple[Optional[np.array], Optional[Dict[str, Any]]]:
-    if isinstance(file, str):
-        with any_loc_open(file, cache_remote_files=False, mode='rb') as f:
-            return _parse_hapi_binary(f)
-    if isinstance(file, io.IOBase) or hasattr(file, 'read'):
-        return _parse_hapi_binary(file)
-    return None, None
-
-
 def load_hapi_binary(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
-    data, headers = _load_binary(file)
+    data, headers = _load_hapi(file, _extract_data_binary)
     hapi_binary_file = HapiFile()
     if data is not None and headers is not None:
         time_header = headers["parameters"][0]
