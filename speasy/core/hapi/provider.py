@@ -1,9 +1,9 @@
 from typing import List, Mapping, Optional
 
-from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError
 from speasy.products.variable import SpeasyVariable
 
 from .client import HapiClient
+
 
 class HapiProvider:
     def __init__(self, server_url: str):
@@ -21,7 +21,7 @@ class HapiProvider:
     def about(self) -> dict:
         return self.hapi_client.get_about()
 
-    def info(self, dataset: str, parameters: Optional[List]=None) -> dict:
+    def info(self, dataset: str, parameters: Optional[List] = None) -> dict:
         return self.hapi_client.get_info(dataset, parameters)
 
     def data(self, dataset: str, start: str, stop: str,

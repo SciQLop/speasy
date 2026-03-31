@@ -5,12 +5,12 @@ from typing import Dict, List, Mapping, Optional
 from urllib.parse import urlencode
 
 from speasy.core import http
-from speasy.core.codecs.codec_interface import CodecInterface
-from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.hapi.parser import _parse_hapi_csv
 from speasy.products.variable import SpeasyVariable
 
-from .exceptions import HapiError, HapiRequestError, HapiServerError, HapiNoData
+from .exceptions import (
+    HapiRequestError, HapiServerError, HapiNoData
+)
 
 
 class HapiEndpoint(Enum):
@@ -26,6 +26,7 @@ def _fetch_response(url: str):
     _check_response(response)
     return response
 
+
 def _check_hapi_status(data: Dict) -> None:
     code = data["status"]["code"]
     message = data["status"]["message"]
@@ -36,11 +37,13 @@ def _check_hapi_status(data: Dict) -> None:
     elif code >= 1500:
         raise HapiServerError(code, message)
 
+
 def _check_http_status(status_code: int, text: str) -> None:
     if 400 <= status_code < 500:
         raise HapiRequestError(status_code, text)
     elif status_code >= 500:
         raise HapiServerError(status_code, text)
+
 
 def _check_response(response) -> None:
     try:
@@ -67,18 +70,16 @@ class HapiClient:
 
         if major == 2:
             return "id"
-        elif  major == 3:
+        elif major == 3:
             return "dataset"
 
         raise RuntimeError(f"Unsupported HAPI version: {version}")
-
 
     def _fetch_variables(self, query_parameters: Dict) -> Mapping[str, SpeasyVariable]:
         parameters = query_parameters.get("parameters", [])
         url = self._build_url(HapiEndpoint.DATA, query_parameters)
         f = io.BytesIO(_fetch_response(url).text.encode("utf-8"))
         return _parse_hapi_csv(f, parameters)
-
 
     def _build_url(
         self,
