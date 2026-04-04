@@ -18,8 +18,8 @@
 Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
 data sources, whether it is online and public such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](http://amda.irap.omp.eu/),
 or any described archive, local or remote.
-This task, where any science project starts, would seem easy a priori but, considering the very
-diverse array of missions and instrument nowaday available, proves to be one of the major bottleneck,
+Finding and loading data is where any science project starts. It would seem easy a priori but, considering the
+diverse array of missions and instruments available nowadays, it proves to be one of the major bottlenecks,
 especially for students and newcomers.
 Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
 
@@ -28,7 +28,7 @@ Don't want to write code? See our graphical interface [SciQLop](https://github.c
 ## Main features
 
 -   Simple and intuitive API (`spz.get_data(...)` to get them all)
--   Speasy variables are like Pandas DataFrame with seemless conversion to/from it (as long as the shape is compatible)
+-   Speasy variables are like Pandas DataFrames with seamless conversion to/from them (as long as the shape is compatible)
 -   Speasy variables support numpy operations, [see numpy operations example below](#numpy-operations)
 -   Speasy variables filtering and resampling capabilities, [see resampling example below](#resampling)
 -   Local cache to avoid redundant downloads
@@ -82,10 +82,10 @@ ace_mag.plot();
 
 #### Using the dynamic inventory
 
-Where amda is the webservice and imf is the product id you will get with
-this request.
+Where `amda` is the data provider and `imf` is the product ID.
 
-Using the dynamic inventory will produce the same result as the previous example, but it has the advantage of being easier to manipulate, since you can discover available data from your favorite Python environment completion tool, such as IPython or notebooks.
+Using the dynamic inventory produces the same result as the previous example, but lets you discover available data
+through tab-completion in IPython, Jupyter notebooks, or any Python environment that supports it.
 
 
 ```python

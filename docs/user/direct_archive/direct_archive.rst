@@ -4,84 +4,237 @@ Direct archive access
 .. toctree::
    :maxdepth: 1
 
-The Direct Archive Access module in Speasy enables users to access any local or remote data archive that stores data in
-`ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ compliant `CDF <https://cdf.gsfc.nasa.gov/>`_ files. This module does not interact with any web service. Instead, it provides flexibility for users
-to configure and populate the necessary configuration files to expose the desired products.
+The Direct Archive Access module lets you load data from any local or remote archive of
+`CDF <https://cdf.gsfc.nasa.gov/>`_ files directly into Speasy — no web service required.
 
-Using this module, Speasy can seamlessly retrieve data from the specified data archive, leveraging predictable file names
-and paths within the archive. By adhering to the `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_  standards, Speasy
-ensures compatibility and smooth data access.
+This is useful when:
 
-This module supports both regularly split files (one file per day for example) and randomly split files such as burst data.
+- You have your own data files on disk or on a lab server
+- A public archive (e.g. CDAWeb) hosts files you want to access directly rather than through an API
+- You want to share a dataset configuration with colleagues
 
-To add your favourite products into Speasy, you need to add or edit an yaml file either located in Speasy lookup
-path, default user lookup path can be retrieved with ``spz.data_providers.generic_archive.user_inventory_dir()``. You need to
-add an entry per dataset with the following information:
+Once configured, the data appears in Speasy's inventory and can be loaded with ``spz.get_data()`` like any other product.
 
-- For a regularly split dataset, you can configure it using the following YAML structure:
+How it works
+------------
+
+Most space physics data archives follow a simple pattern: files are organized in folders by date
+(e.g. one CDF file per day, stored in yearly or monthly directories). Speasy exploits this predictable
+structure. You describe the URL pattern and file organization in a short YAML file, and Speasy handles the rest:
+it figures out which files to download for a given time range, loads them, and merges the results into a
+single ``SpeasyVariable``.
+
+.. note::
+    The data files must follow the `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ CDF conventions.
+    For non-ISTP files or other formats, see :ref:`custom_file_format` below.
+
+
+Quick start: adding a dataset
+------------------------------
+
+**Step 1: Find the inventory directory**
+
+Create a YAML file (e.g. ``my_datasets.yaml``) in Speasy's user inventory directory.
+On Linux this is ``~/.config/speasy/LPP/archive/``, on macOS ``~/Library/Application Support/speasy/LPP/archive/``.
+You can confirm the exact path:
+
+    >>> import speasy as spz
+    >>> print(spz.data_providers.generic_archive.user_inventory_dir()) # doctest: +SKIP
+
+**Step 2: Describe your dataset in YAML**
+
+Here is a minimal example for THEMIS-A FGM data hosted at CDPP, with one CDF file per day:
 
 .. code-block:: YAML
 
-    tha_efi:
-      inventory_path: cdpp/THEMIS/THA/L2
-      master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/efi/0000/tha_l2_efi_00000000_v01.cdf
+    tha_fgm:
+      inventory_path: my_data/THEMIS/THA
+      master_cdf: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/0000/tha_l2_fgm_00000000_v01.cdf
       split_frequency: daily
       split_rule: regular
-      url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/efi/{Y}/tha_l2_efi_{Y}{M:02d}{D:02d}_v\d+.cdf
+      url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/{Y}/tha_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
       use_file_list: true
 
-Here's an explanation of the parameters::
-    - **tha_efi**: The name you want to assign to your dataset.
-    - **inventory_path:**: The desired inventory path for your dataset. In this example, it can be found in ``spz.inventories.data_tree.archive.cdpp.THEMIS.THA.L2.tha_efi``.
-    - **master_cdf:**: The URL or path to download a master CDF or any sample CDF for this dataset. Speasy requires it to complete the inventory with the dataset's `data variables <https://spdf.gsfc.nasa.gov/istp_guide/variables.html#Data>`_. It is recommended to use master CDFs as they contain sufficient information while being smaller in size.
-    - **split_frequency:**: The frequency at which your dataset is split. For example, if you have one file per day, month, or year. Allowed values are *daily*, *monthly*, *yearly*.
-    - **url_pattern:**: The URL pattern to access each file. When requesting data within a specific interval, Speasy utilizes the *split_frequency* to determine the number of files to download and replaces the date/time information accordingly. It uses python *{}* format syntax, and available date/time placeholders are year (**Y**), month (**M**) and day (**D**) are available. You can also utilize Python regular expressions if you are unable to predict certain parts of the file name, such as the file version, but you have set *use_file_list* to true.
-    - **use_file_list:**: If set to true, Speasy lists the files in the specified directory after generating the URL based on the *url_pattern*. It then selects the last matching file.
+**Step 3: Restart Python and use it**
 
-- For a randomly split dataset, you can configure it using the following YAML structure:
+After saving the YAML file, restart your Python session (the inventory is built at import time):
+
+    >>> import speasy as spz # doctest: +SKIP
+    >>> # Your dataset now appears in the inventory
+    >>> spz.inventories.data_tree.archive.my_data.THEMIS.THA.tha_fgm # doctest: +SKIP
+    >>> # Get data as usual
+    >>> tha_b = spz.get_data("archive/my_data/THEMIS/THA/tha_fgm/tha_fgl_btotal", "2018-06-01", "2018-06-02") # doctest: +SKIP
+
+.. tip::
+    The individual variables within each dataset (like ``tha_fgl_btotal``) are discovered automatically
+    from the master CDF file. Use tab-completion in IPython/Jupyter to explore them.
+
+
+YAML field reference
+--------------------
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Field
+     - Description
+   * - **dataset_name** (top-level key)
+     - A name for your dataset. This becomes the last part of the inventory path.
+   * - **inventory_path**
+     - Where the dataset appears in ``spz.inventories.data_tree.archive``. Slashes create a nested hierarchy
+       (e.g. ``my_data/THEMIS/THA`` → ``archive.my_data.THEMIS.THA``).
+   * - **master_cdf**
+     - URL or local path to a master CDF (or any sample CDF from this dataset). Speasy reads it once
+       to discover which variables the dataset contains. Master CDFs are preferred because they are
+       lightweight template files without actual data.
+   * - **split_rule**
+     - How the files are organized: ``regular`` (predictable, one file per time period) or ``random``
+       (variable-length files like burst data). See :ref:`random_split_datasets`.
+   * - **split_frequency**
+     - Time granularity of the files: ``daily``, ``monthly``, ``yearly``, or ``none``.
+       For ``regular`` datasets, this is how often a new file starts.
+       For ``random`` datasets, this is how often a new *folder* starts (Speasy scans each folder for matching files).
+   * - **url_pattern**
+     - The URL template for data files. Date placeholders are expanded for each time period.
+       Can include Python regular expressions for unpredictable parts (e.g. file version numbers)
+       when ``use_file_list`` is ``true``. See the :ref:`url_placeholders` table below.
+   * - **use_file_list**
+     - If ``true``, Speasy lists the files in each directory and selects the last one matching
+       the URL pattern. Set this to ``true`` when parts of the filename are unpredictable (like version numbers).
+       Default: ``false``.
+   * - **fname_regex**
+     - Only for ``random`` split datasets. A Python regular expression to extract the start date
+       (and optionally stop date and version) from each filename. See :ref:`random_split_datasets`.
+
+.. _url_placeholders:
+
+URL pattern placeholders
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``url_pattern`` uses Python ``str.format()`` syntax. Available placeholders:
+
+.. list-table::
+   :widths: 15 25 30
+   :header-rows: 1
+
+   * - Placeholder
+     - Meaning
+     - Example output
+   * - ``{Y}``
+     - 4-digit year
+     - ``2018``
+   * - ``{y}``
+     - 2-digit year
+     - ``18``
+   * - ``{M}``
+     - Month (no padding)
+     - ``1`` .. ``12``
+   * - ``{M:02d}``
+     - Month (zero-padded)
+     - ``01`` .. ``12``
+   * - ``{D}``
+     - Day (no padding)
+     - ``1`` .. ``31``
+   * - ``{D:02d}``
+     - Day (zero-padded)
+     - ``01`` .. ``31``
+   * - ``{j}``
+     - Day of year
+     - ``1`` .. ``366``
+   * - ``{H}``
+     - Hour (24h)
+     - ``0`` .. ``23``
+
+Regex parts of the pattern (like ``\d+`` for version numbers) are only interpreted when ``use_file_list: true``.
+
+.. _random_split_datasets:
+
+Randomly split datasets (burst data)
+-------------------------------------
+
+Some datasets don't produce one file per day. Instead, files cover irregular time intervals
+(e.g. burst-mode data that only records during events). For these, use ``split_rule: random``.
+
+The key difference is the ``fname_regex`` field: a regular expression that Speasy applies to each filename
+to extract the time range it covers.
 
 .. code-block:: YAML
 
-    mms2_fpi_brst_l2_des_moms:
-        url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms2/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms2_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
-        use_file_list: true
-        master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms2_fpi_brst_l2_des-moms_00000000_v01.cdf"
-        inventory_path: 'cda/MMS/MMS2/FPI/BURST/MOMS'
-        split_rule: "random"
-        split_frequency: "monthly"
-        fname_regex: 'mms2_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
+    mms1_fpi_brst_l2_des_moms:
+      inventory_path: cda/MMS/MMS1/FPI/BURST/MOMS
+      master_cdf: "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/mms1_fpi_brst_l2_des-moms_00000000_v01.cdf"
+      split_rule: random
+      split_frequency: monthly
+      url_pattern: 'https://cdaweb.gsfc.nasa.gov/pub/data/mms/mms1/fpi/brst/l2/des-moms/{Y}/{M:02d}/mms1_fpi_brst_l2_des-moms_{Y}{M:02d}\d+_v\d+.\d+.\d+.cdf'
+      use_file_list: true
+      fname_regex: 'mms1_fpi_brst_l2_des-moms_(?P<start>\d+)_v(?P<version>[\d\.]+)\.cdf'
 
-Here's an explanation of the parameters::
-    - **mms2_fpi_brst_l2_des_moms**: The name you want to assign to your dataset.
-    - **inventory_path:**: The desired inventory path for your dataset. In this example, it can be found in ``spz.inventories.data_tree.archive.cda.MMS.MMS2.FPI.BURST.MOMS.mms2_fpi_brst_l2_des_moms``.
-    - **master_cdf:**: The URL or path to download a master CDF or any sample CDF for this dataset. Speasy requires it to complete the inventory with the dataset's `data variables <https://spdf.gsfc.nasa.gov/istp_guide/variables.html#Data>`_. It is recommended to use master CDFs as they contain sufficient information while being smaller in size.
-    - **split_frequency:**: The frequency at which folders are is split for this dataset. For example, if you have one folder per day, month, or year. Allowed values are *daily*, *monthly*, *yearly*.
-    - **url_pattern:**: The URL pattern to access files covering the current time range. When requesting data within a specific interval, Speasy utilizes the *split_frequency* to determine the number of folders to scan and replaces the date/time information accordingly. It uses python *{}* format syntax, and available date/time placeholders are year (**Y**), month (**M**) and day (**D**) are available. With randomly split datasets, it is important to ensure that the URL pattern includes the fixed and deterministic parts and rely on the **fname_regex** field to match files that cover the requested time range.
-    - **use_file_list:**: If set to true, Speasy lists the files in the specified directory after generating the URL based on the *url_pattern*. It then selects the last matching file.
-    - **fname_regex**: This regular expression is used to extract information such as the start date, stop date, and file version from the file names. It follows Python's regular expression syntax and captures specific groups. The expected or supported groups are:
-        - `start`: Start date, it should be parsable by ``dateutil.parser.parse`` (mandatory)
-        - `stop`: Stop date, same as start date (optional)
-        - `version`: Dataset version (optional)
+**How it works:** for each month in the requested time range, Speasy lists all files in the folder,
+applies ``fname_regex`` to extract the start time from each filename, keeps only the files that overlap
+with the requested interval, and loads them.
+
+**fname_regex named groups:**
+
+- ``(?P<start>...)`` — start date extracted from the filename (mandatory). Must be parsable as a date.
+- ``(?P<stop>...)`` — stop date (optional). If absent, Speasy assumes each file ends when the next one starts.
+- ``(?P<version>...)`` — file version (optional). Used to pick the latest version when multiple exist.
 
 
-Custom file format support (advanced users)
--------------------------------------------
+Extra inventory directories
+----------------------------
 
-If your data archive does not follow the ISTP standards enough to be supported by Speasy or it uses an unsupported file format, you can still take advantage of the Direct Archive Access module to easily access your data.
+Beyond the default user directory, you can tell Speasy to scan additional directories for YAML files:
 
-To do so, you need to create a custom reader function that loads the requested variable from the given file URL and returns it as a ``speasy.products.variable.SpeasyVariable`` or None if the variable is not found in the file.
+.. code-block:: ini
 
-The function should have the following signature:
+    [ARCHIVE]
+    extra_inventory_lookup_dirs = /shared/lab/speasy_inventories,/another/path
+
+Or via the environment variable ``SPEASY_ARCHIVE_EXTRA_INVENTORY_LOOKUP_DIRS``.
+
+
+.. _custom_file_format:
+
+Custom file format support (advanced)
+--------------------------------------
+
+If your data files are not ISTP-compliant CDF files, you can write a custom reader function and use
+``speasy.core.direct_archive_downloader.get_product`` directly.
+
+Your reader function receives a file URL and a variable name, and returns a ``SpeasyVariable`` (or ``None``):
 
 .. code-block:: python
 
-    def custom_reader(url: str, variable_name: str, **kwargs) -> SpeasyVariable or None:
-        pass
+    from speasy.products import SpeasyVariable
 
+    def my_reader(url: str, variable: str, **kwargs) -> SpeasyVariable or None:
+        # Load data from url, build and return a SpeasyVariable
+        ...
 
-Then you can use the ``speasy.core.direct_archive_downloader.get_product`` method directly to download the data on any time interval using your custom reader function.
+Then call ``get_product`` with your reader:
 
-Here is an example of a custom reader function that reads SolarOrbiter LFR snapshot data that are not ISTP compliant:
+.. code-block:: python
+
+    from speasy.core.direct_archive_downloader import get_product
+
+    data = get_product(
+        url_pattern="https://example.com/data/{Y}/{M:02d}/mydata_{Y}{M:02d}{D:02d}_v\d+.cdf",
+        start_time="2023-06-19",
+        stop_time="2023-06-20",
+        variable="B",
+        split_rule="regular",
+        split_frequency="daily",
+        use_file_list=True,
+        file_reader=my_reader,
+    )
+
+Example: reading non-ISTP Solar Orbiter LFR snapshots
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This example shows a custom reader for Solar Orbiter RPW/LFR waveform snapshots.
+These files contain multiple snapshots at different sampling rates packed into a single CDF,
+so the standard reader cannot handle them.
 
 .. code-block:: python
 
@@ -127,10 +280,8 @@ Here is an example of a custom reader function that reads SolarOrbiter LFR snaps
     lfr_b_F2.plot()
     plt.show()
 
-This should produce the following plot:
+This produces the following plot:
 
 .. image:: LFR_Snapshot.png
     :width: 800
     :align: center
-
-
