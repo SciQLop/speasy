@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Tests for the ISTP NetCDF codec (speasy.core.codecs.bundled_codecs.istp_netcdf)."""
+
+import unittest
+import numpy as np
+import pytest
+
+try:
+    import netCDF4
+except ImportError:
+    pytest.skip("netCDF4 not installed", allow_module_level=True)
+
+from speasy.core.codecs import get_codec
+
+
+@pytest.fixture
+def nc_path(tmp_path):
+    """Minimal ISTP-compliant NetCDF file for codec tests."""
+    path = tmp_path / "test_istp.nc"
+    ds = netCDF4.Dataset(str(path), "w")
+
+    ds.createDimension("time", 10)
+
+    epoch = ds.createVariable("Epoch", "f8", ("time",))
+    epoch.units = "seconds since 1970-01-01"
+    epoch.VAR_TYPE = "support_data"
+    epoch[:] = np.arange(10) * 60.0
+
+    density = ds.createVariable("DENSITY", "f4", ("time",))
+    density.VAR_TYPE = "data"
+    density.DEPEND_0 = "Epoch"
+    density.UNITS = "cm**-3"
+    density[:] = np.linspace(1.0, 10.0, 10).astype("f4")
+
+    ds.close()
+    return str(path)
+
+
+class TestNetCDFCodecResolution(unittest.TestCase):
+
+    def test_codec_found_by_extension(self):
+        self.assertIsNotNone(get_codec("nc"))
+
+    def test_codec_found_by_extension_nc4(self):
+        self.assertIsNotNone(get_codec("nc4"))
+
+
+class TestNetCDFCodecRead:
+
+    def test_load_variable_returns_result(self, nc_path):
+        codec = get_codec("nc")
+        result = codec.load_variables(["DENSITY"], file=nc_path)
+        assert result is not None
+        assert "DENSITY" in result
+        assert result["DENSITY"] is not None
+
+    def test_loaded_variable_has_correct_shape(self, nc_path):
+        codec = get_codec("nc")
+        var = codec.load_variable("DENSITY", file=nc_path)
+        assert var.values.shape[0] == 10
+
+    def test_loaded_variable_has_time_axis(self, nc_path):
+        codec = get_codec("nc")
+        var = codec.load_variable("DENSITY", file=nc_path)
+        assert var.time.dtype == np.dtype("datetime64[ns]")
