@@ -52,7 +52,7 @@ def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False) ->
 
 
 def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: List[VariableAxis],
-                    compress_variables=False) -> bool:
+                    compress_variables=False) -> None:
     def _already_in_cdf(ax: VariableAxis):
         for _ax in already_saved_axes:
             if _ax == ax:
@@ -67,7 +67,7 @@ def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: Lis
             depends[f"DEPEND_{index}"] = ax.name
             already_saved_axes.append(ax)
         else:
-            depends[f"DEPEND_{index}"] = a.name
+            depends[f"DEPEND_{index}"] = a
     attributes = v.meta
     attributes.update(depends)
     cdf.add_variable(
@@ -122,7 +122,7 @@ class IstpCdf(CodecInterface):
         if type(file) is str:
             pycdfpp.save(cdf, file)
             return True
-        elif hasattr(file, 'write'):
+        elif isinstance(file, io.IOBase):
             file.write(pycdfpp.save(cdf))
             return True
         elif file is None:
