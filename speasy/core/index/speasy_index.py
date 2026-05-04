@@ -1,11 +1,14 @@
-import diskcache as dc
+import pysciqlop_cache as sc
 
 from speasy.config import index as index_cfg
+from speasy.core.cache.cache import _migrate_legacy_diskcache
 
 
 class SpeasyIndex:
     def __init__(self):
-        self._index = dc.Index(index_cfg.path())
+        path = index_cfg.path()
+        _migrate_legacy_diskcache(path)
+        self._index = sc.Index(path=path)
 
     def get(self, module, key, default=None):
         return self._index.get(f'{module}/{key}', default)

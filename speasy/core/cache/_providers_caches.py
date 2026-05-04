@@ -245,7 +245,7 @@ class _Cacheable:
     def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False,
                                  **kwargs) -> List[Optional[SpeasyVariable]]:
         data_fragments = []
-        with self.cache.transact():
+        with self.cache.transact(product):
             for fragment in fragments:
                 data_fragments.append(
                     self.get_from_cache(fragment, product, version, prefer_cache, wait_for_pending=True, **kwargs))
@@ -253,7 +253,7 @@ class _Cacheable:
 
     def get_or_lock_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False,
                                          **kwargs) -> List[Union[SpeasyVariable, PendingRequest]]:
-        with self.cache.transact():
+        with self.cache.transact(product):
             return [
                 self.get_or_lock_from_cache(fragment, product, version, prefer_cache, **kwargs)
                 for fragment in fragments

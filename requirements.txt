@@ -1,7 +1,7 @@
 appdirs
 astropy
 astroquery
-diskcache
+pysciqlop-cache>=0.1.0
 humanize
 matplotlib
 numpy

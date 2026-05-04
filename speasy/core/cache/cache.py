@@ -1,12 +1,16 @@
-from typing import Union
-from datetime import datetime, timezone, timedelta
+import os
+import re
+import shutil
+import logging
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Optional, Union
 
-import diskcache as dc
+import pysciqlop_cache as sc
+
 from .version import str_to_version, version_to_str, Version
 from speasy.config import cache as cache_cfg
-from contextlib import ExitStack, contextmanager
-import re
-import logging
 
 cache_version = str_to_version("3.0")
 
@@ -39,20 +43,94 @@ class CacheItem:
             return False
 
 
-class Cache:
-    __slots__ = ['cache_file', '_data', 'cache_type']
+def _is_legacy_diskcache_layout(p: Path) -> bool:
+    if not p.exists():
+        return False
+    return (p / "cache.db").is_file() or bool(list(p.glob("*/cache.db")))
 
-    def __init__(self, cache_path: str = "", cache_type='Cache'):
-        cache_path = f"{cache_path}/{cache_type}"
-        if cache_type == 'Fanout':
-            self._data = dc.FanoutCache(cache_path, shards=8, size_limit=cache_cfg.size())
-        elif cache_type == 'Cache':
-            self._data = dc.Cache(cache_path, size_limit=cache_cfg.size())
+
+def _migrate_legacy_diskcache(full_path: str) -> bool:
+    """Detect a legacy diskcache layout at ``full_path`` and migrate it to
+    sciqlop-cache format. Returns True if a migration was performed.
+
+    The migration runs against a sibling staging directory; the original is
+    only renamed to ``<full_path>.diskcache.backup`` once the new cache is
+    fully written. On any failure the original is left untouched.
+
+    For large caches this can take minutes — a one-time cost on first launch
+    after upgrading. The legacy backup is kept so the user can verify and
+    delete it manually.
+    """
+    p = Path(full_path)
+    if not _is_legacy_diskcache_layout(p):
+        return False
+
+    backup = Path(f"{p}.diskcache.backup")
+    staging = Path(f"{p}.sciqlop_migrating")
+
+    if backup.exists():
+        log.warning(
+            f"Legacy cache backup already present at {backup}; "
+            f"skipping auto-migration. Move or remove it to retry."
+        )
+        return False
+    if staging.exists():
+        shutil.rmtree(staging)
+
+    try:
+        from pysciqlop_cache.migrate import migrate
+    except ImportError as e:
+        log.error(
+            f"Detected legacy diskcache layout at {p} but cannot migrate "
+            f"(missing dependency: {e}). Install diskcache once to allow "
+            f"migration, or delete {p} to start fresh."
+        )
+        return False
+
+    log.warning(
+        f"Detected legacy diskcache layout at {p}; migrating to sciqlop-cache. "
+        f"This is a one-time operation and may take several minutes for large caches."
+    )
+    try:
+        result = migrate(str(p), str(staging))
+    except Exception:
+        if staging.exists():
+            shutil.rmtree(staging)
+        raise
+
+    os.rename(str(p), str(backup))
+    try:
+        os.rename(str(staging), str(p))
+    except Exception:
+        os.rename(str(backup), str(p))
+        raise
+
+    log.info(
+        f"Migration complete: {result['migrated']} entries in "
+        f"{result['elapsed_secs']}s. Legacy cache preserved at {backup}; "
+        f"delete it once you've verified the new cache works."
+    )
+    return True
+
+
+class Cache:
+    __slots__ = ["cache_file", "_data", "cache_type"]
+
+    def __init__(self, cache_path: str = "", cache_type: str = "Cache"):
+        full_path = f"{cache_path}/{cache_type}"
+        _migrate_legacy_diskcache(full_path)
+
+        if cache_type == "Fanout":
+            self._data = sc.FanoutCache(
+                cache_path=full_path, shard_count=8, max_size=cache_cfg.size()
+            )
+        elif cache_type == "Cache":
+            self._data = sc.Cache(cache_path=full_path, max_size=cache_cfg.size())
         else:
             raise ValueError(f"Unimplemented cache type: {cache_type}")
 
         self.cache_type = cache_type
-        self._data.stats(enable=True, reset=True)
+        self._data.reset_stats()
         if self.version < cache_version:
             self._data.clear()
             self.version = cache_version
@@ -69,17 +147,14 @@ class Cache:
         return self._data.volume()
 
     def stats(self):
-        hit, miss = self._data.stats()
+        s = self._data.stats()
         return {
-            "hit": hit,
-            "misses": miss,
+            "hit": s["hits"],
+            "misses": s["misses"],
         }
 
     def __len__(self):
         return len(self._data)
-
-    def __del__(self):
-        self._data.close()
 
     def keys(self):
         return list(self._data)
@@ -93,11 +168,11 @@ class Cache:
     def __setitem__(self, key, value):
         self._data[key] = value
 
-    def set(self, key, value, expire=None):
-        self._data.set(key, value, expire=expire)
+    def set(self, key, value, expire=None, tag: Optional[str] = None):
+        self._data.set(key, value, expire=expire, tag=tag)
 
-    def add(self, key, value, expire=None):
-        return self._data.add(key, value, expire=expire)
+    def add(self, key, value, expire=None, tag: Optional[str] = None):
+        return self._data.add(key, value, expire=expire, tag=tag)
 
     def get(self, key, default_value=None):
         return self._data.get(key, default_value)
@@ -107,6 +182,9 @@ class Cache:
 
     def drop(self, key):
         self._data.delete(key)
+
+    def evict_tag(self, tag: str):
+        return self._data.evict_tag(tag)
 
     def drop_matching_entries(self, pattern: Union[str, re.Pattern]):
         """Drop all cache entries that match a given pattern
@@ -123,17 +201,28 @@ class Cache:
             self.drop(key)
 
     @contextmanager
-    def transact(self):
-        if self.cache_type != 'Fanout':
-            with self._data.transact():
+    def transact(self, key: Optional[str] = None):
+        """Open a transaction context.
+
+        For a single Cache the ``key`` argument is ignored. For a FanoutCache
+        the transaction is per-shard and ``key`` selects the shard — atomicity
+        only applies within that shard, so all operations in the block must
+        target the same shard key.
+        """
+        if self.cache_type == "Fanout":
+            if key is None:
+                raise ValueError(
+                    "FanoutCache.transact requires a key to select a shard"
+                )
+            with self._data.transact(key):
                 yield
         else:
-            with ExitStack():
+            with self._data.transact():
                 yield
 
     @contextmanager
     def lock(self, key: str):
-        lock = dc.Lock(self._data, key)
+        lock = sc.Lock(self._data, key)
         lock.acquire()
         try:
             yield lock
