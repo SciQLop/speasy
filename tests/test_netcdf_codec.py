@@ -75,6 +75,31 @@ class TestNetCDFCodecRead:
 
 
 @pytest.mark.skipif(not os.path.exists(AC_MFI), reason="real CDAWeb file not present")
+class TestNetCDFCodecWrite:
+
+    @pytest.fixture
+    def var(self, codec):
+        return codec.load_variable("Magnitude", file=AC_MFI, disable_cache=True)
+
+    def test_save_returns_memoryview(self, codec, var):
+        assert isinstance(codec.save_variables([var]), memoryview)
+
+    def test_roundtrip_variable_is_loaded(self, codec, var):
+        buf = codec.save_variables([var])
+        assert codec.load_variable("Magnitude", file=bytes(buf), disable_cache=True) is not None
+
+    def test_roundtrip_values(self, codec, var):
+        buf = codec.save_variables([var])
+        var2 = codec.load_variable("Magnitude", file=bytes(buf), disable_cache=True)
+        np.testing.assert_array_almost_equal(var.values, var2.values)
+
+    def test_roundtrip_time(self, codec, var):
+        buf = codec.save_variables([var])
+        var2 = codec.load_variable("Magnitude", file=bytes(buf), disable_cache=True)
+        np.testing.assert_array_equal(var.time, var2.time)
+
+
+@pytest.mark.skipif(not os.path.exists(AC_MFI), reason="real CDAWeb file not present")
 class TestNetCDFCodecRealFile:
 
     def test_load_variable_returns_result(self, codec):
