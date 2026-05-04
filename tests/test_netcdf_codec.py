@@ -19,6 +19,13 @@ AC_MFI = os.path.join(os.path.dirname(__file__), "resources", "ac_h2s_mfi_cdaweb
 
 
 @pytest.fixture
+def codec():
+    c = get_codec("nc")
+    assert c is not None
+    return c
+
+
+@pytest.fixture
 def nc_path(tmp_path):
     """Minimal ISTP-compliant NetCDF file for codec tests."""
     path = tmp_path / "test_istp.nc"
@@ -52,20 +59,17 @@ class TestNetCDFCodecResolution(unittest.TestCase):
 
 class TestNetCDFCodecRead:
 
-    def test_load_variable_returns_result(self, nc_path):
-        codec = get_codec("nc")
+    def test_load_variable_returns_result(self, codec, nc_path):
         result = codec.load_variables(["DENSITY"], file=nc_path)
         assert result is not None
         assert "DENSITY" in result
         assert result["DENSITY"] is not None
 
-    def test_loaded_variable_has_correct_shape(self, nc_path):
-        codec = get_codec("nc")
+    def test_loaded_variable_has_correct_shape(self, codec, nc_path):
         var = codec.load_variable("DENSITY", file=nc_path)
         assert var.values.shape[0] == 10
 
-    def test_loaded_variable_has_time_axis(self, nc_path):
-        codec = get_codec("nc")
+    def test_loaded_variable_has_time_axis(self, codec, nc_path):
         var = codec.load_variable("DENSITY", file=nc_path)
         assert var.time.dtype == np.dtype("datetime64[ns]")
 
@@ -73,15 +77,15 @@ class TestNetCDFCodecRead:
 @pytest.mark.skipif(not os.path.exists(AC_MFI), reason="real CDAWeb file not present")
 class TestNetCDFCodecRealFile:
 
-    def test_load_variable_returns_result(self):
-        result = get_codec("nc").load_variables(["Magnitude"], file=AC_MFI)
+    def test_load_variable_returns_result(self, codec):
+        result = codec.load_variables(["Magnitude"], file=AC_MFI)
         assert result is not None
         assert result["Magnitude"] is not None
 
-    def test_loaded_variable_has_correct_shape(self):
-        var = get_codec("nc").load_variable("Magnitude", file=AC_MFI)
+    def test_loaded_variable_has_correct_shape(self, codec):
+        var = codec.load_variable("Magnitude", file=AC_MFI)
         assert var.values.shape[0] == var.time.shape[0]
 
-    def test_loaded_variable_has_time_axis(self):
-        var = get_codec("nc").load_variable("Magnitude", file=AC_MFI)
+    def test_loaded_variable_has_time_axis(self, codec):
+        var = codec.load_variable("Magnitude", file=AC_MFI)
         assert var.time.dtype == np.dtype("datetime64[ns]")
