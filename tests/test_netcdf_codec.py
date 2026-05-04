@@ -3,6 +3,7 @@
 
 """Tests for the ISTP NetCDF codec (speasy.core.codecs.bundled_codecs.istp_netcdf)."""
 
+import os
 import unittest
 import numpy as np
 import pytest
@@ -13,6 +14,8 @@ except ImportError:
     pytest.skip("netCDF4 not installed", allow_module_level=True)
 
 from speasy.core.codecs import get_codec
+
+AC_MFI = os.path.join(os.path.dirname(__file__), "resources", "ac_h2s_mfi_cdaweb.nc")
 
 
 @pytest.fixture
@@ -64,4 +67,21 @@ class TestNetCDFCodecRead:
     def test_loaded_variable_has_time_axis(self, nc_path):
         codec = get_codec("nc")
         var = codec.load_variable("DENSITY", file=nc_path)
+        assert var.time.dtype == np.dtype("datetime64[ns]")
+
+
+@pytest.mark.skipif(not os.path.exists(AC_MFI), reason="real CDAWeb file not present")
+class TestNetCDFCodecRealFile:
+
+    def test_load_variable_returns_result(self):
+        result = get_codec("nc").load_variables(["Magnitude"], file=AC_MFI)
+        assert result is not None
+        assert result["Magnitude"] is not None
+
+    def test_loaded_variable_has_correct_shape(self):
+        var = get_codec("nc").load_variable("Magnitude", file=AC_MFI)
+        assert var.values.shape[0] == var.time.shape[0]
+
+    def test_loaded_variable_has_time_axis(self):
+        var = get_codec("nc").load_variable("Magnitude", file=AC_MFI)
         assert var.time.dtype == np.dtype("datetime64[ns]")
