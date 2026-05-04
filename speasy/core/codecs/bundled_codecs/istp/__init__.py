@@ -12,7 +12,6 @@ from speasy.core.url_utils import urlparse, is_local_file
 from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 
 log = logging.getLogger(__name__)
-_PTR_rx = re.compile(r".*_PTR(_\d+)?")
 
 
 def _fix_value_type(value):
