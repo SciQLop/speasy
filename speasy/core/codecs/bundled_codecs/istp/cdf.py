@@ -11,9 +11,12 @@ from speasy.core.codecs import CodecInterface, register_codec, Buffer
 from speasy.core.cache import CacheCall
 from speasy.products import SpeasyVariable, VariableAxis
 
-from . import _PTR_rx, _load_variable, _resolve_url_type, _simplify_shape
+import re
+
+from . import _load_variable, _resolve_url_type, _simplify_shape
 
 log = logging.getLogger(__name__)
+_PTR_rx = re.compile(r".*_PTR(_\d+)?")
 
 
 def _load_variables(variables, file=None, buffer=None, master_file=None, master_buffer=None):
