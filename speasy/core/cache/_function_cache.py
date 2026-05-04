@@ -2,7 +2,7 @@ import base64
 import inspect
 from datetime import timedelta
 from functools import wraps
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from ._instance import _cache
 from .cache import CacheItem
@@ -16,7 +16,7 @@ def make_key_from_args(*args, **kwargs):
 
 
 class CacheCall(object):
-    def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False):
+    def __init__(self, cache_retention: Union[int, float, timedelta] = 60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False):
         from ..platform import is_running_on_wasm
         if type(cache_retention) is timedelta:
             cache_retention = cache_retention.total_seconds()
