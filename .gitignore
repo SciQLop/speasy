@@ -120,3 +120,7 @@ ENV/
 /docs/dev/speasy.webservices.csa.rst
 /docs/dev/speasy.webservices.rst
 /docs/dev/speasy.webservices.ssc.rst
+
+# Local dev
+.claude/
+.pre-commit-config.yaml
