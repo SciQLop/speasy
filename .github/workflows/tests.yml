@@ -28,27 +28,27 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
-    -   name: add test logins
-        uses: extractions/netrc@v3
-        with:
-            machine: authenticationtest.com
-            username: user
-            password: pass
+    - name: add test logins
+      uses: extractions/netrc@v3
+      with:
+        machine: authenticationtest.com
+        username: user
+        password: pass
     - name: Set up uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       with:
         enable-cache: true
     - name: Install dependencies
-      run: uv sync --group dev --group docs
+      run: uv sync --locked --group dev --group docs
     - name: Lint with flake8
       run: |
-        uv run --with flake8 flake8 . --exclude=.venv --count --select=E9,F63,F7,F82 --show-source --statistics
-        uv run --with flake8 flake8 . --exclude=.venv --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        uv run --no-project --no-build --with flake8 flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+        uv run --no-project --no-build --with flake8 flake8 speasy tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       if: matrix.python-version != '3.10' ||  matrix.os != 'ubuntu-latest'
       env:
           SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
-      run: uv run pytest
+      run: uv run --locked pytest
     - name: Test with pytest (coverage + long tests)
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
       env:
@@ -60,7 +60,7 @@ jobs:
         SPEASY_CORE_DISABLED_PROVIDERS: ""
       run: |
         sudo apt update && sudo apt install -y texlive pandoc
-        uv run pytest --cov=./ -cov-config=.coveragerc --cov-report=xml
+        uv run --locked pytest --cov=./ -cov-config=.coveragerc --cov-report=xml
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
@@ -68,8 +68,8 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
       run: |
-        uv run --with build --with wheel --with twine python -m build .
-        uv run --with twine twine check dist/*
+        uv run --locked --with build --with wheel --with twine python -m build .
+        uv run --no-project --no-build --with twine twine check dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v7
