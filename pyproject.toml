@@ -81,6 +81,16 @@ docs = [
     "pandoc",
 ]
 
+[tool.pytest.ini_options]
+addopts = "--ignore=setup.py -m unit"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+markers = [
+    "unit: fast deterministic tests with no network access; runs on every push and PR (default)",
+    "contract: real-server probes that detect upstream API/data drift; runs on a daily schedule",
+    "e2e: end-to-end smoke tests that confirm Speasy works on every supported OS × Python combo; runs on a weekly schedule",
+]
+
 [tool.ruff.lint]
 select = ["NPY201"]
 
