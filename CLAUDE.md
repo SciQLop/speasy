@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Speasy ("Space Physics made EASY") is a Python library providing a unified API for accessing 70+ space physics missions and 65,000+ data products from multiple web services (AMDA, CDAWeb, CSA, SSCWeb, CDPP 3DView). Built with flit, requires Python >=3.9.
+Speasy ("Space Physics made EASY") is a Python library providing a unified API for accessing 70+ space physics missions and 65,000+ data products from multiple web services (AMDA, CDAWeb, CSA, SSCWeb, CDPP 3DView). Built with flit, requires Python >=3.10.
 
 ## Common Commands
 
