@@ -6,6 +6,12 @@ on:
     - cron: "0 4 * * *"
   workflow_dispatch:
 
+# Avoid two contract runs hammering the upstream servers in parallel if the
+# previous one is still going (or someone hits Run workflow during a cron run).
+concurrency:
+  group: contract
+  cancel-in-progress: false
+
 jobs:
   contract:
     runs-on: ubuntu-latest

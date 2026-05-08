@@ -89,6 +89,22 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     $ make test
     $ make doctest
 
+   ``make test`` runs the **unit** tier only (deterministic, no network).
+   The full test suite is split into three tiers via pytest markers; each
+   targets a different goal:
+
+   - ``unit``: pure-logic tests that run on every push and PR (the default).
+   - ``contract``: real-server probes; runs daily on a CI cron to detect
+     upstream API drift.
+   - ``e2e``: end-to-end smoke tests on the full OS x Python matrix, run
+     weekly.
+
+   To run a non-default tier locally::
+
+    $ uv run pytest -m contract     # network-hitting tests
+    $ uv run pytest -m e2e          # end-to-end smoke tests
+    $ uv run pytest -m ''           # everything (overrides the default filter)
+
 
 6. Commit your changes and push your branch to GitHub::
 

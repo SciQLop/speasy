@@ -58,12 +58,12 @@ class E2ESmoke(unittest.TestCase):
         self.assertGreater(len(result), 0)
 
     def test_generic_archive(self):
-        # Try a handful of GenericArchive products until one returns data.
-        # The smoke goal is to confirm the GenericArchive code path runs end-to-end;
+        # Try a handful of GenericArchive products until one returns data. The
+        # smoke goal is to confirm the GenericArchive code path runs end-to-end;
         # we don't care which product yields data, just that some product does.
-        # We sample across the full inventory rather than the first N entries, since
-        # the order can group products by mission and a given time range may not
-        # match every mission's operational period.
+        # We sample across the full inventory rather than the first N entries
+        # since the order can group products by mission, and a given time range
+        # may not match every mission's operational period.
         from speasy.inventories import flat_inventories
         params = flat_inventories.generic_archive.parameters
         if not params:
@@ -71,11 +71,18 @@ class E2ESmoke(unittest.TestCase):
         items = list(params.items())
         step = max(1, len(items) // 30)
         candidates = items[::step][:30]
+        last_error: Exception | None = None
         for _, product in candidates:
             try:
                 result = spz.get_data(product, START, STOP)
-            except Exception:
+            except Exception as e:
+                last_error = e
                 continue
             if isinstance(result, SpeasyVariable) and len(result) > 0:
                 return
+        if last_error is not None:
+            self.fail(
+                f"all {len(candidates)} GenericArchive candidates raised; "
+                f"last error: {last_error!r}"
+            )
         self.skipTest("no GenericArchive product yielded data for the smoke time range")
