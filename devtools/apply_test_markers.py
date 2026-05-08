@@ -12,9 +12,9 @@ from __future__ import annotations
 from pathlib import Path
 
 CLASSIFICATION: dict[str, str] = {
+    "test_cache.py": "unit",
     "test_dataset.py": "unit",
     "test_datetimerange.py": "unit",
-    "test_file_access.py": "unit",
     "test_filtering.py": "unit",
     "test_proxy.py": "unit",
     "test_resampling.py": "unit",
@@ -27,7 +27,7 @@ CLASSIFICATION: dict[str, str] = {
     "test_amda_catalog.py": "contract",
     "test_amda_parameter.py": "contract",
     "test_amda_timetable.py": "contract",
-    "test_cache.py": "contract",
+    "test_file_access.py": "contract",
     "test_cdaweb.py": "contract",
     "test_cdpp3dview.py": "contract",
     "test_codecs.py": "contract",

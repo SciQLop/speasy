@@ -1,5 +1,10 @@
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 import numpy as np
 
 from speasy.core.datetime_range import DateTimeRange

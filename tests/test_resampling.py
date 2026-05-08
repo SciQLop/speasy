@@ -5,6 +5,11 @@
 
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from datetime import datetime
 
 import numpy as np
