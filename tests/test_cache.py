@@ -196,6 +196,49 @@ class CacheRequestsDeduplication(unittest.TestCase):
         self.assertLessEqual(self._make_data_cntr, 1)
 
 
+class RequestLockerWakeup(unittest.TestCase):
+    """Regression test: a peer waiting on a request_locker must wake up
+    promptly once the producer drops the lock — not wait the full timeout.
+
+    The previous implementation only checked a snapshot's elapsed time and
+    ignored the cache state, so peers always slept for the full ``timeout``
+    seconds even if the producer finished after milliseconds.
+    """
+
+    def test_peer_wakes_up_when_producer_finishes(self):
+        from threading import Thread, Event
+        from speasy.core.cache._request_locker import request_locker
+
+        key = "test_request_locker_wakeup_prompt"
+        producer_done = Event()
+        peer_woken_at = []
+
+        def producer():
+            with request_locker(key, timeout=30):
+                time.sleep(0.05)
+            producer_done.set()
+
+        def peer():
+            time.sleep(0.01)
+            t0 = time.monotonic()
+            with request_locker(key, timeout=30):
+                pass
+            peer_woken_at.append(time.monotonic() - t0)
+
+        t1 = Thread(target=producer)
+        t2 = Thread(target=peer)
+        t1.start()
+        t2.start()
+        t1.join(timeout=5)
+        t2.join(timeout=5)
+
+        self.assertTrue(producer_done.is_set())
+        self.assertEqual(len(peer_woken_at), 1)
+        self.assertLess(peer_woken_at[0], 1.0,
+                        f"Peer waited {peer_woken_at[0]:.2f}s — should wake "
+                        f"promptly after producer drops the lock")
+
+
 class MPDataProvider:
 
     def version(self, product):
