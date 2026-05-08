@@ -34,26 +34,21 @@ jobs:
             machine: authenticationtest.com
             username: user
             password: pass
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-        pip install -r requirements_dev.txt
+      run: uv sync --group dev --group docs
     - name: Lint with flake8
       run: |
-        pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        uv run --with flake8 flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        uv run --with flake8 flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       if: matrix.python-version != '3.10' ||  matrix.os != 'ubuntu-latest'
       env:
           SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
-      run: |
-        pip install pytest pytest-cov sphinx pandoc
-        pip install -r docs/requirements.txt
-        pytest
+      run: uv run pytest
     - name: Test with pytest (coverage + long tests)
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
       env:
@@ -65,9 +60,7 @@ jobs:
         SPEASY_CORE_DISABLED_PROVIDERS: ""
       run: |
         sudo apt update && sudo apt install -y texlive pandoc
-        pip install pytest pytest-cov sphinx pandoc
-        pip install -r docs/requirements.txt
-        pytest --cov=./ -cov-config=.coveragerc --cov-report=xml
+        uv run pytest --cov=./ -cov-config=.coveragerc --cov-report=xml
         make doctest
     - name: Check that release process is not broken
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
@@ -75,10 +68,8 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
       run: |
-        pip install build wheel twine
-        python -m build .
-        twine check dist/*
-        twine upload --repository testpypi --skip-existing dist/*
+        uv run --with build --with wheel --with twine python -m build .
+        uv run --with twine twine check dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
       uses: codecov/codecov-action@v6
