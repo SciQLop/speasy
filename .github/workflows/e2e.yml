@@ -1,0 +1,38 @@
+name: E2E smoke tests
+
+on:
+  schedule:
+    # Weekly on Sundays at 06:00 UTC
+    - cron: "0 6 * * 0"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    env:
+      SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
+      SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
+      SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Install dependencies
+      run: uv sync --group dev --group docs
+    - name: Run E2E smoke tests
+      run: uv run pytest -m e2e -v
