@@ -38,10 +38,12 @@ jobs:
       run: uv sync --group dev --group docs
     - name: Lint with flake8
       run: |
-        uv run --with flake8 flake8 . --exclude=.venv --count --select=E9,F63,F7,F82 --show-source --statistics
-        uv run --with flake8 flake8 . --exclude=.venv --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        uv run --with flake8 flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+        uv run --with flake8 flake8 speasy tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       if: matrix.python-version != '3.10' ||  matrix.os != 'ubuntu-latest'
+      env:
+          SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
       run: uv run pytest
     - name: Test with pytest (coverage + long tests)
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
@@ -59,7 +61,7 @@ jobs:
     - name: Check that release process is not broken
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
       run: |
-        uv run --with build --with twine python -m build .
+        uv run --with build --with wheel --with twine python -m build .
         uv run --with twine twine check dist/*
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
