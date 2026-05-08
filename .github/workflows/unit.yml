@@ -1,0 +1,67 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    env:
+      SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Install dependencies
+      run: uv sync --group dev --group docs
+    - name: Run unit tests
+      run: uv run pytest -m unit
+    - name: Run unit tests with coverage (one runner)
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      run: |
+        uv run pytest -m unit --cov=speasy --cov-config=.coveragerc --cov-report=xml
+        make doctest
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unit
+        name: codecov-umbrella
+        fail_ci_if_error: true
+
+  release-check:
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Build and check release artifacts
+      run: |
+        uv run --with build --with wheel --with twine python -m build .
+        uv run --with twine twine check dist/*
