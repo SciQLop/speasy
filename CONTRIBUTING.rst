@@ -105,6 +105,27 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     $ uv run pytest -m e2e          # end-to-end smoke tests
     $ uv run pytest -m ''           # everything (overrides the default filter)
 
+   The unit tier replays HTTP from YAML cassettes under ``tests/cassettes/``.
+   By default, cassettes are replay-only — a missing cassette fails the
+   test rather than silently calling out to the live server. To capture
+   new cassettes for a test you're adding::
+
+    $ uv run pytest -m unit --record-mode=once tests/test_my_feature.py
+
+   To force re-record over existing cassettes (after an upstream API change)::
+
+    $ uv run pytest -m unit --record-mode=rewrite tests/test_my_feature.py
+
+   Cassette files are committed to the repo. If a recorded interaction
+   contains credentials or other secrets, scrub them in
+   ``tests/conftest.py`` (``vcr_config`` fixture's ``filter_headers``
+   and ``filter_query_parameters`` lists).
+
+   For test cases needing surgical control over the HTTP path (timeouts,
+   5xx, malformed payloads), use the ``httpserver`` fixture from
+   ``pytest-httpserver`` rather than a cassette — see
+   ``tests/test_infra_smoke.py`` for a minimal example.
+
 
 6. Commit your changes and push your branch to GitHub::
 
