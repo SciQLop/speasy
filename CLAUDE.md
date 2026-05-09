@@ -12,16 +12,19 @@ Speasy ("Space Physics made EASY") is a Python library providing a unified API f
 # Install in development mode
 uv sync --group dev --group docs
 
-# Run tests
-uv run pytest                           # all tests
-uv run pytest tests/test_amda.py        # single test file
-uv run pytest -k "test_name"            # single test by name
+# Run tests (default `addopts = "-m unit"` selects the unit tier only)
+uv run pytest                           # unit tier (fast, no network)
+uv run pytest -m contract               # real-server tests
+uv run pytest -m e2e                    # end-to-end smoke tests
+uv run pytest -m ''                     # all tests (overrides the default filter)
+uv run pytest -m contract tests/test_amda.py   # single contract test file
+uv run pytest -k "test_name"            # single test by name (within unit tier)
 
 # Lint
 uv run --with flake8 flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
 
 # Doctests
-make doctest
+uv run make doctest
 
 # Build
 uv run --with build python -m build --sdist --wheel
