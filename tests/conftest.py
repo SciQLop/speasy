@@ -42,10 +42,30 @@ CASSETTE_ROOT = Path(__file__).parent / "cassettes"
 
 @pytest.fixture(scope="module")
 def vcr_config() -> dict[str, Any]:
-    """Default VCR config: replay only, scrub auth-bearing headers/params."""
+    """Default VCR config: replay only, scrub auth-bearing headers/params.
+
+    The filter lists are deliberately broad to avoid accidentally
+    committing secrets into cassette YAML files. When PRs 4-9 record
+    real-server interactions, anything matching these names in headers
+    or query strings is replaced with a placeholder before the cassette
+    is written to disk.
+    """
     return {
-        "filter_headers": ["authorization", "cookie", "set-cookie"],
-        "filter_query_parameters": ["userID", "password", "token"],
+        "filter_headers": [
+            "authorization",
+            "bearer",
+            "cookie",
+            "set-cookie",
+            "x-api-key",
+        ],
+        "filter_query_parameters": [
+            "apikey",
+            "api_key",
+            "password",
+            "sessionID",
+            "token",
+            "userID",
+        ],
         "record_mode": "none",
     }
 
@@ -63,12 +83,23 @@ def vcr_cassette_dir(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture
 def tmp_speasy_cache(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
-    """Isolate Speasy's disk cache to a per-test tempdir.
+    """Set ``SPEASY_CACHE_PATH`` to a per-test tempdir.
 
-    Without this fixture, tests share a single cache directory and can
-    interact in unexpected ways when run in parallel or in different orders.
-    Set the ``SPEASY_CACHE_PATH`` env var before any speasy module that
-    uses the cache is imported in the test body.
+    .. warning::
+
+        Speasy's disk cache is a module-level singleton constructed at
+        import time (``speasy.core.cache._instance._cache``). Once
+        ``speasy.core.cache`` has been imported in the test session,
+        the cache is bound to the path it saw at first import — and
+        monkeypatching ``SPEASY_CACHE_PATH`` afterwards has no effect
+        on the live ``_cache`` object.
+
+        This fixture is therefore only effective for code paths that
+        re-read ``SPEASY_CACHE_PATH`` dynamically (e.g. tests that
+        construct their own ``Cache(...)`` rather than using the
+        package-level singleton). For tests needing real isolation of
+        the singleton, the cassette-migration PRs will introduce a
+        sturdier mechanism (e.g. monkeypatching the singleton itself).
     """
     cache_dir = tmp_path / "speasy_cache"
     cache_dir.mkdir()

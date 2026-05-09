@@ -48,9 +48,26 @@ def test_httpserver_fixture_serves_a_response(httpserver) -> None:
     Used in PRs 4-9 for surgical control over failure paths (timeouts,
     5xx, malformed bodies) where cassette replay is too coarse.
     """
-    import urllib.request
+    import requests
 
     httpserver.expect_request("/ping").respond_with_data("pong", content_type="text/plain")
-    with urllib.request.urlopen(httpserver.url_for("/ping"), timeout=5) as r:
-        body = r.read().decode()
-    assert body == "pong"
+    response = requests.get(httpserver.url_for("/ping"), timeout=5)
+    assert response.text == "pong"
+
+
+@pytest.mark.vcr
+def test_record_mode_none_blocks_unmocked_requests(httpserver) -> None:
+    """record_mode='none' (the conftest default) must fail when a real
+    HTTP request has no matching cassette.
+
+    This guards against a class of regression where someone renames a
+    fixture or changes its scope and pytest-recording silently stops
+    intercepting traffic — without this assertion such a regression
+    would only surface as cassette-recording drift months later.
+    """
+    import requests
+    from vcr.errors import CannotOverwriteExistingCassetteException
+
+    httpserver.expect_request("/unrecorded").respond_with_data("ok")
+    with pytest.raises(CannotOverwriteExistingCassetteException):
+        requests.get(httpserver.url_for("/unrecorded"), timeout=2)
