@@ -43,6 +43,14 @@ jobs:
       run: sudo apt update && sudo apt install -y texlive pandoc
     - name: Run unit tests with coverage and doctests (one runner)
       if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      env:
+        # Doctests reference all providers (cdpp3dview, etc.) and live
+        # inventories — re-enable everything for this step. The HTTP rewrite
+        # rule re-routes a placeholder URL used in some examples to LPP's
+        # mirror.
+        SPEASY_CORE_DISABLED_PROVIDERS: ""
+        SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
+        SPEASY_CORE_HTTP_USER_AGENT: "speasy-test-github-actions"
       run: |
         uv run pytest -m unit --cov=speasy --cov-config=.coveragerc --cov-report=xml
         uv run make doctest
