@@ -88,8 +88,10 @@ jobs:
       run: python -m pip install pytest-pyodide
 
     - name: Run tests
+      # Override the pyproject default `addopts = "-m unit"` so the
+      # contract-marked test_wasm.py module is collected here.
       run: |
-        python -m pytest -vra \
+        python -m pytest -vra -m '' \
           --dist-dir=./pyodide-dist/ \
           --runner=selenium \
           --rt=chrome \

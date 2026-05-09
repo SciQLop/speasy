@@ -6,6 +6,11 @@
 import unittest
 import speasy as spz
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 
 class CatalogRequests(unittest.TestCase):
     def setUp(self):

@@ -5,6 +5,11 @@
 import unittest
 import numpy as np
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from ddt import ddt, data, unpack
 
 import speasy as spz
