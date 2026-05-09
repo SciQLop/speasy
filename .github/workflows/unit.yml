@@ -38,6 +38,9 @@ jobs:
     - name: Run unit tests
       if: matrix.python-version != '3.13' || matrix.os != 'ubuntu-latest'
       run: uv run pytest -m unit
+    - name: Install system tooling for doctest (one runner)
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      run: sudo apt update && sudo apt install -y texlive pandoc
     - name: Run unit tests with coverage and doctests (one runner)
       if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
       run: |
