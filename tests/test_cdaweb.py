@@ -7,7 +7,7 @@ from multiprocessing import dummy
 
 import pytest
 
-pytestmark = pytest.mark.contract
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 
 
 import numpy as np

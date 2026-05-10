@@ -9,6 +9,7 @@ jobs:
   unit:
     env:
       SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
+      SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
 
     runs-on: ${{ matrix.os }}
     strategy:
