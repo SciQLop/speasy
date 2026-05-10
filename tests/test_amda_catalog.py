@@ -8,7 +8,7 @@ import speasy as spz
 
 import pytest
 
-pytestmark = pytest.mark.contract
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 
 
 

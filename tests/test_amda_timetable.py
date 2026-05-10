@@ -9,7 +9,7 @@ from speasy.core.datetime_range import DateTimeRange
 
 import pytest
 
-pytestmark = pytest.mark.contract
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 
 
 
