@@ -46,11 +46,15 @@ CLASSIFICATION: dict[str, str] = {
 }
 
 MARKER_LINE_PREFIX = "pytestmark = pytest.mark."
+MARKER_LINE_PREFIXES = (
+    MARKER_LINE_PREFIX,
+    "pytestmark = [pytest.mark.",
+)
 
 
 def apply(path: Path, tier: str) -> bool:
     text = path.read_text()
-    if MARKER_LINE_PREFIX in text:
+    if any(prefix in text for prefix in MARKER_LINE_PREFIXES):
         return False
     lines = text.splitlines(keepends=True)
     insert_at = next(

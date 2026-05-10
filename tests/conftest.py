@@ -7,9 +7,10 @@ Marker tiers (see CONTRIBUTING.rst):
 - ``e2e``: end-to-end smoke tests on the full OS/Python matrix.
 
 Cassette playback for the unit tier is provided by ``pytest-recording``.
-By default cassettes are replay-only — the `vcr_config` fixture sets
-``record_mode = "none"`` so a missing cassette fails the test rather
-than silently calling out to the live server. To (re-)record:
+By default cassettes are replay-only — pytest-recording's session
+fixture defaults ``record_mode`` to ``"none"`` so a missing cassette
+fails the test rather than silently calling out to the live server.
+To (re-)record:
 
     uv run pytest -m unit --record-mode=once
     uv run pytest -m unit --record-mode=rewrite   # force re-record
@@ -42,13 +43,19 @@ CASSETTE_ROOT = Path(__file__).parent / "cassettes"
 
 @pytest.fixture(scope="module")
 def vcr_config() -> dict[str, Any]:
-    """Default VCR config: replay only, scrub auth-bearing headers/params.
+    """Default VCR config: scrub auth-bearing headers/params.
 
     The filter lists are deliberately broad to avoid accidentally
     committing secrets into cassette YAML files. When PRs 4-9 record
     real-server interactions, anything matching these names in headers
     or query strings is replaced with a placeholder before the cassette
     is written to disk.
+
+    ``record_mode`` is intentionally NOT set here — pytest-recording's
+    session fixture defaults it to ``"none"`` (replay-only) and lets
+    the ``--record-mode`` CLI flag override that default. Setting it
+    in this dict would unconditionally clobber the CLI flag and make
+    re-recording impossible.
     """
     return {
         "filter_headers": [
@@ -66,7 +73,6 @@ def vcr_config() -> dict[str, Any]:
             "token",
             "userID",
         ],
-        "record_mode": "none",
     }
 
 
