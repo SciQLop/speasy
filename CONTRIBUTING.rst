@@ -105,21 +105,35 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     $ uv run pytest -m e2e          # end-to-end smoke tests
     $ uv run pytest -m ''           # everything (overrides the default filter)
 
-   The unit tier replays HTTP from YAML cassettes under ``tests/cassettes/``.
-   By default, cassettes are replay-only — a missing cassette fails the
-   test rather than silently calling out to the live server. To capture
-   new cassettes for a test you're adding::
+   The unit tier replays HTTP from cassettes hosted on the SciQLop
+   server. Cassettes are NOT committed to the repo — at session start,
+   pytest's conftest reads ``tests/cassettes_manifest.json``, fetches
+   any missing cassettes from
+   ``https://sciqlop.lpp.polytechnique.fr/data/speasy_cassettes/``
+   (HTTP Basic auth, credentials in env vars
+   ``SPEASY_CASSETTE_FETCH_USER`` and ``SPEASY_CASSETTE_FETCH_PASSWORD``,
+   or ``~/.netrc``), and decompresses them to ``tests/cassettes/``.
+
+   To run the unit tier locally, set those env vars in your shell or
+   add a machine entry for ``sciqlop.lpp.polytechnique.fr`` to your
+   ``~/.netrc``. Ask a maintainer for read credentials.
+
+   To add or update a cassette (maintainer-only)::
 
     $ uv run pytest -m unit --record-mode=once tests/test_my_feature.py
+    $ uv run python devtools/publish_cassettes.py
+    $ rsync -av .publish_staging/ <user>@sciqlop.lpp.polytechnique.fr:/var/www/data/speasy_cassettes/
+    $ git add tests/cassettes_manifest.json
+    $ git commit -m "Update cassettes for test_my_feature"
 
-   To force re-record over existing cassettes (after an upstream API change)::
+   External contributors who add a test that needs a new cassette:
+   note ``cassette-needed`` in the PR description; a maintainer will
+   record and publish the cassette and push the resulting manifest
+   update to your branch.
 
-    $ uv run pytest -m unit --record-mode=rewrite tests/test_my_feature.py
-
-   Cassette files are committed to the repo. If a recorded interaction
-   contains credentials or other secrets, scrub them in
-   ``tests/conftest.py`` (``vcr_config`` fixture's ``filter_headers``
-   and ``filter_query_parameters`` lists).
+   If a recorded interaction contains credentials or other secrets,
+   scrub them in ``tests/conftest.py`` (``vcr_config`` fixture's
+   ``filter_headers`` and ``filter_query_parameters`` lists).
 
    For test cases needing surgical control over the HTTP path (timeouts,
    5xx, malformed payloads), use the ``httpserver`` fixture from

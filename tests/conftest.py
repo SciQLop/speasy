@@ -18,12 +18,19 @@ To (re-)record:
 
 from __future__ import annotations
 
+import gzip
+import hashlib
+import json
 import os
+import shutil
+import sys
 from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
 import pytest
+import requests
+from requests.auth import HTTPBasicAuth
 
 
 # ---------------------------------------------------------------------------
@@ -35,10 +42,101 @@ if "SPEASY_CORE_DISABLED_PROVIDERS" not in os.environ:
 
 
 # ---------------------------------------------------------------------------
+# Cassette storage configuration
+# ---------------------------------------------------------------------------
+
+CASSETTE_BASE_URL = "https://sciqlop.lpp.polytechnique.fr/data/speasy_cassettes"
+LOCAL_CACHE = (
+    Path(os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache")))
+    / "speasy-tests"
+    / "cassettes"
+)
+TESTS_DIR = Path(__file__).parent
+MANIFEST_PATH = TESTS_DIR / "cassettes_manifest.json"
+CASSETTE_OUT_DIR = TESTS_DIR / "cassettes"
+
+
+def _fetch_cassette(sha: str) -> Path:
+    """Download a cassette by its content hash, cache locally, return path to .yaml.gz."""
+    cached = LOCAL_CACHE / f"{sha}.yaml.gz"
+    if cached.exists():
+        # Verify integrity (defensive — corrupted cache yields a clear error).
+        with gzip.open(cached, "rb") as f:
+            actual_sha = hashlib.sha256(f.read()).hexdigest()
+        if actual_sha == sha:
+            return cached
+        cached.unlink()
+
+    user = os.environ.get("SPEASY_CASSETTE_FETCH_USER")
+    password = os.environ.get("SPEASY_CASSETTE_FETCH_PASSWORD")
+    if not user or not password:
+        raise RuntimeError(
+            f"Cannot fetch cassette {sha[:12]}...: "
+            "SPEASY_CASSETTE_FETCH_USER and SPEASY_CASSETTE_FETCH_PASSWORD env "
+            "vars must be set (or use ~/.netrc with a 'machine "
+            "sciqlop.lpp.polytechnique.fr' entry)."
+        )
+
+    url = f"{CASSETTE_BASE_URL}/{sha}.yaml.gz"
+    LOCAL_CACHE.mkdir(parents=True, exist_ok=True)
+    response = requests.get(url, auth=HTTPBasicAuth(user, password), timeout=60)
+    response.raise_for_status()
+
+    decompressed = gzip.decompress(response.content)
+    actual_sha = hashlib.sha256(decompressed).hexdigest()
+    if actual_sha != sha:
+        raise RuntimeError(
+            f"Hash mismatch for {sha[:12]}...: server returned {actual_sha[:12]}..."
+        )
+    cached.write_bytes(response.content)
+    return cached
+
+
+def _populate_cassettes() -> None:
+    """Read the manifest, ensure every cassette is on disk under tests/cassettes/."""
+    if not MANIFEST_PATH.exists():
+        return
+    manifest = json.loads(MANIFEST_PATH.read_text() or "{}")
+    if not manifest:
+        return
+
+    for rel_path, sha in manifest.items():
+        dest = CASSETTE_OUT_DIR / rel_path
+        if dest.exists():
+            actual = hashlib.sha256(dest.read_bytes()).hexdigest()
+            if actual == sha:
+                continue
+        cached_gz = _fetch_cassette(sha)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(cached_gz, "rb") as src, open(dest, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--no-cassette-fetch",
+        action="store_true",
+        default=False,
+        help="Skip fetching cassettes from sciqlop.lpp; rely on whatever is already on disk.",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    if config.getoption("--no-cassette-fetch"):
+        return
+    try:
+        _populate_cassettes()
+    except Exception as exc:
+        # Fail loudly: print and re-raise. Don't silently fall back.
+        print(f"\nERROR populating cassettes from {CASSETTE_BASE_URL}: {exc}", file=sys.stderr)
+        raise
+
+
+# ---------------------------------------------------------------------------
 # pytest-recording / VCR configuration
 # ---------------------------------------------------------------------------
 
-CASSETTE_ROOT = Path(__file__).parent / "cassettes"
+CASSETTE_ROOT = CASSETTE_OUT_DIR
 
 
 @pytest.fixture(scope="module")
