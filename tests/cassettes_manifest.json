@@ -1,1 +1,24 @@
-{}
+{
+  "test_amda/AMDAModule.test_load_obs_datatree.yaml": "6421b5f8dfb710f3055cdfac15ad3c2c1e2811c51a5632720f77855f92a38498",
+  "test_amda/AMDAModule.test_non_regression_CDF_ISTP_with_proxy_and_config.yaml": "f2a9b1c82a0f0668f1b0238a798d9d88c3ac1aa4cdf53f455617133d99e8bd6a",
+  "test_amda/PrivateProductsRequests.test_get_user_catalogs.yaml": "97cc12c24f6c99f9366caa06506bdaffadf5da5273cdb58f73ae5046c4579cf4",
+  "test_amda/PrivateProductsRequests.test_get_user_parameters.yaml": "1d92f929ce03fe91dab4ab0296ec36fa3135c399c86a1ad629d5f8cb9c7b7172",
+  "test_amda/PrivateProductsRequests.test_get_user_timetables.yaml": "89524c584a4aa03c6e6789ee898aea84dc73e2b4f58c582060049fb85e3fd12a",
+  "test_amda/PublicProductsRequests.test_get_catalog_from_Index.yaml": "d3a0adeb436f71a4e2f899a668eb011c6dd3ef2d759db95c487d2bbfbe0c7820",
+  "test_amda/PublicProductsRequests.test_get_dataset.yaml": "c9aaa6452b1fd093e2808c9548029322d8e0454aeaec0b250a44fcfdda832d32",
+  "test_amda/PublicProductsRequests.test_get_multidimensional_data.yaml": "d41a53dcb3c69021cb42c6ab4dba30cff538c9b529bb1406fecd45df2a8bd7b1",
+  "test_amda/PublicProductsRequests.test_get_parameter.yaml": "d83678ab3eef621f7efd1caf2fd1b9d7adb63c05295212d049dcc231f0f4db22",
+  "test_amda/PublicProductsRequests.test_get_parameter_as_cdf.yaml": "2e1c51c74f5c0ca64336b8f9da360198f11f9bbfaa4cdc32b998ee0f409ba6e1",
+  "test_amda/PublicProductsRequests.test_get_predefined_templated_parameter.yaml": "5730e410a48e945b2b712ed437ff2f3a56e10103c601243e1044414015801473",
+  "test_amda/PublicProductsRequests.test_get_sharedtimeTable_0.yaml": "a03b7f5c130d942bca2ad515e3cb7bb8314c410200ea3dcc25a320a720615205",
+  "test_amda/PublicProductsRequests.test_get_templated_parameter.yaml": "e97a498e68fea938508dd4abe200689b5d38c59d3934ad46961f8a51a853d54b",
+  "test_amda/PublicProductsRequests.test_get_timetable_from_Index.yaml": "7f32557c422b27d5862995e753d66e26f93605c028eb2ad79f582760b23d0753",
+  "test_amda/PublicProductsRequests.test_get_variable.yaml": "dc2ef69a23c2e7039b982a0224910d44dc6a65bd618cf933f7d6d26634cd77e0",
+  "test_amda/PublicProductsRequests.test_get_variable_over_midnight.yaml": "54d20a60f66a77237d1220f1719007c9b72d06b8df67656f73fde6d459bbb380",
+  "test_amda_catalog/CatalogRequests.test_catalog_has_a_name.yaml": "c80f70ba49cb220e129694f3b50008e2c0fb3ba085e2dfd7a5ea15630c8e4223",
+  "test_amda_parameter/AMDAParametersPlots.test_parameter_colormap_lot_1.yaml": "d32662668b494801519b119aa497264e15f00fbe2847e3567d623f8c9a180fac",
+  "test_amda_parameter/AMDAParametersPlots.test_parameter_colormap_lot_2.yaml": "9e17509b5d98fbea27f44e2e27d6002b43afb56415c0da2d31a43f641f774975",
+  "test_amda_parameter/AMDAParametersPlots.test_parameter_line_plot_1.yaml": "3a3bf7b7133cee0960530bcc2d18ece7f0d55cebbe64b260440a85a9398d725f",
+  "test_amda_parameter/AMDAParametersPlots.test_parameter_line_plot_2.yaml": "895c0686e8e23ea24f9826e741942be01057da4e83162af5c06072f3925d5f75",
+  "test_amda_parameter/AMDAParametersPlots.test_parameter_line_plot_3.yaml": "0404061a148040f3ba27ed6862c5e5eb0d2c6b859d874ba6035cd843fb95c593"
+}
