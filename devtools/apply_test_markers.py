@@ -29,7 +29,7 @@ CLASSIFICATION: dict[str, str] = {
     "test_amda_timetable.py": "unit",
     "test_file_access.py": "contract",
     "test_cdaweb.py": "unit",
-    "test_cdpp3dview.py": "contract",
+    "test_cdpp3dview.py": "unit",
     "test_codecs.py": "contract",
     "test_common.py": "contract",
     "test_config_module.py": "contract",
