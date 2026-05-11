@@ -22,6 +22,7 @@ import gzip
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -139,15 +140,46 @@ def pytest_configure(config: pytest.Config) -> None:
 CASSETTE_ROOT = CASSETTE_OUT_DIR
 
 
+_AMDA_AUTH_TOKEN_RE = re.compile(rb"^[0-9a-f]{32}$")
+
+
+def _scrub_response(response):
+    """Strip credential-shaped data from RESPONSE side before recording.
+
+    vcrpy's ``filter_headers`` and ``filter_query_parameters`` only scrub
+    the REQUEST side. Response headers like ``Set-Cookie`` (session
+    identifiers) and certain response bodies (AMDA's ``auth.php`` returns
+    a 32-char hex hash that may be derivable from credentials) need
+    explicit scrubbing here.
+    """
+    headers = response.get("headers") or {}
+    for name in list(headers):
+        if name.lower() in {"set-cookie", "cookie"}:
+            headers.pop(name)
+
+    body = response.get("body") or {}
+    raw = body.get("string")
+    if isinstance(raw, (bytes, bytearray)) and _AMDA_AUTH_TOKEN_RE.match(raw):
+        body["string"] = b"<SCRUBBED>"
+    elif isinstance(raw, str) and _AMDA_AUTH_TOKEN_RE.match(raw.encode()):
+        body["string"] = "<SCRUBBED>"
+    return response
+
+
 @pytest.fixture(scope="module")
 def vcr_config() -> dict[str, Any]:
-    """Default VCR config: scrub auth-bearing headers/params.
+    """Default VCR config: scrub auth-bearing headers/params/responses.
 
     The filter lists are deliberately broad to avoid accidentally
     committing secrets into cassette YAML files. When PRs 4-9 record
     real-server interactions, anything matching these names in headers
     or query strings is replaced with a placeholder before the cassette
     is written to disk.
+
+    The ``before_record_response`` callback handles response-side leaks
+    that ``filter_headers``/``filter_query_parameters`` don't reach:
+    ``Set-Cookie`` session IDs and AMDA's ``auth.php`` response token
+    (32-char hex hash).
 
     ``record_mode`` is intentionally NOT set here — pytest-recording's
     session fixture defaults it to ``"none"`` (replay-only) and lets
@@ -171,6 +203,7 @@ def vcr_config() -> dict[str, Any]:
             "token",
             "userID",
         ],
+        "before_record_response": _scrub_response,
     }
 
 
