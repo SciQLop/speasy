@@ -139,6 +139,13 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
    ``pytest-httpserver`` rather than a cassette — see
    ``tests/test_infra_smoke.py`` for a minimal example.
 
+   **CDPP3DView exception**: the upstream CDPP3DView server is historically
+   flaky. The unit tier replays cassettes (so flakiness no longer matters)
+   but the contract and e2e tiers keep CDPP3DView disabled to avoid daily
+   cron noise. Drift detection for CDPP3DView is intentionally absent;
+   cassettes will be re-recorded on demand if Speasy's CDPP3DView code
+   stops working in production.
+
 
 6. Commit your changes and push your branch to GitHub::
 
