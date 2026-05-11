@@ -230,6 +230,43 @@ def _disable_proxy_for_unit_tier(
 
 
 # ---------------------------------------------------------------------------
+# Canonical HTTP rewrite rule for vcr-replayed tests
+# ---------------------------------------------------------------------------
+
+# Cassettes are recorded under a specific rewrite-rule policy: the placeholder
+# host ``thisserver_does_not_exists.lpp.polytechnique.fr/pub/`` is rewritten to
+# the LPP CDA mirror; ``cdaweb.gsfc.nasa.gov`` is NOT rewritten. Users may have
+# their own ``http_rewrite_rules`` in ``~/.config/speasy/config.ini`` (e.g.,
+# rewriting cdaweb.gsfc.nasa.gov to a local mirror) — that would break replay
+# because the replay-side URL would no longer match the cassette. Force the
+# recording-time rewrite policy for any vcr-marked test so replay is
+# deterministic regardless of the developer's local config.
+_VCR_REWRITE_RULES = {
+    "https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":
+        "http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/",
+}
+
+
+@pytest.fixture(autouse=True)
+def _canonical_rewrite_rule_for_vcr(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pin the HTTP rewrite-rule dict to the recording-time value for any
+    vcr-marked test so cassette replay matches regardless of the developer's
+    ``~/.config/speasy/config.ini``.
+
+    Speasy caches ``_REWRITE_RULES_`` at module import time in
+    ``speasy.core.url_utils``, so setting the env var alone has no effect once
+    the module is loaded. We monkeypatch the cached dict directly.
+    """
+    if "vcr" in request.keywords:
+        import speasy.core.url_utils
+        monkeypatch.setattr(
+            speasy.core.url_utils, "_REWRITE_RULES_", _VCR_REWRITE_RULES
+        )
+
+
+# ---------------------------------------------------------------------------
 # SpeasyVariable factory
 # ---------------------------------------------------------------------------
 
