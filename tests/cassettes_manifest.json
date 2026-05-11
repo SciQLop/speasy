@@ -38,5 +38,6 @@
   "test_cdaweb/SpecificNonRegression.test_get_PSP_ISOIS_EPILO_L2_PE.yaml": "6e0963af262f8f46d941966ca839faf8a18b6569b7e34464a5532fb0be12ca49",
   "test_cdaweb/SpecificNonRegression.test_get_WI_SFSP_3DP.yaml": "ba08b325eca9713cea591a479e1b20ee747a77372ad08713544295793dc858d4",
   "test_cdaweb/SpecificNonRegression.test_get_stereo_l1_het.yaml": "0525f421ed78c106a6201fd918587c1d85d42d96a125bd903292b9de13449dab",
-  "test_cdaweb/SpecificNonRegression.test_mms_fgm_sanitized.yaml": "ee069ae8a6d42dc0e4de5ea82db80374099780a95d51e4d10c06c58d5b7b382c"
+  "test_cdaweb/SpecificNonRegression.test_mms_fgm_sanitized.yaml": "ee069ae8a6d42dc0e4de5ea82db80374099780a95d51e4d10c06c58d5b7b382c",
+  "test_csa/CSAInventory.test_can_get_full_inventory_without_proxy.yaml": "2a9c504ecb0d84928b256619d0cc897932e1da41eb2f0d9b8b60bef69ed927d5"
 }
