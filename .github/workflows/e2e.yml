@@ -16,8 +16,6 @@ jobs:
       SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
       SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
       SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
-      SPEASY_CASSETTE_FETCH_USER: ${{ secrets.SPEASY_CASSETTE_FETCH_USER }}
-      SPEASY_CASSETTE_FETCH_PASSWORD: ${{ secrets.SPEASY_CASSETTE_FETCH_PASSWORD }}
 
     runs-on: ${{ matrix.os }}
     strategy:

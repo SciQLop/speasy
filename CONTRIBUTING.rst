@@ -110,13 +110,12 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
    pytest's conftest reads ``tests/cassettes_manifest.json``, fetches
    any missing cassettes from
    ``https://sciqlop.lpp.polytechnique.fr/data/speasy_cassettes/``
-   (HTTP Basic auth, credentials in env vars
-   ``SPEASY_CASSETTE_FETCH_USER`` and ``SPEASY_CASSETTE_FETCH_PASSWORD``,
-   or ``~/.netrc``), and decompresses them to ``tests/cassettes/``.
+   (public read, no auth — files are content-addressed by sha256,
+   making the URLs unguessable for outsiders and tamper-evident on
+   download), and decompresses them to ``tests/cassettes/``.
 
-   To run the unit tier locally, set those env vars in your shell or
-   add a machine entry for ``sciqlop.lpp.polytechnique.fr`` to your
-   ``~/.netrc``. Ask a maintainer for read credentials.
+   To run the unit tier locally: no setup needed beyond a working
+   internet connection.
 
    To add or update a cassette (maintainer-only)::
 

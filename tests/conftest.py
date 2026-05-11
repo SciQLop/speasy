@@ -31,7 +31,6 @@ from typing import Any, Callable
 import numpy as np
 import pytest
 import requests
-from requests.auth import HTTPBasicAuth
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +57,12 @@ CASSETTE_OUT_DIR = TESTS_DIR / "cassettes"
 
 
 def _fetch_cassette(sha: str) -> Path:
-    """Download a cassette by its content hash, cache locally, return path to .yaml.gz."""
+    """Download a cassette by its content hash, cache locally, return path to .yaml.gz.
+
+    Cassettes are served publicly (no auth) at CASSETTE_BASE_URL. Content
+    addressing (sha256) makes the file names unguessable for outsiders
+    and tamper-evident on download.
+    """
     cached = LOCAL_CACHE / f"{sha}.yaml.gz"
     if cached.exists():
         # Verify integrity (defensive — corrupted cache yields a clear error).
@@ -68,19 +72,9 @@ def _fetch_cassette(sha: str) -> Path:
             return cached
         cached.unlink()
 
-    user = os.environ.get("SPEASY_CASSETTE_FETCH_USER")
-    password = os.environ.get("SPEASY_CASSETTE_FETCH_PASSWORD")
-    if not user or not password:
-        raise RuntimeError(
-            f"Cannot fetch cassette {sha[:12]}...: "
-            "SPEASY_CASSETTE_FETCH_USER and SPEASY_CASSETTE_FETCH_PASSWORD env "
-            "vars must be set (or use ~/.netrc with a 'machine "
-            "sciqlop.lpp.polytechnique.fr' entry)."
-        )
-
     url = f"{CASSETTE_BASE_URL}/{sha}.yaml.gz"
     LOCAL_CACHE.mkdir(parents=True, exist_ok=True)
-    response = requests.get(url, auth=HTTPBasicAuth(user, password), timeout=60)
+    response = requests.get(url, timeout=60)
     response.raise_for_status()
 
     decompressed = gzip.decompress(response.content)
