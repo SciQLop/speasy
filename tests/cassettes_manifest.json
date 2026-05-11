@@ -39,5 +39,15 @@
   "test_cdaweb/SpecificNonRegression.test_get_WI_SFSP_3DP.yaml": "ba08b325eca9713cea591a479e1b20ee747a77372ad08713544295793dc858d4",
   "test_cdaweb/SpecificNonRegression.test_get_stereo_l1_het.yaml": "0525f421ed78c106a6201fd918587c1d85d42d96a125bd903292b9de13449dab",
   "test_cdaweb/SpecificNonRegression.test_mms_fgm_sanitized.yaml": "ee069ae8a6d42dc0e4de5ea82db80374099780a95d51e4d10c06c58d5b7b382c",
-  "test_csa/CSAInventory.test_can_get_full_inventory_without_proxy.yaml": "2a9c504ecb0d84928b256619d0cc897932e1da41eb2f0d9b8b60bef69ed927d5"
+  "test_csa/CSAInventory.test_can_get_full_inventory_without_proxy.yaml": "2a9c504ecb0d84928b256619d0cc897932e1da41eb2f0d9b8b60bef69ed927d5",
+  "test_sscweb/SscWeb.test_get_observatories.yaml": "a1b9f11755df803b23ecadcf7f677d2e3cd5939241588be851df04614e12924a",
+  "test_sscweb/SscWeb.test_get_orbit_1.yaml": "0173556a75b4919dddb7b97eeaab4e2bdf320106a74e4f4604dade8f4b1c71c7",
+  "test_sscweb/SscWeb.test_get_orbit_2.yaml": "3d1780c77de6e7d74802e08ffc30a717de81777a68e794a9e634f44f27b55775",
+  "test_sscweb/SscWeb.test_get_orbit_3.yaml": "5937b5473b3738f18b6906cb04db28855ac4be6beb897fda1cece93034514de2",
+  "test_sscweb/SscWeb.test_get_orbit_4.yaml": "c24e44c34ff08f9889ab1870543a632cbf4b2243b7f7cfe8f58e90cdfefcd229",
+  "test_sscweb/SscWeb.test_get_orbit_5.yaml": "c58246d15842289edb2c89526917c107d5655bbaee6781249abc874934578409",
+  "test_sscweb/SscWeb.test_get_orbit_6.yaml": "c58246d15842289edb2c89526917c107d5655bbaee6781249abc874934578409",
+  "test_sscweb/SscWeb.test_get_orbit_7.yaml": "b419acc57aaafd77e8c8c73be8f35170e11e9615c06a97939ce43c36d23d99f3",
+  "test_sscweb/SscWebNonRegressionTests.test_cdf_export_sets_variable_name_correctly.yaml": "7800df8300ff4ab9486620dac8799b795adec98421539f42d5f7427210418893",
+  "test_sscweb/SscWebTrajectoriesPlots.test_legend_is_set_with_variable_columns_names.yaml": "723f2c5aab7c965d1a653cc589b28831fc273961d59b22c5575d00c4bc531539"
 }
