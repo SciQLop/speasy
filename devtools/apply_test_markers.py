@@ -33,7 +33,7 @@ CLASSIFICATION: dict[str, str] = {
     "test_codecs.py": "contract",
     "test_common.py": "contract",
     "test_config_module.py": "contract",
-    "test_csa.py": "contract",
+    "test_csa.py": "unit",
     "test_direct_archive_downloader.py": "contract",
     "test_hapi.py": "contract",
     "test_hapi_codecs.py": "contract",
