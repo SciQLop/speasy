@@ -29,7 +29,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 import pytest
-import requests
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +69,8 @@ def _fetch_cassette(sha: str) -> Path:
         if actual_sha == sha:
             return cached
         cached.unlink()
+
+    import requests
 
     url = f"{CASSETTE_BASE_URL}/{sha}.yaml.gz"
     LOCAL_CACHE.mkdir(parents=True, exist_ok=True)
