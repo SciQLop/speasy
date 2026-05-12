@@ -28,7 +28,6 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
-import numpy as np
 import pytest
 import requests
 
@@ -311,6 +310,7 @@ def speasy_variable_factory() -> SpeasyVariableFactory:
             assert v.values.shape == (100, 3)
     """
 
+    import numpy as np
     from datetime import datetime, timedelta, timezone
 
     from speasy.products import SpeasyVariable
