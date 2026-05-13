@@ -3,6 +3,11 @@ import os
 import tempfile
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import numpy as np
 from ddt import data, ddt, unpack
 import pandas as pd
