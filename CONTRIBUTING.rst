@@ -68,13 +68,13 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     $ git clone git@github.com:your_name_here/speasy.git
 
 3. Install your local copy into a virtual environment if you use one (highly
-   recommended). Then install the development requirements::
+   recommended). Then install the development environment with UV::
 
-    $ cd speasy/
-    $ python -m venv venv # Create a virtual environment inside Speasy directory
-    $ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    $ python -m pip install -e .
-    $ python -m pip install -r requirements_dev.txt
+    $ uv sync --group dev --group docs
+
+   This installs Speasy editable plus all dev and docs dependencies in
+   a managed virtualenv (``.venv/``). Run commands via ``uv run`` (e.g.
+   ``uv run pytest``) or activate the venv with ``source .venv/bin/activate``.
 
 4. Create a branch for local development::
 
@@ -83,15 +83,68 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
    Now you can make your changes locally.
 
 5. When you're done making changes, check that your changes pass flake8 and the
-   tests, including testing other Python versions with tox::
+   tests::
 
     $ make lint
-    $ make test-all # it will run all tests and run code examples in the docs
-
-    Alternatively, if you just want to run quick tests for the current Python version::
-
     $ make test
     $ make doctest
+
+   ``make test`` runs the **unit** tier only (deterministic, no network).
+   The full test suite is split into three tiers via pytest markers; each
+   targets a different goal:
+
+   - ``unit``: pure-logic tests that run on every push and PR (the default).
+   - ``contract``: real-server probes; runs daily on a CI cron to detect
+     upstream API drift.
+   - ``e2e``: end-to-end smoke tests on the full OS x Python matrix, run
+     weekly.
+
+   To run a non-default tier locally::
+
+    $ uv run pytest -m contract     # network-hitting tests
+    $ uv run pytest -m e2e          # end-to-end smoke tests
+    $ uv run pytest -m ''           # everything (overrides the default filter)
+
+   The unit tier replays HTTP from cassettes hosted on the SciQLop
+   server. Cassettes are NOT committed to the repo — at session start,
+   pytest's conftest reads ``tests/cassettes_manifest.json``, fetches
+   any missing cassettes from
+   ``https://sciqlop.lpp.polytechnique.fr/data/speasy_cassettes/``
+   (public read, no auth — files are content-addressed by sha256,
+   making the URLs unguessable for outsiders and tamper-evident on
+   download), and decompresses them to ``tests/cassettes/``.
+
+   To run the unit tier locally: no setup needed beyond a working
+   internet connection.
+
+   To add or update a cassette (maintainer-only)::
+
+    $ uv run pytest -m unit --record-mode=once tests/test_my_feature.py
+    $ uv run python devtools/publish_cassettes.py
+    $ rsync -av .publish_staging/ <user>@sciqlop.lpp.polytechnique.fr:/var/www/data/speasy_cassettes/
+    $ git add tests/cassettes_manifest.json
+    $ git commit -m "Update cassettes for test_my_feature"
+
+   External contributors who add a test that needs a new cassette:
+   note ``cassette-needed`` in the PR description; a maintainer will
+   record and publish the cassette and push the resulting manifest
+   update to your branch.
+
+   If a recorded interaction contains credentials or other secrets,
+   scrub them in ``tests/conftest.py`` (``vcr_config`` fixture's
+   ``filter_headers`` and ``filter_query_parameters`` lists).
+
+   For test cases needing surgical control over the HTTP path (timeouts,
+   5xx, malformed payloads), use the ``httpserver`` fixture from
+   ``pytest-httpserver`` rather than a cassette — see
+   ``tests/test_infra_smoke.py`` for a minimal example.
+
+   **CDPP3DView exception**: the upstream CDPP3DView server is historically
+   flaky. The unit tier replays cassettes (so flakiness no longer matters)
+   but the contract and e2e tiers keep CDPP3DView disabled to avoid daily
+   cron noise. Drift detection for CDPP3DView is intentionally absent;
+   cassettes will be re-recorded on demand if Speasy's CDPP3DView code
+   stops working in production.
 
 
 6. Commit your changes and push your branch to GitHub::
