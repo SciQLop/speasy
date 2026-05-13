@@ -4,6 +4,11 @@
 """Tests for `speasy.core.codecs` package."""
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from ddt import ddt, data, unpack
 
 import os

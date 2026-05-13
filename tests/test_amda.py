@@ -6,6 +6,11 @@ import os
 import unittest
 from datetime import datetime, timezone
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import numpy as np
 import speasy as spz
 from ddt import data, ddt, unpack

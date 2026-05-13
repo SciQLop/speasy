@@ -6,6 +6,11 @@ from speasy.core import span_utils
 from speasy.core.cache._providers_caches import round_for_cache
 import operator
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 
 @ddt
 class SpanTransComparaisons(unittest.TestCase):

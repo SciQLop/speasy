@@ -7,6 +7,11 @@ import unittest
 from ddt import data, ddt
 from datetime import datetime, timedelta
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import numpy as np
 
 import speasy as spz
