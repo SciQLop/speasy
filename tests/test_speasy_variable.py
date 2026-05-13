@@ -5,6 +5,11 @@
 
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 import astropy.table
 import astropy.units
 import numpy as np

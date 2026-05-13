@@ -3,6 +3,11 @@ import importlib
 import os
 import sys
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 base_modules = sys.modules.keys()
 
 
