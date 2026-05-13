@@ -5,6 +5,11 @@
 import unittest
 from datetime import datetime, timezone
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from ddt import data, ddt
 
 import speasy as spz

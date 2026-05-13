@@ -9,6 +9,11 @@ import numpy as np
 from ddt import data, ddt
 from tempfile import TemporaryDirectory
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from speasy.data_providers import ssc
 from speasy.products import SpeasyVariable
 from speasy.core.codecs import get_codec

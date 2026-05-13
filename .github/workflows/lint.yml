@@ -1,0 +1,26 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Install dependencies
+      run: uv sync --group dev
+    - name: Lint with flake8
+      run: |
+        uv run --with flake8 flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+        uv run --with flake8 flake8 speasy tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
