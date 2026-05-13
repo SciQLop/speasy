@@ -90,8 +90,11 @@ jobs:
     - name: Run tests
       # Override the pyproject default `addopts = "-m unit"` so the
       # contract-marked test_wasm.py module is collected here.
+      # --no-cassette-fetch skips the conftest cassette-download hook
+      # (wasm tests don't replay cassettes and the minimal pyodide env
+      # doesn't install the requests library).
       run: |
-        python -m pytest -vra -m '' \
+        python -m pytest -vra -m '' --no-cassette-fetch \
           --dist-dir=./pyodide-dist/ \
           --runner=selenium \
           --rt=chrome \
