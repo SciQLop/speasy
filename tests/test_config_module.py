@@ -7,6 +7,11 @@ from ddt import ddt, data, unpack
 from dateutil.parser import parse as parse_dt
 from datetime import datetime
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 
 @ddt
 class ConfigModule(unittest.TestCase):
