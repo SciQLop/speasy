@@ -85,6 +85,7 @@ include = [
 exclude = [
     "tests/cassettes",
     "docs/_build",
+    "docs/superpowers",
     ".publish_staging",
 ]
 

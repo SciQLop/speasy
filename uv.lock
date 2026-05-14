@@ -3066,7 +3066,6 @@ wheels = [
 
 [[package]]
 name = "speasy"
-version = "1.7.1"
 source = { editable = "." }
 dependencies = [
     { name = "appdirs" },
