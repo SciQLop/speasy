@@ -1,10 +1,10 @@
 [build-system]
-build-backend = "flit_core.buildapi"
-requires = ["flit_core"]
+build-backend = "hatchling.build"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7"]
 
 [project]
 name = 'speasy'
-version = "1.7.1"
+dynamic = ["version"]
 description = "A simple Python package to deal with main Space Physics WebServices (CDA, CSA, AMDA and SSC)."
 keywords = ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
 authors = [
@@ -58,6 +58,36 @@ homepage = "https://github.com/SciQLop/speasy"
 [project.optional-dependencies]
 zstd = ["pyzstd"]
 
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["speasy"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "speasy",
+    "tests",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CITATION.cff",
+    "HISTORY.rst",
+    "AUTHORS.rst",
+    "CONTRIBUTING.rst",
+    "pyproject.toml",
+]
+exclude = [
+    "tests/cassettes",
+    "docs/_build",
+    ".publish_staging",
+]
+
 [dependency-groups]
 dev = [
     "ddt",
@@ -103,37 +133,3 @@ markers = [
 
 [tool.ruff.lint]
 select = ["NPY201"]
-
-
-[tool.bumpversion]
-current_version = "1.7.1"
-commit = true
-tag = true
-tag_name = "v{new_version}"
-
-[[tool.bumpversion.files]]
-filename = "VERSION"
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "speasy/__init__.py"
-search = "__version__ = '{current_version}'"
-replace = "__version__ = '{new_version}'"
-
-[[tool.bumpversion.files]]
-filename = "docs/conf.py"
-search = "version = '{current_version}'"
-replace = "version = '{new_version}'"
-
-[[tool.bumpversion.files]]
-filename = "CITATION.cff"
-search = 'version: {current_version}'
-replace = 'version: {new_version}'
-
-[[tool.bumpversion.files]]
-filename = "CITATION.cff"
-regex = true
-search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
-replace = "date-released: {utcnow:%Y-%m-%d}"
