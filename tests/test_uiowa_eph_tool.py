@@ -7,6 +7,11 @@ import unittest
 import numpy as np
 from ddt import data, ddt, unpack
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import speasy as spz
 from speasy.data_providers import uiowa_eph_tool
 from speasy.products import SpeasyVariable

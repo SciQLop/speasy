@@ -132,8 +132,9 @@ author = u"Alexis Jeandet"
 # for |version| and |release|, also used in various other places throughout
 # the built documents.
 #
-# The short X.Y version.
-version = '1.7.1'
+# The short X.Y version (read from the package; uv-dynamic-versioning
+# resolves it from the latest git tag at build time).
+from speasy import __version__ as version  # noqa: E402
 # The full version, including alpha/beta/rc tags.
 release = version
 

@@ -1,6 +1,11 @@
 import unittest
 from ddt import data, ddt, unpack
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from speasy.core.hapi.client import HapiClient, HapiEndpoint
 from speasy.core.hapi.provider import HapiProvider
 from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError, HapiNoData
