@@ -132,5 +132,34 @@ markers = [
     "e2e: end-to-end smoke tests that confirm Speasy works on every supported OS x Python combo; runs on a weekly schedule",
 ]
 
+[tool.ruff]
+line-length = 100
+
 [tool.ruff.lint]
-select = ["NPY201"]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "I",     # isort
+    "NPY201", # numpy 2.0 deprecations (keep from existing config)
+]
+ignore = [
+    "E501",   # line-too-long (formatter handles it)
+    "E402",   # module-import-not-at-top-of-file (some tests need this)
+    "E731",   # lambda-assignment (common, intentional)
+    # Rules that conflict with the ruff formatter (to be enabled in PR 17):
+    "W191",   # tab-indentation
+    "E111",   # indentation-with-invalid-multiple
+    "E114",   # indentation-with-invalid-multiple-comment
+    "E117",   # over-indented
+    "D206",   # docstring-tab-indentation
+    "D300",   # triple-single-quotes
+    "Q000",   # bad-quotes-inline-string
+    "Q001",   # bad-quotes-multiline-string
+    "Q002",   # bad-quotes-docstring
+    "Q003",   # avoidable-escaped-quote
+    "COM812", # missing-trailing-comma
+    "COM819", # prohibited-trailing-comma
+    "ISC002", # multi-line-implicit-string-concatenation
+]
