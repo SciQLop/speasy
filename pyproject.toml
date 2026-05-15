@@ -163,3 +163,14 @@ ignore = [
     "COM819", # prohibited-trailing-comma
     "ISC002", # multi-line-implicit-string-concatenation
 ]
+
+[tool.codespell]
+# Skip generated/external/large/binary files and the planning artifacts.
+# codespell skip patterns are globs, so paths need the leading `*` to match
+# anywhere in the tree (codespell stringifies file paths with a `./` prefix).
+skip = "*.gz,*.cdf,*.xml,*.json,*.lock,*.ipynb,*.yaml,*.yaml.example,*.binary,*tests/cassettes*,*tests/resources*,*.publish_staging*,*.venv*,*/build/*,*/_build/*,*docs/dev*,*docs/superpowers*"
+# Words that look like typos to codespell but are domain terms in space-physics
+# usage: `tha`, `thb`, `thc`, `thd`, `the` (THEMIS spacecraft identifiers — the
+# THEMIS mission has 5 satellites named THEMIS-A through THEMIS-E); `nd` = N-D
+# (N-dimensional, common in array/data-shape contexts).
+ignore-words-list = "tha,thb,thc,thd,nd"
