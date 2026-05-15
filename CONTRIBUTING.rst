@@ -82,7 +82,7 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8 and the
+5. When you're done making changes, check that your changes pass ruff and the
    tests::
 
     $ make lint
@@ -171,7 +171,7 @@ Before you submit a pull request, check that it meets these guidelines:
 Coding guidelines
 -----------------
 
-* Follow PEP 8 style guidelines. You can use `flake8` to check your code.
+* Follow PEP 8 style guidelines. You can use `ruff` to check your code.
 * Use `numpy` docstring style for docstrings.
 * Write docstrings for any new functions or classes you add. Follow the existing style. Those docstrings will be used to generate the developers documentation.
 * Write tests for any new functionality you add. Look at existing tests for examples.

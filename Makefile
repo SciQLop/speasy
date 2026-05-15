@@ -49,8 +49,8 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-lint: ## check style with flake8
-	flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+lint: ## check style with ruff
+	uv run --with ruff ruff check speasy tests devtools
 
 doctest:
 	$(MAKE) -C docs doctest

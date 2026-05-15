@@ -21,7 +21,7 @@ uv run pytest -m contract tests/test_amda.py   # single contract test file
 uv run pytest -k "test_name"            # single test by name (within unit tier)
 
 # Lint
-uv run --with flake8 flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+uv run --with ruff ruff check speasy tests devtools
 
 # Doctests
 uv run make doctest
@@ -69,5 +69,4 @@ Subclass `DataProvider` in `core/dataprovider.py`, implement `get_data()` and in
 
 - Tests use `ddt` (data-driven tests) for parameterized testing
 - Version tracked in `VERSION` file, bumped with `bumpversion` (updates VERSION, pyproject.toml, `__init__.py`, docs/conf.py, CITATION.cff)
-- Flake8 rules: E9, F63, F7, F82 (strict); max-complexity=10, max-line-length=127 (warnings)
-- Ruff configured only for `NPY201` (numpy 2.0 deprecations)
+- Ruff lint rules: `E, F, UP, B, I, NPY201` with AstraLint-mirrored ignore set; line-length 100

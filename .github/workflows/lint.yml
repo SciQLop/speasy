@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  flake8:
+  ruff:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
@@ -20,7 +20,5 @@ jobs:
         enable-cache: true
     - name: Install dependencies
       run: uv sync --group dev
-    - name: Lint with flake8
-      run: |
-        uv run --with flake8 flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
-        uv run --with flake8 flake8 speasy tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Lint with ruff
+      run: uv run --with ruff ruff check speasy tests devtools
