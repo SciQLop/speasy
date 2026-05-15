@@ -1,17 +1,21 @@
-from datetime import datetime
 import os
 import tempfile
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import numpy as np
-from ddt import data, ddt, unpack
 import pandas as pd
+from ddt import data, ddt, unpack
 
 import speasy as spz
-from speasy.core.codecs import CodecInterface, get_codec
 import speasy.core.codecs.bundled_codecs.hapi as hapi_base
-import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
 import speasy.core.codecs.bundled_codecs.hapi.binary as hapi_binary
+import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
+from speasy.core.codecs import CodecInterface, get_codec
 from speasy.core.codecs.bundled_codecs.hapi.codec import _bin_to_axis
 from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers
 from speasy.core.data_containers import VariableAxis

@@ -1,8 +1,10 @@
-from typing import Optional
-from .codec_interface import CodecInterface
-from speasy.config import core as cfg
 import os
+
 import appdirs
+
+from speasy.config import core as cfg
+
+from .codec_interface import CodecInterface
 
 __USER_CODECS_DIR__ = f'{appdirs.user_data_dir("speasy", "LPP")}/codecs'
 
@@ -76,7 +78,7 @@ def load_extra_codecs():
 load_extra_codecs()
 
 
-def get_codec(codec: str) -> Optional[CodecInterface]:
+def get_codec(codec: str) -> CodecInterface | None:
     """Get a codec by name, extension or mimetype
 
     Parameters

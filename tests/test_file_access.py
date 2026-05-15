@@ -1,18 +1,23 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy.common` package."""
 import os
 import re
+import time
 import unittest
 from datetime import datetime
-import time
 
-from ddt import ddt, data, unpack
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
+from multiprocessing import Process, Value
+
+from ddt import data, ddt, unpack
 
 from speasy.core.any_files import any_loc_open, list_files
 from speasy.core.cache import drop_item
-from multiprocessing import Value, Process
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 

@@ -1,20 +1,25 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `amda` package."""
 import os
 import unittest
 from datetime import datetime, timezone
 
+import pytest
+
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
+
+
 import numpy as np
-import speasy as spz
 from ddt import data, ddt, unpack
+
+import speasy as spz
 from speasy.config import amda as amda_cfg
+from speasy.core.impex import ImpexProductType
+from speasy.core.impex.exceptions import BadTemplateArgDefinition, MissingCredentials
+from speasy.core.impex.parser import ImpexXMLParser, to_xmlid
 from speasy.inventories import flat_inventories
 from speasy.products import SpeasyVariable
-from speasy.core.impex import ImpexProductType
-from speasy.core.impex.exceptions import MissingCredentials, BadTemplateArgDefinition
-from speasy.core.impex.parser import ImpexXMLParser, to_xmlid
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 

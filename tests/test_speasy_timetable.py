@@ -1,8 +1,13 @@
 import unittest
 from datetime import datetime
 
-from speasy.products.timetable import TimeTable
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from speasy.core.datetime_range import DateTimeRange
+from speasy.products.timetable import TimeTable
 
 
 class SpeasyTimetable(unittest.TestCase):
@@ -28,7 +33,7 @@ class SpeasyTimetable(unittest.TestCase):
 
     def test_raises_if_built_with_non_ranges_types(self):
         with self.assertRaises(TypeError):
-            tt = TimeTable("Failing TimeTable", dt_ranges="this is not a DateTimeRange")
+            TimeTable("Failing TimeTable", dt_ranges="this is not a DateTimeRange")
 
     def test_holds_given_metadata(self):
         meta = {'key': 10}

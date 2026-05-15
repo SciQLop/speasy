@@ -1,8 +1,10 @@
+from collections.abc import Callable, Collection
+
 import numpy
-from typing import Callable, Optional, Union, Collection
-from speasy.products import SpeasyVariable
 import numpy as np
-from speasy.core import AnyDateTimeType, make_utc_datetime64, datetime64_to_epoch
+
+from speasy.core import AnyDateTimeType, datetime64_to_epoch, make_utc_datetime64
+from speasy.products import SpeasyVariable
 
 
 def _dt_to_ns(dt: float) -> np.timedelta64:
@@ -10,7 +12,7 @@ def _dt_to_ns(dt: float) -> np.timedelta64:
 
 
 def generate_time_vector(start: AnyDateTimeType, stop: AnyDateTimeType,
-                         dt: Union[float, numpy.timedelta64]) -> np.ndarray:
+                         dt: float | numpy.timedelta64) -> np.ndarray:
     """Generate a time vector given a start, stop and time step. The time vector will be generated in UTC time zone. The
     time step is in seconds.
 
@@ -42,7 +44,7 @@ class _NumpyInterpolator:
         return np.interp(new_x, self.x, self.y)
 
 
-def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback: Optional[Callable] = None, *args,
+def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback: Callable | None = None, *args,
                  **kwargs) -> SpeasyVariable:
     res = SpeasyVariable.reserve_like(var, length=len(ref_time))
     res.time[:] = ref_time
@@ -57,9 +59,9 @@ def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback
     return res
 
 
-def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Union[float, np.timedelta64],
-             interpolate_callback: Optional[Callable] = None,
-             *args, **kwargs) -> Union[SpeasyVariable, Collection[SpeasyVariable]]:
+def resample(var: SpeasyVariable | Collection[SpeasyVariable], new_dt: float | np.timedelta64,
+             interpolate_callback: Callable | None = None,
+             *args, **kwargs) -> SpeasyVariable | Collection[SpeasyVariable]:
     """Resample a variable(s) to a new time step. The time vector will be generated from the start and stop times of the
     input variable. Uses :func:`numpy.interp` to do the resampling by default.
 
@@ -88,9 +90,9 @@ def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Uni
         return _interpolate(time, var, interpolate_callback, *args, **kwargs)
 
 
-def interpolate(ref: Union[np.ndarray, SpeasyVariable], var: Union[SpeasyVariable, Collection[SpeasyVariable]],
-                interpolate_callback: Optional[Callable] = None,
-                *args, **kwargs) -> Union[SpeasyVariable, Collection[SpeasyVariable]]:
+def interpolate(ref: np.ndarray | SpeasyVariable, var: SpeasyVariable | Collection[SpeasyVariable],
+                interpolate_callback: Callable | None = None,
+                *args, **kwargs) -> SpeasyVariable | Collection[SpeasyVariable]:
     """Interpolate a variable(s) to a new time vector. The time vector will be taken from the reference variable.
     Uses :func:`numpy.interp` to do the resampling by default.
 

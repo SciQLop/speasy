@@ -1,16 +1,25 @@
-from typing import Dict, Callable
-from .indexes import ParameterIndex, DatasetIndex, TimetableIndex, ComponentIndex, CatalogIndex, SpeasyIndex,TemplatedParameterIndex
+from collections.abc import Callable
+
+from .indexes import (
+    CatalogIndex,
+    ComponentIndex,
+    DatasetIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    TemplatedParameterIndex,
+    TimetableIndex,
+)
 
 
 class ProviderInventory:
-    parameters: Dict[str, ParameterIndex]
-    datasets: Dict[str, DatasetIndex]
-    missions: Dict[str, SpeasyIndex]
-    timetables: Dict[str, TimetableIndex]
-    catalogs: Dict[str, CatalogIndex]
-    components: Dict[str, ComponentIndex]
+    parameters: dict[str, ParameterIndex]
+    datasets: dict[str, DatasetIndex]
+    missions: dict[str, SpeasyIndex]
+    timetables: dict[str, TimetableIndex]
+    catalogs: dict[str, CatalogIndex]
+    components: dict[str, ComponentIndex]
 
-    _type_lookup: Dict[type, Callable]
+    _type_lookup: dict[type, Callable]
 
     def __init__(self):
         self.parameters = {}

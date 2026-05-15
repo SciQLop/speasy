@@ -1,12 +1,12 @@
 import logging
 from datetime import timedelta
-from typing import List, Optional, Union
 
 import pyistp
 from pyistp.loader import DataVariable, ISTPLoader
+
 from speasy.core.any_files import any_loc_open
 from speasy.core.cache import CacheCall
-from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex
+from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def _apply_cda_trick(datavar: DataVariable, meta: dict) -> dict:
     return meta
 
 def extract_parameter(cdf: ISTPLoader, var_name: str, provider: str, uid_fmt: str = DEFAULT_UUID_FMT, meta=None, enable_cda_trick=False) -> \
-    Optional[ParameterIndex]:
+    ParameterIndex | None:
     try:
         datavar = cdf.data_variable(var_name)
         meta = meta or {}
@@ -55,13 +55,13 @@ def extract_parameter(cdf: ISTPLoader, var_name: str, provider: str, uid_fmt: st
                 meta = _apply_cda_trick(datavar, meta)
             return ParameterIndex(name=var_name, provider=provider, uid=uid_fmt.format(var_name=var_name),
                                   meta={**filter_variable_meta(datavar), **meta})
-    except IndexError or RuntimeError:
+    except (IndexError, RuntimeError):
         print(f"Issue loading {var_name} from {cdf}")
 
     return None
 
 
-def _extract_parameters_impl(cdf: ISTPLoader, provider: str, uid_fmt: str = DEFAULT_UUID_FMT, meta=None, enable_cda_trick=False) -> List[
+def _extract_parameters_impl(cdf: ISTPLoader, provider: str, uid_fmt: str = DEFAULT_UUID_FMT, meta=None, enable_cda_trick=False) -> list[
     ParameterIndex]:
     return list(filter(lambda p: p is not None,
                        [
@@ -72,8 +72,8 @@ def _extract_parameters_impl(cdf: ISTPLoader, provider: str, uid_fmt: str = DEFA
                 )
 
 
-def extract_parameters(url_or_istp_loader: Union[str,ISTPLoader], provider: str, uid_fmt: str = DEFAULT_UUID_FMT, meta=None, enable_cda_trick=False) -> List[ParameterIndex]:
-    indexes: List[ParameterIndex] = []
+def extract_parameters(url_or_istp_loader: str | ISTPLoader, provider: str, uid_fmt: str = DEFAULT_UUID_FMT, meta=None, enable_cda_trick=False) -> list[ParameterIndex]:
+    indexes: list[ParameterIndex] = []
     try:
         if isinstance(url_or_istp_loader, str):
             with any_loc_open(url_or_istp_loader) as remote_cdf:
@@ -89,7 +89,7 @@ def extract_parameters(url_or_istp_loader: Union[str,ISTPLoader], provider: str,
 
 @CacheCall(cache_retention=timedelta(days=7), is_pure=True)
 def make_dataset_index(url: str, name: str, provider: str, uid: str, meta=None,
-                       params_uid_format: str = "{var_name}", params_meta=None) -> Optional[DatasetIndex]:
+                       params_uid_format: str = "{var_name}", params_meta=None) -> DatasetIndex | None:
     try:
         with any_loc_open(url, cache_remote_files=True) as remote_cdf:
             meta = meta or {}

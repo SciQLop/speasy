@@ -1,10 +1,9 @@
 from contextlib import contextmanager
-from ._instance import _cache
-from ..platform import is_running_on_wasm
-from time import sleep
 from datetime import datetime, timezone
-import platform
-from typing import Optional
+from time import sleep
+
+from ..platform import is_running_on_wasm
+from ._instance import _cache
 
 if is_running_on_wasm():
     get_native_id = lambda: 0
@@ -56,7 +55,7 @@ def _entry_is_outdated(entry: PendingRequest, timeout: int) -> bool:
     return int(entry.elapsed_time.total_seconds()) >= timeout
 
 
-def _try_acquire_lock(key: str) -> Optional[PendingRequest]:
+def _try_acquire_lock(key: str) -> PendingRequest | None:
     with _cache.lock(f"global_lock::{key}"):
         value = _cache.get(key, None)
         if value is None:
@@ -94,7 +93,7 @@ def request_locker(key: str, timeout: int = 30):
         yield lock
     finally:
         with _cache.transact():
-            entry: Optional[PendingRequest] = _cache.get(key)
+            entry: PendingRequest | None = _cache.get(key)
             if entry is not None and (entry.is_from_current_thread or entry.has_timed_out(timeout)):
                 # help clean up stale locks even if not from this thread
                 _cache.drop(key)

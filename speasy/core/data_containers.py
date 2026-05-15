@@ -1,7 +1,7 @@
-from copy import deepcopy, copy
+from copy import copy, deepcopy
 from datetime import datetime, timezone
 from sys import getsizeof
-from typing import Dict, List, Protocol, TypeVar, Union, Any
+from typing import Any, Protocol, TypeVar, Union
 
 import astropy.units
 import numpy as np
@@ -47,16 +47,16 @@ T = TypeVar("T")  # keep until we drop python 3.11 support
 
 def numpy_supported(cls):
 
-    def __ge__(self, other:Any) -> Union[bool, np.ndarray]:
+    def __ge__(self, other:Any) -> bool | np.ndarray:
         return np.greater_equal(self, other)
 
-    def __gt__(self, other:Any) -> Union[bool, np.ndarray]:
+    def __gt__(self, other:Any) -> bool | np.ndarray:
         return np.greater(self, other)
 
-    def __le__(self, other:Any) -> Union[bool, np.ndarray]:
+    def __le__(self, other:Any) -> bool | np.ndarray:
         return np.less_equal(self, other)
 
-    def __lt__(self, other:Any) -> Union[bool, np.ndarray]:
+    def __lt__(self, other:Any) -> bool | np.ndarray:
         return np.less(self, other)
 
     def __add__(self, other:Any) -> 'DataContainer':
@@ -107,11 +107,11 @@ class DataContainerProtocol(Protocol[T]):
     def select(self, indices, inplace=False) -> T:
         ...
 
-    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> dict[str, object]:
         ...
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], dtype=np.float64) -> T:
+    def from_dictionary(dictionary: dict[str, str | dict[str, str] | list], dtype=np.float64) -> T:
         ...
 
     @staticmethod
@@ -121,13 +121,13 @@ class DataContainerProtocol(Protocol[T]):
     def __getitem__(self, key) -> T:
         ...
 
-    def __setitem__(self, k, v: Union[T, float, int]):
+    def __setitem__(self, k, v: T | float | int):
         ...
 
     def __len__(self) -> int:
         ...
 
-    def __eq__(self, other: Union[T, float, int]) -> Union[bool, np.ndarray]:
+    def __eq__(self, other: T | float | int) -> bool | np.ndarray:
         ...
 
     @property
@@ -158,7 +158,7 @@ class DataContainerProtocol(Protocol[T]):
     def dtype(self)-> np.dtype:
         ...
 
-    def view(self, index_range: Union[slice, np.ndarray]) -> T:
+    def view(self, index_range: slice | np.ndarray) -> T:
         ...
 
     def astype(self, dtype) -> T:
@@ -172,7 +172,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     __slots__ = ['__values', '__name', '__meta', '__is_time_dependent']
     __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
-    def __init__(self, values: np.array, meta: Dict = None, name: str = None, is_time_dependent: bool = True):
+    def __init__(self, values: np.array, meta: dict = None, name: str = None, is_time_dependent: bool = True):
         if not isinstance(values, np.ndarray):
             raise ValueError(f"values must be a numpy array, got {type(values)}")
         self.__values = values
@@ -223,7 +223,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     def nbytes(self) -> int:
         return self.__values.nbytes + getsizeof(self.__meta) + getsizeof(self.__name)
 
-    def view(self, index_range: Union[slice, np.ndarray]):
+    def view(self, index_range: slice | np.ndarray):
         return DataContainer(name=self.__name, meta=self.__meta, values=self.__values[index_range],
                              is_time_dependent=self.__is_time_dependent)
 
@@ -236,7 +236,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         return DataContainer(values=self.__values * u, meta=self.__meta, name=self.__name,
                              is_time_dependent=self.__is_time_dependent)
 
-    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> dict[str, object]:
         return {
             "values": self.__values.tolist() if array_to_list else self.__values.copy(),
             "meta": self.__meta.copy(),
@@ -246,7 +246,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         }
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], dtype=np.float64) -> "DataContainer":
+    def from_dictionary(dictionary: dict[str, str | dict[str, str] | list], dtype=np.float64) -> "DataContainer":
         try:
             return DataContainer(
                 values=np.array(dictionary["values"], dtype=dictionary.get("values_type", dtype)),
@@ -306,7 +306,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         else:
             self.__values[k] = v
 
-    def __eq__(self, other: Union['DataContainer', float, int]) -> Union[bool, np.ndarray]:
+    def __eq__(self, other: Union['DataContainer', float, int]) -> bool | np.ndarray:
         if type(other) is DataContainer:
             return self.__meta == other.__meta and \
                 self.__name == other.__name and \
@@ -359,7 +359,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
     __slots__ = ['__data']
     __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
-    def __init__(self, values: np.array = None, meta: Dict = None, name: str = "", is_time_dependent: bool = False,
+    def __init__(self, values: np.array = None, meta: dict = None, name: str = "", is_time_dependent: bool = False,
                  data: DataContainer = None):
         if data is not None:
             self.__data = data
@@ -377,7 +377,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return VariableAxis(data=DataContainer.empty_like(self.__data))
 
 
-    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableAxis"})
         return d
@@ -391,7 +391,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return res
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], time=None) -> "VariableAxis":
+    def from_dictionary(dictionary: dict[str, str | dict[str, str] | list], time=None) -> "VariableAxis":
         assert dictionary['type'] == "VariableAxis"
         return VariableAxis(data=DataContainer.from_dictionary(dictionary))
 
@@ -414,7 +414,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
     def __len__(self):
         return len(self.__data)
 
-    def view(self, index_range: Union[slice, np.ndarray]) -> 'VariableAxis':
+    def view(self, index_range: slice | np.ndarray) -> 'VariableAxis':
         return VariableAxis(data=self.__data[index_range])
 
     def __eq__(self, other: 'VariableAxis') -> bool:
@@ -478,7 +478,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return self.__data.nbytes
 
     @property
-    def meta(self) -> Dict:
+    def meta(self) -> dict:
         return self.__data.meta
 
     @property
@@ -491,7 +491,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
     __slots__ = ['__data']
     __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
-    def __init__(self, values: np.array = None, meta: Dict = None, name: str = "time", data: DataContainer = None):
+    def __init__(self, values: np.array = None, meta: dict = None, name: str = "time", data: DataContainer = None):
         if data is not None:
             self.__data = data
         else:
@@ -501,7 +501,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
             self.__data = DataContainer(
                 values=values, name=name, meta=meta, is_time_dependent=True)
 
-    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableTimeAxis"})
         return d
@@ -531,7 +531,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
         return VariableTimeAxis(data=self.__data.astype(dtype))
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], time=None) -> "VariableTimeAxis":
+    def from_dictionary(dictionary: dict[str, str | dict[str, str] | list], time=None) -> "VariableTimeAxis":
         assert dictionary['type'] == "VariableTimeAxis"
         return VariableTimeAxis(data=DataContainer.from_dictionary(dictionary, dtype=np.dtype('datetime64[ns]')))
 
@@ -578,7 +578,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
             return VariableTimeAxis(data=res)
         return res
 
-    def view(self, index_range: Union[slice, np.ndarray]) -> 'VariableTimeAxis':
+    def view(self, index_range: slice | np.ndarray) -> 'VariableTimeAxis':
         return VariableTimeAxis(data=self.__data[index_range])
 
     def __eq__(self, other: 'VariableTimeAxis') -> bool:
@@ -609,7 +609,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
         return self.__data.nbytes
 
     @property
-    def meta(self) -> Dict:
+    def meta(self) -> dict:
         return self.__data.meta
 
     @property

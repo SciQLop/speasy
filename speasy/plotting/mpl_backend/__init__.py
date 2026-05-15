@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -51,9 +51,9 @@ class Plot:
             norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
         ax.tick_params(axis='x', labelrotation=45)
-        cm = ax.pcolormesh(x, y, z,
+        cm = ax.pcolormesh(x, y, z, *args,
                            cmap=cmap or 'plasma',
-                           norm=norm, *args, **kwargs)
+                           norm=norm, **kwargs)
         cbar = plt.colorbar(cm, ax=ax)
         if zaxis_units is not None and zaxis_label is not None:
             cbar.set_label(f'{zaxis_label} ({zaxis_units})')
