@@ -1,5 +1,4 @@
 from collections.abc import Callable, Collection
-from typing import Optional, Union
 
 import numpy
 import numpy as np

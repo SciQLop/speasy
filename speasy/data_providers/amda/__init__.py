@@ -34,3 +34,5 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 from .ws import AmdaWebservice
+
+__all__ = ["AmdaWebservice"]

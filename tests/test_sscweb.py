@@ -179,7 +179,7 @@ class SscWebTrajectoriesPlots(unittest.TestCase):
     def setUp(self):
         import speasy as spz
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
         except ImportError:
             self.skipTest("Can't import matplotlib")
         self.traj: spz.SpeasyVariable = spz.get_data(spz.inventories.data_tree.ssc.Trajectories.ace, "2018-01-01",

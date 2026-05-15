@@ -3,7 +3,6 @@ import logging
 import tarfile
 from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 from astroquery.utils.tap.core import TapPlus

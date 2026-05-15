@@ -27,7 +27,7 @@ def load_hapi_csv(file: Buffer | str | io.IOBase) -> HapiFile | None:
         hapi_csv_file.create_parameter(data.index.to_numpy(dtype="datetime64[ns]"),
                                        meta=time_header)
         column_offset = 0
-        for i, param_meta in enumerate(headers["parameters"][1:]):
+        for param_meta in headers["parameters"][1:]:
             shape = param_meta.get("size", [1])
             flatten_shape = np.prod(shape)
             hapi_csv_file.create_parameter(data.iloc[:, column_offset:column_offset + flatten_shape].to_numpy().reshape(

@@ -130,8 +130,8 @@ def _bin_to_axis(json_bin: dict[str, Any], hap_file: HapiFile) -> VariableAxis:
     elif isinstance(centers, list):
         try:
             axis_values = np.array(centers, dtype=float)
-        except ValueError:
-            raise ValueError("Invalid bin specification: 'centers' list must contain numeric values")
+        except ValueError as err:
+            raise ValueError("Invalid bin specification: 'centers' list must contain numeric values") from err
         variable_axis = VariableAxis(values=axis_values,
                                      meta={"name": "centers", "UNITS": json_bin.get("units", None)},
                                      is_time_dependent=False,

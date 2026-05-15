@@ -100,7 +100,7 @@ class ParameterRequests(unittest.TestCase):
 class AMDAParametersPlots(unittest.TestCase):
     def setUp(self):
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
         except ImportError:
             self.skipTest("Can't import matplotlib")
 

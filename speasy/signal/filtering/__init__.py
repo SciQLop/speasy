@@ -1,5 +1,4 @@
 from collections.abc import Callable, Collection
-from typing import Union
 
 import numpy as np
 from scipy import signal

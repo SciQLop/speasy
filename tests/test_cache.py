@@ -118,8 +118,7 @@ class _CacheTest(unittest.TestCase):
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         for _ in range(10):
-            var = self._make_data("test_get_data_more_than_once", tstart,
-                                  tend)
+            self._make_data("test_get_data_more_than_once", tstart, tend)
             self.assertEqual(self._make_data_cntr, 1)
 
     def test_get_newer_version_data(self):
@@ -128,7 +127,7 @@ class _CacheTest(unittest.TestCase):
         self.assertEqual(self._make_data_cntr, 0)
         for i in range(10):
             self._version = f"{i}"
-            var = self._make_data("test_get_newer_version_data", tstart, tend)
+            self._make_data("test_get_newer_version_data", tstart, tend)
             self.assertEqual(self._make_data_cntr, i + 1)
 
     def test_get_same_version_data(self):
@@ -136,25 +135,25 @@ class _CacheTest(unittest.TestCase):
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
         self._version = "1.1.1"
-        for i in range(10):
-            var = self._make_data("test_get_same_version_data", tstart, tend)
+        for _ in range(10):
+            self._make_data("test_get_same_version_data", tstart, tend)
             self.assertEqual(self._make_data_cntr, 1)
 
     def test_get_cached_from_unversioned_cache(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_unversioned_data_cntr, 0)
-        for i in range(10):
-            var = self._make_unversioned_data("test_get_cached_from_unversioned_cache", tstart, tend)
+        for _ in range(10):
+            self._make_unversioned_data("test_get_cached_from_unversioned_cache", tstart, tend)
             self.assertEqual(self._make_unversioned_data_cntr, 1)
 
     def test_get_outdated_from_unversioned_cache(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_unversioned_data_cntr, 0)
-        var = self._make_unversioned_data("test_get_outdated_from_unversioned_cache", tstart, tend)
+        self._make_unversioned_data("test_get_outdated_from_unversioned_cache", tstart, tend)
         time.sleep(3.)
-        var = self._make_unversioned_data("test_get_outdated_from_unversioned_cache", tstart, tend)
+        self._make_unversioned_data("test_get_outdated_from_unversioned_cache", tstart, tend)
         self.assertEqual(self._make_unversioned_data_cntr, 2)
 
     def test_list_keys(self):

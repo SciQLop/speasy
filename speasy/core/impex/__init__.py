@@ -4,7 +4,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from enum import Enum
 from types import SimpleNamespace
-from typing import Dict, List, Optional, Union
 
 import numpy as np
 
@@ -60,7 +59,7 @@ class ImpexProvider(DataProvider):
         self.client = ImpexClient(capabilities=capabilities, server_url=server_url,
                                   username=username, password=password, output_format=output_format)
         if not self.client.is_alive():
-            warnings.warn(f"The data provider {provider_name} appears to be under maintenance")
+            warnings.warn(f"The data provider {provider_name} appears to be under maintenance", stacklevel=2)
         self.max_chunk_size_days = max_chunk_size_days
         self.name_mapping = name_mapping
         self._cdf_codec = get_codec('application/x-cdf')

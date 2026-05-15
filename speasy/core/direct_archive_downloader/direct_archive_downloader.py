@@ -110,7 +110,7 @@ def map_ranges(url, fname_regex: str | re.Pattern, date_format: str | None = Non
     ranges = []
     if len(files):
         if files[0].groupdict().get('stop', None):
-            for index, file in enumerate(files):
+            for file in files:
                 d = file.groupdict()
                 ranges.append((file.string, (_parse_date(d['start'], date_format),
                                              _parse_date(d['stop'],
@@ -118,7 +118,9 @@ def map_ranges(url, fname_regex: str | re.Pattern, date_format: str | None = Non
         else:
             start_dates = [_parse_date(f.groupdict()['start'], date_format) for f in files]
             start_dates += [None]
-            ranges = list(zip([f.string for f in files], zip(start_dates, start_dates[1:])))
+            ranges = list(zip([f.string for f in files],
+                              zip(start_dates, start_dates[1:], strict=False),
+                              strict=False))
     return sorted(ranges, key=lambda r: r[1][0])
 
 

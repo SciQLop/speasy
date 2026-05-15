@@ -1,10 +1,10 @@
 import io
 from collections.abc import Mapping
-from typing import AnyStr, Protocol, Union
+from typing import AnyStr, Protocol
 
 from speasy.products import SpeasyVariable
 
-Buffer = Union[memoryview, bytearray, bytes]
+Buffer = memoryview | bytearray | bytes
 
 class CodecInterface(Protocol):
     """Interface for codecs.

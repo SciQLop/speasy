@@ -7,11 +7,11 @@
 
 from collections.abc import Iterable, Sequence
 from datetime import datetime
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 
-AnyDateTimeType = Union[str, datetime, np.float64, float, np.datetime64]
+AnyDateTimeType = str | datetime | np.float64 | float | np.datetime64
 
 def all_of_type(collection: Sequence, expected_type: type) -> bool:
     """Returns true only if the type of all elements in given collection is expected_type

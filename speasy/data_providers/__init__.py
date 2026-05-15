@@ -5,3 +5,13 @@ from .csa import CsaWebservice
 from .generic_archive import GenericArchive
 from .ssc import SscWebservice
 from .uiowa_eph_tool import UiowaEphTool
+
+__all__ = [
+    "AmdaWebservice",
+    "CdaWebservice",
+    "Cdpp3dViewWebservice",
+    "CsaWebservice",
+    "GenericArchive",
+    "SscWebservice",
+    "UiowaEphTool",
+]

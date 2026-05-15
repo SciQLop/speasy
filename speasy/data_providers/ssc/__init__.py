@@ -8,7 +8,6 @@ __version__ = '0.1.0'
 import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
-from typing import Dict, Optional
 
 import numpy as np
 

@@ -17,17 +17,32 @@ except _PackageNotFoundError:
     # imports don't crash. Normal dev workflow (`uv sync`) creates the
     # .dist-info so this fallback isn't hit.
     __version__ = "0.0.0+dev"
-__all__ = ['amda', 'cda', 'ssc', 'csa', 'cdpp3dview', 'get_data', 'archive', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
+__all__ = [
+    'Catalog',
+    'Dataset',
+    'Event',
+    'MaybeAnyProduct',
+    'SpeasyIndex',
+    'SpeasyVariable',
+    'TimeTable',
+    'amda',
+    'archive',
+    'cda',
+    'cdpp3dview',
+    'csa',
+    'get_data',
+    'list_providers',
+    'ssc',
+    'uiowaephtool',
+]
 __docformat__ = "numpy"
 
-from typing import List
+from speasy.core.inventory.indexes import SpeasyIndex  # noqa: I001  # reason: ordering matters to avoid circular imports
 
-from speasy.core.inventory.indexes import SpeasyIndex
-
-from .products import Catalog, Dataset, Event, MaybeAnyProduct, SpeasyVariable, TimeTable  # noqa: I001
+from .products import Catalog, Dataset, Event, MaybeAnyProduct, SpeasyVariable, TimeTable
 
 # keep this import last
-from .core.requests_scheduling.request_dispatch import (  # noqa: I001  # reason: must come after .products to avoid circular import
+from .core.requests_scheduling.request_dispatch import (
     amda,
     archive,
     cda,

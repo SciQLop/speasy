@@ -274,7 +274,7 @@ class SpeasyVariable(SpeasyProduct):
     def __setitem__(self, k, v: Union["SpeasyVariable", float, int]):
         if type(v) is SpeasyVariable:
             self.__values_container[k] = v.__values_container
-            for axis, src_axis in zip(self.__axes, v.__axes):
+            for axis, src_axis in zip(self.__axes, v.__axes, strict=False):
                 if axis.is_time_dependent:
                     axis[k] = src_axis
         else:
@@ -1023,12 +1023,12 @@ def merge(variables: list[SpeasyVariable]) -> SpeasyVariable | None:
     sorted_var_list.sort(key=lambda v: v.time[0])
 
     # drop variables covered by previous ones
-    for prev, current in zip(sorted_var_list[:-1], sorted_var_list[1:]):
+    for prev, current in zip(sorted_var_list[:-1], sorted_var_list[1:], strict=False):
         if prev.time[-1] >= current.time[-1]:
             sorted_var_list.remove(current)
 
     # drop variables covered by next ones
-    for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:]):
+    for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:], strict=False):
         if nxt.time[0] == current.time[0] and nxt.time[-1] >= current.time[-1]:
             sorted_var_list.remove(current)
 
@@ -1042,14 +1042,14 @@ def merge(variables: list[SpeasyVariable]) -> SpeasyVariable | None:
         np.where(current.time >= nxt.time[0])[0][0]
         if current.time[-1] >= nxt.time[0]
         else -1
-        for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:])
+        for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:], strict=False)
     ]
 
     dest_len = int(
         np.sum(
             [
                 overlap if overlap != -1 else len(r.time)
-                for overlap, r in zip(overlaps, sorted_var_list[:-1])
+                for overlap, r in zip(overlaps, sorted_var_list[:-1], strict=False)
             ]
         )
     )
@@ -1059,7 +1059,7 @@ def merge(variables: list[SpeasyVariable]) -> SpeasyVariable | None:
 
     pos = 0
 
-    for r, overlap in zip(sorted_var_list, overlaps + [-1]):
+    for r, overlap in zip(sorted_var_list, overlaps + [-1], strict=False):
         frag_len = len(r.time) if overlap == -1 else overlap
         result[pos: (pos + frag_len)] = r[0:frag_len]
         pos += frag_len

@@ -40,7 +40,7 @@ class SpeasyDataset(unittest.TestCase):
 
     def test_raises_if_given_variables_is_not_a_dict_of_variables(self):
         with self.assertRaises(TypeError):
-            ds = Dataset(name='Should raise', variables={'this is not a var': 10.}, meta={})
+            Dataset(name='Should raise', variables={'this is not a var': 10.}, meta={})
 
     def test_can_be_indexed_by_variable_name(self):
         ds = Dataset(name="test", variables={"v": make_simple_var()}, meta={})
@@ -86,7 +86,7 @@ class SpeasyDataset(unittest.TestCase):
 
     def test_is_plotable(self):
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
             ds = Dataset(name="test", variables={'v1': make_simple_var(10., 100.), 'v2': make_simple_var(30., 40.),
                                                  'v3': make_simple_var(60., 500.)},
                          meta={})

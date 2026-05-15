@@ -15,14 +15,14 @@ The rationale behind the following function is to randomize the order of executi
 """
 
 
-def randomized_map(f: Callable, l, *args, **kwargs):
-    """Applies function f to all elements in list l in a randomized order
+def randomized_map(f: Callable, items, *args, **kwargs):
+    """Applies function f to all elements in list items in a randomized order
 
     Parameters
     ----------
     f: Callable
-        function to apply to each element in l
-    l: list
+        function to apply to each element in items
+    items: list
         list of elements to process
     args: Any
         additional positional arguments to pass to f
@@ -32,16 +32,16 @@ def randomized_map(f: Callable, l, *args, **kwargs):
     Returns
     -------
     list
-        A list with the results of applying f to each element in l, in the original order
+        A list with the results of applying f to each element in items, in the original order
 
     Examples
     --------
     >>> randomized_map(lambda x: x**2, [1,2,3,4])
     [1, 4, 9, 16]
     """
-    if not len(l):
+    if not len(items):
         return []
-    indexed_list = list(enumerate(l))
+    indexed_list = list(enumerate(items))
     random.shuffle(indexed_list)
     result = sorted([(i, f(e, *args, **kwargs)) for i, e in indexed_list], key=lambda x: x[0])
     return [e for i, e in result]

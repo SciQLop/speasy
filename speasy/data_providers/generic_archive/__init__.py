@@ -7,7 +7,6 @@ __version__ = '0.1.0'
 
 import logging
 from datetime import timedelta
-from typing import Optional
 
 from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg

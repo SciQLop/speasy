@@ -408,7 +408,7 @@ class ASpeasyVariable(unittest.TestCase):
 
     def test_is_plotable(self):
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
             var = make_simple_var(1., 10., 1., 10.)
             ax = var.plot()
             self.assertIsNotNone(ax)
@@ -438,7 +438,7 @@ class ASpeasyVariable(unittest.TestCase):
 
     def test_overrides_plot_arguments(self):
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
             var = make_simple_var(1., 10., 1., 10.)
             ax = var.plot(xaxis_label="Time", yaxis_label="Values", units="nT", labels=["Values"])
             self.assertIsNotNone(ax)
@@ -582,9 +582,9 @@ class TestSpeasyVariableMath(unittest.TestCase):
             var = self.var - shift
             self.assertTrue(np.all(var.values == self.var.values))
             self.assertTrue(np.all(var.time == self.var.time - shift))
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017  # reason: numpy may raise various exception types for unsupported ops
             _ = np.timedelta64(1, 'D') + self.var
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017  # reason: numpy may raise various exception types for unsupported ops
             _ = np.timedelta64(1, 'D') - self.var
 
 

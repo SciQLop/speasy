@@ -22,7 +22,7 @@ PROXY_ALLOWED_KWARGS = ['disable_proxy']
 MINIMUM_REQUIRED_PROXY_VERSION = Version("0.13.0")
 _CURRENT_PROXY_SERVER_VERSION = None
 
-if proxy_cfg.url() == "" or proxy_cfg.enabled() == False:
+if proxy_cfg.url() == "" or not proxy_cfg.enabled():
     warnings.warn("""Proxy server is disabled you might want to use it both to improve Speasy performances and to reduce pressure on remote servers
 use the following python snippet to configure proxy server:
 ===========================================================================
@@ -75,7 +75,7 @@ def is_proxy_up() -> bool:
                 url = url[:-1]
             r = http.get(f"{url}/get_inventory", params={"provider": "ssc"}, timeout=1)
             return r.status_code == 200
-        except:  # lgtm [py/catch-base-exception]
+        except Exception:  # lgtm [py/catch-base-exception]  # noqa: BLE001  # reason: network errors must not break import
             pass
     return False
 

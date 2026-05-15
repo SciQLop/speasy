@@ -1,12 +1,22 @@
 import logging
 import re
-from typing import Optional, Union
 
 from ._function_cache import CacheCall
 from ._instance import _cache
 from ._providers_caches import CACHE_ALLOWED_KWARGS, Cacheable, UnversionedProviderCache
 from ._request_locker import PendingRequest, request_locker
 from .cache import Cache, CacheItem
+
+__all__ = [
+    "CACHE_ALLOWED_KWARGS",
+    "Cache",
+    "CacheCall",
+    "CacheItem",
+    "Cacheable",
+    "PendingRequest",
+    "UnversionedProviderCache",
+    "request_locker",
+]
 
 log = logging.getLogger(__name__)
 

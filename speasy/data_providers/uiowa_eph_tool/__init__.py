@@ -7,7 +7,6 @@ __version__ = '0.1.0'
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlencode
 
 import numpy as np
@@ -270,7 +269,7 @@ def parse_trajectory(trajectory: str, product: ParameterIndex) -> SpeasyVariable
     if header_index == -1:
         logging.error("Could not find header in trajectory data")
         return None
-    columns, units = zip(*header)
+    columns, units = zip(*header, strict=False)
     columns = columns[1:4]  # only keep X, Y, Z
     units = units[1:4]  # only keep X, Y, Z
     if units.count(units[0]) == len(units):

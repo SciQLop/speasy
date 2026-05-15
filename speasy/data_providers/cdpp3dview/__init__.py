@@ -7,7 +7,6 @@ __version__ = "0.1.0"
 
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 from speasy import SpeasyVariable
 from speasy.core import fix_name, http

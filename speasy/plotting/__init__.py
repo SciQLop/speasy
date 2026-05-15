@@ -1,7 +1,6 @@
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
 
 from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
 from .mpl_backend import Plot as MplPlot
@@ -47,10 +46,11 @@ class Plot:
         labels = kwargs.pop("labels", None) or self.columns_names
         xaxis_label = kwargs.pop("xaxis_label", None) or self.axes[0].name
         yaxis_label = kwargs.pop("yaxis_label", None) or self.values.name
-        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values.values, labels=labels,
+        return self._get_backend(backend).line(*args,
+                                               x=self.axes[0].values, y=self.values.values, labels=labels,
                                                units=units,
                                                xaxis_label=xaxis_label,
-                                               yaxis_label=yaxis_label, *args,
+                                               yaxis_label=yaxis_label,
                                                **kwargs)
 
     def colormap(self, *args, logy=True, logz=True, backend=None, **kwargs):
@@ -59,7 +59,8 @@ class Plot:
         yaxis_label = kwargs.pop("yaxis_label", None) or self.axes[1].name
         zaxis_units = kwargs.pop("zaxis_units", None) or self.values.unit
         zaxis_label = kwargs.pop("zaxis_label", None) or self.values.name
-        return self._get_backend(backend).colormap(x=self.axes[0].values, y=self.axes[1].values.T,
+        return self._get_backend(backend).colormap(*args,
+                                                   x=self.axes[0].values, y=self.axes[1].values.T,
                                                    z=self.values.values.T,
                                                    xaxis_label=x_axis_label,
                                                    yaxis_label=yaxis_label,
@@ -67,12 +68,12 @@ class Plot:
                                                    zaxis_label=zaxis_label,
                                                    zaxis_units=zaxis_units,
                                                    logy=logy,
-                                                   logz=logz, *args, **kwargs)
+                                                   logz=logz, **kwargs)
 
     def __call__(self, *args, backend=None, **kwargs):
         if self._infer_plot_type() == PlotType.SPECTRO:
-            return self.colormap(backend=backend, *args, **kwargs)
-        return self.line(backend=backend, *args, **kwargs)
+            return self.colormap(*args, backend=backend, **kwargs)
+        return self.line(*args, backend=backend, **kwargs)
 
     def __getitem__(self, item):
         assert type(item) is str

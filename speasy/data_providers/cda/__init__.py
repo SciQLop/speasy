@@ -8,7 +8,6 @@ __version__ = '0.1.0'
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
 
 from packaging.version import Version
 

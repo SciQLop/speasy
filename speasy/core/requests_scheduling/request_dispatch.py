@@ -3,7 +3,7 @@ import os
 import traceback
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Union, overload
+from typing import overload
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from ...data_providers import (
     SscWebservice,
     UiowaEphTool,
 )
-from ...products import *
+from ...products import Catalog, Dataset, MaybeAnyProduct, SpeasyVariable, TimeTable
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
 from ..http import is_server_up
@@ -32,10 +32,10 @@ from ..inventory.indexes import (
 
 log = logging.getLogger(__name__)
 
-TimeT = Union[str, datetime, float, np.datetime64]
-TimeRangeT = Union[DateTimeRange, tuple[TimeT, TimeT]]
-TimeSerieIndexT = Union[ParameterIndex, ComponentIndex]
-TimeRangeCollectionT = Union[TimetableIndex, CatalogIndex, Iterable[Iterable[TimeT]]]
+TimeT = str | datetime | float | np.datetime64
+TimeRangeT = DateTimeRange | tuple[TimeT, TimeT]
+TimeSerieIndexT = ParameterIndex | ComponentIndex
+TimeRangeCollectionT = TimetableIndex | CatalogIndex | Iterable[Iterable[TimeT]]
 
 PROVIDERS = {}
 amda = None

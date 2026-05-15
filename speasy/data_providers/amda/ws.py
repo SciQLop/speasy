@@ -63,7 +63,7 @@ def _amda_arguments_to_dict(index):
 
 def _argument_fits_allowed_values(value:str, argument_desc:ArgumentIndex):
     if argument_desc.type == 'list':
-        return value in list(zip(*argument_desc.choices))[1]
+        return value in list(zip(*argument_desc.choices, strict=False))[1]
     return True
 
 def _stack_level_outside_of_speasy():

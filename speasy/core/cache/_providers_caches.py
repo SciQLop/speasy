@@ -60,13 +60,13 @@ def group_contiguous_fragments(fragments, duration):
 
 def filter_requests_for_me(requests: list[PendingRequest | SpeasyVariable], fragments: list[datetime]) -> list[
     datetime]:
-    return [fragment for request, fragment in zip(requests, fragments) if
+    return [fragment for request, fragment in zip(requests, fragments, strict=False) if
             isinstance(request, PendingRequest) and request.is_from_current_thread]
 
 
 def filter_requests_locked_by_others(requests: list[PendingRequest | SpeasyVariable],
                                      fragments: list[datetime]) -> list[datetime]:
-    return [fragment for request, fragment in zip(requests, fragments) if
+    return [fragment for request, fragment in zip(requests, fragments, strict=False) if
             isinstance(request, PendingRequest) and not request.is_from_current_thread]
 
 
@@ -364,7 +364,7 @@ class UnversionedProviderCache:
         missing_fragments = []
         data_chunks = []
         maybe_outdated_fragments = []
-        for fragment, entry in zip(fragments, entries):
+        for fragment, entry in zip(fragments, entries, strict=False):
             if entry is None:
                 missing_fragments.append(fragment)
             elif (not entry.is_expired() and entry.lifetime is not None) or prefer_cache:

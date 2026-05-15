@@ -1,5 +1,4 @@
 import json
-from typing import Union
 
 __INDEXES_TYPES__ = {}
 
@@ -201,7 +200,7 @@ def make_inventory_node(parent, ctor, name, provider, uid, **meta):
 def inventory_has_changed(orig, new):
     if orig.__dict__.keys() != new.__dict__.keys():
         return True
-    for orig_key, orig_value in orig.__dict__.items():
+    for orig_key in orig.__dict__:
         if orig_key != 'build_date':
             if orig_key not in new.__dict__:
                 return True
@@ -210,5 +209,6 @@ def inventory_has_changed(orig, new):
     return False
 
 
-AnyProductIndex = Union[
-    ParameterIndex, TemplatedParameterIndex, DatasetIndex, TimetableIndex, CatalogIndex, ComponentIndex]
+AnyProductIndex = (
+    ParameterIndex | TemplatedParameterIndex | DatasetIndex | TimetableIndex | CatalogIndex | ComponentIndex
+)

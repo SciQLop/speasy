@@ -51,7 +51,7 @@ def load_hapi_binary(file: Buffer | str | io.IOBase) -> HapiFile | None:
         data_time = np.char.rstrip(data["Time"].astype("U24"), "Z").astype("datetime64[ns]")
         hapi_binary_file.create_parameter(data_time,
                                        meta=time_header)
-        for i, param_meta in enumerate(headers["parameters"][1:]):
+        for param_meta in headers["parameters"][1:]:
             hapi_binary_file.create_parameter(data[param_meta["name"]]
                 , meta=param_meta)
         return hapi_binary_file

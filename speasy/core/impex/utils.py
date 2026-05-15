@@ -19,7 +19,7 @@ tt_catalog_time_format = "%Y-%m-%dT%H:%M:%S.%f"
 def _build_event(data, col_names: list[str]) -> Event:
     return Event(datetime.datetime.strptime(data[0], tt_catalog_time_format),
                  datetime.datetime.strptime(data[1], tt_catalog_time_format),
-                 {name: value for name, value in zip(col_names[2:], data[2:])})
+                 {name: value for name, value in zip(col_names[2:], data[2:], strict=False)})
 
 
 def load_timetable(filename: str) -> TimeTable:

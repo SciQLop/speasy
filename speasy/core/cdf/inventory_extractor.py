@@ -55,7 +55,7 @@ def extract_parameter(cdf: ISTPLoader, var_name: str, provider: str, uid_fmt: st
                 meta = _apply_cda_trick(datavar, meta)
             return ParameterIndex(name=var_name, provider=provider, uid=uid_fmt.format(var_name=var_name),
                                   meta={**filter_variable_meta(datavar), **meta})
-    except IndexError or RuntimeError:
+    except (IndexError, RuntimeError):
         print(f"Issue loading {var_name} from {cdf}")
 
     return None

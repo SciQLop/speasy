@@ -54,7 +54,7 @@ class SpeasyCatalog(unittest.TestCase):
 
     def test_raises_if_built_with_non_ranges_types(self):
         with self.assertRaises(TypeError):
-            cat = Catalog("Failing Catalog", events="this is not a Event")
+            Catalog("Failing Catalog", events="this is not a Event")
 
     def test_holds_given_metadata(self):
         meta = {'key': 10}
