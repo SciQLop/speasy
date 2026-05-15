@@ -4,11 +4,13 @@
    from speasy.core.time import *
    import numpy as np
 """
-from typing import Callable
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
+
 import numpy as np
 from dateutil.parser import parse
+
 from .typing import AnyDateTimeType
 
 
@@ -134,7 +136,7 @@ def datetime64_to_epoch(datetime64_array: np.ndarray) -> np.ndarray:
 
 
 
-class EnsureUTCDateTime(object):
+class EnsureUTCDateTime:
 
     def __call__(self, get_data: Callable):
         @wraps(get_data)

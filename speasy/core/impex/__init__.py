@@ -1,34 +1,37 @@
 import logging
-from datetime import datetime, timedelta
-from enum import Enum
-from typing import Dict, Optional, List, Union
-from types import SimpleNamespace
 import warnings
 from copy import deepcopy
+from datetime import datetime, timedelta
+from enum import Enum
+from types import SimpleNamespace
 
 import numpy as np
 
-from ..datetime_range import DateTimeRange
-from ...core.dataprovider import (DataProvider)
-
 from ...core import make_utc_datetime
-
-from ...core.inventory.indexes import (ComponentIndex, DatasetIndex, ParameterIndex, SpeasyIndex,
-                                       TimetableIndex, CatalogIndex, TemplatedParameterIndex, AnyProductIndex)
 from ...core.codecs import get_codec
+from ...core.dataprovider import DataProvider
+from ...core.inventory.indexes import (
+    AnyProductIndex,
+    CatalogIndex,
+    ComponentIndex,
+    DatasetIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    TemplatedParameterIndex,
+    TimetableIndex,
+)
 from ...core.proxy import MINIMUM_REQUIRED_PROXY_VERSION
-from ...products.variable import SpeasyVariable, merge, DataContainer
+from ...inventories import flat_inventories
+from ...products import MaybeAnyProduct
 from ...products.catalog import Catalog
 from ...products.dataset import Dataset
 from ...products.timetable import TimeTable
-from ...products import MaybeAnyProduct
-
-from ...inventories import flat_inventories
-
-from .parser import ImpexXMLParser, to_xmlid
+from ...products.variable import DataContainer, SpeasyVariable, merge
+from ..datetime_range import DateTimeRange
 from .client import ImpexClient, ImpexEndpoint
-from .utils import load_catalog, load_timetable, is_private, is_public
 from .exceptions import MissingCredentials
+from .parser import ImpexXMLParser, to_xmlid
+from .utils import is_private, is_public, load_catalog, load_timetable
 
 log = logging.getLogger(__name__)
 
@@ -48,15 +51,15 @@ class ImpexProvider(DataProvider):
     """ImpexProvider class. This class is the main interface to interact with the Impex data providers such as AMDA or CLWeb.
     """
 
-    def __init__(self, provider_name: str, server_url: str, max_chunk_size_days: int = 10, capabilities: List = None,
-                 username: str = "", password: str = "", name_mapping: Dict = None, output_format: str = 'CDF',
+    def __init__(self, provider_name: str, server_url: str, max_chunk_size_days: int = 10, capabilities: list = None,
+                 username: str = "", password: str = "", name_mapping: dict = None, output_format: str = 'CDF',
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name
         self.server_url = server_url
         self.client = ImpexClient(capabilities=capabilities, server_url=server_url,
                                   username=username, password=password, output_format=output_format)
         if not self.client.is_alive():
-            warnings.warn(f"The data provider {provider_name} appears to be under maintenance")
+            warnings.warn(f"The data provider {provider_name} appears to be under maintenance", stacklevel=2)
         self.max_chunk_size_days = max_chunk_size_days
         self.name_mapping = name_mapping
         self._cdf_codec = get_codec('application/x-cdf')
@@ -167,7 +170,7 @@ class ImpexProvider(DataProvider):
                                                      uid='DerivedParameters', meta=user_param.ws.paramList.__dict__)
         return root
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
         """Get parameter time range as defined in the inventory.
 
         Parameters
@@ -188,7 +191,7 @@ class ImpexProvider(DataProvider):
         """
         return self._parameter_range(parameter_id)
 
-    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+    def dataset_range(self, dataset_id: str or DatasetIndex) -> DateTimeRange | None:
         """Get dataset time range as defined in the inventory.
 
         Parameters
@@ -311,7 +314,7 @@ class ImpexProvider(DataProvider):
         raise ValueError(f"Unknown product: {product}")
 
     def get_user_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime or str,
-                           stop_time: datetime or str, **kwargs) -> Optional[SpeasyVariable]:
+                           stop_time: datetime or str, **kwargs) -> SpeasyVariable | None:
         """Get user parameter. Raises an exception if user is not authenticated.
 
         Parameters
@@ -319,7 +322,7 @@ class ImpexProvider(DataProvider):
         parameter_id: str or ParameterIndex
             parameter id
         start_time: datetime or str
-            begining of data time
+            beginning of data time
         stop_time: datetime or str
             end of data time
 
@@ -351,8 +354,8 @@ class ImpexProvider(DataProvider):
         return self._dl_user_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time, **kwargs)
 
     def get_parameter(self, product, start_time, stop_time,
-                      extra_http_headers: Dict or None = None,
-                      output_format: str or None = None, **kwargs) -> Optional[SpeasyVariable]:
+                      extra_http_headers: dict or None = None,
+                      output_format: str or None = None, **kwargs) -> SpeasyVariable | None:
         """Get parameter data.
 
         Parameters
@@ -438,7 +441,7 @@ class ImpexProvider(DataProvider):
                        variables={p.name: self.get_parameter(p, start, stop, **kwargs) for p in parameters},
                        meta=meta)
 
-    def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
+    def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> TimeTable | None:
         """Get timetable data by ID.
 
         Parameters
@@ -461,7 +464,7 @@ class ImpexProvider(DataProvider):
         """
         return self._dl_timetable(to_xmlid(timetable_id), **kwargs)
 
-    def get_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
+    def get_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Catalog | None:
         """Get catalog data by ID.
 
         Parameters
@@ -484,7 +487,7 @@ class ImpexProvider(DataProvider):
         """
         return self._dl_catalog(to_xmlid(catalog_id), **kwargs)
 
-    def get_user_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
+    def get_user_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> TimeTable | None:
         """Get user timetable. Raises an exception if user is not authenticated.
 
         Parameters
@@ -513,7 +516,7 @@ class ImpexProvider(DataProvider):
         timetable_id = to_xmlid(timetable_id)
         return self._dl_user_timetable(to_xmlid(timetable_id), **kwargs)
 
-    def get_user_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
+    def get_user_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Catalog | None:
         """Get user catalog. Raises an exception if user is not authenticated.
 
 
@@ -599,8 +602,8 @@ class ImpexProvider(DataProvider):
 
     def find_parent_dataset(
         self,
-        product_id: Union[str, DatasetIndex, ParameterIndex, TemplatedParameterIndex, ComponentIndex]
-    ) -> Optional[str]:
+        product_id: str | DatasetIndex | ParameterIndex | TemplatedParameterIndex | ComponentIndex
+    ) -> str | None:
 
         product_id = to_xmlid(product_id)
         product = self.to_index(product_id)
@@ -611,13 +614,13 @@ class ImpexProvider(DataProvider):
         return None
 
     @staticmethod
-    def is_user_product(product_id: str or SpeasyIndex, collection: Dict):
+    def is_user_product(product_id: str or SpeasyIndex, collection: dict):
         xmlid = to_xmlid(product_id)
         if xmlid in collection:
             return is_private(collection[xmlid])
         return False
 
-    def list_datasets(self) -> List[DatasetIndex]:
+    def list_datasets(self) -> list[DatasetIndex]:
         """Get the list of datasets available
 
         Returns
@@ -640,7 +643,7 @@ class ImpexProvider(DataProvider):
         """
         return list(filter(is_public, flat_inventories.__dict__[self.provider_name].datasets.values()))
 
-    def list_parameters(self, dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:
+    def list_parameters(self, dataset_id: (str or DatasetIndex) | None = None) -> list[ParameterIndex]:
         """Get the list of parameter indexes available in AMDA or a given dataset
 
         Parameters
@@ -669,7 +672,7 @@ class ImpexProvider(DataProvider):
             return list(flat_inventories.__dict__[self.provider_name].datasets[to_xmlid(dataset_id)])
         return list(filter(is_public, flat_inventories.__dict__[self.provider_name].parameters.values()))
 
-    def list_user_parameters(self) -> List[ParameterIndex]:
+    def list_user_parameters(self) -> list[ParameterIndex]:
         """Get the list of user parameters. User parameters are represented as dictionary objects.
 
         Returns
@@ -694,7 +697,7 @@ class ImpexProvider(DataProvider):
         """
         return list(filter(is_private, flat_inventories.__dict__[self.provider_name].parameters.values()))
 
-    def list_timetables(self) -> List[TimetableIndex]:
+    def list_timetables(self) -> list[TimetableIndex]:
         """Get list of public timetables.
 
         Returns
@@ -712,7 +715,7 @@ class ImpexProvider(DataProvider):
         """
         return list(filter(is_public, flat_inventories.__dict__[self.provider_name].timetables.values()))
 
-    def list_user_timetables(self) -> List[TimetableIndex]:
+    def list_user_timetables(self) -> list[TimetableIndex]:
         """Get the list of user timetables. User timetable are represented as dictionary objects.
 
         Returns
@@ -737,7 +740,7 @@ class ImpexProvider(DataProvider):
         """
         return list(filter(is_private, flat_inventories.__dict__[self.provider_name].timetables.values()))
 
-    def list_catalogs(self) -> List[CatalogIndex]:
+    def list_catalogs(self) -> list[CatalogIndex]:
         """Get the list of public catalog IDs:
 
         Returns
@@ -758,7 +761,7 @@ class ImpexProvider(DataProvider):
         """
         return list(filter(is_public, flat_inventories.__dict__[self.provider_name].catalogs.values()))
 
-    def list_user_catalogs(self) -> List[CatalogIndex]:
+    def list_user_catalogs(self) -> list[CatalogIndex]:
         """Get the list of user catalogs. User catalogs are represented as dictionary objects.
 
         Returns
@@ -784,10 +787,9 @@ class ImpexProvider(DataProvider):
         return list(filter(is_private, flat_inventories.__dict__[self.provider_name].catalogs.values()))
 
     def _get_parameter(self, product, start_time, stop_time,
-                       extra_http_headers: Dict or None = None, output_format: str or None = None,
+                       extra_http_headers: dict or None = None, output_format: str or None = None,
                        restricted_period=False, **kwargs) -> \
-        Optional[
-            SpeasyVariable]:
+        SpeasyVariable | None:
         log.debug(f'Get data: product = {product}, data start time = {start_time}, data stop time = {stop_time}')
         if hasattr(self, 'get_real_product_id'):
             real_product_id = self.get_real_product_id(product, **kwargs)
@@ -801,9 +803,9 @@ class ImpexProvider(DataProvider):
                                   time_format='UNIXTIME', **kwargs)
 
     def _dl_parameter_chunk(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                            extra_http_headers: Dict or None = None,
+                            extra_http_headers: dict or None = None,
                             use_credentials: bool = False,
-                            product_variables: List = None, **kwargs) -> Optional[SpeasyVariable]:
+                            product_variables: list = None, **kwargs) -> SpeasyVariable | None:
         url = self.client.get_parameter(start_time=start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
                                         stop_time=stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
                                         parameter_id=parameter_id,
@@ -840,15 +842,15 @@ class ImpexProvider(DataProvider):
         return None
 
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                      extra_http_headers: Dict or None = None, restricted_period=False,
+                      extra_http_headers: dict or None = None, restricted_period=False,
                       use_credentials: bool = False,
-                      product_variables: List = None, **kwargs) -> Optional[SpeasyVariable]:
+                      product_variables: list = None, **kwargs) -> SpeasyVariable | None:
         dt = timedelta(days=self.max_chunk_size_days)
         if restricted_period:
             if not self.client.credential_are_valid():
                 raise MissingCredentials(
                     "Restricted period requested but no credentials provided, please add your "
-                    "{} credentials.".format(self.provider_name))
+                    f"{self.provider_name} credentials.")
             else:
                 use_credentials = True
         if stop_time - start_time > dt:
@@ -869,7 +871,7 @@ class ImpexProvider(DataProvider):
                                             product_variables=product_variables, **kwargs)
 
     def _dl_user_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
-                           **kwargs) -> Optional[SpeasyVariable]:
+                           **kwargs) -> SpeasyVariable | None:
         return self._dl_parameter(parameter_id=parameter_id, start_time=start_time, stop_time=stop_time,
                                   product_variables=self._get_product_variables(parameter_id, **kwargs),
                                   use_credentials=True, **kwargs)
@@ -912,7 +914,7 @@ class ImpexProvider(DataProvider):
         return [kwargs.get('real_product_id', product_id)]
 
     @staticmethod
-    def _concatenate_variables(variables: Dict[str, SpeasyVariable], product_id) -> Optional[SpeasyVariable]:
+    def _concatenate_variables(variables: dict[str, SpeasyVariable], product_id) -> SpeasyVariable | None:
         if len(variables) == 0:
             return None
         elif len(variables) == 1:

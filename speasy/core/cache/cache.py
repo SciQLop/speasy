@@ -1,12 +1,13 @@
-from typing import Union
-from datetime import datetime, timezone, timedelta
+import logging
+import re
+from contextlib import ExitStack, contextmanager
+from datetime import datetime, timedelta, timezone
 
 import diskcache as dc
-from .version import str_to_version, version_to_str, Version
+
 from speasy.config import cache as cache_cfg
-from contextlib import ExitStack, contextmanager
-import re
-import logging
+
+from .version import Version, str_to_version, version_to_str
 
 cache_version = str_to_version("3.0")
 
@@ -62,7 +63,7 @@ class Cache:
         return str_to_version(self._data.get("cache/version", default="0.0.0"))
 
     @version.setter
-    def version(self, v: Union[str, Version]):
+    def version(self, v: str | Version):
         self._data["cache/version"] = v if type(v) is str else version_to_str(v)
 
     def disk_size(self):
@@ -108,7 +109,7 @@ class Cache:
     def drop(self, key):
         self._data.delete(key)
 
-    def drop_matching_entries(self, pattern: Union[str, re.Pattern]):
+    def drop_matching_entries(self, pattern: str | re.Pattern):
         """Drop all cache entries that match a given pattern
 
         Parameters

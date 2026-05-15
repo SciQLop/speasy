@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from speasy.core import span_utils, make_utc_datetime
-from typing import List
+
 import numpy as np
+
+from speasy.core import make_utc_datetime, span_utils
 
 
 class DateTimeRange:
@@ -31,7 +32,7 @@ class DateTimeRange:
     def duration(self) -> timedelta:
         return self.stop_time - self.start_time
 
-    def split(self, fragment_duration: timedelta) -> List["DateTimeRange"]:
+    def split(self, fragment_duration: timedelta) -> list["DateTimeRange"]:
         return span_utils.split(self, fragment_duration)
 
     def __eq__(self, other) -> bool:

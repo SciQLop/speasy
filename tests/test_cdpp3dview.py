@@ -1,9 +1,13 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `cdpp3dview` package."""
 import unittest
 from datetime import datetime, timezone
+
+import pytest
+
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
+
 
 from ddt import data, ddt
 

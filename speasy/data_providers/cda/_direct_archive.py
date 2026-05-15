@@ -1,4 +1,3 @@
-from typing import Dict, Optional
 import re
 
 _version_regex = re.compile(r"%Q(\.\d+)*")
@@ -45,14 +44,14 @@ none_or_stop_date_substitutions = substitutions + (
 )
 
 
-def _build_date_format(file_naming: str) -> Optional[str]:
+def _build_date_format(file_naming: str) -> str | None:
     date_format = _date_format_regex.search(file_naming)
     if date_format is None:
         return None
     return date_format.group()
 
 
-def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> Optional[Dict]:
+def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> dict | None:
     if not file_naming.endswith('.cdf'):
         return None
 

@@ -1,16 +1,14 @@
-from enum import Enum
 import io
+from collections.abc import Mapping
+from enum import Enum
 from json import JSONDecodeError
-from typing import Dict, List, Mapping, Optional
 from urllib.parse import urlencode
 
 from speasy.core import http
 from speasy.core.hapi.parser import _parse_hapi_csv
 from speasy.products.variable import SpeasyVariable
 
-from .exceptions import (
-    HapiRequestError, HapiServerError, HapiNoData
-)
+from .exceptions import HapiNoData, HapiRequestError, HapiServerError
 
 
 class HapiEndpoint(Enum):
@@ -27,7 +25,7 @@ def _fetch_response(url: str):
     return response
 
 
-def _check_hapi_status(data: Dict) -> None:
+def _check_hapi_status(data: dict) -> None:
     code = data["status"]["code"]
     message = data["status"]["message"]
     if code == 1201:
@@ -75,7 +73,7 @@ class HapiClient:
 
         raise RuntimeError(f"Unsupported HAPI version: {version}")
 
-    def _fetch_variables(self, query_parameters: Dict) -> Mapping[str, SpeasyVariable]:
+    def _fetch_variables(self, query_parameters: dict) -> Mapping[str, SpeasyVariable]:
         parameters = query_parameters.get("parameters", [])
         url = self._build_url(HapiEndpoint.DATA, query_parameters)
         f = io.BytesIO(_fetch_response(url).text.encode("utf-8"))
@@ -83,8 +81,8 @@ class HapiClient:
 
     def _build_url(
         self,
-        endpoint: Optional[HapiEndpoint] = None,
-        query_parameters: Optional[Dict] = None
+        endpoint: HapiEndpoint | None = None,
+        query_parameters: dict | None = None
     ) -> str:
         base = f"{self.server_url}/hapi"
         url = f"{base}/{endpoint.value}" if endpoint else base
@@ -105,8 +103,8 @@ class HapiClient:
     def _endpoint_to_json(
             self,
             endpoint: HapiEndpoint,
-            query_parameters: Optional[Dict] = None
-    ) -> Dict:
+            query_parameters: dict | None = None
+    ) -> dict:
         url = self._build_url(endpoint, query_parameters)
         return _fetch_response(url).json()
 
@@ -116,16 +114,16 @@ class HapiClient:
             html_page = response.text
         return html_page
 
-    def get_capabilities(self) -> Dict:
+    def get_capabilities(self) -> dict:
         return self._endpoint_to_json(HapiEndpoint.CAPABILITIES)
 
-    def get_catalog(self) -> Dict:
+    def get_catalog(self) -> dict:
         return self._endpoint_to_json(HapiEndpoint.CATALOG)
 
-    def get_about(self) -> Dict:
+    def get_about(self) -> dict:
         return self._endpoint_to_json(HapiEndpoint.ABOUT)
 
-    def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
+    def get_info(self, dataset: str, parameters: list[str] | None = None) -> dict:
         query_params = {
             self._dataset_param_name: dataset,
         }
@@ -135,7 +133,7 @@ class HapiClient:
         return self._endpoint_to_json(HapiEndpoint.INFO, query_params)
 
     def get_data(
-        self, dataset: str, start: str, stop: str, parameters: List[str]
+        self, dataset: str, start: str, stop: str, parameters: list[str]
     ) -> Mapping[str, SpeasyVariable]:
         query_params = {
             self._dataset_param_name: dataset,

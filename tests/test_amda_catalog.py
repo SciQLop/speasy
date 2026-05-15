@@ -1,10 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `amda` package timetable implementation."""
 
 import unittest
+
+import pytest
+
 import speasy as spz
+
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
+
 
 
 class CatalogRequests(unittest.TestCase):

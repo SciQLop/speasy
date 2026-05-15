@@ -1,6 +1,6 @@
-from typing import Dict, Tuple, Callable
-from urllib.parse import urlparse, urlencode
+from collections.abc import Callable
 from functools import wraps
+from urllib.parse import urlencode, urlparse
 
 from speasy.config import core as core_config
 
@@ -66,11 +66,11 @@ def is_local_file(url: str):
     return split_url.scheme in ('', 'file') or split_url.netloc == ''
 
 
-def build_url(base: str, parameters: Dict) -> str:
+def build_url(base: str, parameters: dict) -> str:
     return base + '?' + urlencode(parameters)
 
 
-def host_and_port(url: str) -> Tuple[str, int]:
+def host_and_port(url: str) -> tuple[str, int]:
     """Returns the host and port of an url
 
     Parameters

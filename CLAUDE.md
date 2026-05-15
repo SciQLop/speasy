@@ -4,28 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Speasy ("Space Physics made EASY") is a Python library providing a unified API for accessing 70+ space physics missions and 65,000+ data products from multiple web services (AMDA, CDAWeb, CSA, SSCWeb, CDPP 3DView). Built with flit, requires Python >=3.9.
+Speasy ("Space Physics made EASY") is a Python library providing a unified API for accessing 70+ space physics missions and 65,000+ data products from multiple web services (AMDA, CDAWeb, CSA, SSCWeb, CDPP 3DView). Built with flit, requires Python >=3.10.
 
 ## Common Commands
 
 ```bash
 # Install in development mode
-python -m pip install -e .
-python -m pip install -r requirements_dev.txt
+uv sync --group dev --group docs
 
-# Run tests
-PYTHONPATH=. py.test                    # all tests
-PYTHONPATH=. py.test tests/test_amda.py # single test file
-PYTHONPATH=. py.test -k "test_name"     # single test by name
+# Run tests (default `addopts = "-m unit"` selects the unit tier only)
+uv run pytest                           # unit tier (fast, no network)
+uv run pytest -m contract               # real-server tests
+uv run pytest -m e2e                    # end-to-end smoke tests
+uv run pytest -m ''                     # all tests (overrides the default filter)
+uv run pytest -m contract tests/test_amda.py   # single contract test file
+uv run pytest -k "test_name"            # single test by name (within unit tier)
 
-# Lint
-flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+# Lint and spellcheck
+uv run --with ruff ruff check speasy tests devtools
+uv run --with codespell codespell
 
 # Doctests
-make doctest
+uv run make doctest
 
 # Build
-python -m build --sdist --wheel
+uv run --with build python -m build --sdist --wheel
 ```
 
 ## Test Environment Variables
@@ -67,5 +70,4 @@ Subclass `DataProvider` in `core/dataprovider.py`, implement `get_data()` and in
 
 - Tests use `ddt` (data-driven tests) for parameterized testing
 - Version tracked in `VERSION` file, bumped with `bumpversion` (updates VERSION, pyproject.toml, `__init__.py`, docs/conf.py, CITATION.cff)
-- Flake8 rules: E9, F63, F7, F82 (strict); max-complexity=10, max-line-length=127 (warnings)
-- Ruff configured only for `NPY201` (numpy 2.0 deprecations)
+- Ruff lint rules: `E, F, UP, B, I, NPY201` with AstraLint-mirrored ignore set; line-length 100

@@ -5,10 +5,10 @@ speasy.config
 Configuration module for SPEASY, it reads or sets config entries first from ENV then from config file.
 """
 
+import ast
 import configparser
 import os
 from typing import Any
-import ast
 
 import appdirs
 

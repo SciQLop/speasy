@@ -5,22 +5,22 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Tuple
 import re
-
-from packaging.version import Version
-import numpy as np
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
+import numpy as np
+from packaging.version import Version
+
 from speasy.core import EnsureUTCDateTime, fix_name
-from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, Cacheable
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider, ParameterRangeCheck
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
+from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
+
 from ...core import AllowedKwargs, http
 
 log = logging.getLogger(__name__)
@@ -251,7 +251,7 @@ _DATE_REGEX = f"{_YEARS_REGEX} {_YEARDAY_REGEX} {_HM_REGEX} {_HM_REGEX} {_FLOAT_
 
 __CSV_HEADER_REGEX = re.compile(r"\s+([\w ]+)\s\(([\w\/]+)\)")
 
-def _extract_headers(lines:List[str]) -> Tuple[int, List[List[str]]]:
+def _extract_headers(lines:list[str]) -> tuple[int, list[list[str]]]:
     for index, line in enumerate(lines[:7]):
         match = __CSV_HEADER_REGEX.findall(line)
         if match:
@@ -259,7 +259,7 @@ def _extract_headers(lines:List[str]) -> Tuple[int, List[List[str]]]:
     return -1,[]
 
 
-def parse_trajectory(trajectory: str, product: ParameterIndex) -> Optional[SpeasyVariable]:
+def parse_trajectory(trajectory: str, product: ParameterIndex) -> SpeasyVariable | None:
     def to_datetime(values):
         return datetime(int(values[0]), 1, 1, int(values[2]), int(values[3])) + timedelta(days=int(values[1]) - 1) + timedelta(
             milliseconds=int(values[4] * 1000.))
@@ -269,7 +269,7 @@ def parse_trajectory(trajectory: str, product: ParameterIndex) -> Optional[Speas
     if header_index == -1:
         logging.error("Could not find header in trajectory data")
         return None
-    columns, units = zip(*header)
+    columns, units = zip(*header, strict=False)
     columns = columns[1:4]  # only keep X, Y, Z
     units = units[1:4]  # only keep X, Y, Z
     if units.count(units[0]) == len(units):
@@ -319,7 +319,7 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}'}
 
 
-def build_trajectories(origin: str, coordinate_system: str) -> Dict[str, SpeasyIndex]:
+def build_trajectories(origin: str, coordinate_system: str) -> dict[str, SpeasyIndex]:
     trajectories = {}
     for obs, code in __OBSERVERS_PER_ORIGINS_DICT__.get(origin, {}).items():
         meta = {
@@ -338,7 +338,7 @@ def build_trajectories(origin: str, coordinate_system: str) -> Dict[str, SpeasyI
     return trajectories
 
 
-def build_coordinates_systems(origin: str) -> Dict[str, SpeasyIndex]:
+def build_coordinates_systems(origin: str) -> dict[str, SpeasyIndex]:
     coordinates_systems = {}
     for coord, code in __COORDINATES_SYSTEMS_PER_ORIGINS_DICT__.get(origin, {}).items():
         meta = {'Id': code}
@@ -360,7 +360,7 @@ def build_inventory() -> SpeasyIndex:
     return SpeasyIndex(name='Trajectories', provider='UiowaEphTool', uid='Trajectories', meta=trajs)
 
 
-def make_index(meta: Dict):
+def make_index(meta: dict):
     name = meta.pop('Name')
     meta['start_date'] = meta.pop('StartTime')
     meta['stop_date'] = meta.pop('EndTime')
@@ -382,7 +382,7 @@ class UiowaEphTool(DataProvider):
     def version(self, product):
         return 1
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -405,7 +405,7 @@ class UiowaEphTool(DataProvider):
         """
         return self._parameter_range(parameter_id)
 
-    def get_data(self, product: str, start_time: datetime, stop_time: datetime, **kwargs) -> Optional[SpeasyVariable]:
+    def get_data(self, product: str, start_time: datetime, stop_time: datetime, **kwargs) -> SpeasyVariable | None:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
         return var
 
@@ -418,7 +418,7 @@ class UiowaEphTool(DataProvider):
     @SplitLargeRequests(threshold=lambda x: timedelta(days=365))
     @Proxyfiable(GetProduct, get_parameter_args, min_version=Version("0.13.0"))
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime,
-                   extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+                   extra_http_headers: dict or None = None) -> SpeasyVariable | None:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}

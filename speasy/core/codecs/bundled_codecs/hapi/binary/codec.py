@@ -1,8 +1,8 @@
 from speasy.core.codecs.codecs_registry import register_codec
 
 from ..codec import HapiBaseCodec
-from .writer import save_hapi_binary
 from .reader import load_hapi_binary
+from .writer import save_hapi_binary
 
 
 @register_codec

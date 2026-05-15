@@ -1,12 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy.core.codecs` package."""
 import unittest
 
-from ddt import ddt, data, unpack
+import pytest
+
+pytestmark = pytest.mark.contract
+
 
 import os
+
+from ddt import data, ddt, unpack
+
 from speasy.core.codecs import get_codec
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))

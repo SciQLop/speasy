@@ -1,17 +1,18 @@
 import io
-from typing import IO, Optional, Union, Callable
-
+from collections.abc import Callable
+from typing import IO
 
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.codec_interface import Buffer
 
+
 def save_hapi(
     hapi_file: HapiFile,
-    file: Optional[Union[str, io.IOBase]],
-    to_func: Optional[Callable[[HapiFile, IO[bytes], bool], bool]], 
+    file: str | io.IOBase | None,
+    to_func: Callable[[HapiFile, IO[bytes], bool], bool] | None, 
     mode: str = "wb",
     with_headers: bool = True
-) -> Union[bool, Buffer]:
+) -> bool | Buffer:
 
     if to_func is None:
         raise ValueError("to_func must be provided and cannot be None")

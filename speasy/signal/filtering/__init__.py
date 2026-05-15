@@ -1,7 +1,9 @@
-from scipy import signal
-from typing import Callable, Union, Collection
-from speasy.products import SpeasyVariable
+from collections.abc import Callable, Collection
+
 import numpy as np
+from scipy import signal
+
+from speasy.products import SpeasyVariable
 
 
 def _apply_filter(filter_function: Callable, sos: np.ndarray, var: SpeasyVariable) -> SpeasyVariable:
@@ -11,8 +13,7 @@ def _apply_filter(filter_function: Callable, sos: np.ndarray, var: SpeasyVariabl
 
 
 def apply_sos_filter(sos: np.ndarray, filter_function: Callable,
-                     var: Union[SpeasyVariable, Collection[SpeasyVariable]]) -> Union[
-    SpeasyVariable, Collection[SpeasyVariable]]:
+                     var: SpeasyVariable | Collection[SpeasyVariable]) -> SpeasyVariable | Collection[SpeasyVariable]:
     """Apply an IIR filter to the variable(s) using the given filter function. This function just applies the filter to the
     values of the variable without any resampling, it assumes that the variable has a regular time axis.
 
@@ -41,8 +42,7 @@ def apply_sos_filter(sos: np.ndarray, filter_function: Callable,
         return [_apply_filter(filter_function, sos, v) for v in var]
 
 
-def sosfiltfilt(sos: np.ndarray, var: Union[SpeasyVariable, Collection[SpeasyVariable]]) -> Union[
-    SpeasyVariable, Collection[SpeasyVariable]]:
+def sosfiltfilt(sos: np.ndarray, var: SpeasyVariable | Collection[SpeasyVariable]) -> SpeasyVariable | Collection[SpeasyVariable]:
     """Apply an IIR filter to the variable(s) using :func:`scipy.signal.sosfiltfilt`. This function just applies the filter to
     the values of the variable without any resampling, it assumes that the variable has a regular time axis.
 

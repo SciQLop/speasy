@@ -1,10 +1,10 @@
 [build-system]
-build-backend = "flit_core.buildapi"
-requires = ["flit_core"]
+build-backend = "hatchling.build"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7"]
 
 [project]
 name = 'speasy'
-version = "1.7.1"
+dynamic = ["version"]
 description = "A simple Python package to deal with main Space Physics WebServices (CDA, CSA, AMDA and SSC)."
 keywords = ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
 authors = [
@@ -15,7 +15,7 @@ maintainers = [
     { name = "Alexis Jeandet", email = "alexis.jeandet@member.fsf.org" }
 ]
 
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 readme = "README.md"
 classifiers = [
@@ -25,7 +25,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -59,39 +58,119 @@ homepage = "https://github.com/SciQLop/speasy"
 [project.optional-dependencies]
 zstd = ["pyzstd"]
 
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["speasy"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "speasy",
+    "tests",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CITATION.cff",
+    "HISTORY.rst",
+    "AUTHORS.rst",
+    "CONTRIBUTING.rst",
+    "pyproject.toml",
+]
+exclude = [
+    "tests/cassettes",
+    "docs/_build",
+    "docs/superpowers",
+    ".publish_staging",
+]
+
+[dependency-groups]
+dev = [
+    "ddt",
+    "pytest",
+    "pytest-cov",
+    "pytest-recording",
+    "pytest-httpserver",
+    "pytest-sugar",
+    "pyzstd",
+    "watchdog",
+    "IPython",
+]
+docs = [
+    "sphinx!=5.2.0.post0",
+    "sphinx-rtd-theme",
+    "argh",
+    "numpydoc",
+    "sphinx-gallery",
+    "nbsphinx",
+    "ipympl",
+    "ipywidgets",
+    "sphinx-codeautolink==0.15.2",
+    "sphinxcontrib-apidoc",
+    "pandoc",
+]
+
+[tool.pytest.ini_options]
+# `-m unit` makes default `pytest` runs select only the unit tier, keeping
+# local dev fast. To run other tiers explicitly:
+#   pytest -m contract     # network-hitting tests
+#   pytest -m e2e          # end-to-end smoke tests
+#   pytest -m ''           # everything (overrides the default filter)
+# Note: pytest concatenates addopts before CLI args, and the last `-m` wins,
+# so `pytest -m contract tests/test_amda.py` works as expected.
+addopts = "-m unit"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+markers = [
+    "unit: fast deterministic tests with no network access; runs on every push and PR (default)",
+    "contract: real-server probes that detect upstream API/data drift; runs on a daily schedule",
+    "e2e: end-to-end smoke tests that confirm Speasy works on every supported OS x Python combo; runs on a weekly schedule",
+]
+
+[tool.ruff]
+line-length = 100
+
 [tool.ruff.lint]
-select = ["NPY201"]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "I",     # isort
+    "NPY201", # numpy 2.0 deprecations (keep from existing config)
+]
+ignore = [
+    "E501",   # line-too-long (formatter handles it)
+    "E402",   # module-import-not-at-top-of-file (some tests need this)
+    "E731",   # lambda-assignment (common, intentional)
+    # Rules that conflict with the ruff formatter (to be enabled in PR 17):
+    "W191",   # tab-indentation
+    "E111",   # indentation-with-invalid-multiple
+    "E114",   # indentation-with-invalid-multiple-comment
+    "E117",   # over-indented
+    "D206",   # docstring-tab-indentation
+    "D300",   # triple-single-quotes
+    "Q000",   # bad-quotes-inline-string
+    "Q001",   # bad-quotes-multiline-string
+    "Q002",   # bad-quotes-docstring
+    "Q003",   # avoidable-escaped-quote
+    "COM812", # missing-trailing-comma
+    "COM819", # prohibited-trailing-comma
+    "ISC002", # multi-line-implicit-string-concatenation
+]
 
-
-[tool.bumpversion]
-current_version = "1.7.1"
-commit = true
-tag = true
-tag_name = "v{new_version}"
-
-[[tool.bumpversion.files]]
-filename = "VERSION"
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "speasy/__init__.py"
-search = "__version__ = '{current_version}'"
-replace = "__version__ = '{new_version}'"
-
-[[tool.bumpversion.files]]
-filename = "docs/conf.py"
-search = "version = '{current_version}'"
-replace = "version = '{new_version}'"
-
-[[tool.bumpversion.files]]
-filename = "CITATION.cff"
-search = 'version: {current_version}'
-replace = 'version: {new_version}'
-
-[[tool.bumpversion.files]]
-filename = "CITATION.cff"
-regex = true
-search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
-replace = "date-released: {utcnow:%Y-%m-%d}"
+[tool.codespell]
+# Skip generated/external/large/binary files and the planning artifacts.
+# codespell skip patterns are globs, so paths need the leading `*` to match
+# anywhere in the tree (codespell stringifies file paths with a `./` prefix).
+skip = "*.gz,*.cdf,*.xml,*.json,*.lock,*.ipynb,*.yaml,*.yaml.example,*.binary,*tests/cassettes*,*tests/resources*,*.publish_staging*,*.venv*,*/build/*,*/_build/*,*docs/dev*,*docs/superpowers*"
+# Words that look like typos to codespell but are domain terms in space-physics
+# usage: `tha`, `thb`, `thc`, `thd`, `the` (THEMIS spacecraft identifiers — the
+# THEMIS mission has 5 satellites named THEMIS-A through THEMIS-E); `nd` = N-D
+# (N-dimensional, common in array/data-shape contexts).
+ignore-words-list = "tha,thb,thc,thd,nd"

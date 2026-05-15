@@ -1,18 +1,22 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `signal.filtering` package."""
 
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from datetime import datetime
 
 import numpy as np
+from scipy.signal import iirfilter
 
-from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
+from speasy.products import DataContainer, SpeasyVariable, VariableTimeAxis
 from speasy.signal.filtering import sosfiltfilt
 from speasy.signal.resampling import generate_time_vector
-from scipy.signal import iirfilter
 
 
 class TestSimpleLowPassFilter(unittest.TestCase):

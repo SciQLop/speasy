@@ -1,22 +1,22 @@
 import json
 import logging
+import netrc
 import os
 import platform
 import re
 import time
-from functools import partial, cache
-from typing import Optional, Dict
+from functools import cache, partial
 
+import certifi
 import urllib3.response
 from urllib3 import PoolManager, ProxyManager
 from urllib3.util.retry import Retry
-import certifi
-import netrc
 
 from speasy import __version__
 from speasy.config import core as core_config
-from .url_utils import host_and_port, ApplyRewriteRules
+
 from .platform import is_running_on_wasm
+from .url_utils import ApplyRewriteRules, host_and_port
 
 log = logging.getLogger(__name__)
 
@@ -78,7 +78,13 @@ class Response:
 
     @property
     def url(self):
-        return self._response.geturl()
+        try:
+            return self._response.geturl()
+        except AttributeError:
+            # vcrpy's VCRHTTPResponse delegates geturl() to http.client which
+            # reads self.url; the cassette response carries no original URL,
+            # so fall back gracefully instead of crashing the caller.
+            return getattr(self._response, "url", None)
 
     @property
     def ok(self):
@@ -95,7 +101,7 @@ class Response:
 
 
 @cache
-def _auth(hostname: str) -> Dict[str, str]:
+def _auth(hostname: str) -> dict[str, str]:
     """
     Authenticates a user for a specified hostname by retrieving credentials from
     the user's `.netrc` file if it exists. Utilizes caching for performance.
@@ -120,7 +126,7 @@ def _auth(hostname: str) -> Dict[str, str]:
 
 
 @ApplyRewriteRules()
-def auth_header(url: str) -> Dict[str, str]:
+def auth_header(url: str) -> dict[str, str]:
     """
     Generate authentication headers for a given URL.
 
@@ -143,7 +149,7 @@ def auth_header(url: str) -> Dict[str, str]:
     return _auth(hostname)
 
 
-def _build_headers(url: str, headers: Dict = None) -> Dict[str, str]:
+def _build_headers(url: str, headers: dict = None) -> dict[str, str]:
     """
     Construct HTTP headers for a given URL, including a default User-Agent and
     authorization headers.
@@ -208,7 +214,7 @@ def _wasm_is_server_up(*args, **kwargs) -> bool:
 
 
 @ApplyRewriteRules()
-def is_server_up(url: Optional[str] = None, host: Optional[str] = None, port: Optional[int] = None, timeout: int = 5,
+def is_server_up(url: str | None = None, host: str | None = None, port: int | None = None, timeout: int = 5,
                  retries=5) -> bool:
     """Checks if a server is up and running. If url is provided, host and port are ignored.
 

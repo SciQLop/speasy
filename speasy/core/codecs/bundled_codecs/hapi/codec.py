@@ -1,8 +1,9 @@
+import logging
+from collections.abc import Mapping
 from datetime import timedelta
+from typing import Any
 
 import numpy as np
-
-from typing import Any, AnyStr, Dict, List, Mapping
 
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.codecs.codec_interface import CodecInterface
@@ -11,16 +12,15 @@ from speasy.products.variable import SpeasyVariable, same_time_axis
 
 from .hapi_file import HapiFile, HapiParameter
 
-import logging
 log = logging.getLogger(__name__)
 
 def _time_dependent_axis_name(ax: VariableAxis) -> str:
     return f"{ax.name}_centers_time_varying"
 
-def _get_variable_axes(variable: SpeasyVariable, is_time_dependent: bool) -> List[VariableAxis]:
+def _get_variable_axes(variable: SpeasyVariable, is_time_dependent: bool) -> list[VariableAxis]:
     return [ax for ax in variable.axes[1:] if ax.is_time_dependent == is_time_dependent]
 
-def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
+def _decode_meta(meta: dict[str, Any]) -> dict[str, Any]:
     if "units" in meta:
         meta["UNITS"] = meta.pop("units")
     return meta
@@ -42,7 +42,7 @@ def _numpy_dtype_to_hapi_type(dtype: np.dtype) -> str:
         raise ValueError(f"Unsupported data type {dtype}")
 
 
-def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
+def _create_meta(variable:SpeasyVariable) -> dict[str, Any]:
     meta = {
         "name": variable.name,
         "units": variable.unit,
@@ -83,7 +83,7 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
 
     return meta
 
-def _get_hapi_varying_axes(variable: SpeasyVariable) -> List[HapiParameter]:
+def _get_hapi_varying_axes(variable: SpeasyVariable) -> list[HapiParameter]:
     result = []
     for ax in _get_variable_axes(variable, is_time_dependent=True):
         # VariableTimeAxis has member 'unit' not 'units'
@@ -98,7 +98,7 @@ def _get_hapi_varying_axes(variable: SpeasyVariable) -> List[HapiParameter]:
     return result
 
 
-def _speasy_variables_to_hapi(variables: List[SpeasyVariable]) -> HapiFile:
+def _speasy_variables_to_hapi(variables: list[SpeasyVariable]) -> HapiFile:
     if not same_time_axis(variables):
         raise ValueError("All variables must have the same time axis")
     if len(variables) == 0:
@@ -113,7 +113,7 @@ def _speasy_variables_to_hapi(variables: List[SpeasyVariable]) -> HapiFile:
             hapi_file.add_parameter(hapi_axis_parameter) 
     return hapi_file
 
-def _bin_to_axis(json_bin: Dict[str, Any], hap_file: HapiFile) -> VariableAxis:
+def _bin_to_axis(json_bin: dict[str, Any], hap_file: HapiFile) -> VariableAxis:
     centers = json_bin.get("centers")
     name = json_bin.get("name", "bin_axis")
     if centers is None:
@@ -130,8 +130,8 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_file: HapiFile) -> VariableAxis:
     elif isinstance(centers, list):
         try:
             axis_values = np.array(centers, dtype=float)
-        except ValueError:
-            raise ValueError("Invalid bin specification: 'centers' list must contain numeric values")
+        except ValueError as err:
+            raise ValueError("Invalid bin specification: 'centers' list must contain numeric values") from err
         variable_axis = VariableAxis(values=axis_values,
                                      meta={"name": "centers", "UNITS": json_bin.get("units", None)},
                                      is_time_dependent=False,
@@ -141,7 +141,7 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_file: HapiFile) -> VariableAxis:
     return variable_axis
 
 
-def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_file: HapiFile) -> List[VariableAxis]:
+def _bins_to_axes(json_bins: list[dict[str, Any]], hap_file: HapiFile) -> list[VariableAxis]:
     axes = []
     for json_bin in json_bins:
         try:
@@ -151,14 +151,14 @@ def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_file: HapiFile) -> List[V
             log.warning(f"Skipping invalid bin specification: {e}")
     return axes
 
-def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[str]) -> Mapping[str, SpeasyVariable]:
+def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: list[str]) -> Mapping[str, SpeasyVariable]:
     time_axis = VariableTimeAxis(values=hapi_file.time_axis, meta=hapi_file.time_axis_meta)
     loaded_vars = {}
     for var_name in variables:
         parameter = hapi_file.get_parameter(var_name)
         if parameter is None:
             continue
-        _axes: List[VariableAxis] = [time_axis]
+        _axes: list[VariableAxis] = [time_axis]
         if 'bins' in parameter.meta.keys():
             _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_file))
         loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
