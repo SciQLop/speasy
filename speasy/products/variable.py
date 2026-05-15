@@ -554,7 +554,7 @@ class SpeasyVariable(SpeasyProduct):
         Returns
         -------
         SpeasyVariable
-            SpeasyVariable identic to source one with values converted to astropy.units.Quantity according to given or found unit
+            SpeasyVariable identical to source one with values converted to astropy.units.Quantity according to given or found unit
 
         Notes
         -----
@@ -617,7 +617,7 @@ class SpeasyVariable(SpeasyProduct):
         """
         if len(self.__values_container.shape) != 2:
             raise ValueError(
-                f"Cant' convert a SpeasyVariable with shape {self.__values_container.shape} to DataFrame, only 1D/2D variables are accepted"
+                f"Can't convert a SpeasyVariable with shape {self.__values_container.shape} to DataFrame, only 1D/2D variables are accepted"
             )
         return pds.DataFrame(
             index=self.time, data=self.values, columns=self.__columns, copy=True

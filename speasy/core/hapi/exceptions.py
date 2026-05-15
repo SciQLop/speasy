@@ -3,7 +3,7 @@ class HapiError(Exception):
 
 
 class HapiRequestError(HapiError):
-    """4xx — Client Error (unkown dataset, bad date format, ...) """
+    """4xx — Client Error (unknown dataset, bad date format, ...) """
     def __init__(self, code: int, message: str):
         self.code = code
         self.message = message

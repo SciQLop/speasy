@@ -48,7 +48,7 @@ class Event(DateTimeRange):
 
 
 class Catalog(SpeasyProduct):
-    """The Catalog class allows to manipulate a goup of events like a simple Python list of Event plus some meta data.
+    """The Catalog class allows to manipulate a group of events like a simple Python list of Event plus some meta data.
 
     Attributes
     ----------

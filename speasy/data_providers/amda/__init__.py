@@ -3,7 +3,7 @@ speasy.amda.amda
 ----------------
 
 This package contains the definition of the :class:`~speasy.data_providers.amda.ws.AMDA_Webservice` class, the object that
-manages the connexion to `AMDA <http://amda.irap.omp.eu/>`_ and allows users to list available products, get their
+manages the connection to `AMDA <http://amda.irap.omp.eu/>`_ and allows users to list available products, get their
 description and downloading the corresponding data.
 
 AMDA provides the following kinds products :

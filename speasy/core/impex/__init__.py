@@ -322,7 +322,7 @@ class ImpexProvider(DataProvider):
         parameter_id: str or ParameterIndex
             parameter id
         start_time: datetime or str
-            begining of data time
+            beginning of data time
         stop_time: datetime or str
             end of data time
 

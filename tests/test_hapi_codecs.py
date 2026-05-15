@@ -326,7 +326,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
                 hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
                 self.assertTrue(hapi_binary_file)
                 self.assertTrue(os.path.exists(output_binary_file))
-                # read again to make sure writen format was right
+                # read again to make sure written format was right
                 variables = hapi_binary_codec.load_variables(file=output_binary_file, variables=[var_name], disable_cache=True)
                 spz_var = variables[var_name]
                 self.assertTrue(spz_var.axes[1].is_time_dependent)
