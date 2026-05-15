@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `amda` package timetable implementation."""
 
 import unittest
-import speasy as spz
-from speasy.core.datetime_range import DateTimeRange
 
 import pytest
+
+import speasy as spz
+from speasy.core.datetime_range import DateTimeRange
 
 pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 

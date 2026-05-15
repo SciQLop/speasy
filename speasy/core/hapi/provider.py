@@ -1,4 +1,4 @@
-from typing import List, Mapping, Optional
+from collections.abc import Mapping
 
 from speasy.products.variable import SpeasyVariable
 
@@ -21,9 +21,9 @@ class HapiProvider:
     def about(self) -> dict:
         return self.hapi_client.get_about()
 
-    def info(self, dataset: str, parameters: Optional[List] = None) -> dict:
+    def info(self, dataset: str, parameters: list | None = None) -> dict:
         return self.hapi_client.get_info(dataset, parameters)
 
     def data(self, dataset: str, start: str, stop: str,
-             parameters: List[str]) -> Mapping[str, SpeasyVariable]:
+             parameters: list[str]) -> Mapping[str, SpeasyVariable]:
         return self.hapi_client.get_data(dataset, start, stop, parameters)

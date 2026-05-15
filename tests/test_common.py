@@ -1,19 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy.common` package."""
 import unittest
-import numpy as np
 
+import numpy as np
 import pytest
 
 pytestmark = pytest.mark.contract
 
 
-from ddt import ddt, data, unpack
+from ddt import data, ddt, unpack
 
 import speasy as spz
-from speasy.core.cache import entries
 
 
 @ddt

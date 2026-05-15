@@ -1,18 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy.common` package."""
-import re
-import unittest
 import os
-from ddt import ddt, data, unpack
+import unittest
 
 import pytest
+from ddt import data, ddt, unpack
 
 pytestmark = pytest.mark.unit
 
 
-from speasy.core.url_utils import ensure_url_scheme, is_local_file, host_and_port
+from speasy.core.url_utils import ensure_url_scheme, host_and_port, is_local_file
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 

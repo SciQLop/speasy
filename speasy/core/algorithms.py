@@ -6,8 +6,9 @@
 """
 
 import random
-from typing import Any, Dict, Callable
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 """
 The rationale behind the following function is to randomize the order of execution so we minimize the requests collisions and maximize the throughput.
@@ -46,7 +47,7 @@ def randomized_map(f: Callable, l, *args, **kwargs):
     return [e for i, e in result]
 
 
-def pack_kwargs(**kwargs: Any) -> Dict:
+def pack_kwargs(**kwargs: Any) -> dict:
     """Packs given keyword arguments into a dictionary
 
     Parameters
@@ -67,7 +68,7 @@ def pack_kwargs(**kwargs: Any) -> Dict:
     return kwargs
 
 
-class AllowedKwargs(object):
+class AllowedKwargs:
     """A decorator that prevent from passing unexpected kwargs to a function
     """
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
 import unittest
-from speasy.core.dataprovider import DataProvider
-from speasy.core.inventory.indexes import SpeasyIndex
 
 import pytest
+
+from speasy.core.dataprovider import DataProvider
+from speasy.core.inventory.indexes import SpeasyIndex
 
 pytestmark = pytest.mark.unit
 

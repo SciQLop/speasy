@@ -1,14 +1,14 @@
 import unittest
-from ddt import ddt, data, unpack
 
 import pytest
+from ddt import data, ddt, unpack
 
 pytestmark = pytest.mark.contract
 
 
 import speasy as spz
-from speasy.core.inventory.indexes import from_dict, to_dict, SpeasyIndex
 from speasy.core.dataprovider import DataProvider
+from speasy.core.inventory.indexes import SpeasyIndex, from_dict, to_dict
 
 
 def compare_inventories(inventory1: SpeasyIndex, inventory2: SpeasyIndex):

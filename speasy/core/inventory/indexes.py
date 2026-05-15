@@ -1,5 +1,5 @@
 import json
-from typing import Optional, Union
+from typing import Union
 
 __INDEXES_TYPES__ = {}
 
@@ -9,7 +9,7 @@ class SpeasyIndex:
         super().__init_subclass__(**kwargs)
         __INDEXES_TYPES__[cls.__name__] = cls
 
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         if meta:
             self.__dict__.update(meta)
         self.__spz_provider__ = provider
@@ -43,7 +43,7 @@ class SpeasyIndex:
 
 
 class TimetableIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -51,7 +51,7 @@ class TimetableIndex(SpeasyIndex):
 
 
 class CatalogIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -59,7 +59,7 @@ class CatalogIndex(SpeasyIndex):
 
 
 class ComponentIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -67,7 +67,7 @@ class ComponentIndex(SpeasyIndex):
 
 
 class ParameterIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -87,7 +87,7 @@ class ParameterIndex(SpeasyIndex):
 
 
 class ArgumentIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -95,7 +95,7 @@ class ArgumentIndex(SpeasyIndex):
 
 
 class ArgumentListIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     @property
@@ -118,7 +118,7 @@ class ArgumentListIndex(SpeasyIndex):
 class TemplatedParameterIndex(ParameterIndex):
     __spz_arguments__: ArgumentListIndex
 
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def spz_arguments(self):
@@ -129,7 +129,7 @@ class TemplatedParameterIndex(ParameterIndex):
 
 
 class DatasetIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):

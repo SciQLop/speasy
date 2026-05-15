@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `SpeasyVariable` class."""
 
@@ -17,10 +16,17 @@ import pandas as pds
 from ddt import data, ddt, unpack
 
 from speasy.core import epoch_to_datetime64
-from speasy.products.variable import (DataContainer, SpeasyVariable,
-                                      VariableAxis, VariableTimeAxis,
-                                      from_dataframe, from_dictionary, merge,
-                                      to_dataframe, to_dictionary)
+from speasy.products.variable import (
+    DataContainer,
+    SpeasyVariable,
+    VariableAxis,
+    VariableTimeAxis,
+    from_dataframe,
+    from_dictionary,
+    merge,
+    to_dataframe,
+    to_dictionary,
+)
 
 
 def epoch_to_datetime64_s(epoch):
@@ -413,8 +419,9 @@ class ASpeasyVariable(unittest.TestCase):
             self.skipTest("Can't import matplotlib")
 
     def test_has_ipython_repr(self):
-        from IPython.lib.pretty import RepresentationPrinter, pprint
         from io import StringIO
+
+        from IPython.lib.pretty import RepresentationPrinter
         out = StringIO()
         var = make_simple_var(1., 10., 1., 10.)
         printer = RepresentationPrinter(out, max_width=80)

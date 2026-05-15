@@ -7,11 +7,10 @@ pytestmark = pytest.mark.unit
 
 import numpy as np
 
-from speasy.core.datetime_range import DateTimeRange
 from speasy.core import epoch_to_datetime64
+from speasy.core.datetime_range import DateTimeRange
 from speasy.products.dataset import Dataset
-from speasy.products.variable import (DataContainer, SpeasyVariable,
-                                      VariableTimeAxis)
+from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 
 
 def make_simple_var(start: float = 0., stop: float = 0., step: float = 1., coef: float = 1.):

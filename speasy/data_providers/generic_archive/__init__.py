@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """cda package for Space Physics WebServices Client."""
 
@@ -7,20 +6,20 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 import logging
-from typing import Optional
 from datetime import timedelta
+from typing import Optional
 
 from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
-from speasy.core import AnyDateTimeType, AllowedKwargs
+from speasy.core import AllowedKwargs, AnyDateTimeType
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, CacheCall
 from speasy.core.cdf.inventory_extractor import make_dataset_index
-from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider
 from speasy.core.direct_archive_downloader import get_product
-from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
 from speasy.core.http import is_server_up
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.url_utils import host_and_port, is_local_file
 from speasy.products.variable import SpeasyVariable
-from speasy.core.cache import CacheCall, CACHE_ALLOWED_KWARGS
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +56,7 @@ def _is_reachable(url: str) -> bool:
 
 def load_inventory_file(file: str, root: SpeasyIndex):
     import yaml
-    with open(file, 'r') as f:
+    with open(file) as f:
         entries = yaml.safe_load(f)
         for name, entry in entries.items():
             path = f"{entry['inventory_path']}/{name}"
@@ -102,15 +101,14 @@ class GenericArchive(DataProvider):
 
     @AllowedKwargs(GET_DATA_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['force_refresh'])
     def get_data(self, product: str or ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                 **kwargs) -> Optional[SpeasyVariable]:
+                 **kwargs) -> SpeasyVariable | None:
         var = self._get_data(product=self._parameter_index(product), start_time=start_time, stop_time=stop_time,
                              **kwargs)
         return var
 
     def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType, **kwargs) -> \
-        Optional[
-            SpeasyVariable]:
-        ga_cfg: dict = getattr(product, 'spz_ga_cfg')
+        SpeasyVariable | None:
+        ga_cfg: dict = product.spz_ga_cfg
         ga_cfg.pop('inventory_path', None)
         ga_cfg.pop('master_cdf', None)
         return get_product(**ga_cfg,

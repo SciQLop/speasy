@@ -1,10 +1,10 @@
-from dataclasses import dataclass
-
-from .mpl_backend import Plot as MplPlot
-from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
-from typing import List
-from enum import Enum
 from copy import copy
+from dataclasses import dataclass
+from enum import Enum
+from typing import List
+
+from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
+from .mpl_backend import Plot as MplPlot
 
 __backends__ = {
     "matplotlib": MplPlot,
@@ -19,9 +19,9 @@ class PlotType(Enum):
 
 @dataclass
 class Plot:
-    axes: List[VariableAxis or VariableTimeAxis]
+    axes: list[VariableAxis or VariableTimeAxis]
     values: DataContainer
-    columns_names: List[str]
+    columns_names: list[str]
 
     def _set_backend(self, name=None):
         if not hasattr(self, "_backend") or name != self._backend_name or self._backend_name is None:

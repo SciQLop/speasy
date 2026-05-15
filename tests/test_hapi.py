@@ -1,16 +1,15 @@
 import unittest
-from ddt import data, ddt, unpack
 
 import pytest
+from ddt import data, ddt, unpack
 
 pytestmark = pytest.mark.contract
 
 
 from speasy.core.hapi.client import HapiClient, HapiEndpoint
+from speasy.core.hapi.exceptions import HapiRequestError
 from speasy.core.hapi.provider import HapiProvider
-from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError, HapiNoData
 from speasy.products.variable import SpeasyVariable
-
 
 AMDA_SERVER_ROOT = "https://amda.irap.omp.eu/service"
 HAPITEST33_SERVER_ROOT = "https://hapi-server.org/servers/TestData3.3"

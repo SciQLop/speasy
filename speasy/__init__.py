@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. testsetup:: *
 
@@ -8,7 +7,8 @@
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
-from importlib.metadata import version as _pkg_version, PackageNotFoundError as _PackageNotFoundError
+from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 try:
     __version__ = _pkg_version("speasy")
@@ -23,15 +23,26 @@ __docformat__ = "numpy"
 from typing import List
 
 from speasy.core.inventory.indexes import SpeasyIndex
-from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
+
+from .products import Catalog, Dataset, Event, MaybeAnyProduct, SpeasyVariable, TimeTable  # noqa: I001
 
 # keep this import last
-from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive, uiowaephtool, cdpp3dview
+from .core.requests_scheduling.request_dispatch import (  # noqa: I001  # reason: must come after .products to avoid circular import
+    amda,
+    archive,
+    cda,
+    cdpp3dview,
+    csa,
+    get_data,
+    list_providers,
+    ssc,
+    uiowaephtool,
+)
 
 
 # @TODO implement me, this function should be able to look inside all servers
 # and return something that could be passed to get_data
-def find_product(name: str) -> List[str]:
+def find_product(name: str) -> list[str]:
     raise NotImplementedError("Not implemented yet")
 
 

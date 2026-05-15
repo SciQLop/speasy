@@ -3,18 +3,23 @@ import logging
 import tarfile
 from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
-from typing import Optional, Tuple, Dict
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 from astroquery.utils.tap.core import TapPlus
 
-from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime
-from speasy.core.codecs import get_codec, CodecInterface
-from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from speasy.core import AllowedKwargs, EnsureUTCDateTime, any_files, fix_name
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, Cacheable  # _cache is used for tests (hack...)
+from speasy.core.codecs import CodecInterface, get_codec
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider, ParameterRangeCheck
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
+from speasy.core.inventory.indexes import (
+    DatasetIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    make_inventory_node,
+)
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.core.url_utils import build_url
 from speasy.products.variable import SpeasyVariable
@@ -40,7 +45,7 @@ def _only_primitive_types(d: dict) -> dict:
     return d
 
 
-def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
+def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> tuple[str, str]:
     if type(index_or_str) is str:
         parts = index_or_str.split('/')
     elif isinstance(index_or_str, ParameterIndex):
@@ -125,7 +130,7 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-def _load_variable(archive: io.BytesIO, variable: str, cdf_codec: CodecInterface) -> Optional[SpeasyVariable]:
+def _load_variable(archive: io.BytesIO, variable: str, cdf_codec: CodecInterface) -> SpeasyVariable | None:
     with tarfile.open(fileobj=archive) as tar:
         tarname = tar.getnames()
         if len(tarname):
@@ -155,8 +160,8 @@ class CsaWebservice(DataProvider):
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime, extra_http_headers: Dict[str, str] or None = None) -> \
-            Optional[SpeasyVariable]:
+                     start_time: datetime, stop_time: datetime, extra_http_headers: dict[str, str] or None = None) -> \
+            SpeasyVariable | None:
 
         # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
         ds_range = self._dataset_range(dataset)
@@ -183,7 +188,7 @@ class CsaWebservice(DataProvider):
     def build_inventory(root: SpeasyIndex):
         return build_inventory(root)
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -206,7 +211,7 @@ class CsaWebservice(DataProvider):
         """
         return self._parameter_range(parameter_id)
 
-    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+    def dataset_range(self, dataset_id: str or DatasetIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -252,12 +257,12 @@ class CsaWebservice(DataProvider):
     @SplitLargeRequests(threshold=lambda x: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime,
-                 extra_http_headers: Dict[str, str] or None = None):
+                 extra_http_headers: dict[str, str] or None = None):
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, extra_http_headers=extra_http_headers)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \
-            Optional[SpeasyVariable]:
+            SpeasyVariable | None:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)

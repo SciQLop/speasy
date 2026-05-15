@@ -2,18 +2,19 @@ import logging
 import math
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List, Tuple, Optional, Union
 from time import sleep
 
 from speasy import SpeasyVariable
 from speasy.core import progress_bar, randomized_map
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex
-from speasy.products.variable import merge as merge_variables, to_dictionary, from_dictionary
-from ._request_locker import PendingRequest
-from ._instance import _cache
-from .cache import CacheItem, Cache
+from speasy.products.variable import from_dictionary, to_dictionary
+from speasy.products.variable import merge as merge_variables
+
 from ..platform import is_running_on_wasm
+from ._instance import _cache
+from ._request_locker import PendingRequest
+from .cache import Cache, CacheItem
 
 log = logging.getLogger(__name__)
 
@@ -57,14 +58,14 @@ def group_contiguous_fragments(fragments, duration):
     return group_fragments_if(fragments, lambda previous, current: (previous + (duration * 1.5)) > current)
 
 
-def filter_requests_for_me(requests: List[Union[PendingRequest, SpeasyVariable]], fragments: List[datetime]) -> List[
+def filter_requests_for_me(requests: list[PendingRequest | SpeasyVariable], fragments: list[datetime]) -> list[
     datetime]:
     return [fragment for request, fragment in zip(requests, fragments) if
             isinstance(request, PendingRequest) and request.is_from_current_thread]
 
 
-def filter_requests_locked_by_others(requests: List[Union[PendingRequest, SpeasyVariable]],
-                                     fragments: List[datetime]) -> List[datetime]:
+def filter_requests_locked_by_others(requests: list[PendingRequest | SpeasyVariable],
+                                     fragments: list[datetime]) -> list[datetime]:
     return [fragment for request, fragment in zip(requests, fragments) if
             isinstance(request, PendingRequest) and not request.is_from_current_thread]
 
@@ -73,7 +74,7 @@ def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwarg
     return f"{prefix}/{product}/{start_time}"
 
 
-def product_name(product: Union[str, ParameterIndex]) -> str:
+def product_name(product: str | ParameterIndex) -> str:
     if type(product) is str:
         return product
     elif isinstance(product, ParameterIndex):
@@ -83,7 +84,7 @@ def product_name(product: Union[str, ParameterIndex]) -> str:
 
 
 class _Cacheable:
-    def __init__(self, prefix, cache_instance: Optional[Cache] = None, start_time_arg='start_time',
+    def __init__(self, prefix, cache_instance: Cache | None = None, start_time_arg='start_time',
                  stop_time_arg='stop_time',
                  version=None,
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
@@ -100,10 +101,10 @@ class _Cacheable:
         self.entry_name = entry_name
         self.deduplication_timeout = deduplication_timeout
 
-    def add_to_cache(self, variable: Optional[SpeasyVariable], fragments, product: str, fragment_duration: timedelta,
+    def add_to_cache(self, variable: SpeasyVariable | None, fragments, product: str, fragment_duration: timedelta,
                      version,
                      lifetime=None,
-                     **kwargs) -> Optional[SpeasyVariable]:
+                     **kwargs) -> SpeasyVariable | None:
         """Add a variable to the cache, splitting it into fragments. If the variable is None, nothing is added to the cache.
         Parameters
         ----------
@@ -147,7 +148,7 @@ class _Cacheable:
         if key in self.cache:
             self.cache.drop(key)
 
-    def get_or_lock_cache_entry(self, fragment: datetime, product, **kwargs) -> Union[CacheItem, PendingRequest]:
+    def get_or_lock_cache_entry(self, fragment: datetime, product, **kwargs) -> CacheItem | PendingRequest:
         """Get a cache entry or create a lock for it if it does not exist.
         Parameters
         ----------
@@ -176,8 +177,7 @@ class _Cacheable:
         return self.cache.get(key)
 
     def get_from_cache(self, fragment, product, version, prefer_cache=False, wait_for_pending=True, **kwargs) -> \
-        Optional[
-            SpeasyVariable]:
+        SpeasyVariable | None:
         entry = self.get_cache_entry(fragment, product, **kwargs)
         if isinstance(entry, PendingRequest) and wait_for_pending:
             while isinstance(entry, PendingRequest) and not entry.is_from_current_thread:
@@ -193,11 +193,10 @@ class _Cacheable:
                 except Exception as e:
                     log.warning(f"got an exception {e} while loading fragment {fragment} for {product}")
                     return None
-            log.debug(f"Cache entry is outdated")
+            log.debug("Cache entry is outdated")
         return None
 
-    def get_or_lock_from_cache(self, fragment, product, version, prefer_cache=False, **kwargs) -> Union[
-        SpeasyVariable, PendingRequest]:
+    def get_or_lock_from_cache(self, fragment, product, version, prefer_cache=False, **kwargs) -> SpeasyVariable | PendingRequest:
         """Get a cache entry or create a lock for it if it does not exist.
         Parameters
         ----------
@@ -234,7 +233,7 @@ class _Cacheable:
         self.drop_cache_entry(fragment, product, **kwargs)
         return self.get_or_lock_cache_entry(fragment, product, **kwargs)
 
-    def fragment_list(self, product, dt_range) -> Tuple[timedelta, List[datetime]]:
+    def fragment_list(self, product, dt_range) -> tuple[timedelta, list[datetime]]:
         fragment_hours = self.fragment_hours(product)
         cache_dt_range = round_for_cache(dt_range * self.cache_margins, fragment_hours)
         fragment_duration = timedelta(hours=fragment_hours)
@@ -242,8 +241,8 @@ class _Cacheable:
                      range(math.ceil(cache_dt_range.duration / fragment_duration))]
         return fragment_duration, fragments
 
-    def get_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False,
-                                 **kwargs) -> List[Optional[SpeasyVariable]]:
+    def get_fragments_from_cache(self, fragments: list[datetime], product: str, version, prefer_cache=False,
+                                 **kwargs) -> list[SpeasyVariable | None]:
         data_fragments = []
         with self.cache.transact():
             for fragment in fragments:
@@ -251,19 +250,19 @@ class _Cacheable:
                     self.get_from_cache(fragment, product, version, prefer_cache, wait_for_pending=True, **kwargs))
         return data_fragments
 
-    def get_or_lock_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False,
-                                         **kwargs) -> List[Union[SpeasyVariable, PendingRequest]]:
+    def get_or_lock_fragments_from_cache(self, fragments: list[datetime], product: str, version, prefer_cache=False,
+                                         **kwargs) -> list[SpeasyVariable | PendingRequest]:
         with self.cache.transact():
             return [
                 self.get_or_lock_from_cache(fragment, product, version, prefer_cache, **kwargs)
                 for fragment in fragments
             ]
 
-    def get_cache_entries(self, fragments: List[datetime], product: str, **kwargs):
+    def get_cache_entries(self, fragments: list[datetime], product: str, **kwargs):
         return [self.get_cache_entry(fragment, product, **kwargs) for fragment in fragments]
 
 
-class Cacheable(object):
+class Cacheable:
     def __init__(self, prefix, cache_instance=None, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None, fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False,
                  entry_name=default_cache_entry_name, deduplication_timeout=600
@@ -276,8 +275,8 @@ class Cacheable(object):
                                  deduplication_timeout=deduplication_timeout)
         self._disable_cache = is_running_on_wasm()
 
-    def _get_and_wb_fragment_group(self, fragments: List[datetime], fragment_duration: timedelta, get_data,
-                                   wrapped_self, product, version, **kwargs) -> Optional[SpeasyVariable]:
+    def _get_and_wb_fragment_group(self, fragments: list[datetime], fragment_duration: timedelta, get_data,
+                                   wrapped_self, product, version, **kwargs) -> SpeasyVariable | None:
         try:
             return self._cache.add_to_cache(
                 get_data(
@@ -291,7 +290,7 @@ class Cacheable(object):
                 self._cache.drop_cache_entry(fragment, product, **kwargs)
             raise e
 
-    def _retrieve_concurrently_requested_fragments(self, fragments: List[datetime], product: str, version, **kwargs):
+    def _retrieve_concurrently_requested_fragments(self, fragments: list[datetime], product: str, version, **kwargs):
         return [self._cache.get_from_cache(fragment, product, version, **kwargs) for fragment in fragments]
 
     def _get_data_with_cache(self, get_data, wrapped_self, product, start_time, stop_time, **kwargs):
@@ -347,7 +346,7 @@ class Cacheable(object):
         return wrapped
 
 
-class UnversionedProviderCache(object):
+class UnversionedProviderCache:
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
                  cache_retention=None):
@@ -361,7 +360,7 @@ class UnversionedProviderCache(object):
         self._disable_cache = is_running_on_wasm()
 
     def split_fragments(self, fragments, product, fragment_duration, prefer_cache=False, **kwargs):
-        entries: List[CacheItem] = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
+        entries: list[CacheItem] = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
         missing_fragments = []
         data_chunks = []
         maybe_outdated_fragments = []

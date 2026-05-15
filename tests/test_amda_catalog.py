@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `amda` package timetable implementation."""
 
 import unittest
-import speasy as spz
 
 import pytest
+
+import speasy as spz
 
 pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 

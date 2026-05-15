@@ -1,5 +1,6 @@
-import unittest
 import os
+import unittest
+
 try:
     from teamcity import is_running_under_teamcity
     from teamcity.unittestpy import TeamcityTestRunner

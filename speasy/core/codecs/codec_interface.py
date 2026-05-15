@@ -1,7 +1,8 @@
-from typing import Protocol, Optional, List, AnyStr, Mapping, Union
 import io
-from speasy.products import SpeasyVariable
+from collections.abc import Mapping
+from typing import AnyStr, Protocol, Union
 
+from speasy.products import SpeasyVariable
 
 Buffer = Union[memoryview, bytearray, bytes]
 
@@ -11,8 +12,8 @@ class CodecInterface(Protocol):
     Codecs are used to load and save data from different formats. Codecs must implement this interface to be registered in the codecs registry.
     """
 
-    def load_variables(self, variables: List[AnyStr], file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
-                       **kwargs) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
+    def load_variables(self, variables: list[AnyStr], file: Buffer | str | io.IOBase, cache_remote_files=True,
+                       **kwargs) -> Mapping[AnyStr, SpeasyVariable] | None:
         """Load variables from a file. The file can be a local file, a remote file or a file-like object.
 
         Parameters
@@ -43,8 +44,8 @@ class CodecInterface(Protocol):
         """
         ...
 
-    def load_variable(self, variable: AnyStr, file: Union[Buffer, str, io.IOBase], cache_remote_files=True, **kwargs) -> \
-    Optional[SpeasyVariable]:
+    def load_variable(self, variable: AnyStr, file: Buffer | str | io.IOBase, cache_remote_files=True, **kwargs) -> \
+    SpeasyVariable | None:
         """Load a variable from a file. The file can be a local file, a remote file or a file-like object.
 
         Parameters
@@ -75,7 +76,7 @@ class CodecInterface(Protocol):
         """
         ...
 
-    def save_variables(self, variables: List[SpeasyVariable], file: Optional[Union[str, io.IOBase]]=None, **kwargs) -> Union[bool,Buffer]:
+    def save_variables(self, variables: list[SpeasyVariable], file: str | io.IOBase | None=None, **kwargs) -> bool | Buffer:
         """Save variables to a file. The file can be a local file, a remote file or a file-like object.
 
         Parameters
@@ -105,12 +106,12 @@ class CodecInterface(Protocol):
         ...
 
     @property
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         """List of supported file extensions, without the dot. Do return extensions that could be ambiguous with other codecs."""
         ...
 
     @property
-    def supported_mimetypes(self) -> List[str]:
+    def supported_mimetypes(self) -> list[str]:
         """List of supported mime types."""
         ...
 

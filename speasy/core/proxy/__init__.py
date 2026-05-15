@@ -9,12 +9,13 @@ from packaging.version import Version
 
 from speasy.config import inventories as inventories_cfg
 from speasy.config import proxy as proxy_cfg
-from .. import http, make_utc_datetime
-from ..index import index
-from ..inventory.indexes import from_dict as inventory_from_dict
+
 from ... import SpeasyIndex
 from ...products.variable import from_dictionary as var_from_dict
+from .. import http, make_utc_datetime
 from ..cache import CacheCall
+from ..index import index
+from ..inventory.indexes import from_dict as inventory_from_dict
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
@@ -133,7 +134,7 @@ class GetInventory:
         raise ProxyError(f"Can't get inventory for provider {provider} from proxy server {proxy_cfg.url()}, status code {resp.status_code}")
 
 
-class Proxyfiable(object):
+class Proxyfiable:
     def __init__(self, request, arg_builder, min_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.request = request
         self.arg_builder = arg_builder

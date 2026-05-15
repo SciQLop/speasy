@@ -3,12 +3,13 @@ import tarfile
 from glob import glob
 from tempfile import TemporaryDirectory
 
-from speasy.core import http, any_files
-from ._cdf_masters_parser import update_tree
-from ._xml_catalogs_parser import load_xml_catalog
+from speasy.core import any_files, http
+
 from ....config import cdaweb as cda_cfg
 from ....core.index import index
-from ....core.inventory.indexes import SpeasyIndex, to_dict, from_dict
+from ....core.inventory.indexes import SpeasyIndex, from_dict, to_dict
+from ._cdf_masters_parser import update_tree
+from ._xml_catalogs_parser import load_xml_catalog
 
 _MASTERS_CDF_PATH = f"{cda_cfg.inventory_data_path()}/masters_cdf/"
 _XML_CATALOG_PATH = f"{cda_cfg.inventory_data_path()}/all.xml"

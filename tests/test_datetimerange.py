@@ -1,12 +1,13 @@
-import unittest
-from ddt import ddt, data, unpack
-from datetime import datetime, timedelta, timezone
-from speasy.core.datetime_range import DateTimeRange
-from speasy.core import span_utils
-from speasy.core.cache._providers_caches import round_for_cache
 import operator
+import unittest
+from datetime import datetime, timedelta, timezone
 
 import pytest
+from ddt import data, ddt, unpack
+
+from speasy.core import span_utils
+from speasy.core.cache._providers_caches import round_for_cache
+from speasy.core.datetime_range import DateTimeRange
 
 pytestmark = pytest.mark.unit
 

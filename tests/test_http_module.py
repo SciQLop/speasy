@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy.core.http` package."""
 
-import unittest
 import os
-from ddt import ddt, data, unpack
+import unittest
 
 import pytest
+from ddt import data, ddt, unpack
 
 pytestmark = pytest.mark.contract
 
@@ -36,9 +35,9 @@ class HttpTests(unittest.TestCase):
 
     def test_basic_http_auth(self):
         # https://authenticationtest.com/HTTPAuth/
-        from urllib3.exceptions import MaxRetryError
-
         import netrc
+
+        from urllib3.exceptions import MaxRetryError
         try:
             netrc_info = netrc.netrc()
         except FileNotFoundError:

@@ -2,7 +2,7 @@
 
 import io
 import json
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 import pandas as pd
 
@@ -10,7 +10,7 @@ from speasy.core.any_files import any_loc_open
 from speasy.core.codecs.codec_interface import Buffer
 
 
-def _extract_headers(file: io.IOBase) -> Dict[str, Any]:
+def _extract_headers(file: io.IOBase) -> dict[str, Any]:
     file.seek(0)
     header_lines = []
     while True:
@@ -24,14 +24,14 @@ def _extract_headers(file: io.IOBase) -> Dict[str, Any]:
         return {}
     return json.loads(b"".join(header_lines).decode("utf-8"))
 
-def _parse_hapi(file: io.IOBase, extract_data_fn ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+def _parse_hapi(file: io.IOBase, extract_data_fn ) -> tuple[pd.DataFrame, dict[str, Any]]:
     headers = _extract_headers(file)
     assert headers["parameters"][0]["type"] == "isotime"
     data = extract_data_fn(file, headers)
     return data, headers
 
 
-def _load_hapi(file: Union[Buffer, str, io.IOBase], extract_data_fn) -> Tuple[Optional[pd.DataFrame], Optional[Dict[str, Any]]]:
+def _load_hapi(file: Buffer | str | io.IOBase, extract_data_fn) -> tuple[pd.DataFrame | None, dict[str, Any] | None]:
     if isinstance(file, str):
         with any_loc_open(file, cache_remote_files=False, mode='rb') as f:
             return _parse_hapi(f, extract_data_fn)

@@ -1,12 +1,14 @@
 """ catalog module
 """
 
-from speasy.core.datetime_range import DateTimeRange
-from .base_product import SpeasyProduct
 from datetime import datetime
-from typing import List
-from speasy.core import all_of_type, listify
+
 import pandas as pds
+
+from speasy.core import all_of_type, listify
+from speasy.core.datetime_range import DateTimeRange
+
+from .base_product import SpeasyProduct
 
 
 def _all_are_events(event_list):
@@ -83,7 +85,7 @@ class Catalog(SpeasyProduct):
     """
     __slots__ = ['_events', 'name', 'meta']
 
-    def __init__(self, name: str, meta: dict = None, events: List[Event] = None):
+    def __init__(self, name: str, meta: dict = None, events: list[Event] = None):
         super().__init__()
         self.name = name
         self.meta = meta or {}
@@ -100,7 +102,7 @@ class Catalog(SpeasyProduct):
     def __iter__(self):
         return self._events.__iter__()
 
-    def append(self, events: Event or List[Event]) -> None:
+    def append(self, events: Event or list[Event]) -> None:
         """Append an Event or a list of Event to the end of the Catalog.
 
         Parameters
@@ -122,7 +124,7 @@ class Catalog(SpeasyProduct):
                 f"You must provide a {Event} or a List of {Event} instead of {type(events)}")
         self._events += events
 
-    def __iadd__(self, other: Event or List[Event]):
+    def __iadd__(self, other: Event or list[Event]):
         self.append(other)
         return self
 

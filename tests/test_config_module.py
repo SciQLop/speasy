@@ -1,13 +1,14 @@
-import unittest
-from unittest.mock import patch
 import os
-from speasy import config
-from io import StringIO
-from ddt import ddt, data, unpack
-from dateutil.parser import parse as parse_dt
+import unittest
 from datetime import datetime
+from io import StringIO
+from unittest.mock import patch
 
 import pytest
+from dateutil.parser import parse as parse_dt
+from ddt import data, ddt, unpack
+
+from speasy import config
 
 pytestmark = pytest.mark.contract
 

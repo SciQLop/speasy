@@ -1,20 +1,20 @@
-from typing import List, AnyStr, Optional, Mapping, Union
 import io
-import re
 import logging
-
+import re
+from collections.abc import Mapping
 from datetime import timedelta
-import numpy as np
+from typing import AnyStr
 
+import numpy as np
+import pycdfpp
 import pyistp
 from pyistp.support_data_variable import SupportDataVariable
-import pycdfpp
 
-from speasy.core.codecs import CodecInterface, register_codec, Buffer
 from speasy.core.any_files import any_loc_open
-from speasy.core.url_utils import urlparse, is_local_file
 from speasy.core.cache import CacheCall
-from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
+from speasy.core.codecs import Buffer, CodecInterface, register_codec
+from speasy.core.url_utils import is_local_file, urlparse
+from speasy.products import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 
 log = logging.getLogger(__name__)
 _PTR_rx = re.compile(r".*_PTR(_\d+)?")
@@ -68,11 +68,11 @@ def _build_labels(variable: pyistp.loader.DataVariable):
     return [f"component_{i}" for i in range(variable.values.shape[1])]
 
 
-def _filter_extra_axes(variable: pyistp.loader.DataVariable) -> List[SupportDataVariable]:
+def _filter_extra_axes(variable: pyistp.loader.DataVariable) -> list[SupportDataVariable]:
     return variable.axes[1:]
 
 
-def _valid_variable_or_none(variable: SpeasyVariable) -> Optional[SpeasyVariable]:
+def _valid_variable_or_none(variable: SpeasyVariable) -> SpeasyVariable | None:
     if len(variable) == 1 and variable.time[0] < np.datetime64('1900-01-01'):  # handle fill values in epoch
         return None
     return variable
@@ -157,7 +157,7 @@ def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False) ->
     return True
 
 
-def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: List[VariableAxis],
+def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: list[VariableAxis],
                     compress_variables=False) -> bool:
     def _already_in_cdf(ax: VariableAxis):
         for _ax in already_saved_axes:
@@ -189,12 +189,12 @@ class IstpCdf(CodecInterface):
     """Codec for ISTP CDF files. This codec is a wrapper around PyISTP library. It supports some variations around the ISTP standard."""
 
     def load_variables(self,
-                       variables: List[AnyStr],
-                       file: Union[Buffer, str, io.IOBase],
+                       variables: list[AnyStr],
+                       file: Buffer | str | io.IOBase,
                        cache_remote_files=True,
-                       master_cdf_url: Optional[Union[Buffer, str, io.IOBase]] = None,
+                       master_cdf_url: Buffer | str | io.IOBase | None = None,
                        **kwargs
-                       ) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
+                       ) -> Mapping[AnyStr, SpeasyVariable] | None:
         kwargs["variables"] = variables
         kwargs.update((_resolve_url_type(file, prefix="", cache_remote_files=cache_remote_files),
                        _resolve_url_type(master_cdf_url, prefix="master_", cache_remote_files=cache_remote_files)))
@@ -202,11 +202,11 @@ class IstpCdf(CodecInterface):
 
     @CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)
     def load_variable(self,
-                      variable: AnyStr, file: Union[Buffer, str, io.IOBase],
+                      variable: AnyStr, file: Buffer | str | io.IOBase,
                       cache_remote_files=True,
-                      master_cdf_url: Optional[Union[Buffer, str, io.IOBase]] = None,
+                      master_cdf_url: Buffer | str | io.IOBase | None = None,
                       **kwargs
-                      ) -> Optional[SpeasyVariable]:
+                      ) -> SpeasyVariable | None:
         r = self.load_variables(variables=[variable], file=file, master_cdf_url=master_cdf_url,
                                 cache_remote_files=cache_remote_files, **kwargs)
         if r is not None:
@@ -214,11 +214,11 @@ class IstpCdf(CodecInterface):
         return None
 
     def save_variables(self,
-                       variables: List[SpeasyVariable],
-                       file: Optional[Union[str, io.IOBase]] = None,
+                       variables: list[SpeasyVariable],
+                       file: str | io.IOBase | None = None,
                        compress_variables=False,
                        **kwargs
-                       ) -> Union[bool, Buffer]:
+                       ) -> bool | Buffer:
         cdf = pycdfpp.CDF()
         axes = []
         for variable in variables:
@@ -236,11 +236,11 @@ class IstpCdf(CodecInterface):
         return False
 
     @property
-    def supported_extensions(self) -> List[str]:
+    def supported_extensions(self) -> list[str]:
         return ["cdf"]
 
     @property
-    def supported_mimetypes(self) -> List[str]:
+    def supported_mimetypes(self) -> list[str]:
         return ["application/x-cdf"]
 
     @property

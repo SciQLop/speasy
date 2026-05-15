@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `amda` package parameter getting functions."""
 
 import unittest
-from ddt import data, ddt
 from datetime import datetime, timedelta
 
 import pytest
+from ddt import data, ddt
 
 pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 

@@ -1,12 +1,11 @@
 import io
-from typing import Optional, Union, Dict, Any
+from typing import Any
 
 import numpy as np
 
-from speasy.core.codecs.bundled_codecs.hapi.reader import _load_hapi
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
+from speasy.core.codecs.bundled_codecs.hapi.reader import _load_hapi
 from speasy.core.codecs.codec_interface import Buffer
-
 
 
 def _hapi_header_to_parameters(header):
@@ -38,12 +37,12 @@ def _hapi_parameters_to_dtype(hapi_parameters):
 
     return np.dtype(fields)
 
-def _extract_data_binary(file: io.IOBase, headers: Dict[str, Any]) -> np.ndarray:
+def _extract_data_binary(file: io.IOBase, headers: dict[str, Any]) -> np.ndarray:
     _params = _hapi_header_to_parameters(headers)
     _dtype = _hapi_parameters_to_dtype(_params)
     return np.frombuffer(file.read(), dtype=_dtype)
 
-def load_hapi_binary(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
+def load_hapi_binary(file: Buffer | str | io.IOBase) -> HapiFile | None:
     data, headers = _load_hapi(file, _extract_data_binary)
     hapi_binary_file = HapiFile()
     if data is not None and headers is not None:

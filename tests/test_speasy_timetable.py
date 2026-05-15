@@ -6,8 +6,8 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-from speasy.products.timetable import TimeTable
 from speasy.core.datetime_range import DateTimeRange
+from speasy.products.timetable import TimeTable
 
 
 class SpeasyTimetable(unittest.TestCase):

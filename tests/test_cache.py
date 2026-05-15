@@ -4,21 +4,26 @@ import tempfile
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
+
 import dateutil.parser as dt_parser
 import numpy as np
 import packaging.version as Version
-from ddt import data, ddt, unpack
-
 import pytest
+from ddt import data, ddt, unpack
 
 pytestmark = pytest.mark.unit
 
 
 from speasy.core import epoch_to_datetime64
-from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache, drop_matching_entries, CacheCall
+from speasy.core.cache import (
+    Cache,
+    Cacheable,
+    CacheCall,
+    UnversionedProviderCache,
+    drop_matching_entries,
+)
 from speasy.core.cache.version import str_to_version, version_to_str
-from speasy.products.variable import (DataContainer, SpeasyVariable,
-                                      VariableTimeAxis)
+from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 
 start_date = datetime(2016, 6, 1, 12, tzinfo=timezone.utc)
 

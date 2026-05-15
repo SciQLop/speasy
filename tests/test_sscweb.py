@@ -1,22 +1,22 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
-import os, time
+import os
+import time
 import unittest
 from datetime import datetime, timezone
-import numpy as np
-from ddt import data, ddt
 from tempfile import TemporaryDirectory
 
+import numpy as np
 import pytest
+from ddt import data, ddt
 
 pytestmark = pytest.mark.contract
 
 
+from speasy.core.codecs import get_codec
 from speasy.data_providers import ssc
 from speasy.products import SpeasyVariable
-from speasy.core.codecs import get_codec
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 

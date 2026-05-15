@@ -11,10 +11,11 @@ pytestmark = [pytest.mark.unit, pytest.mark.vcr]
 
 
 import numpy as np
-import speasy as spz
-from speasy.data_providers.cda._direct_archive import to_direct_archive_params
-from speasy.core.direct_archive_downloader.direct_archive_downloader import apply_date_format
 from ddt import data, ddt, unpack
+
+import speasy as spz
+from speasy.core.direct_archive_downloader.direct_archive_downloader import apply_date_format
+from speasy.data_providers.cda._direct_archive import to_direct_archive_params
 
 
 def reset_cda_inventory_cache_flags():

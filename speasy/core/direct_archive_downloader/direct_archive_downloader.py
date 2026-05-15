@@ -4,24 +4,24 @@
    from speasy.core.direct_archive_downloader.direct_archive_downloader import *
 """
 import re
-from datetime import timedelta, datetime
+from collections.abc import Callable
+from datetime import datetime, timedelta
 from functools import partial
-from typing import Optional, List, Callable, Union, Tuple
 
 from dateutil.relativedelta import relativedelta
 
-from speasy.core import make_utc_datetime, AnyDateTimeType
-from speasy.core.cache import CacheCall
+from speasy.core import AnyDateTimeType, make_utc_datetime
+from speasy.core.algorithms import randomized_map
 from speasy.core.any_files import list_files
+from speasy.core.cache import CacheCall
 from speasy.core.codecs import get_codec
 from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
-from speasy.core.algorithms import randomized_map
 
 # Change to this when we drop Python 3.8
 # FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
-FileLoaderCallable = Callable[..., Optional[SpeasyVariable]]
+FileLoaderCallable = Callable[..., SpeasyVariable | None]
 
 
 def apply_date_format(txt: str, date: datetime) -> str:
@@ -35,14 +35,14 @@ def apply_date_format(txt: str, date: datetime) -> str:
 
 
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
-def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None) -> Optional[SpeasyVariable]:
+def _read_cdf(url: str | None, variable: str, master_cdf_url: str | None = None) -> SpeasyVariable | None:
     if url is None:
         return None
     return get_codec('application/x-cdf').load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url,
                                                         cache_remote_files=True)
 
 
-def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
+def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> str | None:
     base_ulr = apply_date_format(url_pattern, date)
     if not use_file_list:
         return base_ulr
@@ -92,18 +92,18 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
     raise ValueError(f"Unknown/unimplemented split_frequency: {split_frequency}")
 
 
-def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -> Optional[datetime]:
+def _parse_date(date: str | datetime, date_format: str | None = None) -> datetime | None:
     if isinstance(date, datetime) or date_format is None:
         return make_utc_datetime(date)
     return make_utc_datetime(datetime.strptime(date, date_format))
 
 
 @CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
-def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[str] = None) -> List[
-    Tuple[str, Tuple[datetime, datetime]]]:
+def map_ranges(url, fname_regex: str | re.Pattern, date_format: str | None = None) -> list[
+    tuple[str, tuple[datetime, datetime]]]:
     if type(fname_regex) is str:
         fname_regex = re.compile(fname_regex)
-    files: List[re.Match] = list(
+    files: list[re.Match] = list(
         filter(lambda m: m is not None, map(fname_regex.match,
                                             list_files(url.rsplit('/', 1)[0],
                                                        re.compile(url.rsplit('/', 1)[1])))))
@@ -122,8 +122,8 @@ def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[s
     return sorted(ranges, key=lambda r: r[1][0])
 
 
-def filter_ranges(ranges: List[Tuple[str, Tuple[datetime, datetime]]], start: AnyDateTimeType,
-                  stop: AnyDateTimeType) -> List[str]:
+def filter_ranges(ranges: list[tuple[str, tuple[datetime, datetime]]], start: AnyDateTimeType,
+                  stop: AnyDateTimeType) -> list[str]:
     """Given a list of (file, (start, stop)) tuples, filter those that overlap with the specified time range.
     Parameters
     ----------
@@ -163,7 +163,7 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def list_files(split_frequency, url_pattern: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                   fname_regex: str, date_format=None, force_refresh=False) -> List[str]:
+                   fname_regex: str, date_format=None, force_refresh=False) -> list[str]:
 
         keep = []
         start_time = make_utc_datetime(start_time)
@@ -184,7 +184,7 @@ class RandomSplitDirectDownload:
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
-                    file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> Optional[SpeasyVariable]:
+                    file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> SpeasyVariable | None:
 
         force_refresh = kwargs.pop('force_refresh', False)
         downloader = lambda force_refresh: merge(
@@ -202,7 +202,7 @@ class RandomSplitDirectDownload:
 
         try:
             v = downloader(force_refresh=force_refresh)
-        except IOError as e:
+        except OSError as e:
             if '404' in str(e):
                 # try once more forcing a refresh of the file list cache in case file names have changed recently
                 # this could happen for example when a new version of the data is released
@@ -221,7 +221,7 @@ class RegularSplitDirectDownload:
                     stop_time: AnyDateTimeType, use_file_list: bool = False, split_frequency: str = "daily",
                     file_reader: FileLoaderCallable = _read_cdf,
                     **kwargs) -> \
-        Optional[SpeasyVariable]:
+        SpeasyVariable | None:
         v = merge(randomized_map(
             lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list), variable=variable,
                                      **kwargs),
@@ -233,8 +233,8 @@ class RegularSplitDirectDownload:
 
 def get_product(url_pattern: str, split_rule: str, variable: str, start_time: AnyDateTimeType,
                 stop_time: AnyDateTimeType, use_file_list: bool = False, file_reader: FileLoaderCallable = _read_cdf,
-                codec: Optional[str] = None,
-                **kwargs) -> Optional[SpeasyVariable]:
+                codec: str | None = None,
+                **kwargs) -> SpeasyVariable | None:
     if codec is not None:
         file_reader = get_codec(codec).load_variable
     if split_rule.lower() == "regular":

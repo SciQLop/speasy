@@ -4,10 +4,10 @@ pytestmark = pytest.mark.contract
 
 
 try:
+    from glob import glob
+
     from pytest_pyodide import run_in_pyodide
     from pytest_pyodide.decorator import copy_files_to_pyodide
-
-    from glob import glob
 
     _FILE_PATH = glob("pyodide-dist/speasy*.whl", recursive=True)[0]
     _DEST_PATH = _FILE_PATH.split("/")[-1]

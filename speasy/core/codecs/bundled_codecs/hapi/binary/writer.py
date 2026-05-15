@@ -1,12 +1,13 @@
 import io
 import json
-from typing import IO, Optional, Union
+from typing import IO
 
 import numpy as np
 
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi
 from speasy.core.codecs.codec_interface import Buffer
+
 
 def _base_np_type(p):
     """
@@ -71,7 +72,7 @@ def _to_binary(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
 
 def save_hapi_binary(
     hapi_file: HapiFile,
-    file: Optional[Union[str, io.IOBase]] = None,
+    file: str | io.IOBase | None = None,
     with_headers: bool = True,
-) -> Union[bool, Buffer]:
+) -> bool | Buffer:
     return save_hapi(hapi_file, file, _to_binary, with_headers=with_headers)

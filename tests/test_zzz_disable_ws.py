@@ -1,7 +1,6 @@
-import unittest
-import importlib
 import os
 import sys
+import unittest
 
 import pytest
 

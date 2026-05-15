@@ -25,11 +25,11 @@ import os
 import re
 import shutil
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Provider availability defaults (existing behaviour — keep)
@@ -311,14 +311,15 @@ def speasy_variable_factory() -> SpeasyVariableFactory:
             assert v.values.shape == (100, 3)
     """
 
-    import numpy as np
     from datetime import datetime, timedelta, timezone
 
-    from speasy.products import SpeasyVariable
+    import numpy as np
+
     from speasy.core.data_containers import (
         DataContainer,
         VariableTimeAxis,
     )
+    from speasy.products import SpeasyVariable
 
     def _make(
         n_points: int = 10,
