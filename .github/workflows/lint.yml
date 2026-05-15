@@ -22,3 +22,5 @@ jobs:
       run: uv sync --group dev
     - name: Lint with ruff
       run: uv run --with ruff ruff check speasy tests devtools
+    - name: Spellcheck with codespell
+      run: uv run --with codespell codespell

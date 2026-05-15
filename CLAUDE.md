@@ -20,8 +20,9 @@ uv run pytest -m ''                     # all tests (overrides the default filte
 uv run pytest -m contract tests/test_amda.py   # single contract test file
 uv run pytest -k "test_name"            # single test by name (within unit tier)
 
-# Lint
+# Lint and spellcheck
 uv run --with ruff ruff check speasy tests devtools
+uv run --with codespell codespell
 
 # Doctests
 uv run make doctest

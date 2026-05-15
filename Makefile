@@ -49,8 +49,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-lint: ## check style with ruff
+lint: ## check style and spelling
 	uv run --with ruff ruff check speasy tests devtools
+	uv run --with codespell codespell
 
 doctest:
 	$(MAKE) -C docs doctest
