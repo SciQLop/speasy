@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 def _load_variables(variables, file=None, buffer=None):
-    istp_loader = pyistp.load_netcdf(file=file, buffer=buffer)
+    istp_loader = pyistp.load(file=file, buffer=buffer)
     if istp_loader is not None:
         return {variable: _load_variable(istp_loader, variable) for variable in variables}
     return None
