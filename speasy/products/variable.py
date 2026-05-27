@@ -65,7 +65,7 @@ def _check_extra_axes(time_axis: VariableTimeAxis, axes: list[VariableAxis], val
             _check_time_independent_axis(axis, index + 1, values)
 
 
-def _check_axes(axes: list[VariableAxis or VariableTimeAxis], values: DataContainer):
+def _check_axes(axes: list[VariableAxis or VariableTimeAxis], values: DataContainer):  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` widens type and cascades errors elsewhere; deferred to PR 14c
     if len(axes) == 0:
         raise ValueError("At least one axis (time axis) must be provided")
     _check_time_axis(axes[0], values)
@@ -130,7 +130,7 @@ class SpeasyVariable(SpeasyProduct):
 
     def __init__(
         self,
-        axes: list[VariableAxis or VariableTimeAxis],
+        axes: list[VariableAxis or VariableTimeAxis],  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` widens type and cascades errors elsewhere; deferred to PR 14c
         values: DataContainer,
         columns: list[str] | None = None,
     ):
@@ -363,7 +363,7 @@ class SpeasyVariable(SpeasyProduct):
             columns=[f"column_{i}" for i in range(n_cols)],
         )
 
-    def __array_ufunc__(self, ufunc, method, *inputs, out: 'SpeasyVariable' or None = None, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *inputs, out: 'SpeasyVariable' or None = None, **kwargs):  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` widens type and cascades errors elsewhere; deferred to PR 14c
         if out is not None:
             _out = _values(out[0])
         else:
@@ -463,7 +463,7 @@ class SpeasyVariable(SpeasyProduct):
         return self.__values_container.meta
 
     @property
-    def axes(self) -> list[VariableTimeAxis or VariableAxis]:
+    def axes(self) -> list[VariableTimeAxis or VariableAxis]:  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` widens type and cascades errors elsewhere; deferred to PR 14c
         """SpeasyVariable axes, axis 0 is always a VariableTimeAxis, there should be the same number of axes than values dimensions
 
         Returns
@@ -541,7 +541,7 @@ class SpeasyVariable(SpeasyProduct):
         """
         return self.meta.get("VALIDMIN", None), self.meta.get("VALIDMAX", None)
 
-    def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":
+    def unit_applied(self, unit: str or None = None, copy=True) -> "SpeasyVariable":  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` cascades None-propagation errors elsewhere; deferred to PR 14c
         """Returns a SpeasyVariable with given or automatically found unit applied to values
 
         Parameters
@@ -689,7 +689,7 @@ class SpeasyVariable(SpeasyProduct):
         }
 
     @staticmethod
-    def from_dictionary(dictionary: dict[str, object] or None) -> "SpeasyVariable" or None:
+    def from_dictionary(dictionary: dict[str, object] or None) -> "SpeasyVariable" or None:  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` cascades None-propagation errors elsewhere; deferred to PR 14c
         """Builds a SpeasyVariable from a well formed dictionary
 
         Returns
@@ -979,7 +979,7 @@ def to_dictionary(var: SpeasyVariable, array_to_list=False) -> dict[str, object]
     return var.to_dictionary(array_to_list=array_to_list)
 
 
-def from_dictionary(dictionary: dict[str, object] or None) -> SpeasyVariable or None:
+def from_dictionary(dictionary: dict[str, object] or None) -> SpeasyVariable or None:  # type: ignore[invalidTypeForm]  # reason: replacing `or` with `|` cascades None-propagation errors elsewhere; deferred to PR 14c
     return SpeasyVariable.from_dictionary(dictionary)
 
 
