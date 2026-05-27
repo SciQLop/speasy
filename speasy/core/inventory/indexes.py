@@ -75,7 +75,7 @@ class ParameterIndex(SpeasyIndex):
     def __iter__(self):
         return [v for v in self.__dict__.values() if isinstance(v, ComponentIndex)].__iter__()
 
-    def __contains__(self, item: str or ComponentIndex):
+    def __contains__(self, item: str | ComponentIndex):
         if isinstance(item, ComponentIndex):
             item = item.spz_uid()
         for member in self.__dict__.values():
@@ -137,7 +137,7 @@ class DatasetIndex(SpeasyIndex):
     def __iter__(self):
         return [v for v in self.__dict__.values() if isinstance(v, ParameterIndex)].__iter__()
 
-    def __contains__(self, item: str or ParameterIndex):
+    def __contains__(self, item: str | ParameterIndex):
         if isinstance(item, ParameterIndex):
             item = item.spz_uid()
         for member in self.__dict__.values():
@@ -147,7 +147,7 @@ class DatasetIndex(SpeasyIndex):
         return False
 
 
-def to_dict(inventory_tree: SpeasyIndex or str, version: int = 1):
+def to_dict(inventory_tree: SpeasyIndex | str, version: int = 1):
     if isinstance(inventory_tree, SpeasyIndex):
         return {key: to_dict(value, version=version) for key, value in inventory_tree.__dict__.items()}
     elif version <= 1:
@@ -164,7 +164,7 @@ def to_dict(inventory_tree: SpeasyIndex or str, version: int = 1):
     return inventory_tree
 
 
-def from_dict(inventory_tree: dict or str, version: int = 1):
+def from_dict(inventory_tree: dict | str, version: int = 1):
     if version <= 1:
         if type(inventory_tree) is str:
             return inventory_tree
