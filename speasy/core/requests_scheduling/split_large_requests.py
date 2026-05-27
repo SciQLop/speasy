@@ -8,7 +8,7 @@ from speasy.products.variable import merge as var_merge
 
 
 class SplitLargeRequests:
-    def __init__(self, threshold: Callable[[ParameterIndex or str], timedelta]):
+    def __init__(self, threshold: Callable[[ParameterIndex | str], timedelta]):
         self.threshold = threshold
 
     def __call__(self, get_data: Callable):

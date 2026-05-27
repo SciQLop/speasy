@@ -18,7 +18,7 @@ class PlotType(Enum):
 
 @dataclass
 class Plot:
-    axes: list[VariableAxis or VariableTimeAxis]
+    axes: list[VariableAxis | VariableTimeAxis]
     values: DataContainer
     columns_names: list[str]
 

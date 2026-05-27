@@ -147,7 +147,7 @@ class ImpexClient:
             raise TypeError(f"You must provide an {ImpexEndpoint} instead of {type(endpoint)}")
 
     def _send_indirect_request(self, endpoint: ImpexEndpoint, params: dict = None,
-                               timeout: int = http.DEFAULT_TIMEOUT) -> str or None:
+                               timeout: int = http.DEFAULT_TIMEOUT) -> str | None:
         next_url = self._send_request(endpoint=endpoint, params=params, timeout=timeout)
         if '<' in next_url and '>' in next_url:
             next_url = next_url.split(">")[1].split("<")[0]
