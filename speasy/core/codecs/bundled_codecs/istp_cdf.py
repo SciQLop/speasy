@@ -78,7 +78,7 @@ def _valid_variable_or_none(variable: SpeasyVariable) -> SpeasyVariable | None:
     return variable
 
 
-def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVariable or None:
+def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVariable | None:
     if variable in istp_loader.data_variables():
         var = istp_loader.data_variable(variable)
     elif variable.replace('-', '_') in istp_loader.data_variables():  # THX CSA/ISTP
@@ -102,7 +102,7 @@ def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVar
     return None
 
 
-def _load_variables(variables, file=None, buffer=None, master_file=None, master_buffer=None) -> SpeasyVariable or None:
+def _load_variables(variables, file=None, buffer=None, master_file=None, master_buffer=None) -> SpeasyVariable | None:
     istp_loader = pyistp.load(file=file, buffer=buffer, master_file=master_file, master_buffer=master_buffer)
     if istp_loader is not None:
         return {variable: _load_variable(istp_loader, variable) for variable in variables}
