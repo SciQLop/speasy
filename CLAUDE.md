@@ -24,6 +24,9 @@ uv run pytest -k "test_name"            # single test by name (within unit tier)
 uv run --with ruff ruff check speasy tests devtools
 uv run --with codespell codespell
 
+# Type check (non-blocking until PR 15)
+uv run basedpyright
+
 # Doctests
 uv run make doctest
 

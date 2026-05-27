@@ -24,3 +24,6 @@ jobs:
       run: uv run --with ruff ruff check speasy tests devtools
     - name: Spellcheck with codespell
       run: uv run --with codespell codespell
+    - name: Type-check with basedpyright
+      continue-on-error: true
+      run: uv run basedpyright

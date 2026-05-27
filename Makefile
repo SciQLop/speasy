@@ -53,6 +53,9 @@ lint: ## check style and spelling
 	uv run --with ruff ruff check speasy tests devtools
 	uv run --with codespell codespell
 
+typecheck: ## run basedpyright type checks (non-blocking; see PR 15 for blocking)
+	uv run basedpyright || true
+
 doctest:
 	$(MAKE) -C docs doctest
 
