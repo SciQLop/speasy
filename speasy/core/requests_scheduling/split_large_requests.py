@@ -1,13 +1,13 @@
+from collections.abc import Callable
 from datetime import timedelta
 from functools import wraps
-from typing import Callable
 
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.products.variable import merge as var_merge
 
 
-class SplitLargeRequests(object):
+class SplitLargeRequests:
     def __init__(self, threshold: Callable[[ParameterIndex or str], timedelta]):
         self.threshold = threshold
 

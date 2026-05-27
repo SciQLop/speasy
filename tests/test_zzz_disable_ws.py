@@ -1,7 +1,11 @@
-import unittest
-import importlib
 import os
 import sys
+import unittest
+
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 base_modules = sys.modules.keys()
 

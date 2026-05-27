@@ -1,10 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
 import unittest
+
+import pytest
+
 from speasy.core.dataprovider import DataProvider
 from speasy.core.inventory.indexes import SpeasyIndex
+
+pytestmark = pytest.mark.unit
+
 
 
 class SpeasyProxy(unittest.TestCase):

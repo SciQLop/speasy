@@ -1,10 +1,12 @@
-from typing import IO, Union, Optional
 import io
+import json
+from typing import IO
+
+import pandas as pds
+
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi
 from speasy.core.codecs.codec_interface import Buffer
-import json
-import pandas as pds
 
 
 def _to_csv(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
@@ -43,7 +45,7 @@ def _to_csv(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
 
 def save_hapi_csv(
     hapi_file: HapiFile,
-    file: Optional[Union[str, io.IOBase]] = None,
+    file: str | io.IOBase | None = None,
     with_headers: bool = True,
-) -> Union[bool, Buffer]:
+) -> bool | Buffer:
     return save_hapi(hapi_file, file, _to_csv, with_headers=with_headers)

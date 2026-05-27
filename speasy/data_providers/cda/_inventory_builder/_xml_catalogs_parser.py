@@ -1,7 +1,8 @@
+import logging
+import xml.etree.ElementTree as Et
+
 from speasy.core import fix_name
 from speasy.core.inventory.indexes import DatasetIndex, SpeasyIndex, make_inventory_node
-import xml.etree.ElementTree as Et
-import logging
 
 log = logging.getLogger(__name__)
 

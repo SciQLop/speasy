@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """ssc package for Space Physics WebServices Client."""
 
@@ -7,20 +6,20 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Dict
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
 
 import numpy as np
 
 from speasy.core import EnsureUTCDateTime
-from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider, ParameterRangeCheck
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
-from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.products.variable import SpeasyVariable, VariableTimeAxis, DataContainer
+from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
+
 from ...core import AllowedKwargs, http
 
 
@@ -54,7 +53,7 @@ def _is_valid(xml):
         'StatusSubCode').text.lower() == 'success'
 
 
-def parse_trajectory(trajectory: str) -> Optional[SpeasyVariable]:
+def parse_trajectory(trajectory: str) -> SpeasyVariable | None:
     xml = drop_namespace(ET.fromstring(trajectory))
     if _is_valid(xml):
         data = xml.find('Result').find('Data')
@@ -82,7 +81,7 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_system', 'gse')}
 
 
-def make_index(meta: Dict):
+def make_index(meta: dict):
     name = meta.pop('Name')
     meta['start_date'] = meta.pop('StartTime')
     meta['stop_date'] = meta.pop('EndTime')
@@ -113,7 +112,7 @@ class SscWebservice(DataProvider):
     def version(self, product):
         return 4
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -137,7 +136,7 @@ class SscWebservice(DataProvider):
         return self._parameter_range(parameter_id)
 
     def get_data(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                 debug=False, **kwargs) -> Optional[SpeasyVariable]:
+                 debug=False, **kwargs) -> SpeasyVariable | None:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
                               coordinate_system=coordinate_system, debug=debug, **kwargs)
         return var
@@ -151,7 +150,7 @@ class SscWebservice(DataProvider):
     @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                   debug=False, extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+                   debug=False, extra_http_headers: dict or None = None) -> SpeasyVariable | None:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"

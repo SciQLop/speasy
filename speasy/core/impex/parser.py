@@ -3,11 +3,17 @@
 import xml.etree.ElementTree as Et
 
 from ...core import fix_name
-from ...core.inventory.indexes import (CatalogIndex, ComponentIndex,
-                                       DatasetIndex, ParameterIndex,
-                                       ArgumentListIndex, ArgumentIndex,
-                                       TemplatedParameterIndex, SpeasyIndex,
-                                       TimetableIndex)
+from ...core.inventory.indexes import (
+    ArgumentIndex,
+    ArgumentListIndex,
+    CatalogIndex,
+    ComponentIndex,
+    DatasetIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    TemplatedParameterIndex,
+    TimetableIndex,
+)
 
 
 def to_xmlid(index_or_str) -> str:

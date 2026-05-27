@@ -1,4 +1,5 @@
-from typing import List, Tuple, Any, Sequence, Union, Optional
+from collections.abc import Sequence
+from typing import Any
 
 
 def span_ctor(span_type, start, stop):
@@ -19,7 +20,7 @@ def is_empty(span: Sequence) -> bool:
     return span[0] == span[1]
 
 
-def intersection(span: Sequence, other: Sequence) -> Optional[Sequence]:
+def intersection(span: Sequence, other: Sequence) -> Sequence | None:
     if not is_span(span) or not is_span(other):
         raise TypeError("You must provide a Span like object")
     if other[0] > span[1] or span[0] > other[1]:
@@ -44,7 +45,7 @@ def equals(span: Sequence, other: Sequence) -> bool:
     return span[0] == other[0] and span[1] == other[1]
 
 
-def merge(spans: Union[List[Sequence], Tuple[Sequence]]) -> List[Sequence]:
+def merge(spans: list[Sequence] | tuple[Sequence]) -> list[Sequence]:
     assert all([is_span(span) for span in spans])
     merged_list = []
     spans.sort(key=lambda item: item[0])
@@ -60,7 +61,7 @@ def merge(spans: Union[List[Sequence], Tuple[Sequence]]) -> List[Sequence]:
     return merged_list
 
 
-def difference(span: Sequence, other_s: Sequence) -> List[Sequence]:
+def difference(span: Sequence, other_s: Sequence) -> list[Sequence]:
     if not is_span(span) or not is_span(other_s):
         raise TypeError("You must provide a Span like object")
 
@@ -90,7 +91,7 @@ def shift(span: Sequence, distance):
     return span_ctor(type(span), span[0] + distance, span[1] + distance)
 
 
-def split(span: Sequence, fragment_duration) -> List[Sequence]:
+def split(span: Sequence, fragment_duration) -> list[Sequence]:
     from math import ceil
     if not is_span(span):
         raise TypeError("You must provide a Span like object")

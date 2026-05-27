@@ -24,7 +24,7 @@ History
 * Disable CDPP Themis archive since the connection is not that reliable by @jeandet in https://github.com/SciQLop/speasy/pull/239
 * Increase proxy request timeout from 1 minute (default) to 5 minutes by @jeandet in https://github.com/SciQLop/speasy/pull/240
 * Ensure identical requests deduplication on AMDA by @jeandet in https://github.com/SciQLop/speasy/pull/241
-* Cache file timerange maping for direct archive modules by @jeandet in https://github.com/SciQLop/speasy/pull/243
+* Cache file timerange mapping for direct archive modules by @jeandet in https://github.com/SciQLop/speasy/pull/243
 * Fixes broken doctests (repr) by @jeandet in https://github.com/SciQLop/speasy/pull/242
 * Actions update by @jeandet in https://github.com/SciQLop/speasy/pull/244
 * Update contributing guidelines by @jeandet in https://github.com/SciQLop/speasy/pull/249
@@ -51,7 +51,7 @@ History
 ------------------
 * Handles corner cases with Cluster CDF files by @jeandet in https://github.com/SciQLop/speasy/pull/202
 * Always reduce to 1D boolean mask array in sanitize method by @jeandet in https://github.com/SciQLop/speasy/pull/207
-* CDAWeb inventory product node names were not cleanned by @jeandet in https://github.com/SciQLop/speasy/pull/212
+* CDAWeb inventory product node names were not cleaned by @jeandet in https://github.com/SciQLop/speasy/pull/212
 * Fixes CI issues on #215 and #216 by @jeandet in https://github.com/SciQLop/speasy/pull/217
 * Propagate AMDA identification information when the get data request is chunked by @brenard-irap in https://github.com/SciQLop/speasy/pull/216
 * Fixes #214 by @jeandet in https://github.com/SciQLop/speasy/pull/215
@@ -176,7 +176,7 @@ History
 * Increase tests code coverage by @jeandet in https://github.com/SciQLop/speasy/pull/103
 * Make more obvious to user that Speasy doesn't support downloading a whole dataset at once with some WS by @jeandet in https://github.com/SciQLop/speasy/pull/106
 * [AMDA] Switch to https by @jeandet in https://github.com/SciQLop/speasy/pull/108
-* Readme improvments by @jeandet in https://github.com/SciQLop/speasy/pull/104
+* Readme improvements by @jeandet in https://github.com/SciQLop/speasy/pull/104
 
 1.1.2 (2023-06-01)
 ------------------

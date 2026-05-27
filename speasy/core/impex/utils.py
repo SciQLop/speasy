@@ -5,23 +5,21 @@ conversion procedures for parsing CSV and VOTable data.
 import datetime
 import logging
 import os
-from typing import List
 
 from speasy.core.any_files import any_loc_open
 from speasy.core.datetime_range import DateTimeRange
 from speasy.products.catalog import Catalog, Event
 from speasy.products.timetable import TimeTable
 
-
 log = logging.getLogger(__name__)
 
 tt_catalog_time_format = "%Y-%m-%dT%H:%M:%S.%f"
 
 
-def _build_event(data, col_names: List[str]) -> Event:
+def _build_event(data, col_names: list[str]) -> Event:
     return Event(datetime.datetime.strptime(data[0], tt_catalog_time_format),
                  datetime.datetime.strptime(data[1], tt_catalog_time_format),
-                 {name: value for name, value in zip(col_names[2:], data[2:])})
+                 {name: value for name, value in zip(col_names[2:], data[2:], strict=False)})
 
 
 def load_timetable(filename: str) -> TimeTable:

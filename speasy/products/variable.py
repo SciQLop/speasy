@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Any, Tuple, Union
+from typing import Any, Union
 
 import astropy.table
 import astropy.units
@@ -11,9 +11,10 @@ from speasy.core.data_containers import (
     VariableAxis,
     VariableTimeAxis,
     _to_index,
-    np_build_result_name
+    np_build_result_name,
 )
 from speasy.plotting import Plot
+
 from .base_product import SpeasyProduct
 
 
@@ -52,7 +53,7 @@ def _check_time_independent_axis(axis: VariableAxis, axis_index, values: DataCon
         )
 
 
-def _check_extra_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], values: DataContainer):
+def _check_extra_axes(time_axis: VariableTimeAxis, axes: list[VariableAxis], values: DataContainer):
     for index, axis in enumerate(axes):
         if not isinstance(axis, VariableAxis):
             raise TypeError(
@@ -64,7 +65,7 @@ def _check_extra_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], val
             _check_time_independent_axis(axis, index + 1, values)
 
 
-def _check_axes(axes: List[VariableAxis or VariableTimeAxis], values: DataContainer):
+def _check_axes(axes: list[VariableAxis or VariableTimeAxis], values: DataContainer):
     if len(axes) == 0:
         raise ValueError("At least one axis (time axis) must be provided")
     _check_time_axis(axes[0], values)
@@ -129,9 +130,9 @@ class SpeasyVariable(SpeasyProduct):
 
     def __init__(
         self,
-        axes: List[VariableAxis or VariableTimeAxis],
+        axes: list[VariableAxis or VariableTimeAxis],
         values: DataContainer,
-        columns: Optional[List[str]] = None,
+        columns: list[str] | None = None,
     ):
         super().__init__()
         _check_axes(axes, values)
@@ -149,7 +150,7 @@ class SpeasyVariable(SpeasyProduct):
         self.__values_container = values
         self.__axes = axes
 
-    def view(self, index_range: Union[slice, np.ndarray]) -> "SpeasyVariable":
+    def view(self, index_range: slice | np.ndarray) -> "SpeasyVariable":
         """Return view of the current variable within the desired :data:`index_range`.
 
         Parameters
@@ -192,7 +193,7 @@ class SpeasyVariable(SpeasyProduct):
             columns=deepcopy(self.columns),
         )
 
-    def filter_columns(self, columns: List[str]) -> "SpeasyVariable":
+    def filter_columns(self, columns: list[str]) -> "SpeasyVariable":
         """Builds a SpeasyVariable with only selected columns
 
         Parameters
@@ -273,7 +274,7 @@ class SpeasyVariable(SpeasyProduct):
     def __setitem__(self, k, v: Union["SpeasyVariable", float, int]):
         if type(v) is SpeasyVariable:
             self.__values_container[k] = v.__values_container
-            for axis, src_axis in zip(self.__axes, v.__axes):
+            for axis, src_axis in zip(self.__axes, v.__axes, strict=False):
                 if axis.is_time_dependent:
                     axis[k] = src_axis
         else:
@@ -451,7 +452,7 @@ class SpeasyVariable(SpeasyProduct):
         return self.__axes[0].values
 
     @property
-    def meta(self) -> Dict:
+    def meta(self) -> dict:
         """SpeasyVariable meta-data
 
         Returns
@@ -462,7 +463,7 @@ class SpeasyVariable(SpeasyProduct):
         return self.__values_container.meta
 
     @property
-    def axes(self) -> List[VariableTimeAxis or VariableAxis]:
+    def axes(self) -> list[VariableTimeAxis or VariableAxis]:
         """SpeasyVariable axes, axis 0 is always a VariableTimeAxis, there should be the same number of axes than values dimensions
 
         Returns
@@ -473,7 +474,7 @@ class SpeasyVariable(SpeasyProduct):
         return self.__axes
 
     @property
-    def axes_labels(self) -> List[str]:
+    def axes_labels(self) -> list[str]:
         """Axes names respecting axes order
 
         Returns
@@ -484,7 +485,7 @@ class SpeasyVariable(SpeasyProduct):
         return [axis.name for axis in self.__axes]
 
     @property
-    def columns(self) -> List[str]:
+    def columns(self) -> list[str]:
         """SpeasyVariable columns names when it makes sense
 
         Returns
@@ -519,7 +520,7 @@ class SpeasyVariable(SpeasyProduct):
         )
 
     @property
-    def fill_value(self) -> Optional[Any]:
+    def fill_value(self) -> Any | None:
         """SpeasyVariable fill value if found in meta-data
 
         Returns
@@ -530,7 +531,7 @@ class SpeasyVariable(SpeasyProduct):
         return self.meta.get("FILLVAL", None)
 
     @property
-    def valid_range(self) -> Optional[Tuple[Any, Any]]:
+    def valid_range(self) -> tuple[Any, Any] | None:
         """SpeasyVariable valid range if found in meta-data
 
         Returns
@@ -553,7 +554,7 @@ class SpeasyVariable(SpeasyProduct):
         Returns
         -------
         SpeasyVariable
-            SpeasyVariable identic to source one with values converted to astropy.units.Quantity according to given or found unit
+            SpeasyVariable identical to source one with values converted to astropy.units.Quantity according to given or found unit
 
         Notes
         -----
@@ -616,14 +617,14 @@ class SpeasyVariable(SpeasyProduct):
         """
         if len(self.__values_container.shape) != 2:
             raise ValueError(
-                f"Cant' convert a SpeasyVariable with shape {self.__values_container.shape} to DataFrame, only 1D/2D variables are accepted"
+                f"Can't convert a SpeasyVariable with shape {self.__values_container.shape} to DataFrame, only 1D/2D variables are accepted"
             )
         return pds.DataFrame(
             index=self.time, data=self.values, columns=self.__columns, copy=True
         )
 
     @staticmethod
-    def from_dataframe(df: pds.DataFrame, meta: Optional[Dict[str, Any]] = None,
+    def from_dataframe(df: pds.DataFrame, meta: dict[str, Any] | None = None,
                        name: str = "Unknown") -> "SpeasyVariable":
         """Load from pandas.DataFrame object.
 
@@ -661,7 +662,7 @@ class SpeasyVariable(SpeasyProduct):
             columns=list(df.columns),
         )
 
-    def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
+    def to_dictionary(self, array_to_list=False) -> dict[str, object]:
         """Converts SpeasyVariable to dictionary
 
         Parameters
@@ -688,7 +689,7 @@ class SpeasyVariable(SpeasyProduct):
         }
 
     @staticmethod
-    def from_dictionary(dictionary: Dict[str, object] or None) -> "SpeasyVariable" or None:
+    def from_dictionary(dictionary: dict[str, object] or None) -> "SpeasyVariable" or None:
         """Builds a SpeasyVariable from a well formed dictionary
 
         Returns
@@ -974,11 +975,11 @@ class SpeasyVariable(SpeasyProduct):
                 _print_member("Size", humanize.naturalsize(self.nbytes))
 
 
-def to_dictionary(var: SpeasyVariable, array_to_list=False) -> Dict[str, object]:
+def to_dictionary(var: SpeasyVariable, array_to_list=False) -> dict[str, object]:
     return var.to_dictionary(array_to_list=array_to_list)
 
 
-def from_dictionary(dictionary: Dict[str, object] or None) -> SpeasyVariable or None:
+def from_dictionary(dictionary: dict[str, object] or None) -> SpeasyVariable or None:
     return SpeasyVariable.from_dictionary(dictionary)
 
 
@@ -1002,7 +1003,7 @@ def to_dataframe(var: SpeasyVariable) -> pds.DataFrame:
     return SpeasyVariable.to_dataframe(var)
 
 
-def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
+def merge(variables: list[SpeasyVariable]) -> SpeasyVariable | None:
     """Merge a list of :class:`~speasy.common.variable.SpeasyVariable` objects.
 
     Parameters
@@ -1022,12 +1023,12 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     sorted_var_list.sort(key=lambda v: v.time[0])
 
     # drop variables covered by previous ones
-    for prev, current in zip(sorted_var_list[:-1], sorted_var_list[1:]):
+    for prev, current in zip(sorted_var_list[:-1], sorted_var_list[1:], strict=False):
         if prev.time[-1] >= current.time[-1]:
             sorted_var_list.remove(current)
 
     # drop variables covered by next ones
-    for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:]):
+    for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:], strict=False):
         if nxt.time[0] == current.time[0] and nxt.time[-1] >= current.time[-1]:
             sorted_var_list.remove(current)
 
@@ -1041,14 +1042,14 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
         np.where(current.time >= nxt.time[0])[0][0]
         if current.time[-1] >= nxt.time[0]
         else -1
-        for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:])
+        for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:], strict=False)
     ]
 
     dest_len = int(
         np.sum(
             [
                 overlap if overlap != -1 else len(r.time)
-                for overlap, r in zip(overlaps, sorted_var_list[:-1])
+                for overlap, r in zip(overlaps, sorted_var_list[:-1], strict=False)
             ]
         )
     )
@@ -1058,14 +1059,14 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
 
     pos = 0
 
-    for r, overlap in zip(sorted_var_list, overlaps + [-1]):
+    for r, overlap in zip(sorted_var_list, overlaps + [-1], strict=False):
         frag_len = len(r.time) if overlap == -1 else overlap
         result[pos: (pos + frag_len)] = r[0:frag_len]
         pos += frag_len
     return result
 
 
-def same_time_axis(variables: List[SpeasyVariable]) -> bool:
+def same_time_axis(variables: list[SpeasyVariable]) -> bool:
     """Check if all variables have the same time axis values and length
     If only one variable is provided, it returns True.
 

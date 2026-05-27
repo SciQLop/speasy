@@ -1,4 +1,4 @@
-class SpeasyProduct(object):
+class SpeasyProduct:
     __slots__ = ['__request_params']
 
     def __init__(self, request_params=None):

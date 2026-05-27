@@ -1,17 +1,21 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `signal.resampling` package."""
 
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from datetime import datetime
 
 import numpy as np
-
-from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
-from speasy.signal.resampling import resample, generate_time_vector, interpolate
 from scipy.interpolate import InterpolatedUnivariateSpline
+
+from speasy.products import DataContainer, SpeasyVariable, VariableTimeAxis
+from speasy.signal.resampling import generate_time_vector, interpolate, resample
 
 
 class TestGenerateTimeVector(unittest.TestCase):

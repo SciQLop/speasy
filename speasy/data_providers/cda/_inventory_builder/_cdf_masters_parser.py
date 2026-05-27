@@ -1,11 +1,11 @@
 import logging
 import os.path
-from typing import List
+
 import pyistp
 
-from speasy.core.cdf.inventory_extractor import extract_parameters, filter_dataset_meta
-from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex
 from speasy.core import fix_name
+from speasy.core.cdf.inventory_extractor import extract_parameters, filter_dataset_meta
+from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
 
 log = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ def load_master_cdf(path, dataset: DatasetIndex):
 
 
 
-def _extract_datasets(root: SpeasyIndex) -> List[DatasetIndex]:
-    def extract_datasets(node: SpeasyIndex, datasets: List):
+def _extract_datasets(root: SpeasyIndex) -> list[DatasetIndex]:
+    def extract_datasets(node: SpeasyIndex, datasets: list):
         if isinstance(node, DatasetIndex):
             datasets.append(node)
         elif isinstance(node, SpeasyIndex):

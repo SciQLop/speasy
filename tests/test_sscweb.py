@@ -1,17 +1,22 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
-import os, time
+import os
+import time
 import unittest
 from datetime import datetime, timezone
-import numpy as np
-from ddt import data, ddt
 from tempfile import TemporaryDirectory
 
+import numpy as np
+import pytest
+from ddt import data, ddt
+
+pytestmark = pytest.mark.contract
+
+
+from speasy.core.codecs import get_codec
 from speasy.data_providers import ssc
 from speasy.products import SpeasyVariable
-from speasy.core.codecs import get_codec
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -174,7 +179,7 @@ class SscWebTrajectoriesPlots(unittest.TestCase):
     def setUp(self):
         import speasy as spz
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
         except ImportError:
             self.skipTest("Can't import matplotlib")
         self.traj: spz.SpeasyVariable = spz.get_data(spz.inventories.data_tree.ssc.Trajectories.ace, "2018-01-01",
