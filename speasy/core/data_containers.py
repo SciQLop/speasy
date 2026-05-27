@@ -21,7 +21,7 @@ def _values(input_p: Any) -> Any:
         return input_p.values
     return input_p
 
-def _data_container(input_p: Any) -> 'DataContainer' or None:
+def _data_container(input_p: Any) -> 'DataContainer | None':
     if hasattr(input_p, "data_container"):
         return input_p.data_container
     if isinstance(input_p, DataContainer):
@@ -227,7 +227,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         return DataContainer(name=self.__name, meta=self.__meta, values=self.__values[index_range],
                              is_time_dependent=self.__is_time_dependent)
 
-    def unit_applied(self, unit: str or None = None) -> "DataContainer":
+    def unit_applied(self, unit: str | None = None) -> "DataContainer":
         try:
             u = astropy.units.Unit(unit or self.unit)
         except (ValueError, KeyError):
@@ -332,7 +332,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
             return DataContainer(values=res, meta=deepcopy(self.__meta), name=np_build_result_name(func, *args, **kwargs),
                                  is_time_dependent=self.__is_time_dependent)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, out: 'DataContainer' or None = None, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *inputs, out: 'DataContainer | None' = None, **kwargs):
         if out is not None:
             _out = out[0].values
         else:
@@ -432,7 +432,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
             return VariableAxis(data=r)
         return r
 
-    def __array_ufunc__(self, ufunc, method, *inputs, out: 'VariableAxis' or None = None, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *inputs, out: 'VariableAxis | None' = None, **kwargs):
         if out is not None:
             _out = out[0].__data
         else:
@@ -564,7 +564,7 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
             return VariableTimeAxis(data=res)
         return res
 
-    def __array_ufunc__(self, ufunc, method, *inputs, out: 'VariableTimeAxis' or None = None, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *inputs, out: 'VariableTimeAxis | None' = None, **kwargs):
         if out is not None:
             _out = _data_container(out[0])
         else:
