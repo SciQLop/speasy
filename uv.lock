@@ -3182,7 +3182,7 @@ provides-extras = ["zstd"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "basedpyright", extras = ["pydantic"] },
+    { name = "basedpyright" },
     { name = "ddt" },
     { name = "ipython" },
     { name = "pytest" },
