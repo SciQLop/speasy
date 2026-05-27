@@ -8,8 +8,8 @@ from speasy.core import make_utc_datetime, span_utils
 class DateTimeRange:
     __slots__ = ['_rng']
 
-    def __init__(self, start_time: datetime or str or np.float64 or float or np.datetime64,
-                 stop_time: datetime or str or np.float64 or float or np.datetime64):
+    def __init__(self, start_time: datetime | str | np.float64 | float | np.datetime64,
+                 stop_time: datetime | str | np.float64 | float | np.datetime64):
         self._rng = [make_utc_datetime(start_time), make_utc_datetime(stop_time)]
 
     @property
@@ -17,7 +17,7 @@ class DateTimeRange:
         return self._rng[0]
 
     @start_time.setter
-    def start_time(self, start_time: datetime or str or np.float64 or float or np.datetime64):
+    def start_time(self, start_time: datetime | str | np.float64 | float | np.datetime64):
         self._rng[0] = make_utc_datetime(start_time)
 
     @property
@@ -25,7 +25,7 @@ class DateTimeRange:
         return self._rng[1]
 
     @stop_time.setter
-    def stop_time(self, stop_time: datetime or str or np.float64 or float or np.datetime64):
+    def stop_time(self, stop_time: datetime | str | np.float64 | float | np.datetime64):
         self._rng[1] = make_utc_datetime(stop_time)
 
     @property
