@@ -44,7 +44,7 @@ def _only_primitive_types(d: dict) -> dict:
     return d
 
 
-def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> tuple[str, str]:
+def to_dataset_and_variable(index_or_str: ParameterIndex | str) -> tuple[str, str]:
     if type(index_or_str) is str:
         parts = index_or_str.split('/')
     elif isinstance(index_or_str, ParameterIndex):
@@ -152,14 +152,14 @@ class CsaWebservice(DataProvider):
         self.__url = f"{self.BASE_URL}/csa-sl-tap/data"
         self._cdf_codec = get_codec("application/x-cdf")
 
-    def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
+    def _dataset_range(self, dataset: str | DatasetIndex) -> DateTimeRange:
         if type(dataset) is str:
             dataset = self.flat_inventory.datasets[dataset]
         return DateTimeRange(dataset.start_date, dataset.stop_date)
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime, extra_http_headers: dict[str, str] or None = None) -> \
+                     start_time: datetime, stop_time: datetime, extra_http_headers: dict[str, str] | None = None) -> \
             SpeasyVariable | None:
 
         # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
@@ -187,7 +187,7 @@ class CsaWebservice(DataProvider):
     def build_inventory(root: SpeasyIndex):
         return build_inventory(root)
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
+    def parameter_range(self, parameter_id: str | ParameterIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -210,7 +210,7 @@ class CsaWebservice(DataProvider):
         """
         return self._parameter_range(parameter_id)
 
-    def dataset_range(self, dataset_id: str or DatasetIndex) -> DateTimeRange | None:
+    def dataset_range(self, dataset_id: str | DatasetIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -233,7 +233,7 @@ class CsaWebservice(DataProvider):
         """
         return self._dataset_range(dataset_id)
 
-    def product_last_update(self, product: str or ParameterIndex):
+    def product_last_update(self, product: str | ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
         Parameters
@@ -256,12 +256,12 @@ class CsaWebservice(DataProvider):
     @SplitLargeRequests(threshold=lambda x: timedelta(days=7))
     @Proxyfiable(GetProduct, get_parameter_args)
     def get_data(self, product, start_time: datetime, stop_time: datetime,
-                 extra_http_headers: dict[str, str] or None = None):
+                 extra_http_headers: dict[str, str] | None = None):
         dataset, variable = to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, extra_http_headers=extra_http_headers)
 
-    def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
+    def get_variable(self, dataset: str, variable: str, start_time: datetime | str, stop_time: datetime | str,
                      **kwargs) -> \
             SpeasyVariable | None:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)
