@@ -55,7 +55,7 @@ class DataProvider:
         Minimum required version of the proxy server to use for fetching the inventory.
     """
 
-    def __init__(self, provider_name: str, provider_alt_names: list or None = None, inventory_disable_proxy=False,
+    def __init__(self, provider_name: str, provider_alt_names: list | None = None, inventory_disable_proxy=False,
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name
         self._inventory_disable_proxy = inventory_disable_proxy
@@ -126,14 +126,14 @@ class DataProvider:
         else:
             raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
 
-    def _parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
+    def _parameter_range(self, parameter_id: str | ParameterIndex) -> DateTimeRange | None:
         parameter = self._to_parameter_index(parameter_id)
         return DateTimeRange(
             parameter.start_date,
             parameter.stop_date
         )
 
-    def _dataset_range(self, dataset_id: str or DatasetIndex) -> DateTimeRange | None:
+    def _dataset_range(self, dataset_id: str | DatasetIndex) -> DateTimeRange | None:
         ds = self._to_dataset_index(dataset_id)
         return DateTimeRange(
             ds.start_date,
