@@ -112,7 +112,7 @@ class SscWebservice(DataProvider):
     def version(self, product):
         return 4
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> DateTimeRange | None:
+    def parameter_range(self, parameter_id: str | ParameterIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -150,7 +150,7 @@ class SscWebservice(DataProvider):
     @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                   debug=False, extra_http_headers: dict or None = None) -> SpeasyVariable | None:
+                   debug=False, extra_http_headers: dict | None = None) -> SpeasyVariable | None:
         if stop_time - start_time < timedelta(days=1):
             stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
