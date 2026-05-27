@@ -91,6 +91,7 @@ exclude = [
 
 [dependency-groups]
 dev = [
+    "basedpyright[pydantic]",
     "ddt",
     "pytest",
     "pytest-cov",
