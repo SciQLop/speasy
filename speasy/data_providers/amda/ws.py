@@ -94,7 +94,7 @@ spz.get_data("amda/{product.spz_uid()}, start_time, stop_time, product_inputs={{
     return product_id
 
 
-def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
+def _amda_get_real_product_id(product_id: str | SpeasyIndex, **kwargs):
     product_id = to_xmlid(product_id)
     product = flat_inventories.__dict__[amda_provider_name].parameters[product_id]
     if isinstance(product, TemplatedParameterIndex) and not hasattr(product, 'predefined'):
@@ -147,8 +147,8 @@ class AmdaWebservice(ImpexProvider):
             pass
         return False
 
-    def has_time_restriction(self, product_id: str or SpeasyIndex, start_time: str or datetime,
-                             stop_time: str or datetime):
+    def has_time_restriction(self, product_id: str | SpeasyIndex, start_time: str | datetime,
+                             stop_time: str | datetime):
         """Check if product is restricted for a given time range.
 
         Parameters
@@ -176,7 +176,7 @@ class AmdaWebservice(ImpexProvider):
                         DateTimeRange(start_time, stop_time))
         return False
 
-    def product_version(self, parameter_id: str or ParameterIndex):
+    def product_version(self, parameter_id: str | ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
         Parameters
@@ -194,11 +194,11 @@ class AmdaWebservice(ImpexProvider):
             return self.flat_inventory.datasets[dataset].lastModificationDate
         return self.flat_inventory.datasets[dataset].lastUpdate
 
-    def get_real_product_id(self, product_id: str or SpeasyIndex, **kwargs):
+    def get_real_product_id(self, product_id: str | SpeasyIndex, **kwargs):
         return _amda_get_real_product_id(product_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> TimeTable | None:
+    def get_timetable(self, timetable_id: str | TimetableIndex, **kwargs) -> TimeTable | None:
         """Get timetable data by ID.
 
         Parameters
@@ -222,7 +222,7 @@ class AmdaWebservice(ImpexProvider):
         return super().get_timetable(timetable_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def get_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Catalog | None:
+    def get_catalog(self, catalog_id: str | CatalogIndex, **kwargs) -> Catalog | None:
         """Get catalog data by ID.
 
         Parameters
@@ -246,7 +246,7 @@ class AmdaWebservice(ImpexProvider):
         return super().get_catalog(catalog_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention())
-    def get_user_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> TimeTable | None:
+    def get_user_timetable(self, timetable_id: str | TimetableIndex, **kwargs) -> TimeTable | None:
         """Get user timetable. Raises an exception if user is not authenticated.
 
         Parameters
@@ -275,7 +275,7 @@ class AmdaWebservice(ImpexProvider):
         return super().get_user_timetable(timetable_id)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention())
-    def get_user_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Catalog | None:
+    def get_user_catalog(self, catalog_id: str | CatalogIndex, **kwargs) -> Catalog | None:
         """Get user catalog. Raises an exception if user is not authenticated.
 
 
@@ -314,7 +314,7 @@ class AmdaWebservice(ImpexProvider):
                entry_name=_amda_cache_entry_name)
     @Proxyfiable(GetProduct, _amda_get_proxy_parameter_args, min_version=AMDA_MIN_PROXY_VERSION)
     def _get_parameter(self, product, start_time, stop_time,
-                       extra_http_headers: dict or None = None, output_format: str or None = None,
+                       extra_http_headers: dict | None = None, output_format: str | None = None,
                        restricted_period=False, **kwargs) -> \
         SpeasyVariable | None:
         """Get parameter data.
@@ -353,25 +353,25 @@ class AmdaWebservice(ImpexProvider):
                                       output_format=output_format, restricted_period=restricted_period, **kwargs)
 
     @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
-    def _get_obs_data_tree(self) -> str or None:
+    def _get_obs_data_tree(self) -> str | None:
         return super()._get_obs_data_tree(add_template_info=True)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_timetables_tree(self) -> str or None:
+    def _get_timetables_tree(self) -> str | None:
         return super()._get_timetables_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_user_timetables_tree(self) -> str or None:
+    def _get_user_timetables_tree(self) -> str | None:
         return super()._get_user_timetables_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_catalogs_tree(self) -> str or None:
+    def _get_catalogs_tree(self) -> str | None:
         return super()._get_catalogs_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_user_catalogs_tree(self) -> str or None:
+    def _get_user_catalogs_tree(self) -> str | None:
         return super()._get_user_catalogs_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_derived_parameter_tree(self) -> str or None:
+    def _get_derived_parameter_tree(self) -> str | None:
         return super()._get_derived_parameter_tree()
