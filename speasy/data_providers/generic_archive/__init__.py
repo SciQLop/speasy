@@ -87,7 +87,7 @@ class GenericArchive(DataProvider):
                 load_inventory_file(file, root)
         return root
 
-    def _parameter_index(self, product: str or ParameterIndex) -> ParameterIndex:
+    def _parameter_index(self, product: str | ParameterIndex) -> ParameterIndex:
         if type(product) is str:
             if product in self.flat_inventory.parameters:
                 return self.flat_inventory.parameters[product]
@@ -99,7 +99,7 @@ class GenericArchive(DataProvider):
             raise ValueError(f"Got unexpected type {type(product)}, expecting str or ParameterIndex")
 
     @AllowedKwargs(GET_DATA_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['force_refresh'])
-    def get_data(self, product: str or ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
+    def get_data(self, product: str | ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                  **kwargs) -> SpeasyVariable | None:
         var = self._get_data(product=self._parameter_index(product), start_time=start_time, stop_time=stop_time,
                              **kwargs)
