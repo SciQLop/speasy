@@ -175,3 +175,21 @@ skip = "*.gz,*.cdf,*.xml,*.json,*.lock,*.ipynb,*.yaml,*.yaml.example,*.binary,*t
 # THEMIS mission has 5 satellites named THEMIS-A through THEMIS-E); `nd` = N-D
 # (N-dimensional, common in array/data-shape contexts).
 ignore-words-list = "tha,thb,thc,thd,nd"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+include = ["speasy", "tests", "devtools"]
+
+# Don't complain about how we ignore warnings.
+reportIgnoreCommentWithoutRule = false
+reportUnnecessaryTypeIgnoreComment = false
+
+# Noisy report* checks that fire on legitimate dynamic-typing patterns in
+# scientific Python (numpy/pandas) — silence to keep the signal-to-noise
+# ratio sane. Mirrors the AstraLint baseline.
+reportMissingTypeStubs = false
+reportUnusedCallResult = false
+reportAny = false
+reportExplicitAny = false
+reportImplicitStringConcatenation = false
+reportUnreachable = false
