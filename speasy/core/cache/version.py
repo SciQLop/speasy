@@ -4,7 +4,7 @@ import dateutil
 from packaging.version import InvalidVersion, Version, parse
 
 
-def _str_to_version_datetime(v: str) -> datetime.datetime or None:
+def _str_to_version_datetime(v: str) -> datetime.datetime | None:
     try:
         version = dateutil.parser.parse(v)
     except ValueError:
@@ -12,7 +12,7 @@ def _str_to_version_datetime(v: str) -> datetime.datetime or None:
     return version
 
 
-def str_to_version(v: str) -> Version or datetime.datetime or None:
+def str_to_version(v: str) -> Version | datetime.datetime | None:
     """Converts given version str representation to a compatible version object
 
     Parameters
