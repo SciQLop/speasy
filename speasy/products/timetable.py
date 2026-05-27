@@ -34,14 +34,14 @@ class TimeTable(SpeasyProduct):
     def __iter__(self):
         return self._storage.__iter__()
 
-    def append(self, dt_range: DateTimeRange or list[DateTimeRange]):
+    def append(self, dt_range: DateTimeRange | list[DateTimeRange]):
         dt_range = listify(dt_range)
         if not _all_are_datetime_ranges(dt_range):
             raise TypeError(
                 f"You must provide a {DateTimeRange} or a List of {DateTimeRange} instead of {type(dt_range)}")
         self._storage += dt_range
 
-    def __iadd__(self, other: DateTimeRange or list[DateTimeRange]):
+    def __iadd__(self, other: DateTimeRange | list[DateTimeRange]):
         self.append(other)
         return self
 
