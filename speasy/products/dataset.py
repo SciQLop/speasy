@@ -1,4 +1,3 @@
-from typing import Optional
 
 from speasy.core import all_of_type
 from speasy.core.datetime_range import DateTimeRange
@@ -21,7 +20,7 @@ class Dataset(SpeasyProduct):
         self.variables = variables
         self.meta = meta
 
-    def time_range(self) -> Optional[DateTimeRange]:
+    def time_range(self) -> DateTimeRange | None:
         start = min(map(lambda v: v.time[0], filter(len, self.variables.values())), default=None)
         stop = max(map(lambda v: v.time[-1], filter(len, self.variables.values())), default=None)
         if start and stop:

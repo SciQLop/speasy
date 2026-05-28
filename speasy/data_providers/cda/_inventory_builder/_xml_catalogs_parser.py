@@ -1,7 +1,8 @@
+import logging
+import xml.etree.ElementTree as Et
+
 from speasy.core import fix_name
 from speasy.core.inventory.indexes import DatasetIndex, SpeasyIndex, make_inventory_node
-import xml.etree.ElementTree as Et
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ def parse_dataset(inventory_tree, dataset_node):
         print(f'Missing master CDF for {dataset_node.attrib["serviceprovider_ID"]}')
 
 
-def load_xml_catalog(xml_file_path: str, root: SpeasyIndex or None = None):
+def load_xml_catalog(xml_file_path: str, root: SpeasyIndex | None = None):
     with open(xml_file_path) as xml_file:
         tree = Et.fromstring(xml_file.read())
         inventory_tree = root or SpeasyIndex(name='root', provider='cda', uid='cda_root')

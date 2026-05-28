@@ -1,10 +1,10 @@
-from .provider import HapiProvider
 from .exceptions import (
     HapiError,
+    HapiNoData,
     HapiRequestError,
     HapiServerError,
-    HapiNoData,
 )
+from .provider import HapiProvider
 
 __all__ = [
     "HapiProvider",

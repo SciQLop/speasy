@@ -1,5 +1,4 @@
 import json
-from typing import Optional, Union
 
 __INDEXES_TYPES__ = {}
 
@@ -9,7 +8,7 @@ class SpeasyIndex:
         super().__init_subclass__(**kwargs)
         __INDEXES_TYPES__[cls.__name__] = cls
 
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         if meta:
             self.__dict__.update(meta)
         self.__spz_provider__ = provider
@@ -43,7 +42,7 @@ class SpeasyIndex:
 
 
 class TimetableIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -51,7 +50,7 @@ class TimetableIndex(SpeasyIndex):
 
 
 class CatalogIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -59,7 +58,7 @@ class CatalogIndex(SpeasyIndex):
 
 
 class ComponentIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -67,7 +66,7 @@ class ComponentIndex(SpeasyIndex):
 
 
 class ParameterIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -76,7 +75,7 @@ class ParameterIndex(SpeasyIndex):
     def __iter__(self):
         return [v for v in self.__dict__.values() if isinstance(v, ComponentIndex)].__iter__()
 
-    def __contains__(self, item: str or ComponentIndex):
+    def __contains__(self, item: str | ComponentIndex):
         if isinstance(item, ComponentIndex):
             item = item.spz_uid()
         for member in self.__dict__.values():
@@ -87,7 +86,7 @@ class ParameterIndex(SpeasyIndex):
 
 
 class ArgumentIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -95,7 +94,7 @@ class ArgumentIndex(SpeasyIndex):
 
 
 class ArgumentListIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     @property
@@ -118,7 +117,7 @@ class ArgumentListIndex(SpeasyIndex):
 class TemplatedParameterIndex(ParameterIndex):
     __spz_arguments__: ArgumentListIndex
 
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def spz_arguments(self):
@@ -129,7 +128,7 @@ class TemplatedParameterIndex(ParameterIndex):
 
 
 class DatasetIndex(SpeasyIndex):
-    def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
+    def __init__(self, name: str, provider: str, uid: str, meta: dict | None = None):
         super().__init__(name, provider, uid, meta)
 
     def __repr__(self):
@@ -138,7 +137,7 @@ class DatasetIndex(SpeasyIndex):
     def __iter__(self):
         return [v for v in self.__dict__.values() if isinstance(v, ParameterIndex)].__iter__()
 
-    def __contains__(self, item: str or ParameterIndex):
+    def __contains__(self, item: str | ParameterIndex):
         if isinstance(item, ParameterIndex):
             item = item.spz_uid()
         for member in self.__dict__.values():
@@ -148,7 +147,7 @@ class DatasetIndex(SpeasyIndex):
         return False
 
 
-def to_dict(inventory_tree: SpeasyIndex or str, version: int = 1):
+def to_dict(inventory_tree: SpeasyIndex | str, version: int = 1):
     if isinstance(inventory_tree, SpeasyIndex):
         return {key: to_dict(value, version=version) for key, value in inventory_tree.__dict__.items()}
     elif version <= 1:
@@ -165,7 +164,7 @@ def to_dict(inventory_tree: SpeasyIndex or str, version: int = 1):
     return inventory_tree
 
 
-def from_dict(inventory_tree: dict or str, version: int = 1):
+def from_dict(inventory_tree: dict | str, version: int = 1):
     if version <= 1:
         if type(inventory_tree) is str:
             return inventory_tree
@@ -201,7 +200,7 @@ def make_inventory_node(parent, ctor, name, provider, uid, **meta):
 def inventory_has_changed(orig, new):
     if orig.__dict__.keys() != new.__dict__.keys():
         return True
-    for orig_key, orig_value in orig.__dict__.items():
+    for orig_key in orig.__dict__:
         if orig_key != 'build_date':
             if orig_key not in new.__dict__:
                 return True
@@ -210,5 +209,6 @@ def inventory_has_changed(orig, new):
     return False
 
 
-AnyProductIndex = Union[
-    ParameterIndex, TemplatedParameterIndex, DatasetIndex, TimetableIndex, CatalogIndex, ComponentIndex]
+AnyProductIndex = (
+    ParameterIndex | TemplatedParameterIndex | DatasetIndex | TimetableIndex | CatalogIndex | ComponentIndex
+)

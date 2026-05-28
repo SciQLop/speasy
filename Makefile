@@ -45,27 +45,27 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '__pycache__' -exec rm -fr {} +
 
 clean-test: ## remove test and coverage artifacts
-	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-lint: ## check style with flake8
-	flake8 speasy tests --count --select=E9,F63,F7,F82 --show-source --statistics
+lint: ## check style and spelling
+	uv run --with ruff ruff check speasy tests devtools
+	uv run --with codespell codespell
+
+typecheck: ## run basedpyright type checks (non-blocking; see PR 15 for blocking)
+	uv run basedpyright || true
 
 doctest:
 	$(MAKE) -C docs doctest
 
-test: ## run tests quickly with the default Python
-	PYTHONPATH=. py.test
+test: ## run tests quickly with uv
+	uv run pytest
 
-test-all: doctest ## run tests on every Python version with tox
-	tox
-
-coverage: ## check code coverage quickly with the default Python
-	coverage run --source speasy -m pytest
-	coverage report -m
-	coverage html
+coverage: ## check code coverage quickly with uv
+	uv run coverage run --source speasy -m pytest
+	uv run coverage report -m
+	uv run coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation, including API docs
@@ -85,9 +85,9 @@ release: dist ## package and upload a release
 dist: clean ## builds source and wheel package
 	python -m build --sdist --wheel
 
-install: clean ## install the package to the active Python's site-packages
-	python -m pip install .
+install: clean ## install the package via uv
+	uv sync
 
-readme: ## open the README file in the default web browser
-	PYTHONPATH=. python -m jupyter nbconvert --execute --to markdown README.ipynb --output README.md
-	python scripts/relocate_readme_images.py --readme-path=README.md --new-image-location="https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/"
+readme: ## regenerate README.md from README.ipynb
+	uv run jupyter nbconvert --execute --to markdown README.ipynb --output README.md
+	uv run python scripts/relocate_readme_images.py --readme-path=README.md --new-image-location="https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/"

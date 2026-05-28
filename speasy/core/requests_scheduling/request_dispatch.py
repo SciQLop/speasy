@@ -1,29 +1,41 @@
+import logging
 import os
-from datetime import datetime
-from typing import Iterable, List, Optional, Tuple, Union, overload
 import traceback
+from collections.abc import Iterable
+from datetime import datetime
+from typing import overload
 
 import numpy as np
-import logging
 
+from ...config import core as core_cfg
+from ...data_providers import (
+    AmdaWebservice,
+    CdaWebservice,
+    Cdpp3dViewWebservice,
+    CsaWebservice,
+    GenericArchive,
+    SscWebservice,
+    UiowaEphTool,
+)
+from ...products import Catalog, Dataset, MaybeAnyProduct, SpeasyVariable, TimeTable
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
-from ..inventory.indexes import (CatalogIndex, ComponentIndex,
-                                 DatasetIndex, ParameterIndex,
-                                 SpeasyIndex, TimetableIndex)
-from ...config import core as core_cfg
-from ...products import *
-from ...data_providers import (AmdaWebservice, CdaWebservice, CsaWebservice,
-                               SscWebservice, GenericArchive, UiowaEphTool,
-                               Cdpp3dViewWebservice)
 from ..http import is_server_up
+from ..inventory.indexes import (
+    CatalogIndex,
+    ComponentIndex,
+    DatasetIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    TimetableIndex,
+)
 
 log = logging.getLogger(__name__)
 
-TimeT = Union[str, datetime, float, np.datetime64]
-TimeRangeT = Union[DateTimeRange, Tuple[TimeT, TimeT]]
-TimeSerieIndexT = Union[ParameterIndex, ComponentIndex]
-TimeRangeCollectionT = Union[TimetableIndex, CatalogIndex, Iterable[Iterable[Union[TimeT]]]]
+TimeT = str | datetime | float | np.datetime64
+TimeRangeT = DateTimeRange | tuple[TimeT, TimeT]
+TimeSerieIndexT = ParameterIndex | ComponentIndex
+TimeRangeCollectionT = TimetableIndex | CatalogIndex | Iterable[Iterable[TimeT]]
 
 PROVIDERS = {}
 amda = None
@@ -137,7 +149,7 @@ if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
     init_providers()
 
 
-def list_providers() -> List[str]:
+def list_providers() -> list[str]:
     return list(PROVIDERS.keys())
 
 
@@ -152,56 +164,54 @@ def get_data(product: TimetableIndex, **kwargs) -> TimeTable:
 
 
 @overload
-def get_data(product: str, **kwargs) -> TimeTable or Catalog:
+def get_data(product: str, **kwargs) -> TimeTable | Catalog:
     ...
 
 
 @overload
-def get_data(product: DatasetIndex, start_time: TimeT, stop_time: TimeT, **kwargs) -> Dataset or None:
+def get_data(product: DatasetIndex, start_time: TimeT, stop_time: TimeT, **kwargs) -> Dataset | None:
     ...
 
 
 @overload
-def get_data(product: DatasetIndex, time_range: TimeRangeT, **kwargs) -> Dataset or None:
+def get_data(product: DatasetIndex, time_range: TimeRangeT, **kwargs) -> Dataset | None:
     ...
 
 
 @overload
-def get_data(product: DatasetIndex, time_range: Iterable[TimeRangeT], **kwargs) -> List[Optional[Dataset]] or None:
+def get_data(product: DatasetIndex, time_range: Iterable[TimeRangeT], **kwargs) -> list[Dataset | None] | None:
     ...
 
 
 @overload
-def get_data(product: TimeSerieIndexT, start_time: TimeT, stop_time: TimeT, **kwargs) -> SpeasyVariable or None:
+def get_data(product: TimeSerieIndexT, start_time: TimeT, stop_time: TimeT, **kwargs) -> SpeasyVariable | None:
     ...
 
 
 @overload
-def get_data(product: TimeSerieIndexT, time_range: TimeRangeT, **kwargs) -> SpeasyVariable or None:
+def get_data(product: TimeSerieIndexT, time_range: TimeRangeT, **kwargs) -> SpeasyVariable | None:
     ...
 
 
 @overload
-def get_data(product: TimeSerieIndexT, time_range: Iterable[TimeRangeT], **kwargs) -> List[Optional[
-    SpeasyVariable]] or None:
+def get_data(product: TimeSerieIndexT, time_range: Iterable[TimeRangeT], **kwargs) -> list[SpeasyVariable | None] | None:
     ...
 
 
 @overload
-def get_data(product: TimeSerieIndexT, time_range: TimeRangeCollectionT, **kwargs) -> List[Optional[
-    SpeasyVariable]] or None:
+def get_data(product: TimeSerieIndexT, time_range: TimeRangeCollectionT, **kwargs) -> list[SpeasyVariable | None] | None:
     ...
 
 
 @overload
 def get_data(product: Iterable[TimeSerieIndexT], start_time: TimeT, stop_time: TimeT,
-             **kwargs) -> List[Optional[SpeasyVariable]] or None:
+             **kwargs) -> list[SpeasyVariable | None] | None:
     ...
 
 
 @overload
-def get_data(product: Iterable[TimeSerieIndexT], time_range: TimeRangeCollectionT, **kwargs) -> List[List[
-    Optional[SpeasyVariable]]] or None:
+def get_data(product: Iterable[TimeSerieIndexT], time_range: TimeRangeCollectionT, **kwargs) -> list[list[
+    SpeasyVariable | None]] | None:
     ...
 
 
@@ -209,7 +219,7 @@ def _could_be_datetime(value):
     return type(value) in (str, datetime, np.datetime64, float)
 
 
-def provider_and_product(path_or_product: str or SpeasyIndex) -> (str, str):
+def provider_and_product(path_or_product: str | SpeasyIndex) -> tuple[str, str]:
     """Breaks given product in two parts: provider and product UID
 
     Parameters

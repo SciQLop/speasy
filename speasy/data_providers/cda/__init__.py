@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """CDA_Webservice package for Space Physics WebServices Client."""
 
@@ -9,23 +8,21 @@ __version__ = '0.1.0'
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+
 from packaging.version import Version
 
-from speasy.core import AllowedKwargs, EnsureUTCDateTime
-from speasy.core import http, url_utils
 from speasy.config import cdaweb as cda_cfg
-from speasy.core.codecs import get_codec
+from speasy.core import AllowedKwargs, EnsureUTCDateTime, http, url_utils
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
-from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
-                                      ParameterRangeCheck)
+from speasy.core.codecs import get_codec
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider, ParameterRangeCheck
 from speasy.core.datetime_range import DateTimeRange
-from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
-                                           SpeasyIndex)
+from speasy.core.direct_archive_downloader import get_product as direct_archive_get_product
+from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.core.direct_archive_downloader import get_product as direct_archive_get_product
 from speasy.products.variable import SpeasyVariable
+
 from ._direct_archive import to_direct_archive_params
 
 log = logging.getLogger(__name__)
@@ -33,7 +30,7 @@ log = logging.getLogger(__name__)
 _burst_regex = re.compile("(.*MMS.*FPI.*BRST.*|.*MMS.*SCM.*BRST.*)")
 
 
-def _is_burst_product(product: ParameterIndex or str) -> bool:
+def _is_burst_product(product: ParameterIndex | str) -> bool:
     if isinstance(product, ParameterIndex):
         product = product.spz_uid()
     return bool(_burst_regex.match(str(product)))
@@ -59,7 +56,7 @@ def _cache_fragment_size(product):
 
 class CdaWebException(Exception):
     def __init__(self, text):
-        super(CdaWebException, self).__init__(text)
+        super().__init__(text)
 
 
 def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: str, **_):
@@ -84,7 +81,7 @@ class CdaWebservice(DataProvider):
         root = build_inventory(root=root)
         return root
 
-    def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+    def parameter_range(self, parameter_id: str | ParameterIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -107,7 +104,7 @@ class CdaWebservice(DataProvider):
         """
         return self._parameter_range(parameter_id)
 
-    def dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+    def dataset_range(self, dataset_id: str | DatasetIndex) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters
@@ -130,7 +127,7 @@ class CdaWebservice(DataProvider):
         """
         return self._dataset_range(dataset_id)
 
-    def _to_dataset_and_variable(self, index_or_str: ParameterIndex or str) -> Tuple[str, str]:
+    def _to_dataset_and_variable(self, index_or_str: ParameterIndex | str) -> tuple[str, str]:
 
         if isinstance(index_or_str, ParameterIndex):
             index_or_str = index_or_str.spz_uid()
@@ -152,8 +149,8 @@ class CdaWebservice(DataProvider):
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
-                     extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+                     start_time: datetime, stop_time: datetime, if_newer_than: datetime | None = None,
+                     extra_http_headers: dict | None = None) -> SpeasyVariable | None:
         start_time, stop_time = start_time.strftime('%Y%m%dT%H%M%SZ'), stop_time.strftime('%Y%m%dT%H%M%SZ')
         fmt = "cdf"
         url = f"{self.__url}/dataviews/sp_phys/datasets/{url_utils.quote(dataset, safe='')}/data/{start_time},{stop_time}/{url_utils.quote(variable, safe='')}?format={fmt}"
@@ -178,15 +175,15 @@ class CdaWebservice(DataProvider):
     @SplitLargeRequests(threshold=_large_request_max_duration)
     @Proxyfiable(GetProduct, get_parameter_args_ws)
     def _get_data_with_ws(self, product, start_time: datetime, stop_time: datetime,
-                          if_newer_than: datetime or None = None,
-                          extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+                          if_newer_than: datetime | None = None,
+                          extra_http_headers: dict | None = None) -> SpeasyVariable | None:
         dataset, variable = self._to_dataset_and_variable(product)
         return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
                                  variable=variable, if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
 
     def _get_data_with_direct_archive(self, product, start_time: datetime, stop_time: datetime, mode_is_best: bool,
-                                      if_newer_than: datetime or None = None,
-                                      extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+                                      if_newer_than: datetime | None = None,
+                                      extra_http_headers: dict | None = None) -> SpeasyVariable | None:
 
         dataset, variable = self._to_dataset_and_variable(product)
         dataset = self.flat_inventory.datasets[dataset]
@@ -212,9 +209,8 @@ class CdaWebservice(DataProvider):
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than', 'method'])
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
-    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime or None = None,
-                 extra_http_headers: Dict or None = None, method: Optional[str] = None, **kwargs) -> Optional[
-        SpeasyVariable]:
+    def get_data(self, product, start_time: datetime, stop_time: datetime, if_newer_than: datetime | None = None,
+                 extra_http_headers: dict | None = None, method: str | None = None, **kwargs) -> SpeasyVariable | None:
         method = method or cda_cfg.preferred_access_method.get()
         if method.upper() in ('FILE', 'BEST'):
             return self._get_data_with_direct_archive(product=product, start_time=start_time, stop_time=stop_time,
@@ -225,7 +221,7 @@ class CdaWebservice(DataProvider):
             return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
                                           if_newer_than=if_newer_than, extra_http_headers=extra_http_headers, **kwargs)
 
-    def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
+    def get_variable(self, dataset: str, variable: str, start_time: datetime | str, stop_time: datetime | str,
                      **kwargs) -> \
-        Optional[SpeasyVariable]:
+        SpeasyVariable | None:
         return self.get_data(f"{dataset}/{variable}", start_time, stop_time, **kwargs)

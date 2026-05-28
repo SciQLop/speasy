@@ -1,4 +1,3 @@
-from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.codecs.codecs_registry import register_codec
 
 from ..codec import HapiBaseCodec

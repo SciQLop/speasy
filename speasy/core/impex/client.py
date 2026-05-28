@@ -1,12 +1,10 @@
-from enum import Enum
-from typing import Dict, Union
-from json.decoder import JSONDecodeError
 import logging
 import time
+from enum import Enum
+from json.decoder import JSONDecodeError
 
 from ...core import http
 from ...core.http import is_server_up
-
 from .exceptions import MissingCredentials, UnavailableEndpoint
 
 log = logging.getLogger(__name__)
@@ -59,7 +57,7 @@ class ImpexClient:
     def reachable(self):
         try:
             return is_server_up(url=f"{self.server_url}/")
-        except (Exception,):
+        except Exception:
             pass
         return False
 
@@ -149,7 +147,7 @@ class ImpexClient:
             raise TypeError(f"You must provide an {ImpexEndpoint} instead of {type(endpoint)}")
 
     def _send_indirect_request(self, endpoint: ImpexEndpoint, params: dict = None,
-                               timeout: int = http.DEFAULT_TIMEOUT) -> str or None:
+                               timeout: int = http.DEFAULT_TIMEOUT) -> str | None:
         next_url = self._send_request(endpoint=endpoint, params=params, timeout=timeout)
         if '<' in next_url and '>' in next_url:
             next_url = next_url.split(">")[1].split("<")[0]
@@ -158,8 +156,8 @@ class ImpexClient:
             return r.text.strip()
         return None
 
-    def _send_request(self, endpoint: ImpexEndpoint, params: Dict = None, timeout: int = http.DEFAULT_TIMEOUT,
-                      extra_http_headers: Union[Dict, None] = None) -> Union[str, bool, None]:
+    def _send_request(self, endpoint: ImpexEndpoint, params: dict = None, timeout: int = http.DEFAULT_TIMEOUT,
+                      extra_http_headers: dict | None = None) -> str | bool | None:
         if not self.is_capable(endpoint):
             raise UnavailableEndpoint()
         url = self._request_url(endpoint)

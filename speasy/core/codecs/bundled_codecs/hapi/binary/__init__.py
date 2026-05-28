@@ -1,2 +1,4 @@
+from . import reader
 from .codec import HapiBinary
-from . import reader 
+
+__all__ = ["HapiBinary", "reader"]

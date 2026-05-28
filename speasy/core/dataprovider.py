@@ -1,14 +1,18 @@
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import wraps
 from threading import Lock
-from typing import Callable, List, Optional
 
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
-from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
-                                           SpeasyIndex, inventory_has_changed)
-from speasy.core.proxy import GetInventory, Proxyfiable, MINIMUM_REQUIRED_PROXY_VERSION
+from speasy.core.inventory.indexes import (
+    DatasetIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    inventory_has_changed,
+)
+from speasy.core.proxy import MINIMUM_REQUIRED_PROXY_VERSION, GetInventory, Proxyfiable
 from speasy.inventories import flat_inventories, tree
 
 log = logging.getLogger(__name__)
@@ -16,7 +20,7 @@ GET_DATA_ALLOWED_KWARGS = ['product', 'start_time', 'stop_time', 'extra_http_hea
 PROVIDERS = {}
 
 
-class ParameterRangeCheck(object):
+class ParameterRangeCheck:
     def __init__(self):
         pass
 
@@ -51,7 +55,7 @@ class DataProvider:
         Minimum required version of the proxy server to use for fetching the inventory.
     """
 
-    def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False,
+    def __init__(self, provider_name: str, provider_alt_names: list | None = None, inventory_disable_proxy=False,
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.provider_name = provider_name
         self._inventory_disable_proxy = inventory_disable_proxy
@@ -122,14 +126,14 @@ class DataProvider:
         else:
             raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
 
-    def _parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
+    def _parameter_range(self, parameter_id: str | ParameterIndex) -> DateTimeRange | None:
         parameter = self._to_parameter_index(parameter_id)
         return DateTimeRange(
             parameter.start_date,
             parameter.stop_date
         )
 
-    def _dataset_range(self, dataset_id: str or DatasetIndex) -> Optional[DateTimeRange]:
+    def _dataset_range(self, dataset_id: str | DatasetIndex) -> DateTimeRange | None:
         ds = self._to_dataset_index(dataset_id)
         return DateTimeRange(
             ds.start_date,

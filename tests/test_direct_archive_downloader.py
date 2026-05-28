@@ -1,12 +1,20 @@
 import unittest
-from multiprocessing import Pool
-from ddt import ddt, data, unpack
+
+import pytest
+from ddt import data, ddt, unpack
+
+pytestmark = pytest.mark.contract
+
 
 import speasy as spz
 from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
 from speasy.core.direct_archive_downloader import get_product
-from speasy.core.direct_archive_downloader.direct_archive_downloader import spilt_range, _read_cdf, map_ranges
+from speasy.core.direct_archive_downloader.direct_archive_downloader import (
+    _read_cdf,
+    map_ranges,
+    spilt_range,
+)
 
 
 def _custom_cdf_loader(url, variable, *args, **kwargs):

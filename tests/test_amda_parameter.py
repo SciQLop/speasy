@@ -1,11 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `amda` package parameter getting functions."""
 
 import unittest
-from ddt import data, ddt
 from datetime import datetime, timedelta
+
+import pytest
+from ddt import data, ddt
+
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
+
 
 import numpy as np
 
@@ -96,7 +100,7 @@ class ParameterRequests(unittest.TestCase):
 class AMDAParametersPlots(unittest.TestCase):
     def setUp(self):
         try:
-            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt  # noqa: F401  # reason: import-only test for availability
         except ImportError:
             self.skipTest("Can't import matplotlib")
 

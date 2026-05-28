@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """Cdpp 3dView package for Space Physics WebServices Client."""
 
@@ -8,13 +7,11 @@ __version__ = "0.1.0"
 
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 from speasy import SpeasyVariable
 from speasy.core import fix_name, http
 from speasy.core.algorithms import AllowedKwargs
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
-
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.core.dataprovider import (
     GET_DATA_ALLOWED_KWARGS,
@@ -56,7 +53,7 @@ class Cdpp3dViewWebservice(DataProvider):
     BASE_URL = "https://3dview.irap.omp.eu/webresources"
 
     def __init__(self):
-        self._frames: List[str] = []
+        self._frames: list[str] = []
         DataProvider.__init__(
             self, provider_name="cdpp3dview", provider_alt_names=["3DView"],
             min_proxy_version=CDPP3DVIEW_MIN_PROXY_VERSION
@@ -130,9 +127,9 @@ class Cdpp3dViewWebservice(DataProvider):
         stop_time: AnyDateTimeType,
         coordinate_frame: str = "J2000",
         sampling: str = "600",
-        if_newer_than: Optional[AnyDateTimeType] = None,
+        if_newer_than: AnyDateTimeType | None = None,
         **kwargs,
-    ) -> Optional[SpeasyVariable]:
+    ) -> SpeasyVariable | None:
         available_frames = self.get_frames()
         if not available_frames:
             log.warning(
@@ -173,7 +170,7 @@ class Cdpp3dViewWebservice(DataProvider):
         stop_time: AnyDateTimeType,
         coordinate_frame: str,
         sampling: str = "600",
-        if_newer_than: Optional[AnyDateTimeType] = None,
+        if_newer_than: AnyDateTimeType | None = None,
         format: str = "cdf",
         **kwargs,
     ):
@@ -206,12 +203,12 @@ class Cdpp3dViewWebservice(DataProvider):
         else:
             return None
 
-    def get_frames(self) -> List[str]:
+    def get_frames(self) -> list[str]:
         return self._frames
 
     def parameter_range(
         self, parameter_id: str | ParameterIndex
-    ) -> Optional[DateTimeRange]:
+    ) -> DateTimeRange | None:
         """Get product time range.
 
         Parameters

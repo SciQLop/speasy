@@ -1,11 +1,22 @@
-from typing import Union, Optional
-import re
-from .cache import Cache, CacheItem
-from ._function_cache import CacheCall
-from ._providers_caches import CACHE_ALLOWED_KWARGS, Cacheable, UnversionedProviderCache
-from ._instance import _cache
-from ._request_locker import request_locker, PendingRequest
 import logging
+import re
+
+from ._function_cache import CacheCall
+from ._instance import _cache
+from ._providers_caches import CACHE_ALLOWED_KWARGS, Cacheable, UnversionedProviderCache
+from ._request_locker import PendingRequest, request_locker
+from .cache import Cache, CacheItem
+
+__all__ = [
+    "CACHE_ALLOWED_KWARGS",
+    "Cache",
+    "CacheCall",
+    "CacheItem",
+    "Cacheable",
+    "PendingRequest",
+    "UnversionedProviderCache",
+    "request_locker",
+]
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +90,7 @@ def get_item(key, default_value=None):
     return _cache.get(key, default_value)
 
 
-def drop_matching_entries(pattern: Union[str, re.Pattern], cache_instance: Optional[Cache] = None):
+def drop_matching_entries(pattern: str | re.Pattern, cache_instance: Cache | None = None):
     """Drop all cache entries that match a given pattern
 
     Parameters

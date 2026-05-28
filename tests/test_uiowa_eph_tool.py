@@ -1,11 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
 import os
 import unittest
+
 import numpy as np
+import pytest
 from ddt import data, ddt, unpack
+
+pytestmark = pytest.mark.contract
+
 
 import speasy as spz
 from speasy.data_providers import uiowa_eph_tool
@@ -31,7 +35,7 @@ class SscUiowaEphTool(unittest.TestCase):
     )
     @unpack
     def test_parses_csv_result(self, fname, product, data_rows, start_time, stop_time):
-        with open(fname, 'r') as f:
+        with open(fname) as f:
             eph = uiowa_eph_tool.parse_trajectory(f.read(), product)
             self.assertIsNotNone(eph)
             self.assertEqual(len(eph), data_rows)

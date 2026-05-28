@@ -5,13 +5,15 @@
    import numpy as np
 """
 
-from typing import Union, Any, List, Iterable, Sequence, Type
+from collections.abc import Iterable, Sequence
 from datetime import datetime
+from typing import Any
+
 import numpy as np
 
-AnyDateTimeType = Union[str, datetime, np.float64, float, np.datetime64]
+AnyDateTimeType = str | datetime | np.float64 | float | np.datetime64
 
-def all_of_type(collection: Sequence, expected_type: Type) -> bool:
+def all_of_type(collection: Sequence, expected_type: type) -> bool:
     """Returns true only if the type of all elements in given collection is expected_type
 
     Parameters
@@ -53,7 +55,7 @@ def is_collection(value: Any) -> bool:
     return isinstance(value, Iterable) and type(value) is not str
 
 
-def listify(obj: Any) -> List:
+def listify(obj: Any) -> list:
     """Wraps inside a list anything that is not a list. Useful in for loops when you can't be sure
     the object you want to iterate is a list.
 

@@ -2,27 +2,31 @@
 """
 import json
 import logging
-import warnings
 import os
+import warnings
 from datetime import datetime
-from typing import Dict, Optional
 
 from ...config import amda as amda_cfg
-from ...core import AllowedKwargs, make_utc_datetime, EnsureUTCDateTime
-from ...core.http import is_server_up
+from ...core import AllowedKwargs, EnsureUTCDateTime, make_utc_datetime
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
-from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, ParameterRangeCheck)
+from ...core.dataprovider import GET_DATA_ALLOWED_KWARGS, ParameterRangeCheck
 from ...core.datetime_range import DateTimeRange
-from ...core.inventory.indexes import (CatalogIndex, ParameterIndex, TemplatedParameterIndex,
-                                       SpeasyIndex, TimetableIndex, ArgumentIndex)
+from ...core.http import is_server_up
+from ...core.impex import ImpexEndpoint, ImpexProvider, to_xmlid
+from ...core.impex.exceptions import BadTemplateArgDefinition
+from ...core.inventory.indexes import (
+    ArgumentIndex,
+    CatalogIndex,
+    ParameterIndex,
+    SpeasyIndex,
+    TemplatedParameterIndex,
+    TimetableIndex,
+)
 from ...core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable, Version
 from ...inventories import flat_inventories
 from ...products.catalog import Catalog
 from ...products.timetable import TimeTable
 from ...products.variable import SpeasyVariable
-
-from ...core.impex import ImpexProvider, ImpexEndpoint, to_xmlid
-from ...core.impex.exceptions import BadTemplateArgDefinition
 
 log = logging.getLogger(__name__)
 
@@ -59,11 +63,12 @@ def _amda_arguments_to_dict(index):
 
 def _argument_fits_allowed_values(value:str, argument_desc:ArgumentIndex):
     if argument_desc.type == 'list':
-        return value in list(zip(*argument_desc.choices))[1]
+        return value in list(zip(*argument_desc.choices, strict=False))[1]
     return True
 
 def _stack_level_outside_of_speasy():
     import inspect
+
     import speasy as spz
     level = 0
     for frame in inspect.stack():
@@ -72,14 +77,13 @@ def _stack_level_outside_of_speasy():
         level += 1
     return level
 
-def _amda_replace_arguments_in_template(product: TemplatedParameterIndex, product_inputs: Dict[str,str]):
+def _amda_replace_arguments_in_template(product: TemplatedParameterIndex, product_inputs: dict[str,str]):
     product_id = product.template
     for arg in product.spz_arguments():
         k = arg.key
         v = product_inputs.get(k)
         if v is None:
             v = arg.default
-            import speasy as spz
             warnings.warn(f"""Argument {arg.key} is not provided, using default value {v}
 You can set Derived Parameters inputs using:
 spz.get_data("amda/{product.spz_uid()}, start_time, stop_time, product_inputs={{'{k}': '{arg.default}' }})
@@ -90,7 +94,7 @@ spz.get_data("amda/{product.spz_uid()}, start_time, stop_time, product_inputs={{
     return product_id
 
 
-def _amda_get_real_product_id(product_id: str or SpeasyIndex, **kwargs):
+def _amda_get_real_product_id(product_id: str | SpeasyIndex, **kwargs):
     product_id = to_xmlid(product_id)
     product = flat_inventories.__dict__[amda_provider_name].parameters[product_id]
     if isinstance(product, TemplatedParameterIndex) and not hasattr(product, 'predefined'):
@@ -110,11 +114,11 @@ def _amda_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
         return f"{prefix}/{real_product_id}/{start_time}"
 
 
-def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> Dict:
+def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs) -> dict:
     proxy_args = {'path': f"{amda_provider_name}/{product}", 'start_time': f'{start_time.isoformat()}',
                   'stop_time': f'{stop_time.isoformat()}',
                   'output_format': kwargs.get('output_format', amda_cfg.output_format.get())}
-    if kwargs.get('product_inputs') and isinstance(kwargs.get('product_inputs'), Dict):
+    if kwargs.get('product_inputs') and isinstance(kwargs.get('product_inputs'), dict):
         proxy_args['product_inputs'] = json.dumps(kwargs.get('product_inputs'))
     return proxy_args
 
@@ -139,12 +143,12 @@ class AmdaWebservice(ImpexProvider):
         """
         try:
             return is_server_up(url=amda_cfg.entry_point())
-        except (Exception,):
+        except Exception:
             pass
         return False
 
-    def has_time_restriction(self, product_id: str or SpeasyIndex, start_time: str or datetime,
-                             stop_time: str or datetime):
+    def has_time_restriction(self, product_id: str | SpeasyIndex, start_time: str | datetime,
+                             stop_time: str | datetime):
         """Check if product is restricted for a given time range.
 
         Parameters
@@ -172,7 +176,7 @@ class AmdaWebservice(ImpexProvider):
                         DateTimeRange(start_time, stop_time))
         return False
 
-    def product_version(self, parameter_id: str or ParameterIndex):
+    def product_version(self, parameter_id: str | ParameterIndex):
         """Get date of last modification of dataset or parameter.
 
         Parameters
@@ -190,11 +194,11 @@ class AmdaWebservice(ImpexProvider):
             return self.flat_inventory.datasets[dataset].lastModificationDate
         return self.flat_inventory.datasets[dataset].lastUpdate
 
-    def get_real_product_id(self, product_id: str or SpeasyIndex, **kwargs):
+    def get_real_product_id(self, product_id: str | SpeasyIndex, **kwargs):
         return _amda_get_real_product_id(product_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def get_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
+    def get_timetable(self, timetable_id: str | TimetableIndex, **kwargs) -> TimeTable | None:
         """Get timetable data by ID.
 
         Parameters
@@ -218,7 +222,7 @@ class AmdaWebservice(ImpexProvider):
         return super().get_timetable(timetable_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def get_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
+    def get_catalog(self, catalog_id: str | CatalogIndex, **kwargs) -> Catalog | None:
         """Get catalog data by ID.
 
         Parameters
@@ -242,7 +246,7 @@ class AmdaWebservice(ImpexProvider):
         return super().get_catalog(catalog_id, **kwargs)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention())
-    def get_user_timetable(self, timetable_id: str or TimetableIndex, **kwargs) -> Optional[TimeTable]:
+    def get_user_timetable(self, timetable_id: str | TimetableIndex, **kwargs) -> TimeTable | None:
         """Get user timetable. Raises an exception if user is not authenticated.
 
         Parameters
@@ -271,7 +275,7 @@ class AmdaWebservice(ImpexProvider):
         return super().get_user_timetable(timetable_id)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention())
-    def get_user_catalog(self, catalog_id: str or CatalogIndex, **kwargs) -> Optional[Catalog]:
+    def get_user_catalog(self, catalog_id: str | CatalogIndex, **kwargs) -> Catalog | None:
         """Get user catalog. Raises an exception if user is not authenticated.
 
 
@@ -310,10 +314,9 @@ class AmdaWebservice(ImpexProvider):
                entry_name=_amda_cache_entry_name)
     @Proxyfiable(GetProduct, _amda_get_proxy_parameter_args, min_version=AMDA_MIN_PROXY_VERSION)
     def _get_parameter(self, product, start_time, stop_time,
-                       extra_http_headers: Dict or None = None, output_format: str or None = None,
+                       extra_http_headers: dict | None = None, output_format: str | None = None,
                        restricted_period=False, **kwargs) -> \
-        Optional[
-            SpeasyVariable]:
+        SpeasyVariable | None:
         """Get parameter data.
 
         Parameters
@@ -350,25 +353,25 @@ class AmdaWebservice(ImpexProvider):
                                       output_format=output_format, restricted_period=restricted_period, **kwargs)
 
     @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
-    def _get_obs_data_tree(self) -> str or None:
+    def _get_obs_data_tree(self) -> str | None:
         return super()._get_obs_data_tree(add_template_info=True)
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_timetables_tree(self) -> str or None:
+    def _get_timetables_tree(self) -> str | None:
         return super()._get_timetables_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_user_timetables_tree(self) -> str or None:
+    def _get_user_timetables_tree(self) -> str | None:
         return super()._get_user_timetables_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_catalogs_tree(self) -> str or None:
+    def _get_catalogs_tree(self) -> str | None:
         return super()._get_catalogs_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_user_catalogs_tree(self) -> str or None:
+    def _get_user_catalogs_tree(self) -> str | None:
         return super()._get_user_catalogs_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_derived_parameter_tree(self) -> str or None:
+    def _get_derived_parameter_tree(self) -> str | None:
         return super()._get_derived_parameter_tree()

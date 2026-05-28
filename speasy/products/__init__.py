@@ -1,13 +1,12 @@
 from .base_product import SpeasyProduct
 from .catalog import Catalog, Event
-from .timetable import TimeTable
 from .dataset import Dataset
-from .variable import SpeasyVariable, VariableTimeAxis, VariableAxis, DataContainer
-from typing import Optional, Union, List
+from .timetable import TimeTable
+from .variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 
-MaybeAnyProduct = Optional[Union[SpeasyProduct, List[SpeasyProduct]]]
-MaybeTimeDependentProduct = Optional[Union[SpeasyVariable, Dataset]]
-MaybeTimeIndependentProduct = Optional[Union[TimeTable, Catalog]]
+MaybeAnyProduct = SpeasyProduct | list[SpeasyProduct] | None
+MaybeTimeDependentProduct = SpeasyVariable | Dataset | None
+MaybeTimeIndependentProduct = TimeTable | Catalog | None
 
 __all__ = ['SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable', 'MaybeAnyProduct', 'MaybeTimeDependentProduct',
            'MaybeTimeIndependentProduct', 'VariableAxis', 'VariableTimeAxis', 'DataContainer']

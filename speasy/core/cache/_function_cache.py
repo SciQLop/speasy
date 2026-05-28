@@ -1,8 +1,8 @@
 import base64
 import inspect
+from collections.abc import Callable
 from datetime import timedelta
 from functools import wraps
-from typing import Callable, Optional
 
 from ._instance import _cache
 from .cache import CacheItem
@@ -15,7 +15,7 @@ def make_key_from_args(*args, **kwargs):
     return base64.b64encode(result.encode()).decode()
 
 
-class CacheCall(object):
+class CacheCall:
     def __init__(self, cache_retention=60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False):
         from ..platform import is_running_on_wasm
         if type(cache_retention) is timedelta:
@@ -25,7 +25,7 @@ class CacheCall(object):
         self.is_methode = False
         self.is_pure = is_pure
         self.version = version
-        self._cache_entry_prefix: Optional[str] = None
+        self._cache_entry_prefix: str | None = None
         self._leak_cache = leak_cache
         self._disable_cache = is_running_on_wasm()
 
@@ -76,7 +76,7 @@ class CacheCall(object):
                                                                                                         function(*args,
                                                                                                                  **kwargs))
 
-        setattr(wrapped, "drop_entries", self.drop_entries)
+        wrapped.drop_entries = self.drop_entries
         if self._leak_cache:
-            setattr(wrapped, "cache", self.cache)
+            wrapped.cache = self.cache
         return wrapped
