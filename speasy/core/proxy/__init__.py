@@ -107,7 +107,8 @@ class GetInventory:
         saved_inventory: SpeasyIndex = index.get("proxy_inventories", provider, None)
         saved_inventory_dt: datetime = make_utc_datetime(
             index.get("proxy_inventories_save_date", provider, datetime.fromtimestamp(0, tz=timezone.utc)))
-        if saved_inventory_dt + timedelta(days=inventories_cfg.cache_retention_days.get()) > datetime.now(
+        if saved_inventory is not None and \
+                saved_inventory_dt + timedelta(days=inventories_cfg.cache_retention_days.get()) > datetime.now(
             tz=timezone.utc):
             return saved_inventory
 
