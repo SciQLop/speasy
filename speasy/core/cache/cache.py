@@ -53,9 +53,10 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     """Detect a legacy diskcache layout at ``full_path`` and migrate it to
     sciqlop-cache format. Returns True if a migration was performed.
 
-    The migration runs against a sibling staging directory; the original is
-    only renamed to ``<full_path>.diskcache.backup`` once the new cache is
-    fully written. On any failure the original is left untouched.
+    The legacy cache is renamed to ``<full_path>.diskcache.backup`` and the new
+    cache is written directly at ``full_path`` (sciqlop-cache references external
+    value files by absolute path, so the destination cannot be relocated after
+    writing). On any failure the legacy cache is restored.
 
     For large caches this can take minutes — a one-time cost on first launch
     after upgrading. The legacy backup is kept so the user can verify and
@@ -66,7 +67,6 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
         return False
 
     backup = Path(f"{p}.diskcache.backup")
-    staging = Path(f"{p}.sciqlop_migrating")
 
     if backup.exists():
         log.warning(
@@ -74,8 +74,6 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
             f"skipping auto-migration. Move or remove it to retry."
         )
         return False
-    if staging.exists():
-        shutil.rmtree(staging)
 
     try:
         from pysciqlop_cache.migrate import migrate
@@ -91,17 +89,16 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
         f"Detected legacy diskcache layout at {p}; migrating to sciqlop-cache. "
         f"This is a one-time operation and may take several minutes for large caches."
     )
-    try:
-        result = migrate(str(p), str(staging))
-    except Exception:
-        if staging.exists():
-            shutil.rmtree(staging)
-        raise
-
+    # sciqlop-cache stores large values as external files referenced by
+    # absolute path, so a migrated cache cannot be relocated afterwards.
+    # Rename the legacy cache out of the way, then migrate straight into the
+    # final path; restore the legacy cache on any failure.
     os.rename(str(p), str(backup))
     try:
-        os.rename(str(staging), str(p))
+        result = migrate(str(backup), str(p))
     except Exception:
+        if p.exists():
+            shutil.rmtree(str(p))
         os.rename(str(backup), str(p))
         raise
 
