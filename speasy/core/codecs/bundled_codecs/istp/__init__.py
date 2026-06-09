@@ -110,6 +110,14 @@ def _resolve_url_type(url, prefix="", cache_remote_files=True):
     return prefix + "file", None
 
 
+def _list_variables(file) -> list:
+    key, value = _resolve_url_type(file)
+    istp_loader = pyistp.load(**{key: value})
+    if istp_loader is not None:
+        return istp_loader.data_variables()
+    return []
+
+
 def _simplify_shape(values: np.ndarray) -> np.ndarray:
     if len(values.shape) == 2 and values.shape[1] == 1:
         return np.reshape(values, (-1))

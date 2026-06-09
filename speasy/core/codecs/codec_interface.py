@@ -104,6 +104,9 @@ class CodecInterface(Protocol):
         """
         ...
 
+    def list_variables(self, file: Union[Buffer, str, io.IOBase]) -> List[str]:
+        ...
+
     @property
     def supported_extensions(self) -> List[str]:
         """List of supported file extensions, without the dot. Do return extensions that could be ambiguous with other codecs."""
