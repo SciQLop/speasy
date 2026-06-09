@@ -2,6 +2,8 @@ import os
 import tempfile
 import unittest
 
+__HERE__ = os.path.dirname(os.path.abspath(__file__))
+
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master_cdf
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
 from speasy.data_providers.generic_archive import load_inventory_file
@@ -34,6 +36,24 @@ my_dataset:
   variables: [Bx, By, Bz]
   split_rule: regular
   url_pattern: https://example.org/{Y}/data.cdf
+"""
+
+_MASTER_FILE_NC_YAML = f"""\
+ac_mfi_nc_dataset:
+  inventory_path: cda/test
+  master_file: {__HERE__}/resources/ac_h2s_mfi_cdaweb.nc
+  codec: nc
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.nc
+"""
+
+_MASTER_FILE_CDF_YAML = f"""\
+ac_mfi_cdf_dataset:
+  inventory_path: cda/test
+  master_file: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  codec: cdf
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.cdf
 """
 
 
@@ -97,6 +117,38 @@ class TestLoadInventoryFile(unittest.TestCase):
         self.assertIsInstance(dataset, DatasetIndex)
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
         self.assertEqual(var_names, {'Bx', 'By', 'Bz'})
+
+    def test_loads_dataset_with_master_file_nc(self):
+        root = _make_root()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(_MASTER_FILE_NC_YAML)
+            fname = f.name
+        try:
+            load_inventory_file(fname, root)
+        finally:
+            os.unlink(fname)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_nc_dataset')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertIn('Magnitude', var_names)
+        self.assertIn('BGSEc', var_names)
+
+    def test_loads_dataset_with_master_file_cdf(self):
+        root = _make_root()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(_MASTER_FILE_CDF_YAML)
+            fname = f.name
+        try:
+            load_inventory_file(fname, root)
+        finally:
+            os.unlink(fname)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_cdf_dataset')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertIn('Magnitude', var_names)
+        self.assertIn('BGSEc', var_names)
 
     def test_skips_dataset_if_master_unreachable(self):
         root = _make_root()
