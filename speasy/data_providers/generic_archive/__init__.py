@@ -13,7 +13,7 @@ from datetime import timedelta
 from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
 from speasy.core import AnyDateTimeType, AllowedKwargs
-from speasy.core.cdf.inventory_extractor import make_dataset_index
+from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master_cdf
 from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
@@ -65,10 +65,14 @@ def load_inventory_file(file: str, root: SpeasyIndex):
             entry_meta = {"spz_ga_cfg": entry}
             entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
             if is_local_file(entry['master_cdf']) or _is_reachable(entry['master_cdf']):
-                dataset = make_dataset_index(entry['master_cdf'], name=name, uid=path, provider='archive',
-                                             meta=entry_meta,
-                                             params_uid_format=f"{path}/{{var_name}}", params_meta=entry_meta)
-                if dataset:
+                result = extract_from_master_cdf(entry['master_cdf'], provider='archive',
+                                                 params_uid_format=f"{path}/{{var_name}}",
+                                                 params_meta=entry_meta)
+                if result:
+                    parameters, dataset_meta = result
+                    dataset = make_dataset_index(name=name, provider='archive', uid=path,
+                                                 parameters=parameters,
+                                                 meta={**dataset_meta, **entry_meta})
                     parent.__dict__[dataset.spz_name()] = dataset
             else:
                 log.warning(f"Master CDF {entry['master_cdf']} is not available, skipping dataset {name}")

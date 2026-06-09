@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from speasy.core.cdf.inventory_extractor import make_dataset_index
+from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master_cdf
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
 from speasy.data_providers.generic_archive import load_inventory_file
 
@@ -36,17 +36,25 @@ def _make_root():
 class TestMakeDatasetIndex(unittest.TestCase):
 
     def test_returns_dataset_index_from_cdf_url(self):
-        dataset = make_dataset_index(
+        result = extract_from_master_cdf(
             _REACHABLE_MASTER_CDF,
+            provider="archive",
+            disable_cache=True,
+        )
+        self.assertIsNotNone(result)
+        parameters, dataset_meta = result
+        self.assertGreater(len(parameters), 0)
+        dataset = make_dataset_index(
             name="erg_pwe_hfa_l3_1min",
             provider="archive",
             uid="archive/cda/test/erg_pwe_hfa_l3_1min",
-            disable_cache=True,
+            parameters=parameters,
+            meta=dataset_meta,
         )
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
-        parameters = [v for v in dataset.__dict__.values() if hasattr(v, 'spz_name')]
-        self.assertGreater(len(parameters), 0)
+        built_parameters = [v for v in dataset.__dict__.values() if hasattr(v, 'spz_name')]
+        self.assertGreater(len(built_parameters), 0)
 
 
 
