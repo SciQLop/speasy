@@ -16,6 +16,7 @@ from speasy.core import AnyDateTimeType, AllowedKwargs
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master_cdf
 from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
 from speasy.core.direct_archive_downloader import get_product
+from speasy.core.codecs import get_codec
 from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
 from speasy.core.http import is_server_up
 from speasy.core.url_utils import host_and_port, is_local_file
@@ -74,6 +75,18 @@ def _dataset_from_master_cdf(name, path, entry_meta, master_cdf):
     return None
 
 
+def _dataset_from_master_file(name, path, entry_meta, master_file, codec_id):
+    codec = get_codec(codec_id)
+    if codec is None:
+        log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
+        return None
+    variables = codec.list_variables(master_file)
+    parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
+                  for var in variables]
+    return make_dataset_index(name=name, provider='archive', uid=path,
+                              parameters=parameters, meta=entry_meta)
+
+
 def load_inventory_file(file: str, root: SpeasyIndex):
     import yaml
     with open(file, 'r') as f:
@@ -85,13 +98,16 @@ def load_inventory_file(file: str, root: SpeasyIndex):
             entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
             if 'variables' in entry:
                 dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'])
-                parent.__dict__[dataset.spz_name()] = dataset
+            elif 'master_file' in entry:
+                dataset = _dataset_from_master_file(name, path, entry_meta,
+                                                    entry['master_file'], entry.get('codec', ''))
             elif is_local_file(entry.get('master_cdf', '')) or _is_reachable(entry.get('master_cdf', '')):
                 dataset = _dataset_from_master_cdf(name, path, entry_meta, entry['master_cdf'])
-                if dataset:
-                    parent.__dict__[dataset.spz_name()] = dataset
             else:
+                dataset = None
                 log.warning(f"Master CDF {entry.get('master_cdf')} is not available, skipping dataset {name}")
+            if dataset:
+                parent.__dict__[dataset.spz_name()] = dataset
 
 
 class GenericArchive(DataProvider):
@@ -133,5 +149,7 @@ class GenericArchive(DataProvider):
         ga_cfg: dict = getattr(product, 'spz_ga_cfg')
         ga_cfg.pop('inventory_path', None)
         ga_cfg.pop('master_cdf', None)
+        ga_cfg.pop('master_file', None)
+        ga_cfg.pop('codec', None)
         return get_product(**ga_cfg,
                            variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
