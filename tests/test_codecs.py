@@ -105,3 +105,18 @@ class TestCDFWriterPtrAttributes(unittest.TestCase):
         data = codec.load_variable(variable, file=filename)
         buffer = codec.save_variables([data])
         self.assertIsNotNone(buffer)
+
+
+class TestListVariables(unittest.TestCase):
+
+    def test_list_variables_cdf(self):
+        codec = get_codec("cdf")
+        variables = codec.list_variables(f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf")
+        self.assertIn('Magnitude', variables)
+        self.assertIn('BGSEc', variables)
+
+    def test_list_variables_netcdf(self):
+        codec = get_codec("nc")
+        variables = codec.list_variables(f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc")
+        self.assertIn('Magnitude', variables)
+        self.assertIn('BGSEc', variables)

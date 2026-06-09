@@ -12,7 +12,7 @@ from speasy.core.codecs import CodecInterface, register_codec, Buffer
 from speasy.core.cache import CacheCall
 from speasy.products import SpeasyVariable
 
-from . import _load_variable, _resolve_url_type
+from . import _load_variable, _resolve_url_type, _list_variables
 
 log = logging.getLogger(__name__)
 
@@ -151,6 +151,9 @@ class IstpNetCDF(CodecInterface):
             file.write(data)
             return True
         return memoryview(data)
+
+    def list_variables(self, file: Union[Buffer, str, io.IOBase]) -> List[str]:
+        return _list_variables(file)
 
     @property
     def supported_extensions(self) -> List[str]:

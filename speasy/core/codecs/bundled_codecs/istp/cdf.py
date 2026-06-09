@@ -13,7 +13,7 @@ from speasy.products import SpeasyVariable, VariableAxis
 
 import re
 
-from . import _load_variable, _resolve_url_type, _simplify_shape
+from . import _load_variable, _resolve_url_type, _simplify_shape, _list_variables
 
 log = logging.getLogger(__name__)
 _PTR_rx = re.compile(r".*_PTR(_\d+)?")
@@ -131,6 +131,9 @@ class IstpCdf(CodecInterface):
         elif file is None:
             return memoryview(pycdfpp.save(cdf))
         return False
+
+    def list_variables(self, file: Union[Buffer, str, io.IOBase]) -> List[str]:
+        return _list_variables(file)
 
     @property
     def supported_extensions(self) -> List[str]:
