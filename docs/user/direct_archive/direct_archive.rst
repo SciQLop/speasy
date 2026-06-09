@@ -55,6 +55,32 @@ Here is a minimal example for THEMIS-A FGM data hosted at CDPP, with one CDF fil
       url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/{Y}/tha_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
       use_file_list: true
 
+Alternatively, if you already know which variables the dataset exposes, list them directly — no master file needed:
+
+.. code-block:: YAML
+
+    my_dataset:
+      inventory_path: my_data/MISSION/INSTRUMENT
+      variables: [Bx, By, Bz, Btotal]
+      split_rule: regular
+      url_pattern: https://my_server.net/data/{Y}/{M:02d}/data_{Y}{M:02d}{D:02d}.nc
+
+Or, if the data files are in a format other than CDF (e.g. NetCDF), point to a master file and specify the codec:
+
+.. code-block:: YAML
+
+    my_nc_dataset:
+      inventory_path: my_data/MISSION/INSTRUMENT
+      master_file: https://my_server.net/masters/dataset_master.nc
+      codec: nc
+      split_rule: regular
+      url_pattern: https://my_server.net/data/{Y}/{M:02d}/data_{Y}{M:02d}{D:02d}.nc
+
+.. note::
+    ``master_cdf`` is the legacy key for CDF master files.
+    It is deprecated but remains supported.
+    Prefer ``master_file`` + ``codec`` for new entries.
+
 **Step 3: Restart Python and use it**
 
 After saving the YAML file, restart your Python session (the inventory is built at import time):
@@ -84,10 +110,19 @@ YAML field reference
    * - **inventory_path**
      - Where the dataset appears in ``spz.inventories.data_tree.archive``. Slashes create a nested hierarchy
        (e.g. ``my_data/THEMIS/THA`` → ``archive.my_data.THEMIS.THA``).
-   * - **master_cdf**
-     - URL or local path to a master CDF (or any sample CDF from this dataset). Speasy reads it once
-       to discover which variables the dataset contains. Master CDFs are preferred because they are
-       lightweight template files without actual data.
+   * - **variables**
+     - An explicit list of variable names for this dataset. Use this when you already know the variable
+       names and want to avoid any network access at inventory build time.
+       Example: ``variables: [Bx, By, Bz]``.
+   * - **master_file**
+     - URL or local path to a master file in any supported format. Speasy opens it once with the
+       specified codec to discover the variable names. Replaces ``master_cdf`` for non-CDF formats.
+   * - **codec**
+     - Codec identifier to use with ``master_file``. Accepts a file extension (``cdf``, ``nc``) or a
+       MIME type (``application/x-cdf``). Required when ``master_file`` is set.
+   * - **master_cdf** *(deprecated)*
+     - URL or local path to a CDF master file. Speasy reads it once to discover which variables the
+       dataset contains. Prefer ``master_file`` + ``codec: cdf`` for new entries.
    * - **split_rule**
      - How the files are organized: ``regular`` (predictable, one file per time period) or ``random``
        (variable-length files like burst data). See :ref:`random_split_datasets`.
