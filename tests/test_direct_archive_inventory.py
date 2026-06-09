@@ -28,6 +28,14 @@ bad_dataset:
   url_pattern: https://example.org/{{Y}}/data.cdf
 """
 
+_VARIABLES_YAML = """\
+my_dataset:
+  inventory_path: cda/test
+  variables: [Bx, By, Bz]
+  split_rule: regular
+  url_pattern: https://example.org/{Y}/data.cdf
+"""
+
 
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
@@ -74,6 +82,21 @@ class TestLoadInventoryFile(unittest.TestCase):
         dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('erg_pwe_hfa_l3_1min')
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
+
+    def test_loads_dataset_with_variables_key(self):
+        root = _make_root()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(_VARIABLES_YAML)
+            fname = f.name
+        try:
+            load_inventory_file(fname, root)
+        finally:
+            os.unlink(fname)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('my_dataset')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertEqual(var_names, {'Bx', 'By', 'Bz'})
 
     def test_skips_dataset_if_master_unreachable(self):
         root = _make_root()

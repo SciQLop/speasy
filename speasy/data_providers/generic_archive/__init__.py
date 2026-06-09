@@ -64,7 +64,13 @@ def load_inventory_file(file: str, root: SpeasyIndex):
             parent = get_or_make_node(entry['inventory_path'], root)
             entry_meta = {"spz_ga_cfg": entry}
             entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
-            if is_local_file(entry['master_cdf']) or _is_reachable(entry['master_cdf']):
+            if 'variables' in entry:
+                parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
+                              for var in entry['variables']]
+                dataset = make_dataset_index(name=name, provider='archive', uid=path,
+                                             parameters=parameters, meta=entry_meta)
+                parent.__dict__[dataset.spz_name()] = dataset
+            elif is_local_file(entry.get('master_cdf', '')) or _is_reachable(entry.get('master_cdf', '')):
                 result = extract_from_master_cdf(entry['master_cdf'], provider='archive',
                                                  params_uid_format=f"{path}/{{var_name}}",
                                                  params_meta=entry_meta)
@@ -75,7 +81,7 @@ def load_inventory_file(file: str, root: SpeasyIndex):
                                                  meta={**dataset_meta, **entry_meta})
                     parent.__dict__[dataset.spz_name()] = dataset
             else:
-                log.warning(f"Master CDF {entry['master_cdf']} is not available, skipping dataset {name}")
+                log.warning(f"Master CDF {entry.get('master_cdf')} is not available, skipping dataset {name}")
 
 
 class GenericArchive(DataProvider):
