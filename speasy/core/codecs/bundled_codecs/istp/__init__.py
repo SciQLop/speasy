@@ -104,7 +104,7 @@ def _resolve_url_type(url, prefix="", cache_remote_files=True):
             return prefix + "file", urlparse(url=url).path
         return prefix + "buffer", any_loc_open(url, mode='rb', cache_remote_files=cache_remote_files).read()
     if type(url) in (memoryview, bytes):
-        return prefix + "buffer", url
+        return prefix + "buffer", bytes(url)
     if hasattr(url, 'read'):
         return prefix + "buffer", url.read()
     return prefix + "file", None
