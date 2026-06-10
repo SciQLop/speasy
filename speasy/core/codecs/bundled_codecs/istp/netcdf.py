@@ -37,8 +37,8 @@ def _nc_dtype(arr: np.ndarray) -> str:
 def _try_set_attr(nc_var, key, value):
     try:
         setattr(nc_var, key, value)
-    except Exception:
-        pass
+    except Exception as e:
+        log.debug("Could not set netCDF attribute '%s': %s", key, e)
 
 
 def _write_time_axis(axis, ds) -> str:
