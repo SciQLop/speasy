@@ -79,8 +79,11 @@ class TestCDFWriter(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         codec = get_codec("application/x-cdf")
-        cls.v = codec.load_variable("BGSEc", codec.save_variables(
-            [codec.load_variable("BGSEc", f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf", disable_cache=True)]), disable_cache=True)
+        source_file = f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf"
+
+        original = codec.load_variable("BGSEc", source_file, disable_cache=True)
+        buffer = codec.save_variables([original])
+        cls.v = codec.load_variable("BGSEc", buffer, disable_cache=True)
 
     def test_variable_is_loaded(self):
         self.assertIsNotNone(self.v)
