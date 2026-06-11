@@ -87,6 +87,11 @@ SOME_PRODUCTS = [
         "start_time": datetime(2000, 8, 22, 0, 18, 30, tzinfo=timezone.utc),
         "stop_time": datetime(2000, 8, 23, 0, 0, 30, tzinfo=timezone.utc),
     },
+    {
+        "product": "Swarm-A",
+        "start_time": datetime(2020, 8, 22, 0, 18, 30, tzinfo=timezone.utc),
+        "stop_time": datetime(2020, 8, 23, 0, 0, 30, tzinfo=timezone.utc),
+    }
 
 ]
 
