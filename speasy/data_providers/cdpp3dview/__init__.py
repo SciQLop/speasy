@@ -177,7 +177,7 @@ class Cdpp3dViewWebservice(DataProvider):
         format: str = "cdf",
         **kwargs,
     ):
-        body = self._to_parameter_index(product).spz_name()
+        body = self._to_parameter_index(product).spz_uid()
 
         date_format = "%Y-%m-%dT%H:%M:%S"
         start_date = start_time.strftime(date_format)
