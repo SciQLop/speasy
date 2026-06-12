@@ -11,8 +11,9 @@ import time
 from ddt import ddt, data, unpack
 
 from speasy.core.any_files import any_loc_open, list_files
-from speasy.core.cache import drop_item
+from speasy.core.cache import drop_item, get_item
 from multiprocessing import Value, Process
+from unittest.mock import patch, MagicMock
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -64,6 +65,22 @@ class FileAccess(unittest.TestCase):
             mode='rb')
         self.assertIsNotNone(f)
         self.assertIn(b'NSSDC Common Data Format', f.read(100))
+
+    def test_http_error_responses_raise_and_are_not_cached(self):
+        # A transient 502 used to be stored in the cache as the file content,
+        # permanently poisoning it: every later read handed the HTML error
+        # page to the consumer (e.g. netCDF4 -> "Unknown file format").
+        url = "https://test.invalid/some_file_behind_flaky_server.nc"
+        drop_item(url)
+        error_resp = MagicMock()
+        error_resp.status = 502
+        error_resp.bytes = b"<html>502 Bad Gateway</html>"
+        error_resp.text = "<html>502 Bad Gateway</html>"
+        error_resp.headers = {}
+        with patch("speasy.core.any_files.http.urlopen", return_value=error_resp):
+            with self.assertRaises(IOError):
+                any_loc_open(url, mode='rb', cache_remote_files=True)
+        self.assertIsNone(get_item(url), "HTTP error body must never be cached")
 
     def test_cached_remote_bin_file(self):
         drop_item("https://hephaistos.lpp.polytechnique.fr/data/LFR/SW/LFR-FSW/3.0.0.0/fsw")
