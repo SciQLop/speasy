@@ -83,6 +83,10 @@ def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: d
         entry = get_item(url)
         if not isinstance(entry, CacheItem) or (not prefer_cache and _is_outdated(entry, url)):
             resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+            if resp.status != 200:
+                # Never cache error responses: a transient 502 page stored as
+                # the file content poisons the cache until manually purged.
+                raise IOError(f"Could not open remote file {url}: HTTP {resp.status}")
             last_modified = resp.headers.get('last-modified', str(datetime.now()))
             if 'b' in mode:
                 entry = CacheItem(data=resp.bytes, version=last_modified)
