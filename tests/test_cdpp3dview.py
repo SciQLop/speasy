@@ -5,6 +5,11 @@
 import unittest
 from datetime import datetime, timezone
 
+import pytest
+
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
+
+
 from ddt import data, ddt
 
 import speasy as spz

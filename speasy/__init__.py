@@ -8,7 +8,15 @@
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
-__version__ = '1.7.1'
+from importlib.metadata import version as _pkg_version, PackageNotFoundError as _PackageNotFoundError
+
+try:
+    __version__ = _pkg_version("speasy")
+except _PackageNotFoundError:
+    # Source checkout without an editable install — degrade gracefully so
+    # imports don't crash. Normal dev workflow (`uv sync`) creates the
+    # .dist-info so this fallback isn't hit.
+    __version__ = "0.0.0+dev"
 __all__ = ['amda', 'cda', 'ssc', 'csa', 'cdpp3dview', 'get_data', 'archive', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 
