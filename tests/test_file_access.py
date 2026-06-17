@@ -8,6 +8,11 @@ import unittest
 from datetime import datetime
 import time
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from ddt import ddt, data, unpack
 
 from speasy.core.any_files import any_loc_open, list_files
