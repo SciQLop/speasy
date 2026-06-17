@@ -1,0 +1,84 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    env:
+      SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
+      SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Install dependencies
+      if: matrix.python-version != '3.13' || matrix.os != 'ubuntu-latest'
+      run: uv sync --group dev
+    - name: Install dependencies (with docs group, on coverage runner)
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      run: uv sync --group dev --group docs
+    - name: Run unit tests
+      if: matrix.python-version != '3.13' || matrix.os != 'ubuntu-latest'
+      run: uv run pytest -m unit
+    - name: Install system tooling for doctest (one runner)
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      run: sudo apt update && sudo apt install -y texlive pandoc
+    - name: Run unit tests with coverage and doctests (one runner)
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      env:
+        # Doctests reference all providers (cdpp3dview, etc.) and live
+        # inventories — re-enable everything for this step. The HTTP rewrite
+        # rule re-routes a placeholder URL used in some examples to LPP's
+        # mirror.
+        SPEASY_CORE_DISABLED_PROVIDERS: ""
+        SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
+        SPEASY_CORE_HTTP_USER_AGENT: "speasy-test-github-actions"
+      run: |
+        uv run pytest -m unit --cov=speasy --cov-config=.coveragerc --cov-report=xml
+        uv run make doctest
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unit
+        name: codecov-umbrella
+        fail_ci_if_error: true
+
+  release-check:
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Build and check release artifacts
+      run: |
+        uv run --with build --with wheel --with twine python -m build .
+        uv run --with twine twine check dist/*
