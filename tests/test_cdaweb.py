@@ -5,6 +5,11 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from multiprocessing import dummy
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import numpy as np
 import speasy as spz
 from speasy.data_providers.cda._direct_archive import to_direct_archive_params

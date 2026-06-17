@@ -1,7 +1,11 @@
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 try:
     from pytest_pyodide import run_in_pyodide
     from pytest_pyodide.decorator import copy_files_to_pyodide
-    import pytest
 
     from glob import glob
 
