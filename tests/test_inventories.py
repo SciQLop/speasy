@@ -1,6 +1,11 @@
 import unittest
 from ddt import ddt, data, unpack
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import speasy as spz
 from speasy.core.inventory.indexes import from_dict, to_dict, SpeasyIndex
 from speasy.core.dataprovider import DataProvider
