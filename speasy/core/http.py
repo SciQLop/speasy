@@ -78,7 +78,13 @@ class Response:
 
     @property
     def url(self):
-        return self._response.geturl()
+        try:
+            return self._response.geturl()
+        except AttributeError:
+            # vcrpy's VCRHTTPResponse delegates geturl() to http.client which
+            # reads self.url; the cassette response carries no original URL,
+            # so fall back gracefully instead of crashing the caller.
+            return getattr(self._response, "url", None)
 
     @property
     def ok(self):

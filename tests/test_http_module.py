@@ -7,6 +7,11 @@ import unittest
 import os
 from ddt import ddt, data, unpack
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 from speasy.core.http import is_server_up
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))

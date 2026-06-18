@@ -2,6 +2,11 @@ import unittest
 from multiprocessing import Pool
 from ddt import ddt, data, unpack
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import speasy as spz
 from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
