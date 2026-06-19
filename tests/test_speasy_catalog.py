@@ -1,6 +1,11 @@
 import unittest
 from datetime import datetime, timedelta
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from speasy.products.catalog import Catalog, Event
 
 

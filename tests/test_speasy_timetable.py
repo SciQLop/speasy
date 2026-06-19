@@ -1,6 +1,11 @@
 import unittest
 from datetime import datetime
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from speasy.products.timetable import TimeTable
 from speasy.core.datetime_range import DateTimeRange
 
