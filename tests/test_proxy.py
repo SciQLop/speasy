@@ -6,6 +6,11 @@ import unittest
 from speasy.core.dataprovider import DataProvider
 from speasy.core.inventory.indexes import SpeasyIndex
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 
 class SpeasyProxy(unittest.TestCase):
     class MockProvider(DataProvider):

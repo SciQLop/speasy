@@ -1,6 +1,11 @@
 import os
 import unittest
 
+import pytest
+
+pytestmark = pytest.mark.contract
+
+
 import speasy as spz
 
 

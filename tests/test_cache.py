@@ -9,6 +9,11 @@ import numpy as np
 import packaging.version as Version
 from ddt import data, ddt, unpack
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from speasy.core import epoch_to_datetime64
 from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache, drop_matching_entries, CacheCall
 from speasy.core.cache.version import str_to_version, version_to_str
