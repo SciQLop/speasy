@@ -1,0 +1,44 @@
+name: Contract tests
+
+on:
+  schedule:
+    # Daily at 04:00 UTC
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+# Avoid two contract runs hammering the upstream servers in parallel if the
+# previous one is still going (or someone hits Run workflow during a cron run).
+concurrency:
+  group: contract
+  cancel-in-progress: false
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    env:
+      SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
+      SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
+      SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
+      SPEASY_CORE_HTTP_REWRITE_RULES: '{"https://thisserver_does_not_exists.lpp.polytechnique.fr/pub/":"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}'
+      SPEASY_CORE_HTTP_USER_AGENT: "speasy-test-github-actions"
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: add test logins
+      uses: extractions/netrc@v3
+      with:
+        machine: authenticationtest.com
+        username: user
+        password: pass
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+    - name: Install dependencies
+      run: uv sync --group dev --group docs
+    - name: Run contract tests
+      run: uv run pytest -m contract -v

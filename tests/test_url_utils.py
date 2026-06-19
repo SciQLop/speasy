@@ -7,6 +7,11 @@ import unittest
 import os
 from ddt import ddt, data, unpack
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
 from speasy.core.url_utils import ensure_url_scheme, is_local_file, host_and_port
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))

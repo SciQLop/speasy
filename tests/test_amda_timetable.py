@@ -7,6 +7,11 @@ import unittest
 import speasy as spz
 from speasy.core.datetime_range import DateTimeRange
 
+import pytest
+
+pytestmark = [pytest.mark.unit, pytest.mark.vcr]
+
+
 
 class TimetableRequests(unittest.TestCase):
     def setUp(self):
