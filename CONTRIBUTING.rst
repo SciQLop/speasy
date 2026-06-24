@@ -68,13 +68,13 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
     $ git clone git@github.com:your_name_here/speasy.git
 
 3. Install your local copy into a virtual environment if you use one (highly
-   recommended). Then install the development requirements::
+   recommended). Then install the development environment with UV::
 
-    $ cd speasy/
-    $ python -m venv venv # Create a virtual environment inside Speasy directory
-    $ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-    $ python -m pip install -e .
-    $ python -m pip install -r requirements_dev.txt
+    $ uv sync --group dev --group docs
+
+   This installs Speasy editable plus all dev and docs dependencies in
+   a managed virtualenv (``.venv/``). Run commands via ``uv run`` (e.g.
+   ``uv run pytest``) or activate the venv with ``source .venv/bin/activate``.
 
 4. Create a branch for local development::
 
@@ -83,13 +83,9 @@ Ready to contribute? Here's how to set up `Speasy` for local development.
    Now you can make your changes locally.
 
 5. When you're done making changes, check that your changes pass flake8 and the
-   tests, including testing other Python versions with tox::
+   tests::
 
     $ make lint
-    $ make test-all # it will run all tests and run code examples in the docs
-
-    Alternatively, if you just want to run quick tests for the current Python version::
-
     $ make test
     $ make doctest
 
