@@ -33,7 +33,7 @@ bad_dataset:
 _VARIABLES_YAML = """\
 my_dataset:
   inventory_path: cda/test
-  variables: [Bx, By, Bz]
+  variables: [Bgse, Bgsm]
   split_rule: regular
   url_pattern: https://example.org/{Y}/data.cdf
 """
@@ -116,7 +116,7 @@ class TestLoadInventoryFile(unittest.TestCase):
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
-        self.assertEqual(var_names, {'Bx', 'By', 'Bz'})
+        self.assertEqual(var_names, {'Bgse', 'Bgsm'})
 
     def test_loads_dataset_with_master_file_nc(self):
         root = _make_root()
