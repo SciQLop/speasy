@@ -3,7 +3,7 @@ astroquery
 astropy
 ddt
 diskcache
-pysciqlop-cache>=0.1.0
+pysciqlop-cache>=0.1.2
 humanize
 matplotlib
 numpy
