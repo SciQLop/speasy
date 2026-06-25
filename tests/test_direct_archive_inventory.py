@@ -65,8 +65,44 @@ ac_mfi_local_master_cdf:
 """
 
 
+_REMOTE_MASTER_CDF_FILE = (
+    "https://cdaweb.gsfc.nasa.gov/pub/data/ace/mag/level_2_cdaweb/mfi_k2/2022/"
+    "ac_k2_mfi_20220101_v03.cdf"
+)
+
+_MASTER_FILE_CDF_REMOTE_YAML = f"""\
+ac_mfi_cdf_remote_dataset:
+  inventory_path: cda/test
+  master_file: {_REMOTE_MASTER_CDF_FILE}
+  codec: cdf
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.cdf
+"""
+
+
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
+
+
+def _load_yaml_doc(yaml_doc):
+    root = _make_root()
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        f.write(yaml_doc)
+        fname = f.name
+    try:
+        load_inventory_file(fname, root)
+    finally:
+        os.unlink(fname)
+    return root
+
+
+def _cdas_netcdf_url(dataset, variables, start, stop):
+    # ask the CDAS REST service to generate a NetCDF export and return its (ephemeral) URL
+    from speasy.core import http
+    url = (f"https://cdaweb.gsfc.nasa.gov/WS/cdasr/1/dataviews/sp_phys/datasets/"
+           f"{dataset}/data/{start},{stop}/{variables}?format=nc")
+    resp = http.get(url, headers={"Accept": "application/json"})
+    return resp.json()['FileDescription'][0]['Name']
 
 
 class TestMakeDatasetIndex(unittest.TestCase):
@@ -170,6 +206,36 @@ class TestLoadInventoryFile(unittest.TestCase):
         finally:
             os.unlink(fname)
         dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_local_master_cdf')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertIn('Magnitude', var_names)
+        self.assertIn('BGSEc', var_names)
+
+    def test_loads_dataset_with_remote_master_file_cdf(self):
+        # cdf master fetched from a remote CDAWeb /pub/ URL
+        root = _load_yaml_doc(_MASTER_FILE_CDF_REMOTE_YAML)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_cdf_remote_dataset')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertIn('Magnitude', var_names)
+        self.assertIn('BGSEc', var_names)
+
+    def test_loads_dataset_with_remote_master_file_nc(self):
+        # nc master fetched from a remote URL generated on demand by the CDAS REST service
+        nc_url = _cdas_netcdf_url("AC_H2_MFI", "Magnitude,BGSEc",
+                                  "20090601T000000Z", "20090603T000000Z")
+        yaml_doc = f"""\
+ac_mfi_nc_remote_dataset:
+  inventory_path: cda/test
+  master_file: {nc_url}
+  codec: nc
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.nc
+"""
+        root = _load_yaml_doc(yaml_doc)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_nc_remote_dataset')
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
