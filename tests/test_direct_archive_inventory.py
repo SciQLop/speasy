@@ -56,6 +56,14 @@ ac_mfi_cdf_dataset:
   url_pattern: https://example.org/{{Y}}/data.cdf
 """
 
+_MASTER_CDF_LOCAL_YAML = f"""\
+ac_mfi_local_master_cdf:
+  inventory_path: cda/test
+  master_cdf: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.cdf
+"""
+
 
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
@@ -144,6 +152,24 @@ class TestLoadInventoryFile(unittest.TestCase):
         finally:
             os.unlink(fname)
         dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_cdf_dataset')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertIn('Magnitude', var_names)
+        self.assertIn('BGSEc', var_names)
+
+    def test_loads_dataset_with_local_master_cdf_no_codec(self):
+        # master_cdf key without codec + local file: must route through the cdf path
+        # (mirrors the 14 datasets of cda.yaml, without network dependency)
+        root = _make_root()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(_MASTER_CDF_LOCAL_YAML)
+            fname = f.name
+        try:
+            load_inventory_file(fname, root)
+        finally:
+            os.unlink(fname)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_local_master_cdf')
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}

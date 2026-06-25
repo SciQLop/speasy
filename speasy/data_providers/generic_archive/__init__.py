@@ -76,6 +76,8 @@ def _dataset_from_master_cdf(name, path, entry_meta, master_cdf):
 
 
 def _dataset_from_master_file(name, path, entry_meta, master_file, codec_id):
+    if codec_id in ('', 'cdf'):
+        return _dataset_from_master_cdf(name, path, entry_meta, master_file)
     codec = get_codec(codec_id)
     if codec is None:
         log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
@@ -96,16 +98,15 @@ def load_inventory_file(file: str, root: SpeasyIndex):
             parent = get_or_make_node(entry['inventory_path'], root)
             entry_meta = {"spz_ga_cfg": entry}
             entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
+            master_file = entry.get('master_file') or entry.get('master_cdf') or None
             if 'variables' in entry:
                 dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'])
-            elif 'master_file' in entry:
+            elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
                 dataset = _dataset_from_master_file(name, path, entry_meta,
-                                                    entry['master_file'], entry.get('codec', ''))
-            elif is_local_file(entry.get('master_cdf', '')) or _is_reachable(entry.get('master_cdf', '')):
-                dataset = _dataset_from_master_cdf(name, path, entry_meta, entry['master_cdf'])
+                                                    master_file, entry.get('codec', ''))
             else:
                 dataset = None
-                log.warning(f"Master CDF {entry.get('master_cdf')} is not available, skipping dataset {name}")
+                log.warning(f"No reachable master for dataset {name}, skipping")
             if dataset:
                 parent.__dict__[dataset.spz_name()] = dataset
 
