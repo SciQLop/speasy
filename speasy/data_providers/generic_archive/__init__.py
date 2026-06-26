@@ -13,7 +13,7 @@ from datetime import timedelta
 from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
 from speasy.core import AnyDateTimeType, AllowedKwargs
-from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master_cdf
+from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
 from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.codecs import get_codec
@@ -74,22 +74,18 @@ def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None
                               meta={**dataset_meta, **entry_meta})
 
 
-def _dataset_from_master_cdf(name, path, entry_meta, master_cdf):
-    result = extract_from_master_cdf(master_cdf, provider='archive',
+def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
+    if codec_id in ('', 'cdf', 'nc'):  # ISTP formats: pyistp extraction with variable + dataset meta
+        result = extract_from_master(master_file, provider='archive',
                                      params_uid_format=f"{path}/{{var_name}}",
                                      params_meta=entry_meta)
-    if result:
-        parameters, dataset_meta = result
-        return make_dataset_index(name=name, provider='archive', uid=path,
-                                  parameters=parameters,
-                                  meta={**dataset_meta, **entry_meta})
-    return None
-
-
-def _dataset_from_master_file(name, path, entry_meta, master_file, codec_id):
-    if codec_id in ('', 'cdf'):
-        return _dataset_from_master_cdf(name, path, entry_meta, master_file)
-    codec = get_codec(codec_id)
+        if result:
+            parameters, dataset_meta = result
+            return make_dataset_index(name=name, provider='archive', uid=path,
+                                      parameters=parameters,
+                                      meta={**dataset_meta, **entry_meta})
+        return None
+    codec = get_codec(codec_id)  # non-ISTP codecs: fall back to names only
     if codec is None:
         log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
         return None
@@ -114,8 +110,8 @@ def load_inventory_file(file: str, root: SpeasyIndex):
                 dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'],
                                                   dataset_meta=entry.get('meta'))
             elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
-                dataset = _dataset_from_master_file(name, path, entry_meta,
-                                                    master_file, entry.get('codec', ''))
+                dataset = _dataset_from_master(name, path, entry_meta,
+                                               master_file, entry.get('codec', ''))
             else:
                 dataset = None
                 log.warning(f"No reachable master for dataset {name}, skipping")

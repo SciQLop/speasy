@@ -4,7 +4,7 @@ import unittest
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
-from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master_cdf
+from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
 from speasy.data_providers.generic_archive import load_inventory_file
 
@@ -127,7 +127,7 @@ def _cdas_netcdf_url(dataset, variables, start, stop):
 class TestMakeDatasetIndex(unittest.TestCase):
 
     def test_returns_dataset_index_from_cdf_url(self):
-        result = extract_from_master_cdf(
+        result = extract_from_master(
             _REACHABLE_MASTER_CDF,
             provider="archive",
             disable_cache=True,
@@ -200,6 +200,10 @@ class TestLoadInventoryFile(unittest.TestCase):
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
         self.assertIn('Magnitude', var_names)
         self.assertIn('BGSEc', var_names)
+        # nc inventory is now rich (same pyistp path as cdf): variables carry their meta
+        bgse = dataset.__dict__['BGSEc']
+        self.assertEqual(bgse.__dict__.get('UNITS'), 'nT')
+        self.assertIn('CATDESC', bgse.__dict__)
 
     def test_loads_dataset_with_master_file_cdf(self):
         root = _make_root()
