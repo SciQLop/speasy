@@ -57,16 +57,21 @@ def _is_reachable(url: str) -> bool:
 
 
 def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None):
-    if isinstance(variables, dict):
-        parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}",
-                                     meta=(info or {}).get('meta', {}))
-                      for var, info in variables.items()]
-    else:
-        parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
-                      for var in variables]
+    valid = (
+        dataset_meta
+        and isinstance(variables, dict) and variables
+        and all(isinstance(info, dict) and info.get('meta') for info in variables.values())
+    )
+    if not valid:
+        log.warning(f"Dataset {name}: inline format requires a dataset 'meta' and a 'meta' "
+                    f"for each variable, skipping")
+        return None
+    parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}",
+                                 meta=info['meta'])
+                  for var, info in variables.items()]
     return make_dataset_index(name=name, provider='archive', uid=path,
                               parameters=parameters,
-                              meta={**(dataset_meta or {}), **entry_meta})
+                              meta={**dataset_meta, **entry_meta})
 
 
 def _dataset_from_master_cdf(name, path, entry_meta, master_cdf):
