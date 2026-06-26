@@ -56,11 +56,17 @@ def _is_reachable(url: str) -> bool:
     return _is_up(host, port)
 
 
-def _dataset_from_variables(name, path, entry_meta, variables):
-    parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
-                  for var in variables]
+def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None):
+    if isinstance(variables, dict):
+        parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}",
+                                     meta=(info or {}).get('meta', {}))
+                      for var, info in variables.items()]
+    else:
+        parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
+                      for var in variables]
     return make_dataset_index(name=name, provider='archive', uid=path,
-                              parameters=parameters, meta=entry_meta)
+                              parameters=parameters,
+                              meta={**(dataset_meta or {}), **entry_meta})
 
 
 def _dataset_from_master_cdf(name, path, entry_meta, master_cdf):
@@ -100,7 +106,8 @@ def load_inventory_file(file: str, root: SpeasyIndex):
             entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
             master_file = entry.get('master_file') or entry.get('master_cdf') or None
             if 'variables' in entry:
-                dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'])
+                dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'],
+                                                  dataset_meta=entry.get('meta'))
             elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
                 dataset = _dataset_from_master_file(name, path, entry_meta,
                                                     master_file, entry.get('codec', ''))

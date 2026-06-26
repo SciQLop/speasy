@@ -38,6 +38,25 @@ my_dataset:
   url_pattern: https://example.org/{Y}/data.cdf
 """
 
+_VARIABLES_WITH_META_YAML = """\
+my_dataset_meta:
+  inventory_path: cda/test
+  meta:
+    Mission_group: ERG
+    Data_type: l3
+  variables:
+    Bgse:
+      meta:
+        UNITS: nT
+        CATDESC: B in GSE frame
+    Bgsm:
+      meta:
+        UNITS: nT
+        CATDESC: B in GSM frame
+  split_rule: regular
+  url_pattern: https://example.org/{Y}/data.cdf
+"""
+
 _MASTER_FILE_NC_YAML = f"""\
 ac_mfi_nc_dataset:
   inventory_path: cda/test
@@ -159,6 +178,19 @@ class TestLoadInventoryFile(unittest.TestCase):
         dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('my_dataset')
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
+        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+        self.assertEqual(var_names, {'Bgse', 'Bgsm'})
+
+    def test_loads_dataset_with_variables_and_meta(self):
+        # inline format: dataset-level meta + variables given as a dict with per-variable meta
+        root = _load_yaml_doc(_VARIABLES_WITH_META_YAML)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('my_dataset_meta')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
+        self.assertEqual(dataset.__dict__.get('Mission_group'), 'ERG')   # dataset-level meta
+        bgse = dataset.__dict__['Bgse']
+        self.assertEqual(bgse.__dict__.get('UNITS'), 'nT')               # variable-level meta
+        self.assertEqual(bgse.__dict__.get('CATDESC'), 'B in GSE frame')
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
         self.assertEqual(var_names, {'Bgse', 'Bgsm'})
 
