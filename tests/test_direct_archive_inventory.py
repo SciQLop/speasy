@@ -166,20 +166,11 @@ class TestLoadInventoryFile(unittest.TestCase):
         self.assertIsNotNone(dataset)
         self.assertIsInstance(dataset, DatasetIndex)
 
-    def test_loads_dataset_with_variables_key(self):
-        root = _make_root()
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-            f.write(_VARIABLES_YAML)
-            fname = f.name
-        try:
-            load_inventory_file(fname, root)
-        finally:
-            os.unlink(fname)
-        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('my_dataset')
-        self.assertIsNotNone(dataset)
-        self.assertIsInstance(dataset, DatasetIndex)
-        var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
-        self.assertEqual(var_names, {'Bgse', 'Bgsm'})
+    def test_skips_dataset_with_variables_list(self):
+        # the bare list-of-names format is no longer supported (no meta): dataset must be skipped
+        root = _load_yaml_doc(_VARIABLES_YAML)
+        test_node = root.__dict__['cda'].__dict__['test']
+        self.assertNotIn('my_dataset', test_node.__dict__)
 
     def test_loads_dataset_with_variables_and_meta(self):
         # inline format: dataset-level meta + variables given as a dict with per-variable meta
