@@ -2,6 +2,8 @@ import os
 import tempfile
 import unittest
 
+import yaml
+
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
@@ -124,6 +126,34 @@ def _cdas_netcdf_url(dataset, variables, start, stop):
     return resp.json()['FileDescription'][0]['Name']
 
 
+def _public_meta(node):
+    # meta of a node, without internal __spz_ keys and the archive config blob
+    return {k: v for k, v in node.__dict__.items()
+            if not k.startswith('__spz_') and not hasattr(v, 'spz_name') and k != 'spz_ga_cfg'}
+
+
+def _variables_meta(dataset):
+    return {v.spz_name(): _public_meta(v)
+            for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
+
+
+def _norm(obj):
+    # YAML serialization turns tuples into lists; normalize so comparisons ignore that
+    if isinstance(obj, (list, tuple)):
+        return [_norm(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _norm(v) for k, v in obj.items()}
+    return obj
+
+
+def _inventory_to_inline_yaml(name, inventory_path, dataset, **archive_keys):
+    doc = {name: {"inventory_path": inventory_path, **archive_keys,
+                  "meta": _public_meta(dataset),
+                  "variables": {var: {"meta": meta}
+                                for var, meta in _variables_meta(dataset).items()}}}
+    return yaml.safe_dump(doc, sort_keys=False)
+
+
 class TestMakeDatasetIndex(unittest.TestCase):
 
     def test_returns_dataset_index_from_cdf_url(self):
@@ -204,6 +234,40 @@ class TestLoadInventoryFile(unittest.TestCase):
         bgse = dataset.__dict__['BGSEc']
         self.assertEqual(bgse.__dict__.get('UNITS'), 'nT')
         self.assertIn('CATDESC', bgse.__dict__)
+
+    def test_roundtrip_nc_master_to_inline_yaml(self):
+        # nc master -> inventory A ; dump A as inline yaml ; reload -> inventory B ; A == B
+        root_a = _load_yaml_doc(_MASTER_FILE_NC_YAML)
+        ds_a = root_a.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_nc_dataset')
+        self.assertIsNotNone(ds_a)
+
+        inline_doc = _inventory_to_inline_yaml(
+            'ac_mfi_nc_dataset', 'cda/test', ds_a,
+            split_rule='regular', url_pattern='https://example.org/{Y}/data.nc')
+        root_b = _load_yaml_doc(inline_doc)
+        ds_b = root_b.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_nc_dataset')
+        self.assertIsNotNone(ds_b)
+
+        # same variables and same meta, modulo YAML's tuple->list (e.g. spz_shape)
+        self.assertEqual(_norm(_variables_meta(ds_a)), _norm(_variables_meta(ds_b)))
+        self.assertEqual(_norm(_public_meta(ds_a)), _norm(_public_meta(ds_b)))
+
+    def test_roundtrip_cdf_master_to_inline_yaml(self):
+        # cdf master -> inventory A ; dump A as inline yaml ; reload -> inventory B ; A == B
+        root_a = _load_yaml_doc(_MASTER_FILE_CDF_YAML)
+        ds_a = root_a.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_cdf_dataset')
+        self.assertIsNotNone(ds_a)
+
+        inline_doc = _inventory_to_inline_yaml(
+            'ac_mfi_cdf_dataset', 'cda/test', ds_a,
+            split_rule='regular', url_pattern='https://example.org/{Y}/data.cdf')
+        root_b = _load_yaml_doc(inline_doc)
+        ds_b = root_b.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_cdf_dataset')
+        self.assertIsNotNone(ds_b)
+
+        # same variables and same meta, modulo YAML's tuple->list (e.g. spz_shape)
+        self.assertEqual(_norm(_variables_meta(ds_a)), _norm(_variables_meta(ds_b)))
+        self.assertEqual(_norm(_public_meta(ds_a)), _norm(_public_meta(ds_b)))
 
     def test_loads_dataset_with_master_file_cdf(self):
         root = _make_root()
