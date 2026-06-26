@@ -130,3 +130,33 @@ class ApplyRewriteRules:
 
 def extract_path(url: str) -> str:
     return urlparse(url).path
+
+
+def to_local_path(url: str) -> str:
+    """Convert a local file URL or path into a filesystem path.
+
+    Unlike ``urlparse(url).path``, this preserves Windows drive letters: a path
+    such as ``Z:\\data\\f.cdf`` would otherwise have its ``Z:`` parsed as a URL
+    scheme and the drive silently dropped (``\\data\\f.cdf``). A leading
+    ``file://`` scheme is stripped; bare paths (POSIX or Windows) are returned
+    unchanged. Handled deterministically on every platform (``url2pathname`` is
+    avoided because it rewrites separators differently per OS).
+
+    >>> from speasy.core.url_utils import to_local_path
+
+    >>> to_local_path("/home/test/f.cdf")
+    '/home/test/f.cdf'
+
+    >>> to_local_path("C:/data/f.cdf")
+    'C:/data/f.cdf'
+
+    >>> to_local_path("file:///home/test/f.cdf")
+    '/home/test/f.cdf'
+    """
+    if url.startswith("file://"):
+        path = url[len("file://"):]
+        # 'file:///C:/x' -> '/C:/x': drop the leading slash before a drive letter
+        if len(path) >= 3 and path[0] == "/" and path[2] == ":":
+            path = path[1:]
+        return path
+    return url

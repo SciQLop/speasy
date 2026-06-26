@@ -8,7 +8,7 @@ import pyistp
 from pyistp.support_data_variable import SupportDataVariable
 
 from speasy.core.any_files import any_loc_open
-from speasy.core.url_utils import urlparse, is_local_file
+from speasy.core.url_utils import urlparse, is_local_file, to_local_path
 from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 
 log = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ def _resolve_url_type(url, prefix="", cache_remote_files=True):
         return prefix + "file", None
     if type(url) is str:
         if is_local_file(url):
-            return prefix + "file", urlparse(url=url).path
+            return prefix + "file", to_local_path(url)
         return prefix + "buffer", any_loc_open(url, mode='rb', cache_remote_files=cache_remote_files).read()
     if type(url) in (memoryview, bytes):
         return prefix + "buffer", bytes(url)

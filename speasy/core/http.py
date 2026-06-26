@@ -10,6 +10,7 @@ from typing import Optional, Dict
 import urllib3.response
 from urllib3 import PoolManager, ProxyManager
 from urllib3.util.retry import Retry
+from urllib3.util.timeout import Timeout
 import certifi
 import netrc
 
@@ -23,6 +24,19 @@ log = logging.getLogger(__name__)
 USER_AGENT = core_config.http_user_agent.get() or f'Speasy/{__version__} {platform.uname()} (SciQLop project)'
 
 DEFAULT_TIMEOUT = 60  # seconds
+
+
+def _as_timeout(timeout) -> Timeout:
+    """Return a urllib3 Timeout with a hard total (wall-clock) bound.
+
+    A bare int/float is applied by urllib3 per phase (connect, then each read),
+    so a stalled or drip-feeding server can keep a request alive far longer than
+    the value suggests — which has hung CI for hours. ``total`` caps the whole
+    attempt; combined with the retry count this bounds the worst case.
+    """
+    if isinstance(timeout, Timeout):
+        return timeout
+    return Timeout(total=timeout)
 
 DEFAULT_DELAY = 5  # seconds
 
@@ -186,8 +200,8 @@ class _HttpVerb:
                  **kwargs) -> Response:
         # self._adapter.timeout = timeout
         return Response(
-            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params, timeout=timeout,
-                       **kwargs))
+            self._verb(url=url, headers=_build_headers(url=url, headers=headers), fields=params,
+                       timeout=_as_timeout(timeout), **kwargs))
 
 
 get = _HttpVerb("GET")
@@ -198,7 +212,8 @@ head = _HttpVerb("HEAD")
 @ApplyRewriteRules()
 def urlopen(url, timeout: int = DEFAULT_TIMEOUT, headers: dict = None) -> Response:
     return Response(
-        pool.urlopen(method="GET", url=url, headers=_build_headers(url=url, headers=headers), timeout=timeout))
+        pool.urlopen(method="GET", url=url, headers=_build_headers(url=url, headers=headers),
+                     timeout=_as_timeout(timeout)))
 
 
 def _wasm_is_server_up(*args, **kwargs) -> bool:

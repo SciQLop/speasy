@@ -15,9 +15,12 @@ First, check that the trajectory you want is available. The easiest way is to br
 Speasy's dynamic inventory, which is always up to date:
 
     >>> import speasy as spz
-    >>> # Let's only print the first 10 objects
-    >>> print(list(spz.inventories.flat_inventories.ssc.parameters.keys())[:10])
-    ['ace', 'active', 'adityal1', 'aec', 'aed', 'aee', 'aerocube6a', 'aerocube6b', 'aim', 'akebono']
+    >>> ssc_trajectories = spz.inventories.flat_inventories.ssc.parameters
+    >>> # hundreds of spacecraft are available, keyed by their id
+    >>> 'ace' in ssc_trajectories
+    True
+    >>> len(ssc_trajectories) > 100
+    True
 
 Note that you can also use your python terminal completion and browse `spz.inventories.data_tree.ssc.Trajectories` to find
 your trajectory.

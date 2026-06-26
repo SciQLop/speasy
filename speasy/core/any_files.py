@@ -7,7 +7,7 @@ from typing import List, Optional, Union
 from speasy.core.cache import CacheCall
 from speasy.core.cache import get_item, add_item, CacheItem, request_locker
 from . import http
-from .url_utils import is_local_file, extract_path
+from .url_utils import is_local_file, extract_path, to_local_path
 
 log = logging.getLogger(__name__)
 _HREF_REGEX = re.compile('''href=['"]([A-Za-z0-9-_./]+)['"]>''')
@@ -124,7 +124,7 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dic
 
     """
     if is_local_file(url):
-        return AnyFile(url, open(url.replace('file://', ''), mode=mode))
+        return AnyFile(url, open(to_local_path(url), mode=mode))
     else:
         if cache_remote_files:
             return _cached_get_remote_file(url, timeout=timeout, headers=headers, mode=mode, prefer_cache=prefer_cache)
