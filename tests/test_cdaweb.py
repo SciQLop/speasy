@@ -249,21 +249,15 @@ class SpecificNonRegression(unittest.TestCase):
         self.assertIsNotNone(var)
 
     def test_get_cluster_fgm_data(self):
-        # should return None because the data is not available but should not raise an error
-        result = spz.get_data(
-            spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
-            "2018-03-02", "2018-03-03")
-        self.assertIsNone(result)
+        product = spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN
+        # Outside the dataset's definition range -> None, without raising.
+        # (In-range "empty" dates are unreliable: CDAWeb extends/backfills its
+        # coverage over time, so once-empty 2016/2018 ranges now return data.)
+        self.assertIsNone(spz.get_data(product, "1995-03-02", "1995-03-03"))
+        self.assertIsNone(spz.get_data(product, "2025-03-02", "2025-03-03"))
 
-        result = spz.get_data(
-            spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
-            "2016-03-02", "2016-03-03")
-        self.assertIsNone(result)
-
-        result = spz.get_data(
-            spz.inventories.data_tree.cda.Cluster.C1.FGM_SPIN.C1_CP_FGM_SPIN.B_vec_xyz_gse__C1_CP_FGM_SPIN,
-            "2015-03-02", "2015-03-03")
-        self.assertIsNotNone(result)
+        # Within coverage -> data is returned.
+        self.assertIsNotNone(spz.get_data(product, "2015-03-02", "2015-03-03"))
 
     def test_get_products_with_percent_in_name(self):
         # https://github.com/SciQLop/speasy/issues/211

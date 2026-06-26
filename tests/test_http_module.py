@@ -49,5 +49,21 @@ class HttpTests(unittest.TestCase):
             self.skipTest("SSL Error, likely due to broken certificate on server side or the server is down")
 
 
+class TimeoutHandling(unittest.TestCase):
+    def test_as_timeout_wraps_int_with_a_total_bound(self):
+        from speasy.core.http import _as_timeout
+        from urllib3.util.timeout import Timeout
+        t = _as_timeout(60)
+        self.assertIsInstance(t, Timeout)
+        # total caps the whole attempt (wall-clock), not just per-phase
+        self.assertEqual(t.total, 60)
+
+    def test_as_timeout_passes_through_existing_timeout(self):
+        from speasy.core.http import _as_timeout
+        from urllib3.util.timeout import Timeout
+        existing = Timeout(connect=5, read=10)
+        self.assertIs(_as_timeout(existing), existing)
+
+
 if __name__ == '__main__':
     unittest.main()

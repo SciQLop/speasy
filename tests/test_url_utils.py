@@ -7,7 +7,7 @@ import unittest
 import os
 from ddt import ddt, data, unpack
 
-from speasy.core.url_utils import ensure_url_scheme, is_local_file, host_and_port
+from speasy.core.url_utils import ensure_url_scheme, is_local_file, host_and_port, to_local_path
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
@@ -47,6 +47,19 @@ class UrlUtils(unittest.TestCase):
     @unpack
     def test_ensure_url_scheme(self, url, expected_url):
         self.assertEqual(ensure_url_scheme(url), expected_url)
+
+    @data(
+        ("/home/test/files.txt", "/home/test/files.txt"),
+        ("C:\\data\\f.cdf", "C:\\data\\f.cdf"),     # Windows drive letter must survive
+        ("Z:\\archive\\f.cdf", "Z:\\archive\\f.cdf"),  # local archive on another drive
+        ("C:/data/f.cdf", "C:/data/f.cdf"),
+        ("file:///home/test/files.txt", "/home/test/files.txt"),
+        ("file://C:\\data\\f.cdf", "C:\\data\\f.cdf"),   # file:// + bare Windows drive
+        ("file:///C:/data/f.cdf", "C:/data/f.cdf"),      # file:// + slashed Windows drive
+    )
+    @unpack
+    def test_to_local_path_preserves_windows_drive(self, url, expected):
+        self.assertEqual(to_local_path(url), expected)
 
     @data(
         ("http://somewhere.com", ("somewhere.com", 80)),

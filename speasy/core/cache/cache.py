@@ -7,7 +7,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Union
 
-import pysciqlop_cache as sc
+try:
+    import pysciqlop_cache as sc
+except ImportError:  # pragma: no cover - platform-specific (WASM has no wheel)
+    # No compiled backend (e.g. WASM/Pyodide): fall back to a no-op cache so
+    # importing Speasy still works; caching is simply disabled.
+    from . import _noop_cache as sc
 
 from .version import str_to_version, version_to_str, Version
 from speasy.config import cache as cache_cfg

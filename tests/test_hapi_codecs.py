@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 import os
 import tempfile
@@ -18,6 +19,18 @@ from speasy.core.data_containers import VariableAxis
 from speasy.products import SpeasyVariable
 
 __HERE__ = os.path.dirname(__file__)
+
+
+@contextlib.contextmanager
+def _temp_output(suffix):
+    """Yield a path inside a temporary directory for codec output.
+
+    Using a temp directory + path (rather than NamedTemporaryFile) avoids
+    holding the file open while the codec reopens it by name, which raises
+    PermissionError on Windows.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        yield os.path.join(d, "output" + suffix)
 
 
 @ddt
@@ -140,8 +153,7 @@ class TestHapiCsvCodec(unittest.TestCase):
     def test_spz_getdata_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
-            output_csv_file = tmp.name
+        with _temp_output('.csv') as output_csv_file:
             hapi_csv_file = hapi_csv_codec.save_variables(variables=[spz_var], file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
@@ -152,8 +164,7 @@ class TestHapiCsvCodec(unittest.TestCase):
         var_names = ['Magnitude', 'BGSEc', 'BGSM', 'SC_pos_GSE']
         filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv_multiple_vars.csv')
         variables = hapi_csv_codec.load_variables(file=filepath, variables=var_names, disable_cache=True)
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
-            output_csv_file = tmp.name
+        with _temp_output('.csv') as output_csv_file:
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
@@ -169,8 +180,7 @@ class TestHapiCsvCodec(unittest.TestCase):
         filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv')
         variables = hapi_csv_codec.load_variables(file=filepath, variables=['ace_epam_de_e'], disable_cache=True)
         self.assertIn('ace_epam_de_e', variables)
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
-            output_csv_file = tmp.name
+        with _temp_output('.csv') as output_csv_file:
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
@@ -180,8 +190,7 @@ class TestHapiCsvCodec(unittest.TestCase):
         filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeVarying_Axis.csv')
         variables = hapi_csv_codec.load_variables(file=filepath, variables=['spectra_time_dependent_bins'], disable_cache=True)
         self.assertIn('spectra_time_dependent_bins', variables)
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
-            output_csv_file = tmp.name
+        with _temp_output('.csv') as output_csv_file:
             hapi_csv_file = hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
             self.assertTrue(hapi_csv_file)
             self.assertTrue(os.path.exists(output_csv_file))
@@ -190,11 +199,10 @@ class TestHapiCsvCodec(unittest.TestCase):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         filepath = os.path.join(__HERE__, 'resources', 'HAPI_ndData_TimeIndependent_Axis.csv')
         variables = hapi_csv_codec.load_variables(file=filepath, variables=['ace_epam_de_e'], disable_cache=True)
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
-            print(f"Saving to {tmp.name}")
-            hapi_csv_codec.save_variables(variables=list(variables.values()), file=tmp)
-            self.assertTrue(os.path.exists(tmp.name))
-            with open(tmp.name, 'rb') as f:
+        with _temp_output('.csv') as output_csv_file:
+            hapi_csv_codec.save_variables(variables=list(variables.values()), file=output_csv_file)
+            self.assertTrue(os.path.exists(output_csv_file))
+            with open(output_csv_file, 'rb') as f:
                 headers =_extract_headers(f)
                 for key in ["HAPI", "startDate", "stopDate", "format", "status", "parameters"]:
                     self.assertIn(key, headers)
@@ -206,9 +214,9 @@ class TestHapiCsvCodec(unittest.TestCase):
             "2008-01-01",
             "2008-01-02",
         )
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=True) as tmp:
-            hapi_csv_codec.save_variables(variables=[imf_data], file=tmp)
-            df = pd.read_csv(tmp.name, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
+        with _temp_output('.csv') as output_csv_file:
+            hapi_csv_codec.save_variables(variables=[imf_data], file=output_csv_file)
+            df = pd.read_csv(output_csv_file, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
             self.assertAlmostEqual(float(df.iloc[0, 0]), float(imf_data.values[0, 0]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 1]), float(imf_data.values[0, 1]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 2]), float(imf_data.values[0, 2]), places=3)
@@ -302,8 +310,7 @@ class TestHapiBinaryCodec(unittest.TestCase):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         spz_var = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
         self.assertFalse(spz_var.axes[1].is_time_dependent)
-        with tempfile.NamedTemporaryFile(suffix='.binary', delete=True) as tmp:
-            output_binary_file = tmp.name
+        with _temp_output('.binary') as output_binary_file:
             hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
             self.assertTrue(hapi_binary_file)
             self.assertTrue(os.path.exists(output_binary_file))
@@ -316,9 +323,8 @@ class TestHapiBinaryCodec(unittest.TestCase):
             variables = hapi_binary_codec.load_variables(file=f, variables=[var_name], disable_cache=True)
             spz_var = variables[var_name]
             self.assertTrue(spz_var.axes[1].is_time_dependent)
-            with tempfile.NamedTemporaryFile(suffix='.binary', delete=True) as tmp:
+            with _temp_output('.binary') as output_binary_file:
                 # write to binary file, main test
-                output_binary_file = tmp.name
                 hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
                 self.assertTrue(hapi_binary_file)
                 self.assertTrue(os.path.exists(output_binary_file))

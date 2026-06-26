@@ -356,6 +356,64 @@ class TestFunctionCache(unittest.TestCase):
         self.assertEqual(len(cache.keys()), initial_keys_count)
 
 
+class TestNoopCacheBackend(unittest.TestCase):
+    """The fallback backend used when pysciqlop_cache is unavailable (e.g. WASM)
+    must never store anything and always report a miss."""
+
+    def test_store_always_misses_and_saves_nothing(self):
+        from speasy.core.cache import _noop_cache
+        store = _noop_cache.Cache(cache_path="/unused", max_size=0)
+        store.set("k", "v")
+        store["k"] = "v"
+        self.assertIsNone(store.get("k"))
+        self.assertEqual(store.get("k", "default"), "default")
+        self.assertEqual(len(store), 0)
+        self.assertEqual(list(store), [])
+        self.assertNotIn("k", store)
+        self.assertTrue(store.add("k", "v"))  # nothing stored -> add succeeds
+        self.assertIsNone(store.get("k"))
+        with self.assertRaises(KeyError):
+            store["k"]
+
+    def test_store_mutations_are_inert(self):
+        from speasy.core.cache import _noop_cache
+        store = _noop_cache.Cache(cache_path="/unused", max_size=0)
+        self.assertEqual(store.incr("counter", 2, default=5), 7)
+        self.assertFalse(store.delete("k"))
+        self.assertIsNone(store.pop("k"))
+        self.assertEqual(store.pop("k", "d"), "d")
+        self.assertEqual(store.evict_tag("t"), 0)
+        self.assertEqual(store.expire(), 0)
+        self.assertEqual(store.volume(), 0)
+        self.assertEqual(store.stats(), {"hits": 0, "misses": 0})
+        store.clear()
+        store.reset_stats()
+        with store.transact("shard"):
+            pass
+
+    def test_index_and_lock(self):
+        from speasy.core.cache import _noop_cache
+        index = _noop_cache.Index(path="/unused")
+        index["mod/key"] = 1
+        self.assertEqual(index.get("mod/key", "d"), "d")
+        self.assertNotIn("mod/key", index)
+        self.assertIsNone(index.pop("mod/key"))
+        lock = _noop_cache.Lock(_noop_cache.Cache(), "k")
+        self.assertTrue(lock.acquire())
+        self.assertTrue(lock.release())
+
+    def test_speasy_cache_wrapper_works_on_noop_backend(self):
+        import tempfile
+        from unittest import mock
+        import speasy.core.cache.cache as cache_mod
+        from speasy.core.cache import _noop_cache
+        with mock.patch.object(cache_mod, "sc", _noop_cache):
+            cache = cache_mod.Cache(cache_path=tempfile.mkdtemp())
+            cache.set("k", "v")
+            self.assertIsNone(cache.get("k"))
+            self.assertEqual(cache.stats(), {"hit": 0, "misses": 0})
+
+
 if __name__ == '__main__':
     unittest.main()
 

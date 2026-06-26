@@ -1,4 +1,8 @@
-import pysciqlop_cache as sc
+try:
+    import pysciqlop_cache as sc
+except ImportError:  # pragma: no cover - platform-specific (WASM has no wheel)
+    # No compiled backend (e.g. WASM/Pyodide): fall back to a no-op store.
+    from speasy.core.cache import _noop_cache as sc
 
 from speasy.config import index as index_cfg
 from speasy.core.cache.cache import _migrate_legacy_diskcache
