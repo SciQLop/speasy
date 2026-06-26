@@ -88,14 +88,15 @@ def extract_parameters(url_or_istp_loader: Union[str,ISTPLoader], provider: str,
 
 
 @CacheCall(cache_retention=timedelta(days=7), is_pure=True)
-def extract_from_master_cdf(url: str, provider: str, params_uid_format: str = "{var_name}",
-                             params_meta=None) -> Optional[tuple]:
+def extract_from_master(url: str, provider: str, params_uid_format: str = "{var_name}",
+                        params_meta=None) -> Optional[tuple]:
+    # pyistp transparently handles any ISTP master (CDF or NetCDF), so this is format-agnostic.
     try:
-        with any_loc_open(url, cache_remote_files=True) as remote_cdf:
+        with any_loc_open(url, cache_remote_files=True) as remote_file:
             params_meta = params_meta or {}
-            cdf = pyistp.load(buffer=remote_cdf.read())
-            parameters = _extract_parameters_impl(cdf, provider=provider, uid_fmt=params_uid_format, meta=params_meta)
-            dataset_meta = filter_dataset_meta(cdf)
+            istp = pyistp.load(buffer=remote_file.read())
+            parameters = _extract_parameters_impl(istp, provider=provider, uid_fmt=params_uid_format, meta=params_meta)
+            dataset_meta = filter_dataset_meta(istp)
             return parameters, dataset_meta
     except RuntimeError:
         print(f"Issue loading {url}")
