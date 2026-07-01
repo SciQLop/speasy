@@ -88,18 +88,23 @@ def extract_parameters(url_or_istp_loader: Union[str,ISTPLoader], provider: str,
 
 
 @CacheCall(cache_retention=timedelta(days=7), is_pure=True)
-def make_dataset_index(url: str, name: str, provider: str, uid: str, meta=None,
-                       params_uid_format: str = "{var_name}", params_meta=None) -> Optional[DatasetIndex]:
+def extract_from_master(url: str, provider: str, params_uid_format: str = "{var_name}",
+                        params_meta=None) -> Optional[tuple]:
+    # pyistp transparently handles any ISTP master (CDF or NetCDF), so this is format-agnostic.
     try:
-        with any_loc_open(url, cache_remote_files=True) as remote_cdf:
-            meta = meta or {}
+        with any_loc_open(url, cache_remote_files=True) as remote_file:
             params_meta = params_meta or {}
-            cdf = pyistp.load(buffer=remote_cdf.read())
-            dataset = DatasetIndex(name=name, provider=provider, uid=uid, meta={**filter_dataset_meta(cdf), **meta})
-            dataset.__dict__.update(
-                {p.spz_name(): p for p in
-                 _extract_parameters_impl(cdf, provider=provider, uid_fmt=params_uid_format, meta=params_meta)})
-            return dataset
+            istp = pyistp.load(buffer=remote_file.read())
+            parameters = _extract_parameters_impl(istp, provider=provider, uid_fmt=params_uid_format, meta=params_meta)
+            dataset_meta = filter_dataset_meta(istp)
+            return parameters, dataset_meta
     except RuntimeError:
         print(f"Issue loading {url}")
     return None
+
+
+def make_dataset_index(name: str, provider: str, uid: str, parameters: List[ParameterIndex],
+                       meta=None) -> DatasetIndex:
+    dataset = DatasetIndex(name=name, provider=provider, uid=uid, meta=meta or {})
+    dataset.__dict__.update({p.spz_name(): p for p in parameters})
+    return dataset
