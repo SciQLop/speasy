@@ -12,16 +12,17 @@ __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
 import logging
-import os
 from datetime import timedelta
 from typing import Dict, List, Optional
 
 import numpy as np
 
+from speasy.config import supermag as supermag_cfg
 from speasy.core import http, EnsureUTCDateTime, AllowedKwargs
 from speasy.core.algorithms import fix_name
 from speasy.core.cache import CacheCall, Cacheable, CACHE_ALLOWED_KWARGS
 from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
+from speasy.core.impex.exceptions import MissingCredentials
 from speasy.core.inventory.indexes import (ParameterIndex, SpeasyIndex,
                                            make_inventory_node)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS
@@ -105,11 +106,11 @@ class SuperMAGWebservice(DataProvider):
     @SplitLargeRequests(threshold=lambda x: timedelta(days=30))
     def _get_station_data(self, product: str, start_time, stop_time, coordinates: str = 'nez',
                           extra_http_headers: Optional[Dict] = None, **kwargs) -> Optional[SpeasyVariable]:
-        logon = os.environ.get('SPEASY_SUPERMAG_LOGON')
+        logon = supermag_cfg.logon()
         if not logon:
-            log.warning("SuperMAG get_data needs a logon: set SPEASY_SUPERMAG_LOGON to your SuperMAG "
-                        "userid (register at https://supermag.jhuapl.edu).")
-            return None
+            raise MissingCredentials(
+                "SuperMAG requires a logon. Set it with spz.config.supermag.logon.set('<userid>') "
+                "or the SPEASY_SUPERMAG_LOGON environment variable.")
         iaga = product.rsplit('/', 1)[-1]
         url = (f"{self.BASE_URL}/services/data-api.php?fmt=json&nohead"
                f"&logon={logon}&start={start_time.strftime('%Y-%m-%dT%H:%M')}"
@@ -126,6 +127,7 @@ class SuperMAGWebservice(DataProvider):
             records = res.json()
         except ValueError:
             # SuperMAG answers HTTP 200 with a non-JSON body on logon/server-side errors.
+            # has to be noted that the server errors are not always regular
             log.warning(f"SuperMAG returned a non-JSON response for station {iaga} "
                         f"(logon or server-side error)")
             return None
