@@ -8,13 +8,19 @@ list endpoint is mocked with a small fixture, so the inventory can be checked
 deterministically in CI.
 """
 
+import inspect
+import os
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import numpy as np
 import speasy as spz
+from speasy.config import supermag as supermag_cfg
 from speasy.core.algorithms import fix_name
+from speasy.core.impex.exceptions import MissingCredentials
 from speasy.core.inventory.indexes import ParameterIndex
+from speasy.data_providers import supermag as supermag_module
 from speasy.data_providers.supermag import SuperMAGWebservice, _records_to_variable
 from speasy.inventories import tree
 
@@ -129,6 +135,26 @@ class SuperMAGRecordsTest(unittest.TestCase):
 
     def test_empty_records_returns_none(self):
         self.assertIsNone(_records_to_variable([], "nez", "ABK"))
+
+
+class SuperMAGLogonConfigTest(unittest.TestCase):
+    """The logon comes from config.supermag.logon() (env var or config.ini), not os.environ."""
+
+    def test_logon_resolved_from_env_var(self):
+        with patch.dict(os.environ, {"SPEASY_SUPERMAG_LOGON": "testid"}):
+            self.assertEqual(supermag_cfg.logon(), "testid")
+
+    def test_missing_logon_raises_missing_credentials(self):
+        ws = _build_provider([])  # offline provider (mocked station list)
+        start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)
+        stop = datetime(2015, 3, 17, 1, 0, tzinfo=timezone.utc)
+        # Empty env var forces an empty logon deterministically (config.ini is not consulted).
+        with patch.dict(os.environ, {"SPEASY_SUPERMAG_LOGON": ""}):
+            with self.assertRaises(MissingCredentials):
+                ws.get_data("Stations/ABK", start, stop, disable_cache=True)
+
+    def test_provider_does_not_read_os_environ_directly(self):
+        self.assertNotIn("os.environ", inspect.getsource(supermag_module))
 
 
 if __name__ == "__main__":
