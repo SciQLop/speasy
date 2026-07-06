@@ -69,7 +69,9 @@ class SuperMAGWebservice(DataProvider):
     BASE_URL = "https://supermag.jhuapl.edu"
 
     def __init__(self):
-        DataProvider.__init__(self, provider_name='supermag', provider_alt_names=['SuperMAG'])
+        # Dont proxify the inventory ... to be confirmed
+        DataProvider.__init__(self, provider_name='supermag', provider_alt_names=['SuperMAG'],
+                              inventory_disable_proxy=True)
 
     def version(self, product):  # NOSONAR (S1172) - kept for the @Cacheable version protocol
         return 1
