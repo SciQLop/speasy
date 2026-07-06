@@ -231,6 +231,11 @@ amda = ConfigSection("AMDA",
                          "default": "CDF_ISTP"}
                      )
 
+supermag = ConfigSection("SUPERMAG",
+                         logon={
+                             "description": """Your SuperMAG userid (register at https://supermag.jhuapl.edu). Required for all SuperMAG data requests."""}
+                         )
+
 archive = ConfigSection("ARCHIVE",
                         extra_inventory_lookup_dirs={"default": set(),
                                                      "description": """A comma separated list of directory path Archive provider will scann for YAML inventory files.""",
