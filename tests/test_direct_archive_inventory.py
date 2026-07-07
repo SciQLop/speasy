@@ -101,6 +101,10 @@ ac_mfi_cdf_remote_dataset:
 """
 
 
+_LOCAL_ERG_CDF = f"{__HERE__}/resources/erg_pwe_hfa_l3_1min_00000000_v01.cdf"
+_LOCAL_ERG_SKELETON_YAML = f"{__HERE__}/resources/erg_pwe_hfa_l3_1min_00000000_v01.skeleton.yaml"
+
+
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
 
@@ -144,6 +148,14 @@ def _norm(obj):
     if isinstance(obj, dict):
         return {k: _norm(v) for k, v in obj.items()}
     return obj
+
+
+def _scalar(value):
+    # cdfpp skeleton stores every attribute value as a list;
+    #  unwrap single-element lists [kHz] -> kHz for comparison with the CDF inventory
+    if isinstance(value, (list, tuple)) and len(value) == 1:
+        return value[0]
+    return value
 
 
 def _inventory_to_inline_yaml(name, inventory_path, dataset, **archive_keys):
@@ -343,6 +355,47 @@ ac_mfi_nc_remote_dataset:
         finally:
             os.unlink(fname)
         self.assertNotIn('bad_dataset', root.__dict__.get('cda', SpeasyIndex(name='x', provider='x', uid='')).__dict__)
+
+
+class TestCdfYamlSameInventory(unittest.TestCase):
+    # A master CDF and the YAML skeleton must describe the same inventory.
+
+    def test_cdf_and_yaml_describe_same_inventory(self):
+        # inventory A: local master CDF -> speasy inventory (filtered, scalar meta)
+        parameters, dataset_meta = extract_from_master(
+            _LOCAL_ERG_CDF, provider='archive', disable_cache=True)
+        ds_a = make_dataset_index(name='erg_pwe_hfa_l3_1min', provider='archive',
+                                  uid='archive/cda/test/erg_pwe_hfa_l3_1min',
+                                  parameters=parameters, meta=dataset_meta)
+
+        # inventory B: skeleton YAML -> speasy inventory.
+        #  The cdfpp dump omits the archive plumbing key, so inject a minimal
+        #  inventory_path 
+        with open(_LOCAL_ERG_SKELETON_YAML) as f:
+            doc = yaml.safe_load(f)
+        for entry in doc.values():
+            entry['inventory_path'] = 'cda/test'
+        root_b = _load_yaml_doc(yaml.safe_dump(doc, sort_keys=False))
+        ds_b = root_b.__dict__['cda'].__dict__['test'].__dict__.get('erg_pwe_hfa_l3_1min')
+        self.assertIsNotNone(ds_b)
+
+        vm_a = _variables_meta(ds_a)
+        vm_b = _variables_meta(ds_b)
+
+        # same variables: every data variable speasy extracts from the CDF appears in the YAML
+        # (the cdfpp dump additionally lists support_data variables).
+        self.assertGreater(len(vm_a), 0)
+        self.assertTrue(set(vm_a).issubset(set(vm_b)),
+                        f"CDF variables {set(vm_a)} not all present in YAML {set(vm_b)}")
+
+        # expected metadata present and consistent, modulo cdfpp's list wrapping (D4)
+        for var in ('Fuhr', 'ne_mgf'):
+            self.assertIn(var, vm_a)
+            self.assertIn('CATDESC', vm_a[var])
+            self.assertIn('UNITS', vm_a[var])
+            self.assertEqual(_scalar(vm_b[var].get('UNITS')), vm_a[var]['UNITS'])
+        self.assertEqual(vm_a['Fuhr']['UNITS'], 'kHz')
+        self.assertEqual(vm_a['ne_mgf']['UNITS'], '/cc')
 
 
 if __name__ == '__main__':
