@@ -1,0 +1,202 @@
+erg_pwe_hfa_l3_1min:
+  meta:
+    PROJECT: ["ERG>Exploration of Energization and Radiation in Geospace"]
+    DISCIPLINE: ["Space Physics>Magnetospheric Science"]
+    SOURCE_NAME: [Arase (ERG)]
+    DATA_TYPE: ["l3_pwe>level 3 plasma wave experiment data"]
+    DESCRIPTOR: ["PWE>Plasma Wave Experiment"]
+    DATA_VERSION: [" "]
+    TITLE:
+      [
+        Level 3 electron density data obtained by the Plasma Wave Experiment (PWE) instrument onboard the ERG satellite,
+      ]
+    TEXT: [" "]
+    GENERATED_BY: [" "]
+    GENERATION_DATE: [" "]
+    MODS: [" "]
+    ADID_REF: [" "]
+    LOGICAL_FILE_ID: [" "]
+    LOGICAL_SOURCE: [erg_pwe_hfa_l3]
+    LOGICAL_SOURCE_DESCRIPTION:
+      [
+        Exploration of Energization and Radiation in Geospace (ERG) Plasma Wave Experiment (PWE) High Frequency Analyzer (HFA) Level 3 UHR frequency and electron density data,
+      ]
+    PI_NAME: [Yoshiya Kasahara and Ayako Matsuoka]
+    PI_AFFILIATION: [Kanazawa University and Kyoto University]
+    MISSION_GROUP: [ERG]
+    INSTRUMENT_TYPE: [Radio and Plasma Waves (space)]
+    TEXT_SUPPLEMENT: [" "]
+    RULES_OF_USE:
+      [
+        Rules of the Road for the users of the products from the ERG/Arase Project,
+        " ",
+        " 1. Users of all level of scientific products from the ERG/Arase project should contact instrument PI team(s), Project Manager (PM), and Project Scientist (PS) before using the data for any presentation and publication. PI(s) / PM (Iku Shinohara, iku at stp.isas.jaxa.jp) / PS (Yoshizumi Miyoshi, miyoshi at isee.nagoya-u.ac.jp) may suggest potential coauthor(s) from the ERG/Arase project side for the presentation and publication. Some necessary articles suggested by the PI(s) should be cited.",
+        " ",
+        "2. Users should always use the latest version of data files provided from the ERG science center for their data analysis, presentation and publications. Redistribution of the data files is strictly prohibited. ",
+        " ",
+        "3. Users should send presentation materials and papers including ERG/Arase data to instrument PI team(s), PM, and PS enough before presentation and paper submission, so that sufficient time is available for those responsible for the data to check if the data are properly processed/used and to get necessary comments back to the datausers. ",
+        " ",
+        " 4. Publications that use ERG/Arase satellite data should cite the project overview paper (Miyoshi et al., Earth Planets Space, doi:10.1186/s40623-018-0862-0, 2018a) and include the following text in the paper acknowledgements by referring the paper about the ERG-SC (Miyoshi et al., Earth Planets Space, doi:10.1186/s40623-018-0867-8, 2018b)/ And please specify the version number of your used data files in acknowledgements. ",
+        " ",
+        ' "Science data of the ERG (Arase) satellite were obtained from the ERG Science Center operated by ISAS/JAXA and ISEE/Nagoya University (https://ergsc.isee.nagoya-u.ac.jp/index.shtml.en, Miyoshi et al., 2018b)."',
+        " ",
+        " 5. The ERG project requires the author of a paper in which Arase satellite data are presented to specify the version numbers of the used data files in the acknowledgement section. A sample sentence for it is shown below:",
+        " ",
+        ' "The present study analyzed MGF-L2 v01_01 data, HEP-L2 v01_01 data, MEP-e-L2 v01_01 data, and OBT L3 v02 data." ',
+        " ",
+        " Rules of the Road of PWE/HFA Level-3 data (PWE/HFA & OFA, MGF):  ",
+        " ",
+        " 1. This is a 1-miniute resolution level 3 UHR frequency and corresponding electron number density data determined from PWE/HFA-L2 (doi:10.34515/DATA.ERG-10000) and PWE/OFA-L2 (doi:10.34515/DATA.ERG-08000) spectrum data and MGF-L2 (doi:10.34515/DATA.ERG-06001) 8 sec spin-averaged data. The UHR frequency is determined by an automatic detection algorithm with correction by visual inspection and manual procedures. The procedures could cause a small error due to ambiguity in determining the UHR frequency and corresponding electron number density. 1-min average data of total magnetic field recorded in MGF level 2 CDF file are used to estimate the local electron gyro-frequency. The data user is strongly encouraged to contact the PI (erg_pwe_info@isee.nagoya-u.ac.jp) in an early stage of his/her work using PWE data to discuss data usage and interpretation. ",
+        " ",
+        " PWE Overall : Kasahara et al., EPS, doi:10.1186/s40623-018-0842-4, 2018. ",
+        " OFA : Matsuda et al., EPS, doi:10.1186/s40623-018-0838-0, 2018. ",
+        " HFA : Kumamoto et al., EPS, doi:10.1186/s40623-018-0854-0, 2018.  ",
+        " MGF : Matsuoka et al., EPS, doi:10.1186/s40623-018-0800-1, 2018. ",
+        " ",
+        '  2. When you use the electron density from PWE/HFA Level-3 data, we recommend the following description on the electron density data. "The local electron densities in this study are provided from PWE/HFA-L3 CDF data in which the local electron density is derived from UHF frequency determined  by PWE/HFA and OFA and the local magnetic field measured by MGF." ',
+        " ",
+        ' 3. When MGF level 2 magnetic field magnitude was not able to use, only the UHR frequency data is stored in this file. Users can derive the electron density using the UHR frequency data and electron gyro frequency from the model magnetic fields. If users derive the electron density using the model magnetic fields, please specify how to derive the electron density as follows. "The local electron density is derived from UHR frequency determined by PWE/HFA and OFA stored in PWE/HFA-L3 CDF data and local magnetic field obtained from TS-04 model along the Arase orbit."  ',
+        " ",
+        "  4. Redistribution of the PWE/HFA Level-3 CDF files and any fraction or the entire part of the data content is strictly prohibited.  ",
+        " ",
+        "  5. More details about the PWE/HFA-L3 data are found at the following web page. https://ergsc.isee.nagoya-u.ac.jp/mw/index.php/ErgSat/Pwe  ",
+        " ",
+        " Please contact to PWE PI (Yoshiya Kasahara), HFA co-I (Atsushi Kumamoto, Fuminori Tsuchiya) and MGF PI (Ayako Matsuoka) for the further information. And, users are encouraged to report any suspicious data to both PI teams. (contact: erg_pwe_info at isee.nagoya-u.ac.jp / erg_mgf_info at isee.nagoya-u.ac.jp)",
+      ]
+    LINK_TEXT: ["For more information, see"]
+    LINK_TITLE: [the ERG Science Center website]
+    HTTP_LINK: ["https://ergsc.isee.nagoya-u.ac.jp"]
+    TIME_RESOLUTION: ["1 min"]
+    DOI: ["10.34515/DATA.ERG-10001"]
+    START_TI: [" "]
+    END_TI: [" "]
+    DATA_START_TIME: ["20180101 000000000000000"]
+    DATA_END_TIME: ["20180101 235959999999999"]
+    DATA_AVERAGING_TYPE: ["1 min sampling"]
+    SOURCE_FILE:
+      ["hfa_l3_20180101_v01_04.txt, erg_mgf_l2_8sec_20180101_v03.04.cdf"]
+    ANCILLARY_FILE: [" "]
+    GENERATION_CODE: ["makecdf_erg_hfa_l3.pro(94c19d8, 2024-10-23)"]
+    CALIBRATION_HISTORY: [" "]
+    INSPECTOR1: [Atsushi Kumamoto]
+    INSPECTOR2: [Atsuki Shinbori]
+    AUTHORIZER: [Atsushi Kumamoto]
+    KNOWN_PROBLEMS: [" "]
+  variables:
+    Epoch:
+      meta:
+        FIELDNAM: [Epoch]
+        CATDESC: ["Time, beginning of interval"]
+        VALIDMIN: ["01-Jan-2015 00:00:00.000.000.000"]
+        VALIDMAX: ["31-Dec-2100 23:59:59.999.999.999"]
+        SCALEMIN: ["01-Jan-2015 00:00:00.000.000.000"]
+        SCALEMAX: ["31-Dec-2100 23:59:59.999.999.999"]
+        UNITS: [ns]
+        LABLAXIS: [Epoch]
+        MONOTON: [increase]
+        FORMAT: [I20]
+        FILLVAL: ["-9.22E+18"]
+        VAR_TYPE: [data]
+        AVG_TYPE: [none]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [linear]
+    Fuhr:
+      meta:
+        FIELDNAM: [UHR frequency]
+        CATDESC: [UHR frequency]
+        VALIDMIN: ["-99999.999"]
+        VALIDMAX: ["99999.999"]
+        SCALEMIN: ["-99999.999"]
+        SCALEMAX: ["99999.999"]
+        UNITS: [kHz]
+        DEPEND_0: [Epoch]
+        LABLAXIS: [UHR frequency]
+        MONOTON: ["FALSE"]
+        FORMAT: [F10.3]
+        VAR_TYPE: [data]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [log]
+    ne_mgf:
+      meta:
+        FIELDNAM: [density_mgf]
+        CATDESC: [density_mgf]
+        VALIDMIN: ["-99999.999"]
+        VALIDMAX: ["99999.999"]
+        SCALEMIN: ["-99999.999"]
+        SCALEMAX: ["99999.999"]
+        UNITS: [/cc]
+        DEPEND_0: [Epoch]
+        LABLAXIS: [electron density]
+        MONOTON: ["FALSE"]
+        FORMAT: [F10.3]
+        VAR_TYPE: [data]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [log]
+    quality_flag:
+      meta:
+        FIELDNAM: [quality flag]
+        CATDESC: [quality flag]
+        VALIDMIN: ["0"]
+        VALIDMAX: ["128"]
+        SCALEMIN: ["0"]
+        SCALEMAX: ["128"]
+        DEPEND_0: [Epoch]
+        MONOTON: ["FALSE"]
+        FORMAT: [I1]
+        FILLVAL: ["-128"]
+        VAR_TYPE: [data]
+        AVG_TYPE: [none]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [linear]
+        VAR_NOTES:
+          [
+            "b0:see Quality Note, b1:DC-CAL signal ON, b2:AC-CAL(E) signal ON, b3:AC-CAL(B) signal ON, b4:eclipse, b5:magnetorquer operated, b6:ambiguous UTC label, b7-b15:reserved, b16:Eu/Ev saturated, b17:Bg saturated, b18:HFA internal CAL, b19:MGF data not available, b20-b30:reserved, b31:HK CDF error",
+          ]
+    inspector1:
+      meta:
+        FIELDNAM: ["Inspector ID #1"]
+        CATDESC: ["Inspector ID #1"]
+        VALIDMIN: ["0"]
+        VALIDMAX: ["254"]
+        SCALEMIN: ["0"]
+        SCALEMAX: ["254"]
+        DEPEND_0: [Epoch]
+        MONOTON: ["FALSE"]
+        FORMAT: [I1]
+        FILLVAL: ["-128"]
+        VAR_TYPE: [support_data]
+        AVG_TYPE: [none]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [linear]
+    inspector2:
+      meta:
+        FIELDNAM: ["Inspector ID #2"]
+        CATDESC: ["Inspector ID #2"]
+        VALIDMIN: ["0"]
+        VALIDMAX: ["254"]
+        SCALEMIN: ["0"]
+        SCALEMAX: ["254"]
+        DEPEND_0: [Epoch]
+        MONOTON: ["FALSE"]
+        FORMAT: [I1]
+        FILLVAL: ["-128"]
+        VAR_TYPE: [support_data]
+        AVG_TYPE: [none]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [linear]
+    authorizer:
+      meta:
+        FIELDNAM: [Authorizer ID]
+        CATDESC: [Authorizer ID]
+        VALIDMIN: ["0"]
+        VALIDMAX: ["254"]
+        SCALEMIN: ["0"]
+        SCALEMAX: ["254"]
+        DEPEND_0: [Epoch]
+        MONOTON: ["FALSE"]
+        FORMAT: [I1]
+        FILLVAL: ["-128"]
+        VAR_TYPE: [support_data]
+        AVG_TYPE: [none]
+        DISPLAY_TYPE: [time_series]
+        SCALETYP: [linear]
