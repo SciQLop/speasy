@@ -79,14 +79,12 @@ class SuperMAGInventoryTest(unittest.TestCase):
         self.assertTrue(hasattr(tree.supermag, "Stations"))
 
 
-@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'supermag', 'SuperMAG'}),
-                 "supermag provider not available")
-class SuperMAGNetworkTest(unittest.TestCase):
-    """Live tests hitting the real JHUAPL public stations endpoint
-    (doesnt require a logon) 
+class _LiveSuperMAGMixin:
+    """Build the provider against the live endpoint, skipping on a transient glitch.
 
-    Skipped  when SuperMAG is unreachable or returns a non-JSON error:
-    the request intermittently fails ( HTTP 200 with a PHP error body)
+    Instantiating SuperMAGWebservice runs build_inventory -> _get_stations, which
+    intermittently answers HTTP 200 with a non-JSON PHP error body. In that case we
+    skip (never fail) so a server-side glitch can't block a push or CI run.
     """
 
     def _build_or_skip(self):
@@ -94,6 +92,17 @@ class SuperMAGNetworkTest(unittest.TestCase):
             return SuperMAGWebservice()  # __init__ -> build_inventory -> _get_stations
         except Exception as e:  # e.g. JSONDecodeError when SuperMAG returns an error page
             self.skipTest(f"SuperMAG station endpoint unavailable ({e!r})")
+
+
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'supermag', 'SuperMAG'}),
+                 "supermag provider not available")
+class SuperMAGNetworkTest(_LiveSuperMAGMixin, unittest.TestCase):
+    """Live tests hitting the real JHUAPL public stations endpoint
+    (doesnt require a logon) 
+
+    Skipped  when SuperMAG is unreachable or returns a non-JSON error:
+    the request intermittently fails ( HTTP 200 with a PHP error body)
+    """
 
     def test_get_real_station_list(self):
         stations = self._build_or_skip()._get_stations()
@@ -172,6 +181,33 @@ class SuperMAGLogonConfigTest(unittest.TestCase):
 
     def test_provider_does_not_read_os_environ_directly(self):
         self.assertNotIn("os.environ", inspect.getsource(supermag_module))
+
+
+@unittest.skipUnless(os.environ.get("SPEASY_SUPERMAG_LOGON"),
+                     "SPEASY_SUPERMAG_LOGON not set (gated integration test)")
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'supermag', 'SuperMAG'}),
+                 "supermag provider not available")
+class SuperMAGGetDataIntegrationTest(_LiveSuperMAGMixin, unittest.TestCase):
+    """Gated end-to-end test: real logon + real data-api.php call.
+
+    Skipped  when SuperMAG is unreachable or returns a non-JSON error:
+    the request intermittently fails ( HTTP 200 with a PHP error body)
+
+    """
+
+    def test_get_data_returns_non_empty_variable(self):
+        ws = self._build_or_skip()
+        start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)
+        stop = datetime(2015, 3, 17, 1, 0, tzinfo=timezone.utc)
+        try:
+            var = ws.get_data("Stations/ABK", start, stop, disable_cache=True)
+        except Exception as e:
+            self.skipTest(f"SuperMAG data-api unavailable ({e!r})")
+        if var is None:
+            self.skipTest("SuperMAG data-api returned no data for the test window")
+        self.assertGreater(len(var), 0)
+        self.assertEqual(var.columns, ["N", "E", "Z"])
+        self.assertEqual(var.values.shape[1], 3)
 
 
 if __name__ == "__main__":
