@@ -172,8 +172,8 @@ class SuperMAGLogonConfigTest(unittest.TestCase):
             self.assertEqual(supermag_cfg.logon(), "testid")
 
     def test_no_logon_raises_missing_credentials(self):
-        ws = _build_provider([])  # offline provider (mocked station list)
-        start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)
+        ws = _build_provider(_STATIONS_FIXTURE)  # ABK must exist: @ParameterRangeCheck runs first
+        start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)  # within the 1975-2100 coverage
         stop = datetime(2015, 3, 17, 1, 0, tzinfo=timezone.utc)
         # Empty env var forces an empty logon deterministically (config.ini is not consulted).
         with patch.dict(os.environ, {"SPEASY_SUPERMAG_LOGON": ""}):
@@ -182,6 +182,27 @@ class SuperMAGLogonConfigTest(unittest.TestCase):
 
     def test_provider_does_not_read_os_environ_directly(self):
         self.assertNotIn("os.environ", inspect.getsource(supermag_module))
+
+
+class SuperMAGParameterRangeTest(unittest.TestCase):
+    """Offline tests for the coverage guard (parameter_range + @ParameterRangeCheck).
+
+    Stations expose no per-station dates, so all share one global coverage range.
+    """
+
+    def test_parameter_range_is_global_default(self):
+        ws = _build_provider(_STATIONS_FIXTURE)
+        r = ws.parameter_range("Stations/ABK")
+        self.assertEqual(r.start_time.year, 1975)
+        self.assertEqual(r.stop_time.year, 2100)
+
+    def test_get_data_outside_coverage_returns_none(self):
+        ws = _build_provider(_STATIONS_FIXTURE)
+        start = datetime(1800, 1, 1, tzinfo=timezone.utc)
+        stop = datetime(1800, 1, 2, tzinfo=timezone.utc)
+        # @ParameterRangeCheck short-circuits before the network call and before the
+        # logon check, so this needs neither a logon nor a mocked HTTP response.
+        self.assertIsNone(ws.get_data("Stations/ABK", start, stop, disable_cache=True))
 
 
 @unittest.skipUnless(supermag_cfg.logon(),

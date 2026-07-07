@@ -12,7 +12,7 @@ __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -21,7 +21,8 @@ from speasy.config import supermag as supermag_cfg
 from speasy.core import http, EnsureUTCDateTime, AllowedKwargs
 from speasy.core.algorithms import fix_name
 from speasy.core.cache import CacheCall, Cacheable, CACHE_ALLOWED_KWARGS
-from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
+from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS, ParameterRangeCheck
+from speasy.core.datetime_range import DateTimeRange
 from speasy.core.impex.exceptions import MissingCredentials
 from speasy.core.inventory.indexes import (ParameterIndex, SpeasyIndex,
                                            make_inventory_node)
@@ -37,6 +38,11 @@ _STATIONS_URL = "https://supermag.jhuapl.edu/lib/services/?service=stations&fmt=
 
 # SuperMAG stores its no-data sentinel as this value in every numeric field.
 _MISSING_VALUE = 999999
+
+# Stations carry no per-station coverage dates, instead, supermag api provides per time range stations list.
+#  So a single generous range guards is set against absurd time requests (see
+#  uiowa_eph_tool for the same approach).
+_COVERAGE = DateTimeRange(datetime(1975, 1, 1), datetime(2100, 1, 1))
 
 
 def _cache_entry_name(prefix: str, product: str, start_time: str, **kwargs) -> str:
@@ -94,7 +100,9 @@ class SuperMAGWebservice(DataProvider):
                                 provider='supermag', uid=f'Stations/{iaga_id}',
                                 station=iaga_id, label=station.get('name', iaga_id),
                                 geolat=station.get('geolat'), geolon=station.get('geolon'),
-                                operator=station.get('operator'))
+                                operator=station.get('operator'),
+                                start_date=_COVERAGE.start_time.isoformat(),
+                                stop_date=_COVERAGE.stop_time.isoformat())
         return root
 
     def get_data(self, product: str, start_time, stop_time, coordinates: str = 'nez',
@@ -102,8 +110,18 @@ class SuperMAGWebservice(DataProvider):
         return self._get_station_data(product=product, start_time=start_time, stop_time=stop_time,
                                       coordinates=coordinates, **kwargs)
 
+    def parameter_range(self, parameter_id) -> Optional[DateTimeRange]:
+        """Return the coverage range of a SuperMAG station.
+
+        All stations share a single generous range (SuperMAG exposes no
+        per-station coverage dates, but per time-period stations list);
+        This only guards against absurd time requests.
+        """
+        return self._parameter_range(parameter_id)
+
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['coordinates'])
     @EnsureUTCDateTime()
+    @ParameterRangeCheck()
     @Cacheable(prefix="supermag", fragment_hours=lambda x: 24, version=version, entry_name=_cache_entry_name)
     @SplitLargeRequests(threshold=lambda x: timedelta(days=30))
     def _get_station_data(self, product: str, start_time, stop_time, coordinates: str = 'nez',
