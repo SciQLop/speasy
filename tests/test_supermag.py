@@ -36,21 +36,21 @@ _STATIONS_FIXTURE = [
 
 
 def _build_provider(stations):
-    """Instantiate the provider with a mocked (offline) station list."""
+    """Instantiate the provider with a mocked station list."""
     with patch.object(SuperMAGWebservice, "_get_stations", lambda self: stations):
         return SuperMAGWebservice()
 
 
 class SuperMAGInventoryTest(unittest.TestCase):
 
-    def test_builds_stations_inventory_without_network_or_logon(self):
+    def test_stations_inventory_without_network(self):
         ws = _build_provider(_STATIONS_FIXTURE)
         params = ws.flat_inventory.parameters
         self.assertEqual(len(params), len(_STATIONS_FIXTURE))
         self.assertIn("Stations/YKC", params)
         self.assertIn("Stations/ABK", params)
 
-    def test_station_node_carries_expected_metadata(self):
+    def test_station_node_metadata(self):
         ws = _build_provider(_STATIONS_FIXTURE)
         node = ws.flat_inventory.parameters["Stations/YKC"]
         self.assertIsInstance(node, ParameterIndex)
@@ -62,12 +62,14 @@ class SuperMAGInventoryTest(unittest.TestCase):
         self.assertEqual(node.geolon, 245.52)
         self.assertEqual(node.operator, ["CANMOS", "INTERMAGNET", "THEMIS"])
 
-    def test_node_name_is_sanitised_but_uid_keeps_raw_iaga(self):
-        _build_provider(_STATIONS_FIXTURE)  # rebuilds tree.supermag from the fixture
+    def test_sanitised_node_name(self):
+        """ node name sanitised but uid keeps IAGA code 
+          The tree attribute key is a valid Python identifier
+          while the uid  keeps the raw IAGA code.
+        """
+        _build_provider(_STATIONS_FIXTURE)
         stations_node = tree.supermag.Stations
-        # The tree attribute key is a valid Python identifier ...
         self.assertIn(fix_name("9XY"), stations_node.__dict__)
-        # ... while the uid (used to call the API) keeps the raw IAGA code.
         self.assertEqual(stations_node.__dict__[fix_name("9XY")].spz_uid(), "Stations/9XY")
 
     def test_empty_station_list_does_not_crash(self):
@@ -80,11 +82,11 @@ class SuperMAGInventoryTest(unittest.TestCase):
 @unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'supermag', 'SuperMAG'}),
                  "supermag provider not available")
 class SuperMAGNetworkTest(unittest.TestCase):
-    """Live tests hitting the real JHUAPL public stations endpoint (no logon).
+    """Live tests hitting the real JHUAPL public stations endpoint
+    (doesnt require a logon) 
 
-    Skipped (not failed) when SuperMAG is unreachable or returns a non-JSON error
-    page — it intermittently answers HTTP 200 with a PHP error body — so a transient
-    server-side glitch never blocks a push or CI run.
+    Skipped  when SuperMAG is unreachable or returns a non-JSON error:
+    the request intermittently fails ( HTTP 200 with a PHP error body)
     """
 
     def _build_or_skip(self):
@@ -93,17 +95,17 @@ class SuperMAGNetworkTest(unittest.TestCase):
         except Exception as e:  # e.g. JSONDecodeError when SuperMAG returns an error page
             self.skipTest(f"SuperMAG station endpoint unavailable ({e!r})")
 
-    def test_get_stations_returns_real_station_list(self):
+    def test_get_real_station_list(self):
         stations = self._build_or_skip()._get_stations()
         if not stations:
             self.skipTest("SuperMAG station endpoint returned no data")
         self.assertIsInstance(stations, list)
-        self.assertGreater(len(stations), 100)  # SuperMAG has ~600 stations
+        self.assertGreater(len(stations), 100)
         first = stations[0]
         for key in ("id", "geolat", "geolon"):
             self.assertIn(key, first)
 
-    def test_real_inventory_is_populated(self):
+    def test_real_inventory_populated(self):
         ws = self._build_or_skip()
         if not ws.flat_inventory.parameters:
             self.skipTest("SuperMAG station endpoint returned no data")
@@ -111,7 +113,7 @@ class SuperMAGNetworkTest(unittest.TestCase):
 
 
 # Small data-api fixture: two records at 2015-03-17T00:00 and 00:01 UTC. The E
-# component of the second record is the SuperMAG gap sentinel (999999).
+# component of the second record is the SuperMAG NaN value (999999).
 _RECORDS_FIXTURE = [
     {"tval": 1426550400.0,
      "N": {"nez": 1.0, "geo": 10.0}, "E": {"nez": 2.0, "geo": 20.0}, "Z": {"nez": 3.0, "geo": 30.0}},
@@ -121,7 +123,7 @@ _RECORDS_FIXTURE = [
 
 
 class SuperMAGRecordsTest(unittest.TestCase):
-    """Offline mapping tests for _records_to_variable (no network, no logon)."""
+    """Offline tests for _records_to_variable"""
 
     def test_time_axis_and_columns(self):
         var = _records_to_variable(_RECORDS_FIXTURE, "nez", "ABK")
@@ -130,19 +132,19 @@ class SuperMAGRecordsTest(unittest.TestCase):
         self.assertEqual(var.time[0], np.datetime64("2015-03-17T00:00:00", "ns"))
         self.assertEqual(var.time[1], np.datetime64("2015-03-17T00:01:00", "ns"))
 
-    def test_nez_and_geo_select_different_values(self):
+    def test_nez_and_geo_not_equal(self):
         nez = _records_to_variable(_RECORDS_FIXTURE, "nez", "ABK")
         geo = _records_to_variable(_RECORDS_FIXTURE, "geo", "ABK")
         self.assertEqual(nez.values[0].tolist(), [1.0, 2.0, 3.0])
         self.assertEqual(geo.values[0].tolist(), [10.0, 20.0, 30.0])
 
-    def test_gap_sentinel_becomes_nan(self):
+    def test_supermag_nan_becomes_nan(self):
         var = _records_to_variable(_RECORDS_FIXTURE, "nez", "ABK")
         self.assertTrue(np.isnan(var.values[1, 1]))   # E of the second record was 999999
         self.assertEqual(var.values[1, 0], 4.0)        # neighbours untouched
         self.assertEqual(var.values[1, 2], 6.0)
 
-    def test_meta_carries_units_frame_and_station(self):
+    def test_meta_has_frame_and_station(self):
         var = _records_to_variable(_RECORDS_FIXTURE, "geo", "ABK")
         self.assertEqual(var.meta["UNITS"], "nT")
         self.assertEqual(var.meta["COORDINATE_SYSTEM"], "geo")
@@ -155,11 +157,11 @@ class SuperMAGRecordsTest(unittest.TestCase):
 class SuperMAGLogonConfigTest(unittest.TestCase):
     """The logon comes from config.supermag.logon() (env var or config.ini), not os.environ."""
 
-    def test_logon_resolved_from_env_var(self):
+    def test_logon_from_env_var(self):
         with patch.dict(os.environ, {"SPEASY_SUPERMAG_LOGON": "testid"}):
             self.assertEqual(supermag_cfg.logon(), "testid")
 
-    def test_missing_logon_raises_missing_credentials(self):
+    def test_no_logon_raises_missing_credentials(self):
         ws = _build_provider([])  # offline provider (mocked station list)
         start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)
         stop = datetime(2015, 3, 17, 1, 0, tzinfo=timezone.utc)
