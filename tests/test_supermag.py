@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Offline tests for the `supermag` data provider inventory.
+"""Tests for the `supermag` data provider.
 
-These tests never hit the network and never need a SuperMAG logon: the station
-list endpoint is mocked with a small fixture, so the inventory can be checked
-deterministically in CI.
+Most tests are offline: the station list and the data-api response are mocked
+with small fixtures, so the inventory, the record mapping and the logon handling
+wont faile in CI.
+
 """
 
 import inspect
@@ -183,8 +184,8 @@ class SuperMAGLogonConfigTest(unittest.TestCase):
         self.assertNotIn("os.environ", inspect.getsource(supermag_module))
 
 
-@unittest.skipUnless(os.environ.get("SPEASY_SUPERMAG_LOGON"),
-                     "SPEASY_SUPERMAG_LOGON not set (gated integration test)")
+@unittest.skipUnless(supermag_cfg.logon(),
+                     "no SuperMAG logon configured (gated integration test)")
 @unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'supermag', 'SuperMAG'}),
                  "supermag provider not available")
 class SuperMAGGetDataIntegrationTest(_LiveSuperMAGMixin, unittest.TestCase):
