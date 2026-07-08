@@ -44,6 +44,61 @@ _MISSING_VALUE = 999999
 #  uiowa_eph_tool for the same approach).
 _COVERAGE = DateTimeRange(datetime(1970, 1, 1), datetime(2100, 1, 1))
 
+#
+# All the SuperMag indices extracted from the website at
+#  https://supermag.jhuapl.edu/indices
+#
+# and from the api url
+#  https://supermag.jhuapl.edu/services/indices.php?nohead&logon=<myid>&start=2020-01-01T00:00&extent=120&indices=all&swi=all&imf=all
+# 
+# Stored here as a static list of dicts so we dont depend from an url fetch  with logon
+#
+_INDEX_FAMILIES = [
+    {'name': 'AuroralElectrojet', 'label': 'Auroral Electrojet Indices', 'indices': [
+        {'key': 'SME_U_L', 'label': 'SME U/L', 'units': 'nT', 'index_keys': ['SMU', 'SML'],
+         'description': 'Upper and lower electrojet envelopes (SMU, SML)'},
+        {'key': 'SME', 'label': 'SME', 'units': 'nT', 'index_keys': ['SME'],
+         'description': 'Auroral electrojet envelope amplitude (SMU - SML)'},
+        {'key': 'SME_MLT', 'label': 'SME MLT', 'units': 'h', 'index_keys': ['SMLmlt', 'SMUmlt'],
+         'description': 'Magnetic local time of the SML/SMU extrema'},
+        {'key': 'SME_MLAT', 'label': 'SME MLAT', 'units': 'deg', 'index_keys': ['SMLmlat', 'SMUmlat'],
+         'description': 'Magnetic latitude of the SML/SMU extrema'},
+        {'key': 'SME_nstations', 'label': 'SME #stations', 'units': 'count', 'index_keys': ['SMEnum'],
+         'description': 'Number of stations used to compute SME'},
+    ]},
+    {'name': 'RingCurrent', 'label': 'Ring Current Indices', 'indices': [
+        {'key': 'SMR', 'label': 'SMR', 'units': 'nT', 'index_keys': ['smr'],
+         'description': 'Ring current index, global (SYM-H/Dst-like)'},
+        {'key': 'SMR_LT', 'label': 'SMR LT', 'units': 'nT',
+         'index_keys': ['smr00', 'smr06', 'smr12', 'smr18'],
+         'description': 'Ring current index by MLT sector (00/06/12/18)'},
+        {'key': 'SMR_nstations', 'label': 'SMR #stations', 'units': 'count', 'index_keys': ['smrnum'],
+         'description': 'Number of stations used to compute SMR'},
+    ]},
+    {'name': 'SolarWind', 'label': 'Solar Wind Parameters', 'indices': [
+        {'key': 'B_GSM', 'label': 'B field (GSM)', 'units': 'nT', 'index_keys': ['bgsm'],
+         'components': ['X', 'Y', 'Z'], 'description': 'Solar wind magnetic field vector, GSM'},
+        {'key': 'B_GSE', 'label': 'B field (GSE)', 'units': 'nT', 'index_keys': ['bgse'],
+         'components': ['X', 'Y', 'Z'], 'description': 'Solar wind magnetic field vector, GSE'},
+        {'key': 'V_GSM', 'label': 'V (GSM)', 'units': 'km/s', 'index_keys': ['vgsm'],
+         'components': ['X', 'Y', 'Z'], 'description': 'Solar wind velocity vector, GSM'},
+        {'key': 'V_GSE', 'label': 'V (GSE)', 'units': 'km/s', 'index_keys': ['vgse'],
+         'components': ['X', 'Y', 'Z'], 'description': 'Solar wind velocity vector, GSE'},
+        {'key': 'dynamic_pressure', 'label': 'Dynamic Pressure', 'units': 'nPa', 'index_keys': ['dynpres'],
+         'description': 'Solar wind dynamic pressure'},
+        {'key': 'plasma_density', 'label': 'Plasma Density', 'units': 'cm^-3', 'index_keys': ['density'],
+         'description': 'Solar wind plasma density'},
+        {'key': 'newell', 'label': 'Newell', 'units': 'Wb/s', 'index_keys': ['newell'],
+         'description': 'Newell solar wind-magnetosphere coupling function'},
+        {'key': 'epsilon', 'label': 'ε Parameter', 'units': 'GW', 'index_keys': ['epsilon'],
+         'description': 'Akasofu epsilon coupling parameter'},
+        {'key': 'clock_GSM', 'label': 'IMF Clock Angle (GSM)', 'units': 'deg', 'index_keys': ['clockgsm'],
+         'description': 'IMF clock angle, GSM'},
+        {'key': 'clock_GSE', 'label': 'IMF Clock Angle (GSE)', 'units': 'deg', 'index_keys': ['clockgse'],
+         'description': 'IMF clock angle, GSE'},
+    ]},
+]
+
 
 def _cache_entry_name(prefix: str, product: str, start_time: str, **kwargs) -> str:
     # The logon is deliberately excluded from the cache key (it is a user secret,
