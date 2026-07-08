@@ -22,7 +22,7 @@ from speasy.core.algorithms import fix_name
 from speasy.core.impex.exceptions import MissingCredentials
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.data_providers import supermag as supermag_module
-from speasy.data_providers.supermag import SuperMAGWebservice, _records_to_variable
+from speasy.data_providers.supermag import SuperMAGWebservice, _records_to_variable, _INDEX_FAMILIES
 from speasy.inventories import tree
 
 # Small station-list fixture, same shape as the JHUAPL endpoint response.
@@ -47,7 +47,8 @@ class SuperMAGInventoryTest(unittest.TestCase):
     def test_stations_inventory_without_network(self):
         ws = _build_provider(_STATIONS_FIXTURE)
         params = ws.flat_inventory.parameters
-        self.assertEqual(len(params), len(_STATIONS_FIXTURE))
+        station_params = [p for p in params if p.startswith("Stations/")]
+        self.assertEqual(len(station_params), len(_STATIONS_FIXTURE))
         self.assertIn("Stations/YKC", params)
         self.assertIn("Stations/ABK", params)
 
@@ -75,9 +76,62 @@ class SuperMAGInventoryTest(unittest.TestCase):
 
     def test_empty_station_list_does_not_crash(self):
         ws = _build_provider([])
-        self.assertEqual(ws.flat_inventory.parameters, {})
+        station_params = [p for p in ws.flat_inventory.parameters if p.startswith("Stations/")]
+        self.assertEqual(station_params, [])
         # The Stations container node is still present, just empty.
         self.assertTrue(hasattr(tree.supermag, "Stations"))
+
+
+class SuperMAGIndicesInventoryTest(unittest.TestCase):
+    """The global indices tree is static: it needs no logon and no network."""
+
+    _N_INDICES = sum(len(f["indices"]) for f in _INDEX_FAMILIES)
+
+    def test_indices_tree_and_families_present(self):
+        _build_provider(_STATIONS_FIXTURE)
+        self.assertTrue(hasattr(tree.supermag, "Indices"))
+        for family in ("AuroralElectrojet", "RingCurrent", "SolarWind"):
+            self.assertTrue(hasattr(tree.supermag.Indices, family))
+
+    def test_expected_indices_listed(self):
+        ws = _build_provider(_STATIONS_FIXTURE)
+        params = ws.flat_inventory.parameters
+        for key in ("SME", "SME_U_L", "SME_nstations", "SMR", "SMR_LT", "B_GSM", "newell", "clock_GSE"):
+            self.assertIn(f"Indices/{key}", params)
+
+    def test_index_count_matches_table(self):
+        ws = _build_provider(_STATIONS_FIXTURE)
+        index_params = [p for p in ws.flat_inventory.parameters if p.startswith("Indices/")]
+        self.assertEqual(len(index_params), self._N_INDICES)
+        self.assertEqual(self._N_INDICES, 18)
+
+    def test_index_node_metadata(self):
+        ws = _build_provider(_STATIONS_FIXTURE)
+        node = ws.flat_inventory.parameters["Indices/SME_U_L"]
+        self.assertIsInstance(node, ParameterIndex)
+        self.assertEqual(node.spz_provider(), "supermag")
+        self.assertEqual(node.spz_uid(), "Indices/SME_U_L")
+        self.assertEqual(node.label, "SME U/L")
+        self.assertEqual(node.units, "nT")
+        self.assertEqual(node.index_keys, ["SMU", "SML"])
+
+    def test_leaf_sits_under_its_family(self):
+        _build_provider(_STATIONS_FIXTURE)
+        self.assertTrue(hasattr(tree.supermag.Indices.SolarWind, "B_GSM"))
+        self.assertEqual(tree.supermag.Indices.SolarWind.B_GSM.components, ["X", "Y", "Z"])
+
+    def test_indices_present_without_stations(self):
+        # Indices are built before (and independently of) the station list.
+        ws = _build_provider([])
+        index_params = [p for p in ws.flat_inventory.parameters if p.startswith("Indices/")]
+        self.assertEqual(len(index_params), self._N_INDICES)
+
+    def test_get_data_on_index_raises_not_implemented(self):
+        ws = _build_provider(_STATIONS_FIXTURE)
+        start = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        stop = datetime(2020, 1, 1, 1, tzinfo=timezone.utc)
+        with self.assertRaises(NotImplementedError):
+            ws.get_data("Indices/SME", start, stop, disable_cache=True)
 
 
 class _LiveSuperMAGMixin:
@@ -173,7 +227,7 @@ class SuperMAGLogonConfigTest(unittest.TestCase):
 
     def test_no_logon_raises_missing_credentials(self):
         ws = _build_provider(_STATIONS_FIXTURE)  # ABK must exist: @ParameterRangeCheck runs first
-        start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)  # within the 1975-2100 coverage
+        start = datetime(2015, 3, 17, 0, 0, tzinfo=timezone.utc)  # within the 1970-2100 coverage
         stop = datetime(2015, 3, 17, 1, 0, tzinfo=timezone.utc)
         # Empty env var forces an empty logon deterministically (config.ini is not consulted).
         with patch.dict(os.environ, {"SPEASY_SUPERMAG_LOGON": ""}):
@@ -193,7 +247,7 @@ class SuperMAGParameterRangeTest(unittest.TestCase):
     def test_parameter_range_is_global_default(self):
         ws = _build_provider(_STATIONS_FIXTURE)
         r = ws.parameter_range("Stations/ABK")
-        self.assertEqual(r.start_time.year, 1975)
+        self.assertEqual(r.start_time.year, 1970)
         self.assertEqual(r.stop_time.year, 2100)
 
     def test_get_data_outside_coverage_returns_none(self):

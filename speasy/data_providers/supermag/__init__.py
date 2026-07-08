@@ -147,6 +147,9 @@ class SuperMAGWebservice(DataProvider):
         return res.json()
 
     def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
+        # Indices first: they need no logon and no network, so the Indices tree is present
+        # even if the stations endpoint glitches (200 + non-JSON body raises in _get_stations).
+        self._build_indices_inventory(root)
         stations_node = make_inventory_node(root, SpeasyIndex, name='Stations',
                                             provider='supermag', uid='Stations')
         for station in self._get_stations():
@@ -160,8 +163,28 @@ class SuperMAGWebservice(DataProvider):
                                 stop_date=_COVERAGE.stop_time.isoformat())
         return root
 
+    @staticmethod
+    def _build_indices_inventory(root: SpeasyIndex) -> None:
+        """Build the static, logon-free Indices tree (grouped by SuperMAG's own families)."""
+        indices_root = make_inventory_node(root, SpeasyIndex, name='Indices',
+                                            provider='supermag', uid='Indices')
+        for family in _INDEX_FAMILIES:
+            family_node = make_inventory_node(indices_root, SpeasyIndex, name=family['name'],
+                                              provider='supermag', uid=f"Indices/{family['name']}",
+                                              label=family['label'])
+            for index in family['indices']:
+                meta = {k: index[k] for k in ('label', 'units', 'description', 'index_keys')}
+                if 'components' in index:
+                    meta['components'] = index['components']
+                make_inventory_node(family_node, ParameterIndex, name=index['key'],
+                                    provider='supermag', uid=f"Indices/{index['key']}", **meta)
+
     def get_data(self, product: str, start_time, stop_time, coordinates: str = 'nez',
                  **kwargs) -> Optional[SpeasyVariable]:
+        if not product.startswith('Stations/'):
+            raise NotImplementedError(
+                "SuperMAG indices download is not implemented yet; only station products "
+                "(supermag/Stations/<IAGA>) can be downloaded.")
         return self._get_station_data(product=product, start_time=start_time, stop_time=stop_time,
                                       coordinates=coordinates, **kwargs)
 
