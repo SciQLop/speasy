@@ -42,7 +42,7 @@ _MISSING_VALUE = 999999
 # Stations carry no per-station coverage dates, instead, supermag api provides per time range stations list.
 #  So a single generous range guards is set against absurd time requests (see
 #  uiowa_eph_tool for the same approach).
-_COVERAGE = DateTimeRange(datetime(1975, 1, 1), datetime(2100, 1, 1))
+_COVERAGE = DateTimeRange(datetime(1970, 1, 1), datetime(2100, 1, 1))
 
 
 def _cache_entry_name(prefix: str, product: str, start_time: str, **kwargs) -> str:
