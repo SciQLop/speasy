@@ -369,12 +369,8 @@ class TestCdfYamlSameInventory(unittest.TestCase):
                                   parameters=parameters, meta=dataset_meta)
 
         # inventory B: skeleton YAML -> speasy inventory.
-        #  The cdfpp dump omits the archive plumbing key, so inject a minimal
-        #  inventory_path 
         with open(_LOCAL_ERG_SKELETON_YAML) as f:
             doc = yaml.safe_load(f)
-        for entry in doc.values():
-            entry['inventory_path'] = 'cda/test'
         root_b = _load_yaml_doc(yaml.safe_dump(doc, sort_keys=False))
         ds_b = root_b.__dict__['cda'].__dict__['test'].__dict__.get('erg_pwe_hfa_l3_1min')
         self.assertIsNotNone(ds_b)
