@@ -1,4 +1,5 @@
 erg_pwe_hfa_l3_1min:
+  inventory_path: cda/test
   meta:
     PROJECT: ["ERG>Exploration of Energization and Radiation in Geospace"]
     DISCIPLINE: ["Space Physics>Magnetospheric Science"]
