@@ -155,7 +155,7 @@ class GenericArchive(DataProvider):
     def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType, **kwargs) -> \
         Optional[
             SpeasyVariable]:
-        ga_cfg: dict = getattr(product, 'spz_ga_cfg')
+        ga_cfg: dict = dict(getattr(product, 'spz_ga_cfg'))  # copy: spz_ga_cfg is shared across the dataset and its params
         ga_cfg.pop('inventory_path', None)
         ga_cfg.pop('master_cdf', None)
         ga_cfg.pop('master_file', None)
