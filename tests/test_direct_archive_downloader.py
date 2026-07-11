@@ -94,6 +94,31 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertIsNotNone(via_codec_file_loader)
         self.assertGreater(len(via_codec_file_loader), 0)
 
+    def test_get_data_honors_declared_codec(self):
+        # _get_data must forward the inventory 'codec' key to get_product,
+        #
+        # But a wrong pop of the codec key would cause default to be used.
+        # This test fails before the fix
+        from unittest.mock import patch
+        from speasy.core.inventory.indexes import ParameterIndex
+        from speasy.data_providers.generic_archive import GenericArchive
+        import speasy.core.direct_archive_downloader.direct_archive_downloader as dad
+
+        nc = f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc"
+        cfg = {'inventory_path': 'archive/test/DS', 'master_cdf': nc,
+               'url_pattern': nc, 'split_rule': 'regular',
+               'codec': 'application/x-netcdf'}
+        param = ParameterIndex(name='Magnitude', provider='archive',
+                               uid='archive/test/DS/Magnitude',
+                               meta={'spz_ga_cfg': dict(cfg)})
+        provider = object.__new__(GenericArchive)
+        with patch.object(dad, 'get_codec', wraps=dad.get_codec) as get_codec_spy:
+            v = provider._get_data(product=param, start_time='2009-06-01', stop_time='2009-06-03')
+        resolved = [c.args[0] for c in get_codec_spy.call_args_list if c.args]
+        self.assertIsNotNone(v)
+        self.assertGreater(len(v), 0)
+        self.assertIn('application/x-netcdf', resolved)   # declared codec drove the read
+
     def test_get_product_with_custom_loader(self):
         v = get_product(
             url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v05_11.cdf",
