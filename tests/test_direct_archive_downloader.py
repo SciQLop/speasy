@@ -138,6 +138,51 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertIn('inventory_path', param.spz_ga_cfg)   # must survive the previous _get_data call
         self.assertIn('master_cdf', param.spz_ga_cfg)
 
+    def test_get_data_end_to_end_master_nc_values(self):
+        # End-to-end through a NetCDF master: inventory build (ISTP path via
+        # extract_from_master) + data retrieval, asserting values == native pyistp read.
+        #
+        # codec 'nc' plays a double role: it selects the ISTP build path in
+        # _dataset_from_master AND resolves to the netcdf codec for get_product.
+        import tempfile
+        import yaml
+        import pyistp
+        from speasy.core.inventory.indexes import SpeasyIndex
+        from speasy.data_providers.generic_archive import load_inventory_file, GenericArchive
+
+        nc = f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc"
+        entry = {
+            "DS_nc_master": {
+                "inventory_path": "archive/test",
+                "master_file": nc,
+                "url_pattern": nc,
+                "split_rule": "regular",
+                "codec": "nc",
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+            yaml.safe_dump(entry, f)
+            yaml_path = f.name
+        try:
+            root = SpeasyIndex(name="root", provider="archive", uid="root")
+            load_inventory_file(yaml_path, root)
+
+            # Navigate the built tree to the Magnitude parameter (proves extract_from_master ran)
+            dataset = root.archive.test.DS_nc_master
+            param = dataset.Magnitude
+
+            provider = object.__new__(GenericArchive)
+            result = provider._get_data(product=param,
+                                        start_time="2009-06-01", stop_time="2009-06-04")
+        finally:
+            os.unlink(yaml_path)
+
+        oracle = pyistp.load(file=nc).data_variable("Magnitude").values
+
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result), len(oracle))              # 49 points, nothing lost
+        np.testing.assert_array_equal(result.values.ravel(), oracle.ravel())
+
     def test_get_product_with_custom_loader(self):
         v = get_product(
             url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v05_11.cdf",
