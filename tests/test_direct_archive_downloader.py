@@ -1,12 +1,16 @@
+import os
 import unittest
 from multiprocessing import Pool
 from ddt import ddt, data, unpack
+import numpy as np
 
 import speasy as spz
 from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.direct_archive_downloader.direct_archive_downloader import spilt_range, _read_cdf, map_ranges
+
+__HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 
 def _custom_cdf_loader(url, variable, *args, **kwargs):
@@ -75,6 +79,20 @@ class DirectArchiveDownloader(unittest.TestCase):
             split_rule=split_rule,
             variable=variable, start_time=start_time, stop_time=stop_time, **kwargs)
         self.assertIsNotNone(data)
+
+    def test_get_product_codec_override_reads_local_file(self):
+        # get_product(codec=not_None) overrides the default codec with codec.load_variable.
+        #
+        #  the file_reader expects url-first arguments,
+        #  but codec.load_variable expects variable-first arguments.
+        #
+        # This test fails before the fix in 2024-06-05,
+        common = dict(url_pattern=f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc",
+                      split_rule="regular", variable="Magnitude",
+                      start_time="2009-06-01", stop_time="2009-06-03")
+        via_codec_file_loader = get_product(**common, codec="application/x-netcdf")
+        self.assertIsNotNone(via_codec_file_loader)
+        self.assertGreater(len(via_codec_file_loader), 0)
 
     def test_get_product_with_custom_loader(self):
         v = get_product(
