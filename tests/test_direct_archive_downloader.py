@@ -119,6 +119,25 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertGreater(len(v), 0)
         self.assertIn('application/x-netcdf', resolved)   # declared codec drove the read
 
+    def test_get_data_does_not_mutate_inventory_config(self):
+        # _get_data reads and pops product.spz_ga_cfg 
+        # but this in place popping corrupts the inventory for later usages
+        #
+        # This test fails before the fix 
+        from unittest.mock import patch
+        from speasy.core.inventory.indexes import ParameterIndex
+        from speasy.data_providers.generic_archive import GenericArchive
+
+        cfg = {'inventory_path': 'archive/test/DS', 'master_cdf': 'http://x/master.cdf',
+               'url_pattern': 'http://x/file.cdf', 'split_rule': 'regular'}
+        param = ParameterIndex(name='X', provider='archive',
+                               uid='archive/test/DS/X', meta={'spz_ga_cfg': cfg})
+        provider = object.__new__(GenericArchive)
+        with patch('speasy.data_providers.generic_archive.get_product', return_value=None):
+            provider._get_data(product=param, start_time='2009-06-01', stop_time='2009-06-02')
+        self.assertIn('inventory_path', param.spz_ga_cfg)   # must survive the previous _get_data call
+        self.assertIn('master_cdf', param.spz_ga_cfg)
+
     def test_get_product_with_custom_loader(self):
         v = get_product(
             url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v05_11.cdf",
