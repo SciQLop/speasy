@@ -236,7 +236,12 @@ def get_product(url_pattern: str, split_rule: str, variable: str, start_time: An
                 codec: Optional[str] = None,
                 **kwargs) -> Optional[SpeasyVariable]:
     if codec is not None:
-        file_reader = get_codec(codec).load_variable
+        selected_codec = get_codec(codec)
+
+        def file_reader(url, variable, **kw):   # url-first adapter -> codec's variable-first load_variable
+            if url is None:
+                return None
+            return selected_codec.load_variable(file=url, variable=variable, cache_remote_files=True, **kw)
     if split_rule.lower() == "regular":
         return RegularSplitDirectDownload.get_product(url_pattern, variable, start_time, stop_time,
                                                       use_file_list, file_reader=file_reader, **kwargs)
