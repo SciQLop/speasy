@@ -159,6 +159,5 @@ class GenericArchive(DataProvider):
         ga_cfg.pop('inventory_path', None)
         ga_cfg.pop('master_cdf', None)
         ga_cfg.pop('master_file', None)
-        ga_cfg.pop('codec', None)
         return get_product(**ga_cfg,
                            variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
