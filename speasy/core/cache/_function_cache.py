@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Callable, Optional, Union
 
 from ._instance import _cache
+from ._request_locker import request_locker
 from .cache import CacheItem
 
 
@@ -16,7 +17,7 @@ def make_key_from_args(*args, **kwargs):
 
 
 class CacheCall(object):
-    def __init__(self, cache_retention: Union[int, float, timedelta] = 60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False):
+    def __init__(self, cache_retention: Union[int, float, timedelta] = 60 * 15, is_pure=False, cache_instance=_cache, version=1, leak_cache=False, deduplication_timeout=30):
         from ..platform import is_running_on_wasm
         if type(cache_retention) is timedelta:
             cache_retention = cache_retention.total_seconds()
@@ -28,6 +29,7 @@ class CacheCall(object):
         self._cache_entry_prefix: Optional[str] = None
         self._leak_cache = leak_cache
         self._disable_cache = is_running_on_wasm()
+        self.deduplication_timeout = deduplication_timeout
 
     def add_to_cache(self, cache_entry, value):
         if value is not None:
@@ -71,10 +73,14 @@ class CacheCall(object):
                 return function(*args, **kwargs)
             if force_refresh:
                 return self.add_to_cache(cache_entry, function(*args, **kwargs))
-            else:
-                return self.get_from_cache(cache_entry, prefer_cache=prefer_cache) or self.add_to_cache(cache_entry,
-                                                                                                        function(*args,
-                                                                                                                 **kwargs))
+            result = self.get_from_cache(cache_entry, prefer_cache=prefer_cache)
+            if result is not None:
+                return result
+            with request_locker(cache_entry, timeout=self.deduplication_timeout) as lock:
+                if lock.is_from_current_thread:
+                    return self.add_to_cache(cache_entry, function(*args, **kwargs))
+            return self.get_from_cache(cache_entry, prefer_cache=prefer_cache) or self.add_to_cache(
+                cache_entry, function(*args, **kwargs))
 
         setattr(wrapped, "drop_entries", self.drop_entries)
         if self._leak_cache:

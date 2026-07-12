@@ -414,6 +414,38 @@ class TestNoopCacheBackend(unittest.TestCase):
             self.assertEqual(cache.stats(), {"hit": 0, "misses": 0})
 
 
+_cache_call_dedup_cntr = {"n": 0}
+
+
+@CacheCall(cache_retention=timedelta(minutes=10), is_pure=True, cache_instance=cache, leak_cache=True,
+           deduplication_timeout=5)
+def _cache_call_dedup_fn(key):
+    _cache_call_dedup_cntr["n"] += 1
+    time.sleep(.001)
+    return f"value_for_{key}"
+
+
+@ddt
+class CacheCallRequestsDeduplication(unittest.TestCase):
+
+    def setUp(self):
+        _cache_call_dedup_cntr["n"] = 0
+        _cache_call_dedup_fn.drop_entries()
+
+    def tearDown(self):
+        _cache_call_dedup_fn.drop_entries()
+
+    @data(*list(range(50)))
+    def test_deduplication(self, step):
+        from threading import Thread
+        threads = [Thread(target=_cache_call_dedup_fn, args=(f"key_{step}",)) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertLessEqual(_cache_call_dedup_cntr["n"], 1)
+
+
 if __name__ == '__main__':
     unittest.main()
 
