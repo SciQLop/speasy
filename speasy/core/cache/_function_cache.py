@@ -78,6 +78,13 @@ class CacheCall(object):
                 return result
             with request_locker(cache_entry, timeout=self.deduplication_timeout) as lock:
                 if lock.is_from_current_thread:
+                    # Re-check: by the time we won the lock, a previous holder
+                    # of this same key may have already computed and cached
+                    # the value (e.g. we only acquired it after they finished
+                    # and released it), so don't blindly recompute.
+                    result = self.get_from_cache(cache_entry, prefer_cache=prefer_cache)
+                    if result is not None:
+                        return result
                     return self.add_to_cache(cache_entry, function(*args, **kwargs))
             return self.get_from_cache(cache_entry, prefer_cache=prefer_cache) or self.add_to_cache(
                 cache_entry, function(*args, **kwargs))

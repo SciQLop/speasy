@@ -463,6 +463,74 @@ class CacheCallRequestsDeduplication(unittest.TestCase):
         wait(futures)
         self.assertLessEqual(_cache_call_dedup_cntr["n"], 1)
 
+    def test_loser_does_not_impersonate_a_finished_owner(self):
+        """Regression test for two related bugs, both needed to fully close
+        the race:
+
+        1. A TOCTOU bug in _try_acquire_lock: if the real owner finishes and
+           drops the request_locker key between a loser's failed add() and
+           that loser's fallback get(), Cache.get(key, default) used to
+           return the loser's own default PendingRequest -- indistinguishable
+           from real ownership (same thread, same object) even though nobody
+           actually granted it the lock.
+        2. Even once (1) is fixed so a retried add() legitimately re-acquires
+           the (by-then-free) key, CacheCall.__call__ never re-checked the
+           cache before recomputing when it won the lock -- so a genuinely
+           late, legitimate second acquisition still redundantly re-ran the
+           wrapped function after a previous owner already cached the value.
+
+        Uses explicit events (not sleep-guessed timing) so the interleaving
+        is deterministic instead of relying on scheduling luck.
+        """
+        from unittest import mock
+        from threading import Thread, Event
+        import speasy.core.cache._request_locker as rl
+
+        owner_holds_lock = Event()
+        owner_may_release = Event()
+        owner_released = Event()
+        run_count = {"n": 0}
+
+        @CacheCall(cache_retention=timedelta(minutes=10), is_pure=True, cache_instance=_cache_call_dedup_fn.cache,
+                   deduplication_timeout=5)
+        def racy_fn(key):
+            run_count["n"] += 1
+            owner_holds_lock.set()
+            owner_may_release.wait(timeout=2)
+            return f"value_for_{key}"
+
+        key = f"impersonation_race_{id(self)}"
+        real_add = rl._cache.add
+
+        def slow_add(*args, **kwargs):
+            result = real_add(*args, **kwargs)
+            if not result:
+                # Lost the initial race (real contention: owner already holds
+                # the key). Stall here -- exactly between add() failing and
+                # the caller's fallback get() -- until the owner has actually
+                # released, forcing the TOCTOU window open every time.
+                owner_may_release.set()
+                owner_released.wait(timeout=2)
+            return result
+
+        def owner():
+            racy_fn(key)
+            owner_released.set()
+
+        def loser():
+            owner_holds_lock.wait(timeout=2)  # ensure real contention first
+            racy_fn(key)
+
+        with mock.patch.object(type(rl._cache), "add", side_effect=slow_add):
+            t_owner = Thread(target=owner)
+            t_loser = Thread(target=loser)
+            t_owner.start()
+            t_loser.start()
+            t_owner.join(timeout=5)
+            t_loser.join(timeout=5)
+
+        self.assertLessEqual(run_count["n"], 1)
+
 
 if __name__ == '__main__':
     unittest.main()

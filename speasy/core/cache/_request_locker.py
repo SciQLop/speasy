@@ -42,18 +42,30 @@ def _is_locked(key: str, timeout: int = 30) -> bool:
     return isinstance(entry, PendingRequest) and (int(entry.elapsed_time.total_seconds()) < timeout)
 
 
-def _try_acquire_lock(key: str, timeout: int) -> Optional[PendingRequest]:
+def _try_acquire_lock(key: str, timeout: int) -> PendingRequest:
     """Atomically claim ``key`` for the current thread, or return the existing
     pending request if another thread/process owns it.
 
     Uses ``Cache.add(expire=)`` so a crashed lock-holder is automatically
     cleaned up by the cache after ``timeout`` seconds — no manual reaping
     needed. The ``pending_request`` tag enables bulk eviction on startup.
+
+    Retries on a lost race instead of trusting ``Cache.get(key, default)``'s
+    default value: if the real owner finishes and drops ``key`` between our
+    failed ``add()`` and this ``get()``, ``get()`` returns our own default
+    (``new_request``) rather than ``None`` — indistinguishable from actually
+    owning the lock, since it's the same object on the same thread. Treating
+    a missing entry as "retry" instead of "that's the owner" closes that
+    window: the key is free, so the retried ``add()`` claims it for real.
     """
-    new_request = PendingRequest()
-    if _cache.add(key, new_request, expire=timeout, tag=PENDING_REQUEST_TAG):
-        return new_request
-    return _cache.get(key, new_request)
+    while True:
+        new_request = PendingRequest()
+        if _cache.add(key, new_request, expire=timeout, tag=PENDING_REQUEST_TAG):
+            return new_request
+        entry = _cache.get(key, None)
+        if entry is None:
+            continue
+        return entry
 
 
 def evict_pending_requests():
@@ -73,12 +85,9 @@ def request_locker(key: str, timeout: int = 30):
     """
     key = "request_locker::" + key
     lock = _try_acquire_lock(key, timeout)
-    if isinstance(lock, PendingRequest):
-        if not lock.is_from_current_thread:
-            while key in _cache and not lock.has_timed_out(timeout):
-                sleep(0.01)
-    else:
-        raise TypeError(f"Invalid lock type for key {key}: {type(lock)}")
+    if not lock.is_from_current_thread:
+        while key in _cache and not lock.has_timed_out(timeout):
+            sleep(0.01)
     try:
         yield lock
     finally:
