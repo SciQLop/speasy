@@ -113,6 +113,17 @@ _ISTP_CODEC_SPELLINGS = {
         'nc', 'nc4', 'application/x-netcdf', 'application/netcdf', 'IstpNetCDF'),
 }
 
+# hapi/csv is a registered, non-ISTP codec that does not override list_variables. The master file
+# is never read here (the Protocol stub returns before touching it), it only has to exist.
+_NO_LIST_VARIABLES_CODEC_YAML = f"""\
+hapi_dataset:
+  inventory_path: cda/test
+  master_file: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  codec: hapi/csv
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.csv
+"""
+
 
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
@@ -386,6 +397,16 @@ ac_mfi_nc_remote_dataset:
                                      _norm(_variables_meta(reference)))
                     self.assertEqual(_norm(_public_meta(dataset)),
                                      _norm(_public_meta(reference)))
+
+    def test_skips_dataset_whose_codec_cannot_list_variables(self):
+        # hapi/csv is registered, so it gets past the "unknown codec" guard, but neither it nor its
+        # base class overrides CodecInterface.list_variables, whose Protocol stub returns None.
+        # Iterating that None raises TypeError, which escapes load_inventory_file and build_inventory
+        # and ends up disabling the whole archive provider. Skip the dataset instead, like an
+        # unknown codec already does.
+        root = _load_yaml_doc(_NO_LIST_VARIABLES_CODEC_YAML)  # must not raise
+        test_node = root.__dict__['cda'].__dict__['test']
+        self.assertNotIn('hapi_dataset', test_node.__dict__)
 
     def test_skips_dataset_if_master_unreachable(self):
         root = _make_root()
