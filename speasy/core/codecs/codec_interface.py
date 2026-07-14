@@ -105,7 +105,25 @@ class CodecInterface(Protocol):
         ...
 
     def list_variables(self, file: Union[Buffer, str, io.IOBase]) -> List[str]:
-        ...
+        """List the names of the variables a file contains.
+
+        Parameters
+        ----------
+        file : Buffer or str or io.IOBase
+            File to list the variables from
+
+        Returns
+        -------
+        List[str]
+            The names of the variables the file contains
+
+        Raises
+        ------
+        NotImplementedError
+            If the codec does not implement this method
+
+        """
+        raise NotImplementedError(f"{type(self).__name__} does not implement list_variables")
 
     @property
     def supported_extensions(self) -> List[str]:
