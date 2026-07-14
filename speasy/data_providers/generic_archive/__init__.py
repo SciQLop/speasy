@@ -25,6 +25,11 @@ from speasy.core.cache import CacheCall, CACHE_ALLOWED_KWARGS
 
 log = logging.getLogger(__name__)
 
+# List of available ISTP codecs (used in _dataset_from_master() )
+# The NetCDF codec is not registered if netCDF4 is not available:
+# this is why we filter on None
+_ISTP_CODECS = tuple(c for c in (get_codec('cdf'), get_codec('nc')) if c is not None)
+
 
 def _global_inventory_dir():
     import os
@@ -75,7 +80,13 @@ def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None
 
 
 def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
-    if codec_id in ('', 'cdf', 'nc'):  # ISTP formats: pyistp extraction with variable + dataset meta
+    # All strings for a codec id (extension, mime type, class name) resolve to the same instance in
+    # the registry, so we test the codec object instead of a string 
+    codec = get_codec(codec_id or 'cdf')  # legacy master_cdf entries carry no codec
+    if codec is None:
+        log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
+        return None
+    if codec in _ISTP_CODECS:  # ISTP formats: pyistp extraction with variable + dataset meta
         result = extract_from_master(master_file, provider='archive',
                                      params_uid_format=f"{path}/{{var_name}}",
                                      params_meta=entry_meta)
@@ -85,11 +96,7 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
                                       parameters=parameters,
                                       meta={**dataset_meta, **entry_meta})
         return None
-    codec = get_codec(codec_id)  # non-ISTP codecs: fall back to names only
-    if codec is None:
-        log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
-        return None
-    variables = codec.list_variables(master_file)
+    variables = codec.list_variables(master_file)  # non-ISTP codecs: fall back to names only
     parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
                   for var in variables]
     return make_dataset_index(name=name, provider='archive', uid=path,
