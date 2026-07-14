@@ -104,6 +104,15 @@ ac_mfi_cdf_remote_dataset:
 _LOCAL_ERG_CDF = f"{__HERE__}/resources/erg_pwe_hfa_l3_1min_00000000_v01.cdf"
 _LOCAL_ERG_SKELETON_YAML = f"{__HERE__}/resources/erg_pwe_hfa_l3_1min_00000000_v01.skeleton.yaml"
 
+# every registry key resolving to the same ISTP codec: extension(s), mime type(s) and class name.
+# The docs present them as interchangeable, let them all yield the same inventory.
+_ISTP_CODEC_SPELLINGS = {
+    f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf": (
+        'cdf', 'application/x-cdf', 'IstpCdf'),
+    f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc": (
+        'nc', 'nc4', 'application/x-netcdf', 'application/netcdf', 'IstpNetCDF'),
+}
+
 
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
@@ -119,6 +128,20 @@ def _load_yaml_doc(yaml_doc):
     finally:
         os.unlink(fname)
     return root
+
+
+def _dataset_from_codec_spelling(master_file, codec):
+    """Build a test yaml doc with a given master file and codec"""
+    yaml_doc = f"""\
+spelled_dataset:
+  inventory_path: cda/test
+  master_file: {master_file}
+  codec: {codec}
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data
+"""
+    root = _load_yaml_doc(yaml_doc)
+    return root.__dict__['cda'].__dict__['test'].__dict__.get('spelled_dataset')
 
 
 def _cdas_netcdf_url(dataset, variables, start, stop):
@@ -344,6 +367,25 @@ ac_mfi_nc_remote_dataset:
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
         self.assertIn('Magnitude', var_names)
         self.assertIn('BGSEc', var_names)
+
+    def test_istp_codec_spellings_give_same_inventory(self):
+        # ISTP codec may be specified an by extension, MIME type, or class name.
+        # Any of those "names" should all return the same code path with
+        # complete metadata.
+        for master_file, spellings in _ISTP_CODEC_SPELLINGS.items():
+            canonical, *aliases = spellings
+            reference = _dataset_from_codec_spelling(master_file, canonical)
+            self.assertIsNotNone(reference)
+            # guard: the reference really is rich, so equality below cannot pass vacuously
+            self.assertTrue(any(meta for meta in _variables_meta(reference).values()))
+            for alias in aliases:
+                with self.subTest(master=os.path.basename(master_file), codec=alias):
+                    dataset = _dataset_from_codec_spelling(master_file, alias)
+                    self.assertIsNotNone(dataset)
+                    self.assertEqual(_norm(_variables_meta(dataset)),
+                                     _norm(_variables_meta(reference)))
+                    self.assertEqual(_norm(_public_meta(dataset)),
+                                     _norm(_public_meta(reference)))
 
     def test_skips_dataset_if_master_unreachable(self):
         root = _make_root()
