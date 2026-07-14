@@ -124,6 +124,24 @@ hapi_dataset:
   url_pattern: https://example.org/{{Y}}/data.csv
 """
 
+# a malformed entry (no inventory_path -> KeyError) placed before a perfectly valid one, in the
+# same file. yaml preserves document order, so the valid entry is only reached if the bad one
+# does not abort the loop.
+_BAD_ENTRY_THEN_GOOD_YAML = f"""\
+bad_dataset_no_inventory_path:
+  master_file: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  codec: cdf
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.cdf
+
+good_dataset:
+  inventory_path: cda/test
+  master_file: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  codec: cdf
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.cdf
+"""
+
 
 def _make_root():
     return SpeasyIndex(name='archive', provider='archive', uid='')
@@ -407,6 +425,16 @@ ac_mfi_nc_remote_dataset:
         root = _load_yaml_doc(_NO_LIST_VARIABLES_CODEC_YAML)  # must not raise
         test_node = root.__dict__['cda'].__dict__['test']
         self.assertNotIn('hapi_dataset', test_node.__dict__)
+
+    def test_bad_entry_does_not_drop_the_rest_of_the_file(self):
+        # load_inventory_file loops over the entries with no guard, so the KeyError raised by the
+        # first, malformed entry escapes: the valid entry that follows is never built, the
+        # remaining yaml files are never read, and _safe_init_provider ends up disabling the whole
+        # archive provider. A bad entry must cost only itself.
+        root = _load_yaml_doc(_BAD_ENTRY_THEN_GOOD_YAML)  # must not raise
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('good_dataset')
+        self.assertIsNotNone(dataset)
+        self.assertIsInstance(dataset, DatasetIndex)
 
     def test_skips_dataset_if_master_unreachable(self):
         root = _make_root()
