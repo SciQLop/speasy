@@ -106,27 +106,35 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
                               parameters=parameters, meta=entry_meta)
 
 
+def _load_inventory_entry(name, entry, root: SpeasyIndex):
+    path = f"{entry['inventory_path']}/{name}"
+    parent = get_or_make_node(entry['inventory_path'], root)
+    entry_meta = {"spz_ga_cfg": entry}
+    entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
+    master_file = entry.get('master_file') or entry.get('master_cdf') or None
+    if 'variables' in entry:
+        dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'],
+                                          dataset_meta=entry.get('meta'))
+    elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
+        dataset = _dataset_from_master(name, path, entry_meta,
+                                       master_file, entry.get('codec', ''))
+    else:
+        dataset = None
+        log.warning(f"No reachable master for dataset {name}, skipping")
+    if dataset:
+        parent.__dict__[dataset.spz_name()] = dataset
+
+
 def load_inventory_file(file: str, root: SpeasyIndex):
     import yaml
     with open(file, 'r') as f:
         entries = yaml.safe_load(f)
         for name, entry in entries.items():
-            path = f"{entry['inventory_path']}/{name}"
-            parent = get_or_make_node(entry['inventory_path'], root)
-            entry_meta = {"spz_ga_cfg": entry}
-            entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
-            master_file = entry.get('master_file') or entry.get('master_cdf') or None
-            if 'variables' in entry:
-                dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'],
-                                                  dataset_meta=entry.get('meta'))
-            elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
-                dataset = _dataset_from_master(name, path, entry_meta,
-                                               master_file, entry.get('codec', ''))
-            else:
-                dataset = None
-                log.warning(f"No reachable master for dataset {name}, skipping")
-            if dataset:
-                parent.__dict__[dataset.spz_name()] = dataset
+            try:
+                _load_inventory_entry(name, entry, root)
+            except Exception:  # a malformed entry must cost only itself, not the whole provider
+                log.warning(f"Dataset {name}: could not be loaded from {file}, skipping",
+                            exc_info=True)
 
 
 class GenericArchive(DataProvider):
