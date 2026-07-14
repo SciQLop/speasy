@@ -55,15 +55,33 @@ Here is a minimal example for THEMIS-A FGM data hosted at CDPP, with one CDF fil
       url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/{Y}/tha_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
       use_file_list: true
 
-Alternatively, if you already know which variables the dataset exposes, list them directly — no master file needed:
+Alternatively, you can describe the variables inline — no master file needed, and no network access at
+inventory build time. Speasy then needs the metadata a master file would have provided, so each variable
+carries its own ``meta`` block, alongside a dataset-level one:
 
 .. code-block:: YAML
 
     my_dataset:
       inventory_path: my_data/MISSION/INSTRUMENT
-      variables: [Bx, By, Bz, Btotal]
+      meta:
+        Mission_group: MISSION
+        Data_type: l2
+      variables:
+        Bx:
+          meta:
+            UNITS: nT
+            CATDESC: B along X
+        By:
+          meta:
+            UNITS: nT
+            CATDESC: B along Y
       split_rule: regular
       url_pattern: https://my_server.net/data/{Y}/{M:02d}/data_{Y}{M:02d}{D:02d}.nc
+
+.. warning::
+    A bare list of names (``variables: [Bx, By]``) is **not** supported: the dataset is skipped and a
+    warning is emitted in the log. Both the dataset-level ``meta`` and a ``meta`` for every variable
+    are required.
 
 Or, if the data files are in a format other than CDF (e.g. NetCDF), point to a master file and specify the codec:
 
@@ -110,10 +128,13 @@ YAML field reference
    * - **inventory_path**
      - Where the dataset appears in ``spz.inventories.data_tree.archive``. Slashes create a nested hierarchy
        (e.g. ``my_data/THEMIS/THA`` → ``archive.my_data.THEMIS.THA``).
+   * - **meta**
+     - Dataset-level metadata (e.g. ``Mission_group``, ``Data_type``). Required together with
+       **variables**. Ignored when a master file is used, since the metadata then comes from the master.
    * - **variables**
-     - An explicit list of variable names for this dataset. Use this when you already know the variable
-       names and want to avoid any network access at inventory build time.
-       Example: ``variables: [Bx, By, Bz]``.
+     - Inline description of the dataset's variables, as a mapping of variable name to a ``meta`` block.
+       Use this when you want to avoid any network access at inventory build time. Both a dataset-level
+       **meta** and a ``meta`` for each variable are required — a bare list of names is skipped.
    * - **master_file**
      - URL or local path to a master file in any supported format. Speasy opens it once with the
        specified codec to discover the variable names. Replaces ``master_cdf`` for non-CDF formats.
