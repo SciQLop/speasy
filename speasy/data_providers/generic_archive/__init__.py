@@ -97,6 +97,9 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
                                       meta={**dataset_meta, **entry_meta})
         return None
     variables = codec.list_variables(master_file)  # non-ISTP codecs: fall back to names only
+    if variables is None:  # codec does not implement list_variables, it cannot describe a master
+        log.warning(f"Codec '{codec_id}' cannot list variables for dataset {name}, skipping")
+        return None
     parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
                   for var in variables]
     return make_dataset_index(name=name, provider='archive', uid=path,
