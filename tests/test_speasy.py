@@ -163,9 +163,9 @@ class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
         if spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}):
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'uiowaephtool', 'UiowaEphTool'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'uiowaephtool', 'UiowaEphTool', 'supermag', 'SuperMAG'])
         else:
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'uiowaephtool', 'UiowaEphTool'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'uiowaephtool', 'UiowaEphTool', 'supermag', 'SuperMAG'])
         self.assertListEqual(sorted(l), expected_providers)
 
     @data(*[(provider,) for provider in PROVIDERS.keys()])
