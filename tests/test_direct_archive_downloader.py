@@ -8,13 +8,13 @@ import speasy as spz
 from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
 from speasy.core.direct_archive_downloader import get_product
-from speasy.core.direct_archive_downloader.direct_archive_downloader import spilt_range, _read_cdf, map_ranges
+import speasy.core.direct_archive_downloader.direct_archive_downloader as dad
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 
 def _custom_cdf_loader(url, variable, *args, **kwargs):
-    v = _read_cdf(url, variable, *args, **kwargs)
+    v = dad._read_cdf(url, variable, *args, **kwargs)
     v.meta["_custom_cdf_loader"] = True
     return v
 
@@ -25,39 +25,39 @@ class DirectArchiveDownloader(unittest.TestCase):
         pass
 
     def test_split_rules(self):
-        self.assertListEqual(spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-01'),
                              [make_utc_datetime('2010-01-01')]
                              )
-        self.assertListEqual(spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-01-01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-01-01'),
                              [make_utc_datetime('2010-01-01')]
                              )
-        self.assertListEqual(spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2010-01-01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2010-01-01'),
                              [make_utc_datetime('2010-01-01')]
                              )
 
-        self.assertListEqual(spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-02'),
+        self.assertListEqual(dad.spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-02'),
                              [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-01-02')]
                              )
-        self.assertListEqual(spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-02-01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-02-01'),
                              [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-02-01')]
                              )
-        self.assertListEqual(spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2011-01-01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2011-01-01'),
                              [make_utc_datetime('2010-01-01'), make_utc_datetime('2011-01-01')]
                              )
 
-        self.assertListEqual(spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-02T01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-02T01'),
                              [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-01-02')]
                              )
-        self.assertListEqual(spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-02-01T01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='monthly', start_time='2010-01-01', stop_time='2010-02-01T01'),
                              [make_utc_datetime('2010-01-01'), make_utc_datetime('2010-02-01')]
                              )
-        self.assertListEqual(spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2011-01-01T01'),
+        self.assertListEqual(dad.spilt_range(split_frequency='yearly', start_time='2010-01-01', stop_time='2011-01-01T01'),
                              [make_utc_datetime('2010-01-01'), make_utc_datetime('2011-01-01')]
                              )
 
     def test_unknown_split_rules_raises(self):
         with self.assertRaises(ValueError):
-            spilt_range(split_frequency='unknown', start_time='2010-01-01', stop_time='2011-01-01')
+            dad.spilt_range(split_frequency='unknown', start_time='2010-01-01', stop_time='2011-01-01')
 
     @data(
         (
@@ -93,9 +93,9 @@ class DirectArchiveDownloader(unittest.TestCase):
         #  but codec.load_variable expects variable-first arguments.
         #
         # This test fails before the fix in 2024-06-05,
-        common = dict(url_pattern=f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc",
-                      split_rule="regular", variable="Magnitude",
-                      start_time="2009-06-01", stop_time="2009-06-03")
+        common = {"url_pattern": f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc",
+                  "split_rule": "regular", "variable": "Magnitude",
+                  "start_time": "2009-06-01", "stop_time": "2009-06-03"}
         via_codec_file_loader = get_product(**common, codec="application/x-netcdf")
         self.assertIsNotNone(via_codec_file_loader)
         self.assertGreater(len(via_codec_file_loader), 0)
@@ -108,7 +108,6 @@ class DirectArchiveDownloader(unittest.TestCase):
         from unittest.mock import patch
         from speasy.core.inventory.indexes import ParameterIndex
         from speasy.data_providers.generic_archive import GenericArchive
-        import speasy.core.direct_archive_downloader.direct_archive_downloader as dad
 
         nc = f"{__HERE__}/resources/ac_h2s_mfi_cdaweb.nc"
         cfg = {'inventory_path': 'archive/test/DS', 'master_cdf': nc,
@@ -134,8 +133,8 @@ class DirectArchiveDownloader(unittest.TestCase):
         from speasy.core.inventory.indexes import ParameterIndex
         from speasy.data_providers.generic_archive import GenericArchive
 
-        cfg = {'inventory_path': 'archive/test/DS', 'master_cdf': 'http://x/master.cdf',
-               'url_pattern': 'http://x/file.cdf', 'split_rule': 'regular'}
+        cfg = {'inventory_path': 'archive/test/DS', 'master_cdf': 'https://x/master.cdf',
+               'url_pattern': 'https://x/file.cdf', 'split_rule': 'regular'}
         param = ParameterIndex(name='X', provider='archive',
                                uid='archive/test/DS/X', meta={'spz_ga_cfg': cfg})
         provider = object.__new__(GenericArchive)
@@ -271,7 +270,7 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertEqual(len(v), len(v.axes[1]))
 
     def test_map_ranges_simple_case(self):
-        ranges = map_ranges(
+        ranges = dad.map_ranges(
             url="https://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/data/ace/mag/level_2_cdaweb/mfi_h0/2010/.*.cdf",
             fname_regex=r"ac_h0_mfi_(?P<start>\d+)_v(?P<version>\d+).cdf",
             date_format="%Y%m%d", force_refresh=True)
@@ -280,7 +279,7 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertEqual(ranges[-1][1], (make_utc_datetime("2010-12-31"), None))
 
     def test_map_ranges_burst_files(self):
-        ranges = map_ranges(
+        ranges = dad.map_ranges(
             url="https://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/data/mms/mms1/scm/brst/l2/schb/2021/07/.*.cdf",
             fname_regex=r"mms1_scm_brst_l2_schb_(?P<start>\d+)_v(?P<version>[\d\.]+).cdf",
             date_format="%Y%m%d%H%M%S", force_refresh=True)
@@ -291,7 +290,7 @@ class DirectArchiveDownloader(unittest.TestCase):
                          (make_utc_datetime("2021-07-31T23:58:33"), None))
 
     def test_map_ranges_with_start_and_stop_in_filename(self):
-        ranges = map_ranges(
+        ranges = dad.map_ranges(
             url="https://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/data/solar-orbiter/swa/science/l2/eas1-tm3d-psd/2024/.*cdf",
             fname_regex=r"solo_l2_swa-eas1-tm3d-psd_(?P<start>\d+t\d+)-(?P<stop>\d+t\d+)_v(?P<version>\d+)\.cdf",
             date_format="%Y%m%dT%H%M%S",
