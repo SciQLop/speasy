@@ -406,7 +406,7 @@ ac_mfi_nc_remote_dataset:
             reference = _dataset_from_codec_spelling(master_file, canonical)
             self.assertIsNotNone(reference)
             # guard: the reference really is rich, so equality below cannot pass vacuously
-            self.assertTrue(any(meta for meta in _variables_meta(reference).values()))
+            self.assertTrue(any(_variables_meta(reference).values()))
             for alias in aliases:
                 with self.subTest(master=os.path.basename(master_file), codec=alias):
                     dataset = _dataset_from_codec_spelling(master_file, alias)
