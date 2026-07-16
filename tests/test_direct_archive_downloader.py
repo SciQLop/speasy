@@ -80,12 +80,6 @@ class DirectArchiveDownloader(unittest.TestCase):
             variable=variable, start_time=start_time, stop_time=stop_time, **kwargs)
         self.assertIsNotNone(data)
 
-    @unittest.skip(
-        "Segfaults (SIGSEGV): the netCDF4/HDF5 build is not thread-safe and speasy reads "
-        "the .nc concurrently from its request thread pool; the corrupted HDF5 global state "
-        "crashes a later netCDF4.Dataset open. See netcdf_thread_safety_segfault.md. "
-        "Re-enable once the pyistp netcdf driver serializes access with a global lock."
-    )
     def test_get_product_codec_override_reads_local_file(self):
         # get_product(codec=not_None) overrides the default codec with codec.load_variable.
         #
