@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta, timezone
 import dateutil.parser as dt_parser
 import numpy as np
@@ -165,13 +166,19 @@ class _CacheTest(unittest.TestCase):
 @ddt
 class CacheRequestsDeduplication(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls._executor = ThreadPoolExecutor(max_workers=5)
+        drop_matching_entries(r".*test_deduplication.*")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._executor.shutdown()
+        drop_matching_entries(r".*test_deduplication.*")
+
     def setUp(self):
         self._make_data_cntr = 0
         self._version = 0
-        drop_matching_entries(r".*test_deduplication.*")
-
-    def tearDown(self):
-        drop_matching_entries(r".*test_deduplication.*")
 
     def version(self, product):
         return self._version
@@ -184,15 +191,15 @@ class CacheRequestsDeduplication(unittest.TestCase):
 
     @data(*list(range(100)))
     def test_deduplication(self, step):
+        # Each step uses its own product so cache entries never collide across
+        # steps — lets the whole class share one cache and one thread pool
+        # instead of paying a full cache scan + 5 fresh OS threads per step.
+        product = f"test_deduplication_product_{step}"
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_data_cntr, 0)
-        from threading import Thread
-        threads = [Thread(target=self._make_data, args=("test_deduplication_product", tstart, tend)) for _ in range(5)]
-        for p in threads:
-            p.start()
-        for p in threads:
-            p.join()
+        futures = [self._executor.submit(self._make_data, product, tstart, tend) for _ in range(5)]
+        wait(futures)
         self.assertLessEqual(self._make_data_cntr, 1)
 
 
@@ -279,11 +286,20 @@ def multi_process_make_data(product, start_time, stop_time):
 @ddt
 class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
 
-    def setUp(self):
-        self._version = 0
+    # NOTE: intentionally spawns a fresh Process() per step rather than
+    # reusing a persistent Pool. MPDataProvider touches the shared production
+    # cache (not an isolated per-test one), and pysciqlop_cache's fork-safety
+    # handling is only validated for a one-shot "fork, touch cache once, exit"
+    # pattern — a persistent pool whose workers keep hitting that same cache
+    # across all 100 steps corrupted it and hung a CI worker on Linux. Only
+    # the redundant per-step drop_matching_entries() scan is removed here.
+
+    @classmethod
+    def setUpClass(cls):
         drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")
 
     @data(*list(range(100)))
@@ -428,21 +444,23 @@ def _cache_call_dedup_fn(key):
 @ddt
 class CacheCallRequestsDeduplication(unittest.TestCase):
 
-    def setUp(self):
-        _cache_call_dedup_cntr["n"] = 0
+    @classmethod
+    def setUpClass(cls):
+        cls._executor = ThreadPoolExecutor(max_workers=5)
         _cache_call_dedup_fn.drop_entries()
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
+        cls._executor.shutdown()
         _cache_call_dedup_fn.drop_entries()
+
+    def setUp(self):
+        _cache_call_dedup_cntr["n"] = 0
 
     @data(*list(range(50)))
     def test_deduplication(self, step):
-        from threading import Thread
-        threads = [Thread(target=_cache_call_dedup_fn, args=(f"key_{step}",)) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+        futures = [self._executor.submit(_cache_call_dedup_fn, f"key_{step}") for _ in range(5)]
+        wait(futures)
         self.assertLessEqual(_cache_call_dedup_cntr["n"], 1)
 
 
