@@ -287,32 +287,32 @@ def multi_process_make_data(product, start_time, stop_time):
 @ddt
 class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
 
-    # NOTE: intentionally spawns a fresh Process() per step rather than
-    # reusing a persistent Pool. MPDataProvider touches the shared production
-    # cache (not an isolated per-test one), and pysciqlop_cache's fork-safety
-    # handling is only validated for a one-shot "fork, touch cache once, exit"
-    # pattern — a persistent pool whose workers keep hitting that same cache
-    # across all 100 steps corrupted it and hung a CI worker on Linux.
+    # A persistent Pool of 4 workers is reused across all 100 steps rather
+    # than spawning a fresh Process() per step. This previously corrupted the
+    # shared cache and hung a CI worker on pysciqlop-cache<0.1.4 (fork-safety
+    # was only validated for a one-shot "fork, touch cache once, exit"
+    # pattern); fixed upstream in pysciqlop-cache 0.1.4 (bounded retry for the
+    # reused-pool TOCTOU race — see SciQLop/Sciqlop-cache
+    # docs/known-issues/pool-reuse-fork-safety-gap.md).
     #
     # Per-step (not per-class) drop_matching_entries() is also intentional
     # here, unlike the thread-based dedup classes above.
     #
-    # Every step spawns 4 brand-new OS processes, each doing a fresh `import
-    # speasy`. request_dispatch.py runs init_providers() at import time
+    # The pool's 4 workers each do a fresh `import speasy` once, at pool
+    # creation. request_dispatch.py runs init_providers() at import time
     # unless SPEASY_SKIP_INIT_PROVIDERS is set, which does a live network
-    # liveness check for every non-disabled provider - 400 processes x that
-    # cost caused a 2+ hour stall on real Windows CI (confirmed via isolated
-    # bisection: plain `import speasy` alone reproduced the full slowdown,
-    # and pysciqlop_cache/caching were separately ruled out entirely). Skip
-    # provider init for just this class - not the whole file - so it doesn't
-    # leak into tests/test_zzz_disable_ws.py, which relies on a fresh
+    # liveness check for every non-disabled provider - cheap here (4 imports
+    # total) but was a 2+ hour Windows CI stall back when this test spawned a
+    # fresh process (and fresh import) per step instead of reusing a pool.
+    # Skip provider init for just this class - not the whole file - so it
+    # doesn't leak into tests/test_zzz_disable_ws.py, which relies on a fresh
     # `import speasy` re-running init_providers() with different
     # SPEASY_CORE_DISABLED_PROVIDERS values.
     #
     # Explicitly force the 'spawn' start method (not the platform/version
     # default). Python 3.14 defaults Linux multiprocessing to 'forkserver',
     # which lazily starts a persistent server process on the *first* ever
-    # Process() in the whole test run and snapshots os.environ at that
+    # Process()/Pool() in the whole test run and snapshots os.environ at that
     # moment - if anything (e.g. coverage instrumentation) starts it before
     # this class's setUpClass runs, every later child keeps seeing the
     # stale (pre-fix) environment no matter how much later os.environ is
@@ -325,9 +325,13 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
     def setUpClass(cls):
         cls._prev_skip_init_providers = os.environ.get('SPEASY_SKIP_INIT_PROVIDERS')
         os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = '1'
+        from multiprocessing import get_context
+        cls._pool = get_context('spawn').Pool(processes=4)
 
     @classmethod
     def tearDownClass(cls):
+        cls._pool.close()
+        cls._pool.join()
         if cls._prev_skip_init_providers is None:
             os.environ.pop('SPEASY_SKIP_INIT_PROVIDERS', None)
         else:
@@ -341,20 +345,15 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
 
     @data(*list(range(100)))
     def test_deduplication(self, step):
-        from multiprocessing import get_context
-        spawn_ctx = get_context('spawn')
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         product = f"CacheRequestsDeduplicationMultiProcess::{step}"
         provider = MPDataProvider()
         provider.reset_count(product)
         self.assertEqual(provider.count(product), 0)
-        processes = [spawn_ctx.Process(target=multi_process_make_data, args=(product, tstart, tend)) for _ in
-                     range(4)]
-        for p in processes:
-            p.start()
-        for p in processes:
-            p.join()
+        results = [self._pool.apply_async(multi_process_make_data, (product, tstart, tend)) for _ in range(4)]
+        for r in results:
+            r.get()
         self.assertLessEqual(provider.count(product), 1)
 
 
