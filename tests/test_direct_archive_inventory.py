@@ -59,6 +59,20 @@ my_dataset_meta:
   url_pattern: https://example.org/{Y}/data.cdf
 """
 
+_VARIABLES_WITH_UNKNOWN_CODEC_YAML = """\
+bogus_codec_dataset:
+  inventory_path: cda/test
+  meta:
+    Mission_group: ERG
+  variables:
+    Bgse:
+      meta:
+        UNITS: nT
+  codec: not_a_real_codec
+  split_rule: regular
+  url_pattern: https://example.org/{Y}/data.cdf
+"""
+
 _MASTER_FILE_NC_YAML = f"""\
 ac_mfi_nc_dataset:
   inventory_path: cda/test
@@ -288,6 +302,14 @@ class TestLoadInventoryFile(unittest.TestCase):
         self.assertIsNotNone(ga_cfg)
         self.assertEqual(ga_cfg.get('url_pattern'), 'https://example.org/{Y}/data.cdf')
         self.assertEqual(ga_cfg.get('split_rule'), 'regular')
+
+    def test_skips_inline_variables_dataset_with_unknown_codec(self):
+        # unlike master_file entries, inline 'variables:' entries never validated 'codec' at all:
+        # a typo would sail through inventory building and only blow up deep inside get_data(),
+        # instead of being skipped up front like an unknown codec on the master_file path.
+        root = _load_yaml_doc(_VARIABLES_WITH_UNKNOWN_CODEC_YAML)
+        test_node = root.__dict__['cda'].__dict__['test']
+        self.assertNotIn('bogus_codec_dataset', test_node.__dict__)
 
     def test_loads_dataset_with_master_file_nc(self):
         root = _make_root()
