@@ -1,16 +1,19 @@
 import operator
 import os
 import shutil
+import sys
 import tempfile
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta, timezone
+from unittest import mock
 import dateutil.parser as dt_parser
 import numpy as np
 import packaging.version as Version
 from ddt import data, ddt, unpack
 
+import speasy.core.cache.cache as cache_mod
 from speasy.core import epoch_to_datetime64
 from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache, drop_matching_entries, CacheCall
 from speasy.core.cache.version import str_to_version, version_to_str
@@ -55,6 +58,19 @@ class _CacheTest(unittest.TestCase):
             self._make_unversioned_data_cntr += 1
             return data_generator(start_time, stop_time)
         return None
+
+    # Separate from _make_unversioned_data on purpose: that one needs a
+    # sub-second retention so test_get_outdated_from_unversioned_cache's
+    # time.sleep(3.) can trip real staleness without waiting the production
+    # 14-day default. Sharing that thin margin with a rapid, non-sleeping
+    # loop (below) left no headroom for a slow CI iteration to occur without
+    # being mistaken for staleness -- this one gets its own generous margin
+    # instead of being tuned to fit both use cases at once.
+    @UnversionedProviderCache(prefix="", cache_instance=cache, leak_cache=True,
+                              cache_retention=timedelta(minutes=5))
+    def _make_stable_unversioned_data(self, product, start_time, stop_time, if_newer_than=None):
+        self._make_unversioned_data_cntr += 1
+        return data_generator(start_time, stop_time)
 
     def _get_and_check(self, start, stop, data_f):
         var = data_f(f"...{data_f}", start, stop)
@@ -137,8 +153,31 @@ class _CacheTest(unittest.TestCase):
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
         self.assertEqual(self._make_unversioned_data_cntr, 0)
         for i in range(10):
-            var = self._make_unversioned_data("test_get_cached_from_unversioned_cache", tstart, tend)
+            var = self._make_stable_unversioned_data("test_get_cached_from_unversioned_cache", tstart, tend)
             self.assertEqual(self._make_unversioned_data_cntr, 1)
+
+    def test_get_cached_from_unversioned_cache_survives_a_slow_iteration(self):
+        # Regression test: a single slow loop iteration (a loaded CI runner
+        # taking over a second to complete one round-trip) must not be
+        # mistaken for real staleness. This drives a virtual clock instead
+        # of relying on a real slow machine, so the bug reproduces on demand.
+        tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
+        tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
+        virtual_now = [datetime(2026, 1, 1, tzinfo=timezone.utc)]
+
+        class FakeDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return virtual_now[0]
+
+        with mock.patch.object(cache_mod, "datetime", FakeDateTime), \
+             mock.patch.object(sys.modules[__name__], "datetime", FakeDateTime):
+            for i in range(10):
+                if i == 4:
+                    virtual_now[0] += timedelta(seconds=2)
+                self._make_stable_unversioned_data(
+                    "test_get_cached_from_unversioned_cache_survives_a_slow_iteration", tstart, tend)
+                self.assertEqual(self._make_unversioned_data_cntr, 1)
 
     def test_get_outdated_from_unversioned_cache(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
