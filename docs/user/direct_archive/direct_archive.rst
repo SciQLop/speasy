@@ -75,6 +75,7 @@ carries its own ``meta`` block, alongside a dataset-level one:
           meta:
             UNITS: nT
             CATDESC: B along Y
+      codec: nc
       split_rule: regular
       url_pattern: https://my_server.net/data/{Y}/{M:02d}/data_{Y}{M:02d}{D:02d}.nc
 
@@ -82,6 +83,13 @@ carries its own ``meta`` block, alongside a dataset-level one:
     A bare list of names (``variables: [Bx, By]``) is **not** supported: the dataset is skipped and a
     warning is emitted in the log. Both the dataset-level ``meta`` and a ``meta`` for every variable
     are required.
+
+.. note::
+    ``codec`` here has nothing to do with discovering variables (they're already given) — it only
+    tells Speasy how to decode the actual data files at fetch time. It defaults to ``cdf`` if omitted,
+    so set it explicitly whenever ``url_pattern`` doesn't point to CDF files, as above. An unrecognized
+    codec skips the whole dataset with a warning at import time, rather than failing inside every
+    subsequent ``get_data()`` call.
 
 Or, if the data files are in a format other than CDF (e.g. NetCDF), point to a master file and specify the codec:
 
@@ -139,8 +147,10 @@ YAML field reference
      - URL or local path to a master file in any supported format. Speasy opens it once with the
        specified codec to discover the variable names. Replaces ``master_cdf`` for non-CDF formats.
    * - **codec**
-     - Codec identifier to use with ``master_file``. Accepts a file extension (``cdf``, ``nc``) or a
-       MIME type (``application/x-cdf``). Required when ``master_file`` is set.
+     - Codec identifier used both to discover variables from ``master_file`` and, for any dataset
+       (``master_file`` or ``variables``), to decode the actual data files at fetch time. Accepts a
+       file extension (``cdf``, ``nc``) or a MIME type (``application/x-cdf``). Optional, defaults to
+       ``cdf``; an unrecognized value skips the whole dataset with a warning at import time.
    * - **master_cdf** *(deprecated)*
      - URL or local path to a CDF master file. Speasy reads it once to discover which variables the
        dataset contains. Prefer ``master_file`` + ``codec: cdf`` for new entries.
