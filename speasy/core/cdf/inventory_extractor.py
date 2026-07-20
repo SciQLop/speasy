@@ -12,10 +12,27 @@ log = logging.getLogger(__name__)
 
 DEFAULT_UUID_FMT = "{var_name}"
 
+
+def _fix_value_type(value):
+    # pycdfpp hands back attribute values in whatever type matches the CDF's own storage type
+    # (e.g. a raw pycdfpp.tt2000_t for a CDF_TIME_TT2000-typed FILLVAL, such as the ISTP
+    # far-future fill sentinel). Inventory meta must stay JSON/to_dict-round-trip-safe, so
+    # anything that isn't already a plain primitive gets stringified here, at the source --
+    # the same normalization speasy.core.codecs.bundled_codecs.istp already applies when
+    # reading variable *data* (see its own _fix_value_type), just applied to inventory meta too.
+    if type(value) in (str, int, float):
+        return value
+    if type(value) is list:
+        return [_fix_value_type(sub_v) for sub_v in value]
+    if type(value) is bytes:
+        return value.decode('utf-8')
+    return str(value)
+
+
 def filter_variable_meta(datavar: DataVariable) -> dict:
     keep_list = ['CATDESC', 'FIELDNAM', 'UNITS', 'UNIT_PTR', 'DISPLAY_TYPE', 'LABLAXIS', 'LABL_PTR_1', 'LABL_PTR_2',
                  'LABL_PTR_3', 'VIRTUAL', 'FUNCT', 'FILLVAL']
-    base = {key: value for key, value in datavar.attributes.items() if key in keep_list}
+    base = {key: _fix_value_type(value) for key, value in datavar.attributes.items() if key in keep_list}
     base['cdf_type'] = datavar.cdf_type
     if len(datavar.values.shape) == 1:
         base['spz_shape'] = 1
@@ -26,9 +43,9 @@ def filter_variable_meta(datavar: DataVariable) -> dict:
 
 def _attribute_value(attr):
     if len(attr) == 1:
-        return attr[0]
+        return _fix_value_type(attr[0])
     else:
-        return list(attr)
+        return _fix_value_type(list(attr))
 
 
 def filter_dataset_meta(dataset: ISTPLoader) -> dict:
