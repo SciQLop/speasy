@@ -61,6 +61,19 @@ def _is_reachable(url: str) -> bool:
     return _is_up(host, port)
 
 
+def _public_meta(node: SpeasyIndex) -> dict:
+    return {k: v for k, v in node.__dict__.items()
+            if not k.startswith('__spz_') and k != 'spz_ga_cfg' and not hasattr(v, 'spz_name')}
+
+
+def _patch_meta(result: SpeasyVariable, inventory_meta: dict, priority: str) -> None:
+    if priority == 'yaml':
+        result.meta.update(inventory_meta)
+    else:
+        for key, value in inventory_meta.items():
+            result.meta.setdefault(key, value)
+
+
 def _dataset_from_variables(name, path, entry_meta, variables, codec_id='', dataset_meta=None):
     valid = (
         dataset_meta
@@ -177,10 +190,14 @@ class GenericArchive(DataProvider):
         Optional[
             SpeasyVariable]:
         ga_cfg: dict = dict(getattr(product, 'spz_ga_cfg'))  # copy: spz_ga_cfg is shared across the dataset and its params
+        meta_priority = ga_cfg.pop('meta_priority', 'file')
         ga_cfg.pop('inventory_path', None)
         ga_cfg.pop('master_cdf', None)
         ga_cfg.pop('master_file', None)
         ga_cfg.pop('meta', None)
         ga_cfg.pop('variables', None)
-        return get_product(**ga_cfg,
-                           variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
+        result = get_product(**ga_cfg,
+                             variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
+        if result is not None:
+            _patch_meta(result, _public_meta(product), meta_priority)
+        return result
