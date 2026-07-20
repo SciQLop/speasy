@@ -61,7 +61,7 @@ def _is_reachable(url: str) -> bool:
     return _is_up(host, port)
 
 
-def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None):
+def _dataset_from_variables(name, path, entry_meta, variables, codec_id='', dataset_meta=None):
     valid = (
         dataset_meta
         and isinstance(variables, dict) and variables
@@ -70,6 +70,9 @@ def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None
     if not valid:
         log.warning(f"Dataset {name}: inline format requires a dataset 'meta' and a 'meta' "
                     f"for each variable, skipping")
+        return None
+    if get_codec(codec_id or 'cdf') is None:  # get_data() resolves this same key at fetch time
+        log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
         return None
     parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}",
                                  meta={**info['meta'], **entry_meta})
@@ -114,7 +117,7 @@ def _load_inventory_entry(name, entry, root: SpeasyIndex):
     master_file = entry.get('master_file') or entry.get('master_cdf') or None
     if 'variables' in entry:
         dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'],
-                                          dataset_meta=entry.get('meta'))
+                                          codec_id=entry.get('codec', ''), dataset_meta=entry.get('meta'))
     elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
         dataset = _dataset_from_master(name, path, entry_meta,
                                        master_file, entry.get('codec', ''))
