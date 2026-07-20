@@ -279,6 +279,16 @@ class TestLoadInventoryFile(unittest.TestCase):
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
         self.assertEqual(var_names, {'Bgse', 'Bgsm'})
 
+    def test_variable_from_inline_yaml_carries_archive_cfg_for_get_data(self):
+        # GenericArchive._get_data() reads spz_ga_cfg off the ParameterIndex, not the DatasetIndex
+        root = _load_yaml_doc(_VARIABLES_WITH_META_YAML)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('my_dataset_meta')
+        bgse = dataset.__dict__['Bgse']
+        ga_cfg = getattr(bgse, 'spz_ga_cfg', None)
+        self.assertIsNotNone(ga_cfg)
+        self.assertEqual(ga_cfg.get('url_pattern'), 'https://example.org/{Y}/data.cdf')
+        self.assertEqual(ga_cfg.get('split_rule'), 'regular')
+
     def test_loads_dataset_with_master_file_nc(self):
         root = _make_root()
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
