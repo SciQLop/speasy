@@ -118,6 +118,22 @@ Or, if the data files are in a format other than CDF (e.g. NetCDF), point to a m
     It is deprecated but remains supported.
     Prefer ``master_file`` + ``codec`` for new entries.
 
+A master file's own metadata can be patched too — add a ``meta`` block alongside ``master_file``
+just like the inline format, controlled by the same ``meta_priority``:
+
+.. code-block:: YAML
+
+    my_nc_dataset:
+      inventory_path: my_data/MISSION/INSTRUMENT
+      master_file: https://my_server.net/masters/dataset_master.nc
+      codec: nc
+      meta:
+        Mission_group: MISSION       # the master doesn't have this: always added
+        Data_type: corrected-l2      # the master does have this: only wins with meta_priority: yaml
+      meta_priority: yaml
+      split_rule: regular
+      url_pattern: https://my_server.net/data/{Y}/{M:02d}/data_{Y}{M:02d}{D:02d}.nc
+
 **Step 3: Restart Python and use it**
 
 After saving the YAML file, restart your Python session (the inventory is built at import time):
@@ -149,13 +165,15 @@ YAML field reference
        (e.g. ``my_data/THEMIS/THA`` → ``archive.my_data.THEMIS.THA``).
    * - **meta**
      - Dataset-level metadata (e.g. ``Mission_group``, ``Data_type``). Required together with
-       **variables**. Ignored when a master file is used, since the metadata then comes from the master.
-       Only affects the inventory browser by default — see **meta_priority** to also patch it onto
+       **variables**; optional alongside **master_file**/**master_cdf**, where it patches onto the
+       metadata extracted from the master (see **meta_priority** for which side wins a clash).
+       Only affects the inventory browser by default — **meta_priority** also patches it onto
        ``get_data()`` results.
    * - **meta_priority**
-     - ``file`` (default) or ``yaml``. Controls whether **meta** (dataset- and variable-level) patches
-       onto the ``SpeasyVariable`` returned by ``get_data()``, and which side wins when both the file
-       and the YAML declare the same field. Either way, fields only present in YAML always come through.
+     - ``file`` (default) or ``yaml``. The single knob resolving every YAML-vs-file metadata clash
+       in this dataset: **meta** vs. the master's own metadata at inventory-build time, and the
+       built inventory metadata vs. the real data file's own attributes inside every ``get_data()``
+       call. Either way, fields declared only in YAML always come through.
    * - **variables**
      - Inline description of the dataset's variables, as a mapping of variable name to a ``meta`` block.
        Use this when you want to avoid any network access at inventory build time. Both a dataset-level
