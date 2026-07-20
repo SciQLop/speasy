@@ -66,12 +66,19 @@ def _public_meta(node: SpeasyIndex) -> dict:
             if not k.startswith('__spz_') and k != 'spz_ga_cfg' and not hasattr(v, 'spz_name')}
 
 
-def _patch_meta(result: SpeasyVariable, inventory_meta: dict, priority: str) -> None:
+def _merge_meta(file_meta: dict, yaml_meta: dict, priority: str) -> dict:
+    # same 'meta_priority' knob resolves file-vs-YAML metadata everywhere in the pipeline:
+    # here at inventory-build time (master-extracted vs YAML-declared), and again in
+    # _get_data() (freshly-read file vs whatever ended up on the built ParameterIndex)
     if priority == 'yaml':
-        result.meta.update(inventory_meta)
-    else:
-        for key, value in inventory_meta.items():
-            result.meta.setdefault(key, value)
+        return {**file_meta, **yaml_meta}
+    return {**yaml_meta, **file_meta}
+
+
+def _patch_meta(result: SpeasyVariable, inventory_meta: dict, priority: str) -> None:
+    merged = _merge_meta(result.meta, inventory_meta, priority)
+    result.meta.clear()
+    result.meta.update(merged)
 
 
 def _dataset_from_variables(name, path, entry_meta, variables, codec_id='', dataset_meta=None):
@@ -95,9 +102,9 @@ def _dataset_from_variables(name, path, entry_meta, variables, codec_id='', data
                               meta={**dataset_meta, **entry_meta})
 
 
-def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
+def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_meta=None, meta_priority='file'):
     # All strings for a codec id (extension, mime type, class name) resolve to the same instance in
-    # the registry, so we test the codec object instead of a string 
+    # the registry, so we test the codec object instead of a string
     codec = get_codec(codec_id or 'cdf')  # legacy master_cdf entries carry no codec
     if codec is None:
         log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
@@ -107,10 +114,11 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
                                      params_uid_format=f"{path}/{{var_name}}",
                                      params_meta=entry_meta)
         if result:
-            parameters, dataset_meta = result
+            parameters, master_meta = result
+            meta = _merge_meta(master_meta, dataset_meta or {}, meta_priority)
             return make_dataset_index(name=name, provider='archive', uid=path,
                                       parameters=parameters,
-                                      meta={**dataset_meta, **entry_meta})
+                                      meta={**meta, **entry_meta})
         return None
     variables = codec.list_variables(master_file)  # non-ISTP codecs: fall back to names only
     if variables is None:  # codec does not implement list_variables, it cannot describe a master
@@ -118,8 +126,9 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id):
         return None
     parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
                   for var in variables]
+    meta = _merge_meta({}, dataset_meta or {}, meta_priority)
     return make_dataset_index(name=name, provider='archive', uid=path,
-                              parameters=parameters, meta=entry_meta)
+                              parameters=parameters, meta={**meta, **entry_meta})
 
 
 def _load_inventory_entry(name, entry, root: SpeasyIndex):
@@ -133,7 +142,9 @@ def _load_inventory_entry(name, entry, root: SpeasyIndex):
                                           codec_id=entry.get('codec', ''), dataset_meta=entry.get('meta'))
     elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
         dataset = _dataset_from_master(name, path, entry_meta,
-                                       master_file, entry.get('codec', ''))
+                                       master_file, entry.get('codec', ''),
+                                       dataset_meta=entry.get('meta'),
+                                       meta_priority=entry.get('meta_priority', 'file'))
     else:
         dataset = None
         log.warning(f"No reachable master for dataset {name}, skipping")
