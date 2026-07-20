@@ -91,6 +91,18 @@ ac_mfi_cdf_dataset:
   url_pattern: https://example.org/{{Y}}/data.cdf
 """
 
+_MASTER_FILE_CDF_WITH_META_YAML = f"""\
+ac_mfi_meta_override:
+  inventory_path: cda/test
+  master_file: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  codec: cdf
+  meta:
+    Custom_field: custom_value
+    Data_type: yaml_override
+  split_rule: regular
+  url_pattern: https://example.org/{{Y}}/data.cdf
+"""
+
 _MASTER_CDF_LOCAL_YAML = f"""\
 ac_mfi_local_master_cdf:
   inventory_path: cda/test
@@ -380,6 +392,25 @@ class TestLoadInventoryFile(unittest.TestCase):
         var_names = {v.spz_name() for v in dataset.__dict__.values() if hasattr(v, 'spz_name')}
         self.assertIn('Magnitude', var_names)
         self.assertIn('BGSEc', var_names)
+
+    def test_master_file_dataset_meta_fills_gaps_by_default(self):
+        # meta on a master_file entry was completely ignored before the fix: Custom_field
+        # (which the master doesn't have) never made it onto the dataset, and there was no way
+        # to tell -- the master's own Data_type kept its real value either way. This test fails
+        # on the Custom_field assertion before the fix.
+        root = _load_yaml_doc(_MASTER_FILE_CDF_WITH_META_YAML)
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_meta_override')
+        self.assertIsNotNone(dataset)
+        self.assertEqual(dataset.__dict__.get('Custom_field'), 'custom_value')
+        self.assertEqual(dataset.__dict__.get('Data_type'), 'K2>1-Hr Key Parameter Data')
+
+    def test_master_file_dataset_meta_priority_yaml_overrides_master(self):
+        root = _load_yaml_doc(_MASTER_FILE_CDF_WITH_META_YAML.replace(
+            "codec: cdf", "codec: cdf\n  meta_priority: yaml"))
+        dataset = root.__dict__['cda'].__dict__['test'].__dict__.get('ac_mfi_meta_override')
+        self.assertIsNotNone(dataset)
+        self.assertEqual(dataset.__dict__.get('Custom_field'), 'custom_value')
+        self.assertEqual(dataset.__dict__.get('Data_type'), 'yaml_override')
 
     def test_loads_dataset_with_local_master_cdf_no_codec(self):
         # master_cdf key without codec + local file: must route through the cdf path
