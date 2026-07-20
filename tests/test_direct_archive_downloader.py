@@ -234,6 +234,53 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertEqual(len(result), len(oracle))
         np.testing.assert_array_equal(result.values.ravel(), oracle.ravel())
 
+    def _get_data_for_patch_meta_test(self, extra_entry_keys=None):
+        # Shared setup for the meta-patching tests below: an inline 'variables:' dataset whose
+        # hand-typed meta both overlaps with a real file attribute (UNITS) and adds one the file
+        # doesn't have (Custom_field), so we can tell file-derived and YAML-derived meta apart.
+        import tempfile
+        import yaml
+        from speasy.core.inventory.indexes import SpeasyIndex
+        from speasy.data_providers.generic_archive import load_inventory_file, GenericArchive
+
+        cdf = f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf"
+        entry = {
+            "DS_patch": {
+                "inventory_path": "archive/test",
+                "meta": {"Mission_group": "ACE"},
+                "variables": {"Magnitude": {"meta": {"UNITS": "made_up_unit", "Custom_field": "custom_value"}}},
+                "url_pattern": cdf,
+                "split_rule": "regular",
+                **(extra_entry_keys or {}),
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+            yaml.safe_dump(entry, f)
+            yaml_path = f.name
+        try:
+            root = SpeasyIndex(name="root", provider="archive", uid="root")
+            load_inventory_file(yaml_path, root)
+            param = root.archive.test.DS_patch.Magnitude
+            provider = object.__new__(GenericArchive)
+            return provider._get_data(product=param, start_time="2022-01-01", stop_time="2022-01-01T23:59")
+        finally:
+            os.unlink(yaml_path)
+
+    def test_get_data_patches_meta_missing_from_file_by_default(self):
+        # By default (no 'meta_priority' key), YAML-only fields not present in the real file
+        # (Custom_field) should still reach the returned SpeasyVariable -- but fields the file
+        # already provides (UNITS) keep the file's own value. This test fails before the fix:
+        # today _get_data() never looks at the inventory's own meta at all.
+        result = self._get_data_for_patch_meta_test()
+        self.assertEqual(result.meta.get("Custom_field"), "custom_value")
+        self.assertEqual(result.meta.get("UNITS"), "nT")  # the file's real value, not the YAML one
+
+    def test_get_data_meta_priority_yaml_overrides_file(self):
+        # 'meta_priority: yaml' makes YAML-declared fields win over the file's own attributes.
+        result = self._get_data_for_patch_meta_test(extra_entry_keys={"meta_priority": "yaml"})
+        self.assertEqual(result.meta.get("Custom_field"), "custom_value")
+        self.assertEqual(result.meta.get("UNITS"), "made_up_unit")
+
     def test_get_product_with_custom_loader(self):
         v = get_product(
             url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v05_11.cdf",
