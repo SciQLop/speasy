@@ -72,7 +72,7 @@ def _dataset_from_variables(name, path, entry_meta, variables, dataset_meta=None
                     f"for each variable, skipping")
         return None
     parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}",
-                                 meta=info['meta'])
+                                 meta={**info['meta'], **entry_meta})
                   for var, info in variables.items()]
     return make_dataset_index(name=name, provider='archive', uid=path,
                               parameters=parameters,
