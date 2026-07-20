@@ -182,6 +182,58 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertEqual(len(result), len(oracle))              # 49 points, nothing lost
         np.testing.assert_array_equal(result.values.ravel(), oracle.ravel())
 
+    def test_get_data_end_to_end_inline_variables_values(self):
+        # End-to-end through the inline 'variables:' format (metadata comes from the YAML
+        # itself, no master file): inventory build + data retrieval, asserting values match
+        # a native pyistp read of the same file.
+        #
+        # 'meta' and 'variables' are archive-config-only keys with no place in get_product()'s
+        # signature; spz_ga_cfg carries the whole YAML entry unfiltered, so both leak all the
+        # way to _read_cdf(url, variable, master_cdf_url=None) which has no **kwargs to absorb
+        # them, raising TypeError. This test fails before the fix.
+        import tempfile
+        import yaml
+        import pyistp
+        from speasy.core.inventory.indexes import SpeasyIndex
+        from speasy.data_providers.generic_archive import load_inventory_file, GenericArchive
+
+        cdf = f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf"
+        entry = {
+            "DS_inline": {
+                "inventory_path": "archive/test",
+                "meta": {"Mission_group": "ACE"},
+                "variables": {"Magnitude": {"meta": {"UNITS": "nT"}}},
+                "url_pattern": cdf,
+                "split_rule": "regular",
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
+            yaml.safe_dump(entry, f)
+            yaml_path = f.name
+        try:
+            root = SpeasyIndex(name="root", provider="archive", uid="root")
+            load_inventory_file(yaml_path, root)
+
+            dataset = root.archive.test.DS_inline
+            param = dataset.Magnitude
+
+            provider = object.__new__(GenericArchive)
+            # url_pattern has no {Y}/{M}/{D} placeholders, so it resolves to the same fixed
+            # file regardless of date; keep the range inside a single default "daily" split
+            # period so file_reader is only called once (a second, identical fetch would
+            # only be pruned by merge()'s "covered by previous" dedup, which isn't what this
+            # test is about).
+            result = provider._get_data(product=param,
+                                        start_time="2022-01-01", stop_time="2022-01-01T23:59")
+        finally:
+            os.unlink(yaml_path)
+
+        oracle = pyistp.load(file=cdf).data_variable("Magnitude").values
+
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result), len(oracle))
+        np.testing.assert_array_equal(result.values.ravel(), oracle.ravel())
+
     def test_get_product_with_custom_loader(self):
         v = get_product(
             url_pattern="https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v05_11.cdf",
