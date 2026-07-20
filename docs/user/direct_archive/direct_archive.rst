@@ -91,6 +91,17 @@ carries its own ``meta`` block, alongside a dataset-level one:
     codec skips the whole dataset with a warning at import time, rather than failing inside every
     subsequent ``get_data()`` call.
 
+.. important::
+    ``get_data()`` builds its result from the actual data file's own attributes, not from ``meta``
+    above — the ``UNITS``/``CATDESC`` you type here only show up when *browsing* the inventory
+    (``spz.inventories.data_tree...``) unless you also set ``meta_priority``, which patches this
+    ``meta`` onto every ``get_data()`` result too:
+
+    .. code-block:: YAML
+
+        meta_priority: file  # default: YAML meta only fills fields the file doesn't have
+        meta_priority: yaml  # YAML meta overrides the file's own value on a clash
+
 Or, if the data files are in a format other than CDF (e.g. NetCDF), point to a master file and specify the codec:
 
 .. code-block:: YAML
@@ -139,6 +150,12 @@ YAML field reference
    * - **meta**
      - Dataset-level metadata (e.g. ``Mission_group``, ``Data_type``). Required together with
        **variables**. Ignored when a master file is used, since the metadata then comes from the master.
+       Only affects the inventory browser by default — see **meta_priority** to also patch it onto
+       ``get_data()`` results.
+   * - **meta_priority**
+     - ``file`` (default) or ``yaml``. Controls whether **meta** (dataset- and variable-level) patches
+       onto the ``SpeasyVariable`` returned by ``get_data()``, and which side wins when both the file
+       and the YAML declare the same field. Either way, fields only present in YAML always come through.
    * - **variables**
      - Inline description of the dataset's variables, as a mapping of variable name to a ``meta`` block.
        Use this when you want to avoid any network access at inventory build time. Both a dataset-level
