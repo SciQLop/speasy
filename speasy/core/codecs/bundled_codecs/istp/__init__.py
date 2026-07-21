@@ -96,13 +96,14 @@ def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVar
     return None
 
 
-def _resolve_url_type(url, prefix="", cache_remote_files=True):
+def _resolve_url_type(url, prefix="", cache_remote_files=True, max_age=None):
     if url is None:
         return prefix + "file", None
     if type(url) is str:
         if is_local_file(url):
             return prefix + "file", to_local_path(url)
-        return prefix + "buffer", any_loc_open(url, mode='rb', cache_remote_files=cache_remote_files).read()
+        return prefix + "buffer", any_loc_open(url, mode='rb', cache_remote_files=cache_remote_files,
+                                               max_age=max_age).read()
     if type(url) in (memoryview, bytes):
         return prefix + "buffer", bytes(url)
     if hasattr(url, 'read'):
