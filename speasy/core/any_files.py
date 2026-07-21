@@ -76,28 +76,44 @@ def _is_outdated(entry: CacheItem, url: str) -> bool:
         log.warning(f"Could not check if remote file {url} is outdated: {e}")
         return False
 
+def _fetch_remote_cache_item(url, timeout: int, headers: dict, mode: str,
+                             max_age: Optional[timedelta]) -> CacheItem:
+    resp = http.urlopen(url=url, headers=headers, timeout=timeout)
+    if resp.status != 200:
+        # Never cache error responses: a transient 502 page stored as
+        # the file content poisons the cache until manually purged.
+        raise IOError(f"Could not open remote file {url}: HTTP {resp.status}")
+    last_modified = resp.headers.get('last-modified', str(datetime.now()))
+    data = resp.bytes if 'b' in mode else resp.text
+    return CacheItem(data=data, version=last_modified, lifetime=max_age)
+
+
 def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb',
-                            prefer_cache=False) -> AnyFile:
+                            prefer_cache=False, max_age: Optional[timedelta] = None) -> AnyFile:
 
     with request_locker(url):
         entry = get_item(url)
-        if not isinstance(entry, CacheItem) or (not prefer_cache and _is_outdated(entry, url)):
-            resp = http.urlopen(url=url, headers=headers, timeout=timeout)
-            if resp.status != 200:
-                # Never cache error responses: a transient 502 page stored as
-                # the file content poisons the cache until manually purged.
-                raise IOError(f"Could not open remote file {url}: HTTP {resp.status}")
-            last_modified = resp.headers.get('last-modified', str(datetime.now()))
-            if 'b' in mode:
-                entry = CacheItem(data=resp.bytes, version=last_modified)
-            else:
-                entry = CacheItem(data=resp.text, version=last_modified)
+        # Within max_age, trust the cache silently: no HEAD, no GET. Past it,
+        # fall back to the usual last-modified revalidation below, which -
+        # on the reset branch - resets this window instead of checking again
+        # on every single call (see `entry.bump_creation_time()`).
+        entry_within_ttl = (isinstance(entry, CacheItem) and max_age is not None
+                            and entry.lifetime is not None and not entry.is_expired())
+
+        if not isinstance(entry, CacheItem):
+            entry = _fetch_remote_cache_item(url, timeout, headers, mode, max_age)
             add_item(key=url, item=entry)
+        elif not (prefer_cache or entry_within_ttl) and _is_outdated(entry, url):
+            entry = _fetch_remote_cache_item(url, timeout, headers, mode, max_age)
+            add_item(key=url, item=entry)
+        elif max_age is not None and not entry_within_ttl:
+            entry.lifetime = max_age
+            add_item(key=url, item=entry.bump_creation_time())
         return _make_file_from_cache_entry(entry, url, mode)
 
 
 def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dict] = None, mode='rb',
-                 cache_remote_files=False, prefer_cache=False) -> AnyFile:
+                 cache_remote_files=False, prefer_cache=False, max_age: Optional[timedelta] = None) -> AnyFile:
     """Opens a file at the specified URL, whether local or remote.
 
     Parameters
@@ -116,6 +132,10 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dic
     prefer_cache : bool
         If True, the cache is used even if the remote file has changed. This can be useful to avoid repeated downloads of
         frequently changing files or when working offline.
+    max_age : Optional[timedelta]
+        If set, the cached copy is trusted as-is (no HEAD revalidation) for this long after it was stored. Once it
+        elapses, the usual last-modified check runs once and, if the file is unchanged, this window resets. Useful
+        for files that are fetched repeatedly but rarely change (e.g. CDF master/skeleton files).
 
     Returns
     -------
@@ -127,7 +147,8 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dic
         return AnyFile(url, open(to_local_path(url), mode=mode))
     else:
         if cache_remote_files:
-            return _cached_get_remote_file(url, timeout=timeout, headers=headers, mode=mode, prefer_cache=prefer_cache)
+            return _cached_get_remote_file(url, timeout=timeout, headers=headers, mode=mode,
+                                           prefer_cache=prefer_cache, max_age=max_age)
         else:
             return _remote_open(url, timeout=timeout, headers=headers, mode=mode)
 

@@ -17,6 +17,10 @@ from . import _load_variable, _resolve_url_type, _simplify_shape, _list_variable
 
 log = logging.getLogger(__name__)
 _PTR_rx = re.compile(r".*_PTR(_\d+)?")
+# Master/skeleton CDFs are versioned and change rarely; trust a cached copy
+# for a week before re-checking, matching extract_from_master's retention
+# (speasy/core/cdf/inventory_extractor.py) for the same kind of file.
+_MASTER_CDF_MAX_AGE = timedelta(days=7)
 
 
 def _load_variables(variables, file=None, buffer=None, master_file=None, master_buffer=None):
@@ -94,7 +98,8 @@ class IstpCdf(CodecInterface):
                        ) -> Optional[Mapping[AnyStr, SpeasyVariable]]:
         kwargs["variables"] = variables
         kwargs.update((_resolve_url_type(file, prefix="", cache_remote_files=cache_remote_files),
-                       _resolve_url_type(master_cdf_url, prefix="master_", cache_remote_files=cache_remote_files)))
+                       _resolve_url_type(master_cdf_url, prefix="master_", cache_remote_files=cache_remote_files,
+                                         max_age=_MASTER_CDF_MAX_AGE)))
         return _load_variables(**kwargs)
 
     @CacheCall(cache_retention=timedelta(seconds=120), is_pure=True)

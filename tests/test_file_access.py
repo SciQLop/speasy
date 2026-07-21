@@ -5,13 +5,13 @@
 import os
 import re
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 from ddt import ddt, data, unpack
 
 from speasy.core.any_files import any_loc_open, list_files
-from speasy.core.cache import drop_item, get_item
+from speasy.core.cache import add_item, drop_item, get_item
 from multiprocessing import Value, Process
 from unittest.mock import patch, MagicMock
 
@@ -146,6 +146,85 @@ class FileAccess(unittest.TestCase):
         flist = list_files(url=url, file_regex=re.compile(r'\w+\.(txt|xml)'))
         self.assertGreaterEqual(len(flist), 3)
         self.assertIn('obsdatatree.xml', flist)
+
+
+def _mock_http_response(status=200, body=b"DATA", last_modified="Mon, 01 Jan 2024 00:00:00 GMT"):
+    resp = MagicMock()
+    resp.status = status
+    resp.bytes = body
+    resp.text = body.decode() if isinstance(body, bytes) else body
+    resp.headers = {"last-modified": last_modified}
+    return resp
+
+
+class MaxAgeCaching(unittest.TestCase):
+    """A master/skeleton CDF is fetched once per data file in a multi-file
+    request (e.g. one per day of a week-long range) unless callers opt into
+    a max_age grace period: within it the cache is trusted with zero network
+    calls, and one HEAD check re-validates and resets the window once it
+    elapses. Without max_age, every call still HEAD-checks (unchanged
+    behaviour for the rest of any_loc_open's callers).
+    """
+
+    def setUp(self):
+        self.url = "https://test.invalid/master.cdf"
+        drop_item(self.url)
+
+    def tearDown(self):
+        drop_item(self.url)
+
+    def test_without_max_age_head_checks_every_call(self):
+        resp = _mock_http_response()
+        with patch("speasy.core.any_files.http.urlopen", return_value=resp) as urlopen, \
+             patch("speasy.core.any_files.http.head", return_value=resp) as head:
+            for _ in range(3):
+                any_loc_open(self.url, mode='rb', cache_remote_files=True)
+        self.assertEqual(1, urlopen.call_count)
+        self.assertEqual(2, head.call_count)
+
+    def test_max_age_skips_revalidation_within_ttl(self):
+        resp = _mock_http_response()
+        with patch("speasy.core.any_files.http.urlopen", return_value=resp) as urlopen, \
+             patch("speasy.core.any_files.http.head", return_value=resp) as head:
+            for _ in range(3):
+                any_loc_open(self.url, mode='rb', cache_remote_files=True, max_age=timedelta(days=7))
+        self.assertEqual(1, urlopen.call_count)
+        self.assertEqual(0, head.call_count)
+
+    def test_max_age_revalidates_once_after_ttl_and_resets_window(self):
+        resp = _mock_http_response()
+        with patch("speasy.core.any_files.http.urlopen", return_value=resp), \
+             patch("speasy.core.any_files.http.head", return_value=resp):
+            any_loc_open(self.url, mode='rb', cache_remote_files=True, max_age=timedelta(days=7))
+
+        entry = get_item(self.url)
+        entry.created -= timedelta(days=8)
+        add_item(key=self.url, item=entry)
+
+        with patch("speasy.core.any_files.http.urlopen", return_value=resp) as urlopen, \
+             patch("speasy.core.any_files.http.head", return_value=resp) as head:
+            for _ in range(3):
+                any_loc_open(self.url, mode='rb', cache_remote_files=True, max_age=timedelta(days=7))
+        self.assertEqual(0, urlopen.call_count)
+        self.assertEqual(1, head.call_count)
+
+    def test_max_age_refetches_when_content_actually_changed(self):
+        resp = _mock_http_response(last_modified="Mon, 01 Jan 2024 00:00:00 GMT")
+        with patch("speasy.core.any_files.http.urlopen", return_value=resp), \
+             patch("speasy.core.any_files.http.head", return_value=resp):
+            any_loc_open(self.url, mode='rb', cache_remote_files=True, max_age=timedelta(days=7))
+
+        entry = get_item(self.url)
+        entry.created -= timedelta(days=8)
+        add_item(key=self.url, item=entry)
+
+        new_resp = _mock_http_response(body=b"NEW DATA", last_modified="Tue, 02 Jan 2024 00:00:00 GMT")
+        with patch("speasy.core.any_files.http.urlopen", return_value=new_resp) as urlopen, \
+             patch("speasy.core.any_files.http.head", return_value=new_resp) as head:
+            f = any_loc_open(self.url, mode='rb', cache_remote_files=True, max_age=timedelta(days=7))
+        self.assertEqual(1, urlopen.call_count)
+        self.assertEqual(1, head.call_count)
+        self.assertEqual(b"NEW DATA", f.read())
 
 
 if __name__ == '__main__':
