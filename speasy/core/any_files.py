@@ -100,10 +100,8 @@ def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: d
         entry_within_ttl = (isinstance(entry, CacheItem) and max_age is not None
                             and entry.lifetime is not None and not entry.is_expired())
 
-        if not isinstance(entry, CacheItem):
-            entry = _fetch_remote_cache_item(url, timeout, headers, mode, max_age)
-            add_item(key=url, item=entry)
-        elif not (prefer_cache or entry_within_ttl) and _is_outdated(entry, url):
+        if not isinstance(entry, CacheItem) or (
+                not (prefer_cache or entry_within_ttl) and _is_outdated(entry, url)):
             entry = _fetch_remote_cache_item(url, timeout, headers, mode, max_age)
             add_item(key=url, item=entry)
         elif max_age is not None and not entry_within_ttl:
