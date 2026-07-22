@@ -25,8 +25,11 @@ it figures out which files to download for a given time range, loads them, and m
 single ``SpeasyVariable``.
 
 .. note::
-    The data files must follow the `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ CDF conventions.
-    For non-ISTP files or other formats, see :ref:`custom_file_format` below.
+    The data files must follow the `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ (International
+    Solar-Terrestrial Physics) CDF conventions — a standard set of metadata attributes
+    (``DEPEND_0``, ``UNITS``, ``FILLVAL``, ...) that most public space-physics CDF archives,
+    including CDAWeb, already use. For non-ISTP files or other formats, see :ref:`custom_file_format`
+    below.
 
 
 Quick start: adding a dataset
@@ -35,7 +38,8 @@ Quick start: adding a dataset
 **Step 1: Find the inventory directory**
 
 Create a YAML file (e.g. ``my_datasets.yaml``) in Speasy's user inventory directory.
-On Linux this is ``~/.config/speasy/LPP/archive/``, on macOS ``~/Library/Application Support/speasy/LPP/archive/``.
+On Linux this is ``~/.config/speasy/archive/``, on macOS ``~/Library/Application Support/speasy/archive/``
+(the ``LPP`` author segment only appears in the Windows path, ``%APPDATA%\LPP\speasy\archive``).
 You can confirm the exact path:
 
     >>> import speasy as spz

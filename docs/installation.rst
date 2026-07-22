@@ -28,13 +28,16 @@ you through the process.
 From sources
 ------------
 
+This section is for contributors or advanced users who want the development version — most readers
+should use the ``pip`` method above instead.
+
 The sources for Speasy can be downloaded from the `Github repo`_.
 
-You can either clone the public repository:
+You can either clone the public repository (if you're new to git, see the `GitHub cloning guide`_):
 
 .. code-block:: console
 
-    $ git clone git://github.com/SciQLop/speasy
+    $ git clone https://github.com/SciQLop/speasy
 
 Or download the `tarball`_:
 
@@ -48,6 +51,8 @@ Once you have a copy of the source, you can install it with:
 
     $ python -m pip install .
 
+Next, see the quickstart examples on the :doc:`documentation home page <index>` to load your first dataset.
 
 .. _Github repo: https://github.com/SciQLop/speasy
+.. _GitHub cloning guide: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 .. _tarball: https://github.com/SciQLop/speasy/tarball/main
