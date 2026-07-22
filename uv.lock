@@ -3235,6 +3235,7 @@ dependencies = [
     { name = "astropy", version = "7.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "astroquery" },
     { name = "certifi" },
+    { name = "diskcache" },
     { name = "humanize" },
     { name = "matplotlib" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -3262,7 +3263,6 @@ zstd = [
 [package.dev-dependencies]
 dev = [
     { name = "ddt" },
-    { name = "diskcache" },
     { name = "ipython", version = "8.39.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "ipython", version = "9.13.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pytest" },
@@ -3292,6 +3292,7 @@ requires-dist = [
     { name = "astropy" },
     { name = "astroquery" },
     { name = "certifi" },
+    { name = "diskcache" },
     { name = "humanize" },
     { name = "matplotlib" },
     { name = "numpy" },
@@ -3313,7 +3314,6 @@ provides-extras = ["zstd"]
 [package.metadata.requires-dev]
 dev = [
     { name = "ddt" },
-    { name = "diskcache" },
     { name = "ipython" },
     { name = "pytest" },
     { name = "pytest-cov" },

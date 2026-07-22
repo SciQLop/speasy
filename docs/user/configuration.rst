@@ -154,10 +154,10 @@ existing ``diskcache``-format cache and migrates it automatically:
   unaffected.
 - Your old cache is renamed to ``<cache path>.diskcache.backup`` and kept alongside the new one — delete
   it yourself once you've confirmed the new cache works.
-- Automatic migration needs the ``diskcache`` package installed (``pip install diskcache`` — it is no
-  longer installed by default). If it isn't available, Speasy logs a warning and starts a fresh cache
-  instead of migrating; your old cache is left untouched on disk and nothing is lost. Install
-  ``diskcache`` and restart Python to trigger the migration whenever you're ready.
+- Speasy still depends on ``diskcache`` precisely so this migration can run out of the box — no extra
+  install step needed. In the unlikely case it's unavailable in your environment (e.g. a custom install
+  with ``--no-deps``), Speasy logs a warning and starts a fresh cache instead of migrating; your old cache
+  is left untouched on disk and nothing is lost.
 
 .. note::
     Speasy has no compiled ``pysciqlop-cache`` build for WASM/Pyodide (e.g. JupyterLite); on that
