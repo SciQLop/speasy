@@ -45,7 +45,7 @@ Coordinate frames
 -----------------
 
 3DView supports far more frames than the other providers, and the list comes from the server rather
-than from Speasy, so ask it directly rather than relying on any list written down here:
+than from Speasy, so this is always the authoritative check:
 
     >>> frames = spz.cdpp3dview.get_frames()
     >>> 'ECLIPJ2000' in frames
@@ -55,8 +55,81 @@ Passing a frame the server doesn't know raises
 :class:`~speasy.data_providers.cdpp3dview.Cdpp3dViewWebException`, and the message lists the frames that
 are available.
 
-At the time of writing the server offered 106 frames, covering the Sun and the heliosphere (``HEE``,
-``HEEQ``, ``HCI``), the inertial frames (``J2000``, ``ECLIPJ2000``), the near-Earth frames (``GSE``,
-``GSM``, ``SM``, ``MAG``, ``GSEQ``), one solar-orbital and one body-fixed frame per planet (``MSO`` and
-``IAU_MARS`` for Mars, ``JSO`` and ``IAU_JUPITER`` for Jupiter, and so on), frames centred on the major
-moons, and frames for the comets and asteroids visited by spacecraft (``67PCG_CSO``, ``DIDYMOS_CSO``, ...).
+**At the time of writing** the server offered these 106 frames, grouped by the body they're centred on:
+
+.. list-table::
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Body
+     - Frames
+   * - Sun / heliosphere
+     - ``J2000``, ``ECLIPJ2000``, ``HEE``, ``HEEQ``, ``HCI``, ``IAU_SUN``
+   * - Mercury
+     - ``MESO``, ``MEME``, ``MECLIP``, ``MESE``, ``MESEQ``, ``IAU_MERCURY``
+   * - Venus
+     - ``VSO``, ``VME``, ``IAU_VENUS``
+   * - Earth
+     - ``GSE``, ``EME``, ``GSEQ``, ``ECLIPDATE``, ``MAG``, ``GSM``, ``SM``, ``IAU_EARTH``
+   * - Moon
+     - ``LSE``, ``LME``, ``IAU_MOON``
+   * - Mars
+     - ``MSO``, ``MME``, ``IAU_MARS``
+   * - Phobos
+     - ``PSE``, ``PME``
+   * - Deimos
+     - ``DSE``, ``DME``
+   * - Jupiter
+     - ``JSO``, ``JEME``, ``JECLIP``, ``JSM``, ``SYSTEM_3``, ``IAU_JUPITER``
+   * - Io, Europa, Ganymede, Callisto
+     - ``IPHIO``, ``EPHIO``, ``GPHIO``, ``CPHIO`` (respectively)
+   * - Saturn
+     - ``KSO``, ``KEME``, ``KECLIP``, ``KSM``, ``IAU_SATURN``
+   * - Mimas
+     - ``KMIEME``, ``KMIECLIP``, ``MIIS``
+   * - Enceladus
+     - ``KENEME``, ``KENECLIP``, ``ENIS``
+   * - Tethys
+     - ``KTEEME``, ``KTEECLIP``, ``TEIS``
+   * - Dione
+     - ``KDIEME``, ``KDIECLIP``, ``DIIS``
+   * - Rhea
+     - ``KRHEME``, ``KRHECLIP``, ``RHIS``
+   * - Titan
+     - ``KTIEME``, ``KTIECLIP``, ``TIIS``
+   * - Hyperion
+     - ``KHYEME``, ``KHYECLIP``, ``HYIS``
+   * - Iapetus
+     - ``KIAEME``, ``KIAECLIP``, ``IAIS``
+   * - Phoebe
+     - ``KPHEME``, ``KPHECLIP``, ``PHIS``
+   * - Two further Saturnian moons
+     - ``KHEEME``, ``KHEECLIP``, ``HEIS``, ``KTLEME``, ``KTLECLIP``, ``TLIS``
+   * - Uranus
+     - ``UEME``, ``UECLIP``, ``USO``, ``IAU_URANUS``
+   * - Neptune
+     - ``NEME``, ``NECLIP``, ``NSO``, ``IAU_NEPTUNE``
+   * - Pluto
+     - ``PEME``, ``PECLIP``, ``PSO``, ``IAU_PLUTO``
+   * - Comet 67P/Churyumov–Gerasimenko
+     - ``67PCG_EME``, ``67PCG_CSO``
+   * - Asteroid Lutetia
+     - ``LUTETIA_EME``, ``LUTETIA_CSO``
+   * - Asteroid Šteins
+     - ``STEINS_EME``, ``STEINS_CSO``
+   * - Comet Halley
+     - ``HALLEY_EME``, ``HALLEY_CSO``
+   * - Comet Grigg–Skjellerup
+     - ``GRIGGSKELL_EME``, ``GRIGGSKELL_CSO``
+   * - Asteroid Didymos
+     - ``IAU_DIDYMOS``, ``DIDYMOS_EME``, ``DIDYMOS_CSO``
+
+The naming follows a consistent pattern across bodies, so you can usually guess an unfamiliar one:
+
+- ``IAU_<body>`` — body-fixed frame (rotates with the body), as defined by the IAU.
+- ``<X>SO`` — "X Solar Orbital": a GSE-style, Sun-body-line frame generalized to body X.
+- ``<X>SM`` — "X Solar Magnetic": like ``SM``/``GSM``, referenced to body X's magnetic dipole
+  (only defined for the magnetized planets: Earth, Jupiter, Saturn).
+- ``<X>ECLIP`` / ``<X>EME`` — inertial frames centred on body X, referenced to the ecliptic or to
+  Earth's mean equator/equinox (the same convention as ``ECLIPJ2000``/``J2000``) respectively.
+- ``<X>CSO`` — the comet/asteroid equivalent of the ``SO`` frames.
