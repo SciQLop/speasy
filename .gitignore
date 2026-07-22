@@ -65,6 +65,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/user/cdpp3dview/_generated_frames_table.rst
 
 # PyBuilder
 target/

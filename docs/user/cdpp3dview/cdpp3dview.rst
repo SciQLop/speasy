@@ -55,74 +55,11 @@ Passing a frame the server doesn't know raises
 :class:`~speasy.data_providers.cdpp3dview.Cdpp3dViewWebException`, and the message lists the frames that
 are available.
 
-**At the time of writing** the server offered these 106 frames, grouped by the body they're centred on:
+The table below is generated automatically from the server every time these docs are built, so it needs
+no manual updates and cannot go stale the way a hand-written list would. If the server couldn't be
+reached during the build, a note below says so and a cached snapshot is shown instead:
 
-.. list-table::
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Body
-     - Frames
-   * - Sun / heliosphere
-     - ``J2000``, ``ECLIPJ2000``, ``HEE``, ``HEEQ``, ``HCI``, ``IAU_SUN``
-   * - Mercury
-     - ``MESO``, ``MEME``, ``MECLIP``, ``MESE``, ``MESEQ``, ``IAU_MERCURY``
-   * - Venus
-     - ``VSO``, ``VME``, ``IAU_VENUS``
-   * - Earth
-     - ``GSE``, ``EME``, ``GSEQ``, ``ECLIPDATE``, ``MAG``, ``GSM``, ``SM``, ``IAU_EARTH``
-   * - Moon
-     - ``LSE``, ``LME``, ``IAU_MOON``
-   * - Mars
-     - ``MSO``, ``MME``, ``IAU_MARS``
-   * - Phobos
-     - ``PSE``, ``PME``
-   * - Deimos
-     - ``DSE``, ``DME``
-   * - Jupiter
-     - ``JSO``, ``JEME``, ``JECLIP``, ``JSM``, ``SYSTEM_3``, ``IAU_JUPITER``
-   * - Io, Europa, Ganymede, Callisto
-     - ``IPHIO``, ``EPHIO``, ``GPHIO``, ``CPHIO`` (respectively)
-   * - Saturn
-     - ``KSO``, ``KEME``, ``KECLIP``, ``KSM``, ``IAU_SATURN``
-   * - Mimas
-     - ``KMIEME``, ``KMIECLIP``, ``MIIS``
-   * - Enceladus
-     - ``KENEME``, ``KENECLIP``, ``ENIS``
-   * - Tethys
-     - ``KTEEME``, ``KTEECLIP``, ``TEIS``
-   * - Dione
-     - ``KDIEME``, ``KDIECLIP``, ``DIIS``
-   * - Rhea
-     - ``KRHEME``, ``KRHECLIP``, ``RHIS``
-   * - Titan
-     - ``KTIEME``, ``KTIECLIP``, ``TIIS``
-   * - Hyperion
-     - ``KHYEME``, ``KHYECLIP``, ``HYIS``
-   * - Iapetus
-     - ``KIAEME``, ``KIAECLIP``, ``IAIS``
-   * - Phoebe
-     - ``KPHEME``, ``KPHECLIP``, ``PHIS``
-   * - Two further Saturnian moons
-     - ``KHEEME``, ``KHEECLIP``, ``HEIS``, ``KTLEME``, ``KTLECLIP``, ``TLIS``
-   * - Uranus
-     - ``UEME``, ``UECLIP``, ``USO``, ``IAU_URANUS``
-   * - Neptune
-     - ``NEME``, ``NECLIP``, ``NSO``, ``IAU_NEPTUNE``
-   * - Pluto
-     - ``PEME``, ``PECLIP``, ``PSO``, ``IAU_PLUTO``
-   * - Comet 67P/Churyumov–Gerasimenko
-     - ``67PCG_EME``, ``67PCG_CSO``
-   * - Asteroid Lutetia
-     - ``LUTETIA_EME``, ``LUTETIA_CSO``
-   * - Asteroid Šteins
-     - ``STEINS_EME``, ``STEINS_CSO``
-   * - Comet Halley
-     - ``HALLEY_EME``, ``HALLEY_CSO``
-   * - Comet Grigg–Skjellerup
-     - ``GRIGGSKELL_EME``, ``GRIGGSKELL_CSO``
-   * - Asteroid Didymos
-     - ``IAU_DIDYMOS``, ``DIDYMOS_EME``, ``DIDYMOS_CSO``
+.. include:: _generated_frames_table.rst
 
 The naming follows a consistent pattern across bodies, so you can usually guess an unfamiliar one:
 
