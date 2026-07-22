@@ -66,6 +66,7 @@ instance/
 # Sphinx documentation
 docs/_build/
 docs/user/cdpp3dview/_generated_frames_table.rst
+docs/user/Uiowa_eph_tool/_generated_bodies_table.rst
 
 # PyBuilder
 target/

@@ -56,7 +56,8 @@ extensions = [
     'sphinxcontrib.apidoc',
     'nbsphinx',
     'numpydoc',
-    '_generate_cdpp3dview_frames_table']
+    '_generate_cdpp3dview_frames_table',
+    '_generate_uiowaephtool_table']
 
 apidoc_module_dir = '../speasy'
 apidoc_output_dir = 'dev'
