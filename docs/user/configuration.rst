@@ -7,7 +7,7 @@ file, which takes precedence over the built-in default.
 
 The configuration file is an INI file located in your platform's user config directory under ``speasy/config.ini``
 (e.g. ``~/.config/speasy/config.ini`` on Linux, ``~/Library/Application Support/speasy/config.ini`` on macOS,
-``%APPDATA%\LPP\speasy\config.ini`` on Windows). You can also find the exact path programmatically:
+``%LOCALAPPDATA%\LPP\speasy\config.ini`` on Windows). You can also find the exact path programmatically:
 
     >>> import speasy as spz
     >>> print(spz.config.SPEASY_CONFIG_FILE) # doctest: +SKIP
@@ -34,7 +34,7 @@ For example, to disable AMDA and CDAWeb, add the following to the configuration 
 
 .. code-block:: ini
 
-        [core]
+        [CORE]
         disabled_providers = amda,cdaweb
 
 Or from Python:

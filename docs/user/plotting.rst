@@ -4,59 +4,82 @@ Plotting
 .. toctree::
    :maxdepth: 1
 
-Every :class:`~speasy.products.variable.SpeasyVariable` has a ``.plot`` property that gives you a quick,
-best-effort plot without needing to touch matplotlib directly.
+This page assumes you already have a ``SpeasyVariable`` from :func:`speasy.get_data` — see
+:doc:`data_providers` first if you don't have one yet.
+
+Every :class:`~speasy.products.variable.SpeasyVariable` has a ``.plot`` property that draws it with
+matplotlib, labelling the axes from the variable's own metadata.
 
 .. note::
-    Speasy is not a plotting package — for publication-ready figures, use matplotlib (or another plotting
-    library) directly on ``variable.time``/``variable.values``.
+    Speasy is not a plotting package. For publication-ready figures, use matplotlib (or another plotting
+    library) directly on ``variable.time`` and ``variable.values``.
 
 Basic usage
 -----------
 
-Calling ``variable.plot()`` auto-detects the right kind of plot from the variable's metadata: a line plot
-for regular time series, or a colormap/spectrogram if the variable's ``DISPLAY_TYPE`` metadata says
-``"spectrogram"`` (as CDAWeb/AMDA spectral density products typically do).
+Calling ``variable.plot()`` picks the plot type from the variable's metadata: a line plot for regular
+time series, or a colormap if the variable's ``DISPLAY_TYPE`` says ``"spectrogram"``, as CDAWeb, AMDA and
+CSA spectral products typically do.
 
 .. code-block:: python
 
     import speasy as spz
     import matplotlib.pyplot as plt
 
-    b_gse = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
-    b_gse.plot()          # line plot: b_gse has no DISPLAY_TYPE=spectrogram metadata
+    b = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
+    b.plot()
     plt.show()
+
+.. image:: images/plotting_line.png
+    :width: 700
+    :align: center
+    :alt: line plot of the ACE IMF magnetic field
 
 Customizing the plot
 ---------------------
 
-``.plot()`` forwards extra keyword arguments to the underlying matplotlib call, and falls back to the
-variable's own metadata (``.unit``, column names, axis names) whenever a label/unit isn't given explicitly:
+``.plot()`` accepts ``ax``, ``labels``, ``units``, ``xaxis_label`` and ``yaxis_label``, falling back to
+the variable's own metadata whenever one isn't given. Pass ``ax`` to draw into an existing figure:
 
 .. code-block:: python
-
-    import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots()
-    b_gse.plot(ax=ax, labels=["Bx", "By", "Bz"], units="nT", yaxis_label="Magnetic field")
+    b.plot(ax=ax, labels=["Bx", "By", "Bz"], units="nT", yaxis_label="Magnetic field")
     plt.show()
 
-To plot a colormap/spectrogram explicitly (or force it even without ``DISPLAY_TYPE`` metadata), call
-``.plot.colormap()`` directly; ``logy``/``logz`` (both default ``True``) control log-scaling the value
-and frequency axes:
+.. image:: images/plotting_custom.png
+    :width: 700
+    :align: center
+    :alt: the same data with custom labels and axis title
+
+.. note::
+    Other matplotlib keywords are forwarded only on the colormap path. The line path currently ignores
+    them, so ``b.plot(color="k")`` is silently a no-op rather than an error.
+
+Spectrograms
+------------
+
+Spectrogram products are detected from their metadata, so ``.plot()`` is usually enough. Call
+``.plot.colormap()`` to force a colormap, or to reach its options: ``logy`` log-scales the y axis
+(frequency or energy) and ``logz`` log-scales the colour scale, both on by default, and ``cmap``,
+``vmin`` and ``vmax`` are passed through to matplotlib.
 
 .. code-block:: python
 
-    spectro_var.plot.colormap(logy=True, logz=True)
+    csa = spz.inventories.tree.csa.Cluster.Cluster_1.CIS_HIA1.C1_CP_CIS_HIA_HS_1D_PEF
+    flux = spz.get_data(csa.flux__C1_CP_CIS_HIA_HS_1D_PEF, "2006-11-01", "2006-11-02")
+    flux.plot(cmap="jet")
     plt.show()
+
+.. image:: images/plotting_spectrogram.png
+    :width: 700
+    :align: center
+    :alt: ion flux spectrogram from Cluster 1 CIS-HIA
+
+The line counterpart, ``.plot.line()``, forces a line plot in the same way.
 
 Choosing a backend
 -------------------
 
-Matplotlib is the only bundled backend today, selected via ``variable.plot["matplotlib"]()`` (or simply
-``variable.plot()``, since ``matplotlib`` is also the default when no backend is specified):
-
-.. code-block:: python
-
-    b_gse.plot["matplotlib"]()
-    plt.show()
+Matplotlib is the only bundled backend today, and is used unless you ask for another one. Both
+``variable.plot(backend="matplotlib")`` and ``variable.plot["matplotlib"]()`` select it explicitly.
