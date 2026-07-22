@@ -38,7 +38,8 @@ def label_from_meta(meta: dict) -> Optional[str]:
 
 
 def mask_fill_values(values: np.ndarray, meta: dict) -> np.ndarray:
-    """Returns a copy of values with FILLVAL entries replaced by NaN.
+    """Returns values with FILLVAL entries replaced by NaN (a new array when masking occurs,
+    the same array unchanged when there's nothing to mask).
 
     No-op if FILLVAL is absent, or if FILLVAL is itself NaN (some providers, e.g. AMDA,
     use NaN directly as the fill sentinel, so there's nothing left to mask).
