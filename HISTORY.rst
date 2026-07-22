@@ -2,9 +2,46 @@
 History
 =======
 
+1.8.0 (2026-07-23)
+------------------
+* Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
+* Bump actions/setup-node from 4 to 6 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/263
+* Bump actions/cache from 4 to 5 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/264
+* Bump pyodide/pyodide-actions from 525cc382c812e88474a0d9db3a9d45df4b3c234f to 0876419b7ac412db2b84e86499bc95ff3b64b004 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/267
+* Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269
+* Cdpp3dview provider by @RichardHitier in https://github.com/SciQLop/speasy/pull/268
+* Fix broken tests with new ERG datasets version by @jeandet in https://github.com/SciQLop/speasy/pull/276
+* Bump actions/download-artifact from 7 to 8 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/278
+* Bump actions/upload-artifact from 6 to 7 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/279
+* Add project review and backlog by @jeandet in https://github.com/SciQLop/speasy/pull/280
+* Hapi csv codec by @RichardHitier in https://github.com/SciQLop/speasy/pull/277
+* Hapi binary codec by @RichardHitier in https://github.com/SciQLop/speasy/pull/283
+* Hapi REST provider by @RichardHitier in https://github.com/SciQLop/speasy/pull/285
+* Bump codecov/codecov-action from 5 to 6 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/286
+* Bump extractions/netrc from 2 to 3 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/284
+* Docs/improve user documentation by @jeandet in https://github.com/SciQLop/speasy/pull/281
+* 3DView provider: Use spz_uid to call get_trajectory by @brenard-irap in https://github.com/SciQLop/speasy/pull/309
+* Don't cache HTTP error responses in the remote file cache by @jeandet in https://github.com/SciQLop/speasy/pull/310
+* Add new net_cdf4 codec by @RichardHitier in https://github.com/SciQLop/speasy/pull/288
+* Migrate cache backend from diskcache to pysciqlop-cache by @jeandet in https://github.com/SciQLop/speasy/pull/289
+* Bump codecov/codecov-action from 6 to 7 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/307
+* Bump actions/checkout from 6 to 7 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/311
+* Bump actions/cache from 5 to 6 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/313
+* Fix Windows + stale-data CI failures by @jeandet in https://github.com/SciQLop/speasy/pull/312
+* Direct archive inventory code by @RichardHitier in https://github.com/SciQLop/speasy/pull/308
+* Add in-process dedup to CacheCall by @jeandet in https://github.com/SciQLop/speasy/pull/315
+* Fix generic_archive follow-ups from #308, and let YAML meta patch get_data() results by @jeandet in https://github.com/SciQLop/speasy/pull/316
+* Normalize CDF attribute values before storing them in the inventory by @jeandet in https://github.com/SciQLop/speasy/pull/317
+* Give the rapid-loop unversioned-cache test its own retention margin by @jeandet in https://github.com/SciQLop/speasy/pull/320
+* Bump actions/setup-node from 6 to 7 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/318
+* Bump actions/setup-python from 6 to 7 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/319
+* Avoid re-HEAD-checking CDF master files on every daily file by @jeandet in https://github.com/SciQLop/speasy/pull/321
+* Foundation: Python ≥3.10 + UV + dependency-groups by @jeandet in https://github.com/SciQLop/speasy/pull/290
+
+New contributor: @RichardHitier (first contribution in https://github.com/SciQLop/speasy/pull/268)
+
 1.7.1 (2025-12-25)
 ------------------
-## What's Changed
 * Bump actions/checkout from 5 to 6 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/251
 * Bump github/codeql-action from 2 to 4 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/252
 * Bump codecov/codecov-action from 4 to 5 by @dependabot[bot] in https://github.com/SciQLop/speasy/pull/253
@@ -19,7 +56,6 @@ History
 
 1.7.0 (2025-11-25)
 ------------------
-## What's Changed
 * More cache control by @jeandet in https://github.com/SciQLop/speasy/pull/238
 * Disable CDPP Themis archive since the connection is not that reliable by @jeandet in https://github.com/SciQLop/speasy/pull/239
 * Increase proxy request timeout from 1 minute (default) to 5 minutes by @jeandet in https://github.com/SciQLop/speasy/pull/240
