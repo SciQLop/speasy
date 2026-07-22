@@ -75,5 +75,23 @@ class MplBackendColormap(unittest.TestCase):
         self.assertEqual(mesh.norm.vmax, 0)
 
 
+class FigureIsolationBetweenTests(unittest.TestCase):
+    """No setUp/cleanup here on purpose: this documents the isolation the test suite as a
+    whole must provide (via an autouse fixture), not something this one class does for itself.
+    Method names are alphabetically ordered (_a_ before _b_) since unittest runs them in that
+    order, and the bug only shows up across test *boundaries*.
+    """
+
+    def test_a_leaves_a_populated_figure_open(self):
+        Plot().line(np.arange(5), np.arange(5))
+
+    def test_b_a_fresh_plot_must_not_inherit_stale_lines(self):
+        # _get_ax(ax=None) reuses plt.gca() whenever a figure is already open (matching
+        # pandas' own convention) -- so if test_a's figure above wasn't closed, this "fresh"
+        # plot silently lands on the same populated axes instead of a clean one.
+        ax = Plot().line(np.arange(5), np.arange(5) + 1)
+        self.assertEqual(len(ax.get_lines()), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
