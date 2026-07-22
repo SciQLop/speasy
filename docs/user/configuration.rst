@@ -5,9 +5,10 @@ Speasy can be configured through the ``config`` module, environment variables, o
 For any entry, the environment variable (named ``SPEASY_<SECTION>_<ENTRY>``) takes precedence over the config
 file, which takes precedence over the built-in default.
 
-The configuration file is an INI file located in your platform's user config directory under ``speasy/config.ini``
-(e.g. ``~/.config/speasy/config.ini`` on Linux, ``~/Library/Application Support/speasy/config.ini`` on macOS,
-``%LOCALAPPDATA%\LPP\speasy\config.ini`` on Windows). You can also find the exact path programmatically:
+The configuration file is an INI file located in your platform's user config directory:
+``~/.config/speasy/config.ini`` on Linux, ``~/Library/Application Support/speasy/config.ini`` on macOS,
+``%LOCALAPPDATA%\LPP\speasy\config.ini`` on Windows (the ``LPP`` author segment only appears on Windows).
+You can also find the exact path programmatically:
 
     >>> import speasy as spz
     >>> print(spz.config.SPEASY_CONFIG_FILE) # doctest: +SKIP
@@ -28,7 +29,7 @@ Disabling data providers
 
 Sometimes you may want to disable some data providers either to speed up Speasy import or because you don't need them.
 This can be done by adding the provider name to the ``disabled_providers`` list in the configuration file.
-By default, ``cdpp3dview`` ships disabled (its web service has known issues); every other provider is enabled.
+By default, only ``cdpp3dview`` is disabled; see :doc:`cdpp3dview/cdpp3dview` for why.
 
 For example, to disable AMDA and CDAWeb, add the following to the configuration file:
 
@@ -107,8 +108,19 @@ Or from Python:
 Cache section
 -------------
 
-You can configure the local disk cache location and maximum size (in bytes) by editing the ``cache`` section of the configuration file.
-The default maximum cache size is 20 GB (20e9 bytes).
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``path`` / ``SPEASY_CACHE_PATH``
+     - platform user cache dir
+     - Where Speasy stores the local disk cache.
+   * - ``size`` / ``SPEASY_CACHE_SIZE``
+     - ``20e9`` (20 GB)
+     - Maximum cache size in bytes.
 
 .. code-block:: ini
 
@@ -141,8 +153,8 @@ If your data still looks stale after clearing the cache, remember the local cach
 the :ref:`Speasy proxy <proxy_section>` may also be serving a cached response, and provider-specific
 caches (e.g. AMDA's ``user_cache_retention``) apply on top.
 
-Cache backend and migrating from an older Speasy version
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Migrating an older cache
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Speasy's local disk cache is backed by `pysciqlop-cache <https://pypi.org/project/pysciqlop-cache/>`_,
 a native cache library, replacing the pure-Python ``diskcache`` package used in older Speasy versions.
@@ -154,14 +166,14 @@ existing ``diskcache``-format cache and migrates it automatically:
   unaffected.
 - Your old cache is renamed to ``<cache path>.diskcache.backup`` and kept alongside the new one. Speasy
   reminds you with a warning on every import for as long as a backup still exists.
-- Speasy still depends on ``diskcache`` precisely so this migration can run out of the box — no extra
+- Speasy still depends on ``diskcache`` precisely so this migration can run out of the box, with no extra
   install step needed. In the unlikely case it's unavailable in your environment (e.g. a custom install
   with ``--no-deps``), Speasy logs a warning and starts a fresh cache instead of migrating; your old cache
   is left untouched on disk and nothing is lost.
 
 Once you've confirmed the new cache works, delete the backup(s) with:
 
-    >>> from speasy.core.cache import migration_backups, delete_migration_backups
+    >>> from speasy.core.cache import migration_backups, delete_migration_backups # doctest: +SKIP
     >>> migration_backups() # doctest: +SKIP
     ['/home/user/.cache/speasy/Cache.diskcache.backup', '/home/user/.local/share/speasy/index.diskcache.backup']
     >>> delete_migration_backups() # doctest: +SKIP
@@ -202,8 +214,7 @@ CDAWeb section
      - Where Speasy caches the CDAWeb inventory.
    * - ``preferred_access_method`` / ``SPEASY_CDAWEB_PREFERRED_ACCESS_METHOD``
      - ``BEST``
-     - ``API`` to always use the REST API, ``FILE`` to always download files directly, or ``BEST``
-       to let Speasy pick the fastest method likely to work for the requested product.
+     - ``API``, ``FILE``, or ``BEST``; see :doc:`cdaweb/cdaweb` for what each one means.
 
 AMDA section
 ------------
@@ -223,8 +234,8 @@ AMDA section
      - Your AMDA password.
    * - ``user_cache_retention`` / ``SPEASY_AMDA_USER_CACHE_RETENTION``
      - ``900`` (15 minutes)
-     - Cache retention, in seconds, for AMDA requests such as ``list_catalogs``. Only takes effect for
-       processes started after the change — it is read once when Speasy imports the AMDA provider.
+     - Cache retention, in seconds, for AMDA requests such as ``list_catalogs``; see :doc:`amda/amda`
+       for when a change takes effect.
    * - ``max_chunk_size_days`` / ``SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS``
      - ``10``
      - Maximum request duration in days; longer requests are automatically split into smaller ones.
@@ -278,4 +289,4 @@ Connecting behind an HTTP proxy
 If your network requires going through a forward HTTP proxy to reach the internet, Speasy honors the
 standard ``HTTP_PROXY`` environment variable for its HTTP traffic. Note that ``HTTPS_PROXY`` is **not**
 currently read — set ``HTTP_PROXY`` even for HTTPS requests. This is unrelated to the Speasy caching
-proxy described in the `Proxy section`_ above.
+proxy described in the :ref:`proxy_section` above.

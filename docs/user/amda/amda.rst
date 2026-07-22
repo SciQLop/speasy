@@ -168,11 +168,9 @@ into a single object, so you don't have to fetch and align each parameter separa
     >>> # Index it like a dict of SpeasyVariable, keyed by parameter name
     >>> dataset['b_gse'].columns
     ['bx', 'by', 'bz']
-    >>> # Or iterate over all its variables at once
+    >>> # Iterating yields variable names, like a dict
     >>> sorted(list(dataset))
     ['b_gse', 'b_gsm', '|b|']
-    >>> dataset.time_range()
-    <DateTimeRange: 2000-01-01T00:00:11+00:00 -> 2000-01-01T23:59:55+00:00>
 
 Some examples using AMDA products
 ---------------------------------
@@ -202,6 +200,8 @@ Then you should get something like this:
 .. note::
     * Depending on your matplotlib backend and if you are using Jupyter Notebooks or a simple python terminal you may need to adapt this example.
     * Speasy is not a plotting package, to produce publication ready figures, use something like matplotlib or seaborn directly.
+
+.. _amda_timetable_batch_fetch:
 
 Using timetables to download data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

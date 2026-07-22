@@ -4,8 +4,8 @@ NumPy compatibility
 .. toctree::
    :maxdepth: 1
 
-This page assumes you already have a ``SpeasyVariable`` from :meth:`speasy.get_data` — see
-:doc:`data_providers` first if you don't yet.
+This page assumes you already have a ``SpeasyVariable`` from :func:`speasy.get_data`; see
+:doc:`concepts` first if you don't have one yet.
 
 ``SpeasyVariable`` objects behave like NumPy arrays: you can use arithmetic operators, pass them to NumPy functions,
 and index them with boolean masks or integer arrays. The result is always a ``SpeasyVariable`` when the shape

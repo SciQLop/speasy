@@ -27,7 +27,7 @@ single ``SpeasyVariable``.
 .. note::
     The data files must follow the `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ (International
     Solar-Terrestrial Physics) CDF conventions — a standard set of metadata attributes
-    (``DEPEND_0``, ``UNITS``, ``FILLVAL``, ...) that most public space-physics CDF archives,
+    (``DEPEND_0``, ``UNITS``, ``FILLVAL``, ...) that most public space physics CDF archives,
     including CDAWeb, already use. For non-ISTP files or other formats, see :ref:`custom_file_format`
     below.
 

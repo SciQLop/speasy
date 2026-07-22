@@ -4,8 +4,8 @@ Plotting
 .. toctree::
    :maxdepth: 1
 
-This page assumes you already have a ``SpeasyVariable`` from :func:`speasy.get_data` — see
-:doc:`data_providers` first if you don't have one yet.
+This page assumes you already have a ``SpeasyVariable`` from :func:`speasy.get_data`; see
+:doc:`concepts` first if you don't have one yet.
 
 Every :class:`~speasy.products.variable.SpeasyVariable` has a ``.plot`` property that draws it with
 matplotlib, labelling the axes from the variable's own metadata.
@@ -39,7 +39,9 @@ Customizing the plot
 ---------------------
 
 ``.plot()`` accepts ``ax``, ``labels``, ``units``, ``xaxis_label`` and ``yaxis_label``, falling back to
-the variable's own metadata whenever one isn't given. Pass ``ax`` to draw into an existing figure:
+the variable's own metadata whenever one isn't given. Pass ``ax`` to draw into an existing figure; any
+other keyword (``linestyle``, ``cmap``, ...) is forwarded straight through to the underlying matplotlib
+call:
 
 .. code-block:: python
 
@@ -51,10 +53,6 @@ the variable's own metadata whenever one isn't given. Pass ``ax`` to draw into a
     :width: 700
     :align: center
     :alt: the same data with custom labels and axis title
-
-.. note::
-    Other matplotlib keywords are forwarded only on the colormap path. The line path currently ignores
-    them, so ``b.plot(color="k")`` is silently a no-op rather than an error.
 
 Spectrograms
 ------------

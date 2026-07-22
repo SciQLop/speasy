@@ -31,9 +31,9 @@ Don't want to write code? See our graphical interface [SciQLop](https://github.c
 -   Speasy variables are like Pandas DataFrames with seamless conversion to/from them (as long as the shape is compatible)
 -   Speasy variables support numpy operations, [see numpy operations example below](#numpy-operations)
 -   Speasy variables filtering and resampling capabilities, [see resampling example below](#resampling)
--   Local cache to avoid redundant downloads, backed by [pysciqlop-cache](https://pypi.org/project/pysciqlop-cache/) (auto-migrates your cache the first time you run a Speasy version built on it, see [notes for users upgrading from an older Speasy](https://speasy.readthedocs.io/en/latest/user/configuration.html#cache-backend-and-migrating-from-an-older-speasy-version))
+-   Also supports Catalogs, TimeTables, Events, and multi-variable Datasets
+-   Local cache to avoid redundant downloads, backed by [pysciqlop-cache](https://pypi.org/project/pysciqlop-cache/) (see [notes for users upgrading from an older Speasy](https://speasy.readthedocs.io/en/latest/user/configuration.html#migrating-an-older-cache))
 -   Uses the SciQLOP ultra fast community cache server (see [configuration](https://speasy.readthedocs.io/en/latest/user/configuration.html#proxy-section) to tune or disable it)
--   Also supports Catalogs, TimeTables, Events, and multi-variable Datasets, not just single time-series variables
 -   Full support of [AMDA](http://amda.irap.omp.eu/) API
 -   Can retrieve time-series from [AMDA](http://amda.irap.omp.eu/),
     [CDAWeb](https://cdaweb.gsfc.nasa.gov/),
