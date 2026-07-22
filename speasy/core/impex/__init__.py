@@ -341,7 +341,7 @@ class ImpexProvider(DataProvider):
 
         Warnings
         --------
-            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_parameter` without having defined AMDA_Webservice
+            Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_parameter` without having defined AmdaWebservice
             login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
             exception being raised.
 
@@ -505,7 +505,7 @@ class ImpexProvider(DataProvider):
 
         Warnings
         --------
-            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_timetable` without having defined AMDA_Webservice
+            Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_timetable` without having defined AmdaWebservice
             login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
             exception being raised.
 
@@ -536,7 +536,7 @@ class ImpexProvider(DataProvider):
 
         Warnings
         --------
-            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_catalog` without having defined AMDA_Webservice
+            Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_catalog` without having defined AmdaWebservice
             login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
             exception being raised.
 
@@ -686,7 +686,7 @@ class ImpexProvider(DataProvider):
 
         Warnings
         --------
-           Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_parameter` without having defined AMDA_Webservice
+           Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_parameter` without having defined AmdaWebservice
            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
            exception being raised.
 
@@ -729,7 +729,7 @@ class ImpexProvider(DataProvider):
 
         Warnings
         --------
-           Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_timetables` without having defined AMDA_Webservice
+           Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_timetables` without having defined AmdaWebservice
            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
            exception being raised.
 
@@ -775,7 +775,7 @@ class ImpexProvider(DataProvider):
 
         Warnings
         --------
-           Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_catalogs` without having defined AMDA_Webservice
+           Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_catalogs` without having defined AmdaWebservice
            login credentials will result in a :class:`~speasy.config.exceptions.UndefinedConfigEntry`
            exception being raised.
 

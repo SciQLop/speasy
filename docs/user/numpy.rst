@@ -4,6 +4,9 @@ NumPy compatibility
 .. toctree::
    :maxdepth: 1
 
+This page assumes you already have a ``SpeasyVariable`` from :meth:`speasy.get_data` — see
+:doc:`data_providers` first if you don't yet.
+
 ``SpeasyVariable`` objects behave like NumPy arrays: you can use arithmetic operators, pass them to NumPy functions,
 and index them with boolean masks or integer arrays. The result is always a ``SpeasyVariable`` when the shape
 allows it (i.e. when the time axis is preserved), and a scalar or plain array otherwise.
@@ -102,6 +105,6 @@ You can convert a ``SpeasyVariable`` to a Pandas ``DataFrame`` and back:
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
     >>> df = ace_mag.to_dataframe()
     >>> type(df)
-    <class 'pandas.core.frame.DataFrame'>
+    <class 'pandas.DataFrame'>
     >>> df.shape
     (16200, 3)

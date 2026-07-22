@@ -17,6 +17,7 @@ Browse example folder on Google Colab:
    ./AMDA
    ./CDAWeb
    ./SSCWeb
+   ./CSA
    ./Caches
    ./CompleteDemo
    ./solo_epd
@@ -24,3 +25,5 @@ Browse example folder on Google Colab:
    ./Filtering
    ./Resampling
    ./Cdpp3dView
+   ./GenericArchive
+   ./CatalogsAndTimeTables

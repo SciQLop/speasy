@@ -14,8 +14,8 @@ Basics: Getting data from AMDA
 ------------------------------
 
 `AMDA <http://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs.
-Speasy makes them accessible thanks to this module with :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_data()`
-or their dedicated methods such as :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_parameter()`, :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_user_parameter()`,...
+Speasy makes them accessible thanks to this module with :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_data()`
+or their dedicated methods such as :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_parameter()`, :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_parameter()`,...
 Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`__ Workspace:
 
 .. image:: images/AMDA_workspace_collapsed.png
@@ -80,8 +80,10 @@ AMDA products directly from your Python terminal or notebook:
     >>> len(mms4_fgm_btot.time)
     57600
 
-See :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_parameter()` or :meth:`~speasy.data_providers.amda.ws.AMDA_Webservice.get_data()` for more details.
+See :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_parameter()` or :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_data()` for more details.
 
+
+.. _amda_catalogs_timetables:
 
 Catalogs and TimeTables
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -145,6 +147,32 @@ And also alternatively you can use the dynamic inventory:
     12691
     >>> print(catalog_mms_2019[1])
     <Event: 2019-01-01T00:24:04+00:00 -> 2019-01-01T00:24:04+00:00 | {'classes': '1'}>
+
+.. _amda_datasets:
+
+Datasets
+^^^^^^^^
+
+A :class:`~speasy.products.dataset.Dataset` groups every parameter belonging to the same instrument/dataset
+into a single object, so you don't have to fetch and align each parameter separately:
+
+    >>> import speasy as spz
+    >>> import datetime
+    >>> dataset = spz.amda.get_dataset("ace-imf-all", datetime.datetime(2000,1,1), datetime.datetime(2000,1,2))
+    >>> dataset
+    <Dataset: final / prelim
+            variables: ['|b|', 'b_gse', 'b_gsm']
+            time range: <DateTimeRange: 2000-01-01T00:00:11+00:00 -> 2000-01-01T23:59:55+00:00>
+    >>> len(dataset)
+    3
+    >>> # Index it like a dict of SpeasyVariable, keyed by parameter name
+    >>> dataset['b_gse'].columns
+    ['bx', 'by', 'bz']
+    >>> # Or iterate over all its variables at once
+    >>> sorted(list(dataset))
+    ['b_gse', 'b_gsm', '|b|']
+    >>> dataset.time_range()
+    <DateTimeRange: 2000-01-01T00:00:11+00:00 -> 2000-01-01T23:59:55+00:00>
 
 Some examples using AMDA products
 ---------------------------------
@@ -272,3 +300,8 @@ To change this cache duration value:
     >>> config.amda.user_cache_retention.set(900)
     >>> config.amda.user_cache_retention.get()
     900
+
+.. note::
+    This value is only read once, when Speasy imports the AMDA provider, so changing it takes effect
+    starting with your *next* Python session — it does not change the cache duration for catalogs and
+    timetables already fetched in the current session.

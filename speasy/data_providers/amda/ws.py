@@ -263,7 +263,7 @@ class AmdaWebservice(ImpexProvider):
 
         Warnings
         --------
-            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_timetable` without having defined AMDA_Webservice
+            Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_timetable` without having defined AmdaWebservice
             login credentials will result in a :class:`~speasy.core.impex.exceptions.MissingCredentials`
             exception being raised.
 
@@ -294,7 +294,7 @@ class AmdaWebservice(ImpexProvider):
 
         Warnings
         --------
-            Calling :meth:`~speasy.amda.amda.AMDA_Webservice.get_user_catalog` without having defined AMDA_Webservice
+            Calling :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_catalog` without having defined AmdaWebservice
             login credentials will result in a :class:`~speasy.core.impex.exceptions.MissingCredentials`
             exception being raised.
 

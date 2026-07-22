@@ -25,8 +25,8 @@ Speasy's dynamic inventory, which is always up to date:
 Note that you can also use your python terminal completion and browse `spz.inventories.data_tree.ssc.Trajectories` to find
 your trajectory.
 Once you have found your trajectory, you can choose the coordinate system for the download.
-Available coordinate systems: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**.
-The default is **gse**.
+Available coordinate systems: **geo**, **gm**, **gse**, **gsm**, **sm**, **geitod**, **geij2000**
+(see :ref:`coordinate_frames` for what each one means). The default is **gse**.
 
     >>> import speasy as spz
     >>> # Let's assume you wanted to get MMS1 trajectory
