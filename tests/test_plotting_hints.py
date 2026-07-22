@@ -7,6 +7,7 @@ import unittest
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import LogNorm
 
 from speasy.core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
 from speasy.plotting import Plot
@@ -58,6 +59,49 @@ class LineHints(unittest.TestCase):
                         values_array=np.array([1.0, -999.0, 3.0])).line(mask_fillval=False)
         ydata = ax.get_lines()[0].get_ydata()
         self.assertEqual(ydata[1], -999.0)
+
+
+def _colormap_plot(values_meta=None, y_axis_meta=None, values_array=None):
+    y = np.array([10.0, 20.0])
+    values = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]) if values_array is None else values_array
+    return Plot(
+        axes=[
+            VariableTimeAxis(values=_TIME),
+            VariableAxis(values=y, meta=y_axis_meta or {}),
+        ],
+        values=DataContainer(values=values, meta=values_meta or {}, name="raw_name"),
+        columns_names=["value"],
+    )
+
+
+class ColormapHints(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(plt.close, "all")
+
+    def test_uses_scaletyp_hint_for_logz_when_not_explicit(self):
+        ax = _colormap_plot(values_meta={"SCALETYP": "linear"}).colormap()
+        mesh = ax.collections[0]
+        self.assertNotIsInstance(mesh.norm, LogNorm)
+
+    def test_explicit_logz_overrides_scaletyp_hint(self):
+        ax = _colormap_plot(values_meta={"SCALETYP": "log"}).colormap(logz=False)
+        mesh = ax.collections[0]
+        self.assertNotIsInstance(mesh.norm, LogNorm)
+
+    def test_defaults_to_log_when_no_hint_and_no_kwarg(self):
+        ax = _colormap_plot().colormap()
+        mesh = ax.collections[0]
+        self.assertIsInstance(mesh.norm, LogNorm)
+
+    def test_uses_scaletyp_hint_for_logy_when_not_explicit(self):
+        ax = _colormap_plot(y_axis_meta={"SCALETYP": "linear"}).colormap(logz=False)
+        self.assertEqual(ax.get_yscale(), "linear")
+
+    def test_masks_fillval_in_z_by_default(self):
+        values = np.array([[1.0, 2.0], [3.0, -999.0], [5.0, 6.0]])
+        ax = _colormap_plot(values_meta={"FILLVAL": -999.0}, values_array=values).colormap(logz=False)
+        mesh = ax.collections[0]
+        self.assertTrue(np.ma.getmaskarray(mesh.get_array()).any())
 
 
 if __name__ == "__main__":
