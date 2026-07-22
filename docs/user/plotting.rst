@@ -39,20 +39,44 @@ Customizing the plot
 ---------------------
 
 ``.plot()`` accepts ``ax``, ``labels``, ``units``, ``xaxis_label`` and ``yaxis_label``, falling back to
-the variable's own metadata whenever one isn't given. Pass ``ax`` to draw into an existing figure; any
-other keyword (``linestyle``, ``cmap``, ...) is forwarded straight through to the underlying matplotlib
-call:
+the variable's own metadata whenever one isn't given. Pass ``ax`` to draw into an existing figure, and
+any other keyword (``linewidth``, ``linestyle``, ``alpha``, ...) is forwarded straight through to
+matplotlib's ``Axes.plot``. It also returns the ``Axes`` it drew into, so you can keep customizing with
+the full matplotlib API afterward:
 
 .. code-block:: python
 
-    fig, ax = plt.subplots()
-    b.plot(ax=ax, labels=["Bx", "By", "Bz"], units="nT", yaxis_label="Magnetic field")
+    fig, ax = plt.subplots(figsize=(8, 4))
+    b.plot(ax=ax, labels=["Bx", "By", "Bz"], units="nT", yaxis_label="Magnetic field",
+           linewidth=1.2, alpha=0.8)
+    ax.set_title("ACE IMF magnetic field (GSE)")
+    ax.grid(alpha=0.3)
+    ax.legend(loc="upper right")
+    plt.tight_layout()
     plt.show()
 
 .. image:: images/plotting_custom.png
     :width: 700
     :align: center
-    :alt: the same data with custom labels and axis title
+    :alt: the same data with a title, grid, thinner lines and a repositioned legend
+
+Passing the same ``ax`` around is also how you overlay independently fetched products on one plot, for
+example to compare the IMF components against the total field magnitude:
+
+.. code-block:: python
+
+    b_mag = spz.get_data("amda/imf_mag", "2016-6-2", "2016-6-5")
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    b.plot(ax=ax, labels=["Bx", "By", "Bz"], units="nT", yaxis_label="Magnetic field", alpha=0.6)
+    b_mag.plot(ax=ax, labels=["|B|"], units="nT", yaxis_label="Magnetic field", color="k", linewidth=1.5)
+    ax.legend(loc="upper right")
+    plt.show()
+
+.. image:: images/plotting_overlay.png
+    :width: 700
+    :align: center
+    :alt: the IMF components with the total field magnitude overlaid in black
 
 Spectrograms
 ------------
