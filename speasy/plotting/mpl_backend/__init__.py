@@ -16,7 +16,8 @@ class Plot:
             fig, ax = plt.subplots()
         return ax
 
-    def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
+    def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, logy=False, *args,
+             **kwargs):
         ax = self._get_ax(ax)
         ax.tick_params(axis='x', labelrotation=45)
         ax.plot(x, y, label=labels, *args, **kwargs)
@@ -26,6 +27,8 @@ class Plot:
             ax.set_ylabel(f"{yaxis_label} ({units})")
         if xaxis_label is not None:
             ax.set_xlabel(f"{xaxis_label}")
+        if logy:
+            ax.semilogy()
         return ax
 
     def colormap(self, x, y, z, xaxis_label=None, yaxis_label=None, yaxis_units=None, zaxis_label=None,
