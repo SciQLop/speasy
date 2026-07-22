@@ -21,6 +21,8 @@ This is the preferred method to install Speasy, as it will always install the mo
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
 
+Next, see the quickstart examples on the :doc:`documentation home page <index>` to load your first product.
+
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: https://docs.python-guide.org/en/latest/starting/installation/
 
@@ -28,12 +30,11 @@ you through the process.
 From sources
 ------------
 
-This section is for contributors or advanced users who want the development version — most readers
-should use the ``pip`` method above instead.
+This section is for contributors or advanced users who want the development version.
 
 The sources for Speasy can be downloaded from the `Github repo`_.
 
-You can either clone the public repository (if you're new to git, see the `GitHub cloning guide`_):
+You can either clone the public repository:
 
 .. code-block:: console
 
@@ -51,8 +52,5 @@ Once you have a copy of the source, you can install it with:
 
     $ python -m pip install .
 
-Next, see the quickstart examples on the :doc:`documentation home page <index>` to load your first product.
-
 .. _Github repo: https://github.com/SciQLop/speasy
-.. _GitHub cloning guide: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 .. _tarball: https://github.com/SciQLop/speasy/tarball/main

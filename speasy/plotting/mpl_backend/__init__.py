@@ -19,7 +19,7 @@ class Plot:
     def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
         ax = self._get_ax(ax)
         ax.tick_params(axis='x', labelrotation=45)
-        ax.plot(x, y, label=labels)
+        ax.plot(x, y, label=labels, *args, **kwargs)
         if labels is not None:
             ax.legend()
         if units is not None and yaxis_label is not None:
@@ -40,8 +40,8 @@ class Plot:
         if xaxis_label is not None:
             ax.set_xlabel(f"{xaxis_label}")
 
-        vmin = vmin or np.nanmin(z[np.nonzero(z)])
-        vmax = vmax or np.nanmax(z)
+        vmin = np.nanmin(z[np.nonzero(z)]) if vmin is None else vmin
+        vmax = np.nanmax(z) if vmax is None else vmax
 
         if logy:
             ax.semilogy()

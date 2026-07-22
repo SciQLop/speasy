@@ -6,8 +6,8 @@ CDPP 3DView Data Provider
 
 
 `CDPP 3DView <https://3dview.irap.omp.eu/>`_ (Centre de Données de la Physique des Plasmas 3DView) provides
-planet, spacecraft, and comet trajectories in different coordinate systems. Its integration into Speasy makes
-it easy to get trajectory data for various missions on any time range.
+planet, spacecraft, and comet trajectories, each available in a choice of coordinate frames. Its
+integration into Speasy makes it easy to get trajectory data for various missions on any time range.
 
 .. note::
     This provider ships **disabled by default** (its web service has known issues that are still being
