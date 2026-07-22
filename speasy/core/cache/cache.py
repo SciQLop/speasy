@@ -101,6 +101,16 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     os.rename(str(p), str(backup))
     try:
         result = migrate(str(backup), str(p))
+    except ImportError as e:
+        if p.exists():
+            shutil.rmtree(str(p))
+        os.rename(str(backup), str(p))
+        log.error(
+            f"Detected legacy diskcache layout at {p} but cannot migrate "
+            f"(missing dependency: {e}). Install diskcache once to allow "
+            f"migration, or delete {p} to start fresh."
+        )
+        return False
     except Exception:
         if p.exists():
             shutil.rmtree(str(p))

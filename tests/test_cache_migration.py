@@ -4,8 +4,10 @@
 """Tests for the diskcache -> sciqlop-cache migration."""
 import os
 import shutil
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import diskcache
 import pysciqlop_cache as sc
@@ -44,6 +46,25 @@ class LegacyDiskcacheMigration(unittest.TestCase):
         self.assertEqual(
             migrated.get("proxy_inventories_save_date/amda", None),
             "2024-01-01T00:00:00+00:00")
+
+    def test_falls_back_gracefully_when_diskcache_unavailable(self):
+        """diskcache is a dev-only dependency now (not installed for regular
+        users). ``migrate()`` imports it lazily inside its own body, so a
+        legacy cache detected on a machine without diskcache installed must
+        not crash the caller -- it should log and leave the legacy cache
+        untouched so Speasy falls back to a fresh cache at the same path.
+        """
+        legacy = diskcache.Cache(self.root)
+        legacy["some_key"] = "some_value"
+        legacy.close()
+
+        with mock.patch.dict(sys.modules, {"diskcache": None}):
+            migrated = _migrate_legacy_diskcache(self.root)
+
+        self.assertFalse(migrated)
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.root, "cache.db")),
+            "legacy cache should be left untouched when migration can't run")
 
 
 if __name__ == "__main__":
