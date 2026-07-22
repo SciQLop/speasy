@@ -103,6 +103,26 @@ class ColormapHints(unittest.TestCase):
         mesh = ax.collections[0]
         self.assertTrue(np.ma.getmaskarray(mesh.get_array()).any())
 
+    def test_uses_lablaxis_hint_for_yaxis_and_zaxis_labels_when_not_explicit(self):
+        ax = _colormap_plot(
+            y_axis_meta={"LABLAXIS": "Energy"},
+            values_meta={"LABLAXIS": "Particle Energy Flux"},
+        ).colormap(yaxis_units="eV", zaxis_units="1/(cm2 s sr keV)", logz=False)
+        self.assertEqual(ax.get_ylabel(), "Energy (eV)")
+        colorbar_ax = ax.figure.axes[-1]
+        self.assertEqual(colorbar_ax.get_ylabel(), "Particle Energy Flux (1/(cm2 s sr keV))")
+
+    def test_explicit_logy_overrides_scaletyp_hint(self):
+        ax = _colormap_plot(y_axis_meta={"SCALETYP": "log"}).colormap(logy=False, logz=False)
+        self.assertEqual(ax.get_yscale(), "linear")
+
+    def test_mask_fillval_false_disables_masking(self):
+        values = np.array([[1.0, 2.0], [3.0, -999.0], [5.0, 6.0]])
+        ax = _colormap_plot(values_meta={"FILLVAL": -999.0}, values_array=values).colormap(
+            logz=False, mask_fillval=False)
+        mesh = ax.collections[0]
+        self.assertFalse(np.ma.getmaskarray(mesh.get_array()).any())
+
 
 if __name__ == "__main__":
     unittest.main()

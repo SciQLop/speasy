@@ -62,11 +62,11 @@ Spectrogram products are detected from their metadata, so ``.plot()`` is usually
 (frequency or energy) and ``logz`` log-scales the colour scale, both on by default, and ``cmap``,
 ``vmin`` and ``vmax`` are passed through to matplotlib.
 
-When the source metadata provides them, ``.plot()`` also picks up a few ISTP attributes
-automatically: ``SCALETYP`` sets the default log/linear scale (still overridable with
-``logy``/``logz``), ``FILLVAL`` entries are masked to NaN before plotting (disable with
-``mask_fillval=False``), and ``LABLAXIS`` is preferred over the raw CDF variable name for
-axis and colorbar labels when you don't pass one explicitly.
+Whether you're plotting a line or a colormap, ``.plot()`` also picks up a few ISTP attributes
+automatically when the source metadata provides them: ``SCALETYP`` sets the default log/linear
+scale (still overridable with ``logy``/``logz``), ``FILLVAL`` entries are masked to NaN before
+plotting (disable with ``mask_fillval=False``), and ``LABLAXIS`` is preferred over the raw CDF
+variable name for axis and colorbar labels when you don't pass one explicitly.
 
 .. code-block:: python
 
