@@ -39,7 +39,7 @@ Quick start: adding a dataset
 
 Create a YAML file (e.g. ``my_datasets.yaml``) in Speasy's user inventory directory.
 On Linux this is ``~/.config/speasy/archive/``, on macOS ``~/Library/Application Support/speasy/archive/``
-(the ``LPP`` author segment only appears in the Windows path, ``%APPDATA%\LPP\speasy\archive``).
+(the ``LPP`` author segment only appears in the Windows path, ``%LOCALAPPDATA%\LPP\speasy\archive``).
 You can confirm the exact path:
 
     >>> import speasy as spz

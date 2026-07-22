@@ -51,7 +51,7 @@ Once you have a copy of the source, you can install it with:
 
     $ python -m pip install .
 
-Next, see the quickstart examples on the :doc:`documentation home page <index>` to load your first dataset.
+Next, see the quickstart examples on the :doc:`documentation home page <index>` to load your first product.
 
 .. _Github repo: https://github.com/SciQLop/speasy
 .. _GitHub cloning guide: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository

@@ -104,7 +104,7 @@ You can convert a ``SpeasyVariable`` to a Pandas ``DataFrame`` and back:
     >>> import speasy as spz
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
     >>> df = ace_mag.to_dataframe()
-    >>> type(df)
-    <class 'pandas.DataFrame'>
+    >>> df.__class__.__name__
+    'DataFrame'
     >>> df.shape
     (16200, 3)

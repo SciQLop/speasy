@@ -42,16 +42,18 @@ Every provider builds a searchable **inventory** of the products it offers, expo
 - ``spz.inventories.flat_inventories.<provider>`` — the same products as a flat, dict-like mapping keyed
   by product id, handy for programmatic lookup (``"ace" in spz.inventories.flat_inventories.ssc.parameters``).
 
-Leaf index objects (e.g. a :class:`~speasy.core.inventory.indexes.ParameterIndex`) carry metadata as
-attributes (``spz_uid``, ``spz_name``, ``spz_provider``, ...) and can be passed directly to
-:meth:`speasy.get_data` instead of a string id. Inventories are rebuilt in the background and locally
-cached; see ``inventories.cache_retention_days`` in :doc:`configuration` to control how often they refresh.
+Leaf index objects (e.g. a :class:`~speasy.core.inventory.indexes.ParameterIndex`) can be passed directly
+to :func:`speasy.get_data` instead of a string id. They expose their identity through accessors
+(``idx.spz_uid()``, ``idx.spz_name()``, ``idx.spz_provider()``) and the provider's own metadata as plain
+attributes (``start_date``, ``description``, ...). Inventories are refreshed when Speasy is imported and
+cached locally; ``inventories.cache_retention_days`` (see :doc:`configuration`) sets how long a cached
+copy is considered fresh.
 
 Product types: Variables, Catalogs, TimeTables, Events, and Datasets
 -----------------------------------------------------------------------
 
 Most calls to :meth:`speasy.get_data` return a :class:`~speasy.products.variable.SpeasyVariable` — a
-single time series (see :doc:`numpy` and :doc:`scipy` for what you can do with one). A few other product
+single time series (see :doc:`plotting`, :doc:`numpy` and :doc:`scipy` for what you can do with one). A few other product
 types exist for specific use cases:
 
 - :class:`~speasy.products.catalog.Event` — a time interval (like a ``DateTimeRange``) with attached metadata.
@@ -77,40 +79,20 @@ Time ranges
 String times are parsed as **UTC** — Speasy does not apply any local timezone conversion. Any precision
 from whole days down to sub-second (e.g. ``"2018-01-01T01:00:00.123456"``) is accepted.
 
-.. _coordinate_frames:
+.. _coordinate_systems:
 
-Coordinate frames
------------------
+Coordinate systems
+------------------
 
-Trajectory- and vector-valued products (e.g. from SSCWeb, CDAWeb, CSA, CDPP 3DView) are returned in
-whichever coordinate frame the underlying archive stores them in, or in the frame you request via a
-provider-specific keyword (e.g. ``coordinate_system``/``coordinate_frame``). Common frames you'll see
-across provider pages:
+Trajectories and vector quantities only mean something together with the coordinate frame they are
+expressed in, and each provider offers its own set of frames. Some let you pick one per request
+(SSCWeb's ``coordinate_system``, CDPP 3DView's ``coordinate_frame``), some make it a level of the
+inventory tree (UiowaEphTool), and some bake it into the product itself (the CDAWeb and CSA products
+named ``..._gse``, ``B_RTN``, and so on).
 
-.. list-table::
-   :widths: 15 85
-   :header-rows: 1
-
-   * - Acronym
-     - Meaning
-   * - ``GEO``
-     - Geographic — fixed to the rotating Earth.
-   * - ``GEI``
-     - Geocentric Equatorial Inertial — Earth-centered, fixed with respect to the stars (not rotating with Earth).
-   * - ``GSE``
-     - Geocentric Solar Ecliptic — X toward the Sun, Z normal to the ecliptic plane.
-   * - ``GSM``
-     - Geocentric Solar Magnetospheric — X toward the Sun, Z-X plane contains Earth's magnetic dipole axis.
-   * - ``SM``
-     - Solar Magnetic — Z along the dipole axis, Y perpendicular to the Sun-dipole plane.
-   * - ``RTN``
-     - Radial-Tangential-Normal — spacecraft-centered, R points away from the Sun; common for heliospheric missions.
-   * - ``J2000`` / ``ECLIPJ2000``
-     - Inertial frames referenced to the Earth's mean equator/equinox (``J2000``) or the ecliptic
-       (``ECLIPJ2000``) at epoch J2000.0; used by CDPP 3DView.
-
-Picking the wrong frame silently returns believable-looking but physically wrong vectors, so always check
-which frame a provider page's examples request before comparing data across missions.
+See each provider's page for the frames it supports and how to select one. Picking the wrong frame
+returns believable-looking but physically wrong vectors, so it is worth checking which frame you
+actually got before comparing data across missions.
 
 Units
 -----
@@ -122,9 +104,9 @@ provided by the source service (AMDA, CDAWeb, ...). Check a variable's ``.unit``
 When ``get_data()`` returns ``None`` vs. when it raises
 ---------------------------------------------------------
 
-A **known** product (one Speasy's inventory recognizes) that has no data for the requested time range, or
-whose request fails after retries, makes ``get_data()`` (and ``get_dataset()``/``get_catalog()``/``get_timetable()``)
-return ``None`` — it does not raise. Always check for ``None`` before using the result:
+A **known** product (one Speasy's inventory recognizes) with no data in the requested time range makes
+``get_data()`` (and ``get_dataset()``/``get_catalog()``/``get_timetable()``) return ``None`` rather than
+raise. Always check for ``None`` before using the result:
 
 .. code-block:: python
 
@@ -140,13 +122,11 @@ An **unrecognized** product id or inventory path, on the other hand, raises ``Va
 exception for certain invalid arguments (e.g. CDPP 3DView raises ``Cdpp3dViewWebException`` for an invalid
 ``coordinate_frame``):
 
-.. code-block:: pycon
-
     >>> import speasy as spz
     >>> spz.get_data("amda/this_product_does_not_exist", "2018-01-01", "2018-01-02")
     Traceback (most recent call last):
         ...
     ValueError: Unknown product: this_product_does_not_exist
 
-So a robust caller typically wants both: a ``try``/``except`` for the id lookup, and a ``None`` check for
-the data itself.
+Network failures raise as well, so a robust caller wants a ``try``/``except`` around the call and a
+``None`` check on the result.
