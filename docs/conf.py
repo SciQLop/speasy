@@ -26,6 +26,7 @@ np.set_printoptions(precision=4)
 
 src_path = os.path.abspath('..')
 sys.path.insert(0, src_path)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ['PYTHONPATH'] = src_path
 if "SPEASY_CORE_DISABLED_PROVIDERS" not in os.environ:
         os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = ""
@@ -54,7 +55,8 @@ extensions = [
     'sphinx_codeautolink',
     'sphinxcontrib.apidoc',
     'nbsphinx',
-    'numpydoc']
+    'numpydoc',
+    '_generate_cdpp3dview_frames_table']
 
 apidoc_module_dir = '../speasy'
 apidoc_output_dir = 'dev'
