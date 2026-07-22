@@ -1,6 +1,6 @@
 from typing import Union, Optional
 import re
-from .cache import Cache, CacheItem
+from .cache import Cache, CacheItem, migration_backups, delete_migration_backups
 from ._function_cache import CacheCall
 from ._providers_caches import CACHE_ALLOWED_KWARGS, Cacheable, UnversionedProviderCache
 from ._instance import _cache

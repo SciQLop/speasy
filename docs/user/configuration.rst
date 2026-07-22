@@ -152,12 +152,22 @@ existing ``diskcache``-format cache and migrates it automatically:
 
 - This is a **one-time** operation and can take a few minutes for a large cache; subsequent imports are
   unaffected.
-- Your old cache is renamed to ``<cache path>.diskcache.backup`` and kept alongside the new one — delete
-  it yourself once you've confirmed the new cache works.
+- Your old cache is renamed to ``<cache path>.diskcache.backup`` and kept alongside the new one. Speasy
+  reminds you with a warning on every import for as long as a backup still exists.
 - Speasy still depends on ``diskcache`` precisely so this migration can run out of the box — no extra
   install step needed. In the unlikely case it's unavailable in your environment (e.g. a custom install
   with ``--no-deps``), Speasy logs a warning and starts a fresh cache instead of migrating; your old cache
   is left untouched on disk and nothing is lost.
+
+Once you've confirmed the new cache works, delete the backup(s) with:
+
+    >>> from speasy.core.cache import migration_backups, delete_migration_backups
+    >>> migration_backups() # doctest: +SKIP
+    ['/home/user/.cache/speasy/Cache.diskcache.backup', '/home/user/.local/share/speasy/index.diskcache.backup']
+    >>> delete_migration_backups() # doctest: +SKIP
+    ['/home/user/.cache/speasy/Cache.diskcache.backup', '/home/user/.local/share/speasy/index.diskcache.backup']
+
+``delete_migration_backups()`` only ever removes these ``.diskcache.backup`` directories, never a live cache.
 
 .. note::
     Speasy has no compiled ``pysciqlop-cache`` build for WASM/Pyodide (e.g. JupyterLite); on that

@@ -5,7 +5,7 @@ import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 try:
     import pysciqlop_cache as sc
@@ -48,8 +48,18 @@ class CacheItem:
             return False
 
 
+def _is_already_sciqlop_cache_layout(p: Path) -> bool:
+    return (p / "sciqlop-cache.db").is_file() or bool(list(p.glob("*/sciqlop-cache.db")))
+
+
 def _is_legacy_diskcache_layout(p: Path) -> bool:
     if not p.exists():
+        return False
+    # A directory already on the new backend can still have a stray ``cache.db``
+    # left over from an older pysciqlop-cache release (before that file was
+    # renamed to ``sciqlop-cache.db``). Presence of the new backend's own file is
+    # definitive: never treat such a directory as needing (re-)migration.
+    if _is_already_sciqlop_cache_layout(p):
         return False
     return (p / "cache.db").is_file() or bool(list(p.glob("*/cache.db")))
 
@@ -125,12 +135,70 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     return True
 
 
+def _warn_if_backup_present(full_path: str) -> None:
+    """Log a reminder if a migration backup still sits next to ``full_path``.
+
+    Called on every construction of a cache/index built at this path, so the
+    reminder keeps showing up (once per import) until the user actually
+    deletes the backup with :func:`delete_migration_backups`.
+    """
+    backup = Path(f"{full_path}.diskcache.backup")
+    if backup.exists():
+        log.warning(
+            f"A legacy cache backup from migrating to sciqlop-cache is still "
+            f"present at {backup}. Once you've verified the new cache works, "
+            f"delete it with speasy.core.cache.delete_migration_backups()."
+        )
+
+
+def _known_migratable_paths() -> List[str]:
+    """Paths of every cache/index Speasy builds that could carry a legacy
+    diskcache layout -- i.e. every call site of :func:`_migrate_legacy_diskcache`.
+    """
+    from speasy.config import index as index_cfg
+    return [f"{cache_cfg.path()}/Cache", index_cfg.path()]
+
+
+def migration_backups() -> List[str]:
+    """List legacy diskcache backups left over from migrating to sciqlop-cache.
+
+    Returns
+    -------
+    List[str]
+        Paths to backup directories that currently exist on disk.
+    """
+    return [
+        backup for backup in (f"{p}.diskcache.backup" for p in _known_migratable_paths())
+        if os.path.isdir(backup)
+    ]
+
+
+def delete_migration_backups() -> List[str]:
+    """Delete legacy diskcache backups left over from migrating to sciqlop-cache.
+
+    Safe to call at any time: only removes the ``<path>.diskcache.backup``
+    directories created by the one-time migration, never a live cache.
+
+    Returns
+    -------
+    List[str]
+        Paths that were actually deleted.
+    """
+    deleted = []
+    for backup in migration_backups():
+        shutil.rmtree(backup)
+        deleted.append(backup)
+        log.info(f"Deleted migration backup at {backup}")
+    return deleted
+
+
 class Cache:
     __slots__ = ["cache_file", "_data", "cache_type"]
 
     def __init__(self, cache_path: str = "", cache_type: str = "Cache"):
         full_path = f"{cache_path}/{cache_type}"
         _migrate_legacy_diskcache(full_path)
+        _warn_if_backup_present(full_path)
 
         if cache_type == "Fanout":
             self._data = sc.FanoutCache(
