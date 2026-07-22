@@ -29,6 +29,22 @@ class MplBackendLine(unittest.TestCase):
             self.assertEqual(line.get_linestyle(), "--")
             self.assertEqual(line.get_linewidth(), 3)
 
+    def test_logy_true_log_scales_the_axis(self):
+        x = np.arange(10)
+        y = np.arange(10) + 1.0
+
+        ax = Plot().line(x, y, logy=True)
+
+        self.assertEqual(ax.get_yscale(), "log")
+
+    def test_logy_false_keeps_linear_axis(self):
+        x = np.arange(10)
+        y = np.arange(10) + 1.0
+
+        ax = Plot().line(x, y, logy=False)
+
+        self.assertEqual(ax.get_yscale(), "linear")
+
 
 class MplBackendColormap(unittest.TestCase):
     def setUp(self):

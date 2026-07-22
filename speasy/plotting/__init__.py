@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from .mpl_backend import Plot as MplPlot
 from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
+from .istp_hints import is_log_scale, label_from_meta, mask_fill_values
 from typing import List
 from enum import Enum
 from copy import copy
@@ -46,11 +47,19 @@ class Plot:
         units = kwargs.pop("units", None) or self.values.unit
         labels = kwargs.pop("labels", None) or self.columns_names
         xaxis_label = kwargs.pop("xaxis_label", None) or self.axes[0].name
-        yaxis_label = kwargs.pop("yaxis_label", None) or self.values.name
-        return self._get_backend(backend).line(x=self.axes[0].values, y=self.values.values, labels=labels,
+        yaxis_label = kwargs.pop("yaxis_label", None) or label_from_meta(self.values.meta) or self.values.name
+        logy = kwargs.pop("logy", None)
+        if logy is None:
+            logy = is_log_scale(self.values.meta)
+        if logy is None:
+            logy = False
+        mask_fillval = kwargs.pop("mask_fillval", True)
+        y = mask_fill_values(self.values.values, self.values.meta) if mask_fillval else self.values.values
+        return self._get_backend(backend).line(x=self.axes[0].values, y=y, labels=labels,
                                                units=units,
                                                xaxis_label=xaxis_label,
-                                               yaxis_label=yaxis_label, *args,
+                                               yaxis_label=yaxis_label,
+                                               logy=logy, *args,
                                                **kwargs)
 
     def colormap(self, *args, logy=True, logz=True, backend=None, **kwargs):
