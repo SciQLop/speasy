@@ -141,6 +141,28 @@ If your data still looks stale after clearing the cache, remember the local cach
 the :ref:`Speasy proxy <proxy_section>` may also be serving a cached response, and provider-specific
 caches (e.g. AMDA's ``user_cache_retention``) apply on top.
 
+Cache backend and migrating from an older Speasy version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Speasy's local disk cache is backed by `pysciqlop-cache <https://pypi.org/project/pysciqlop-cache/>`_,
+a native cache library, replacing the pure-Python ``diskcache`` package used in older Speasy versions.
+
+If you had already used an older Speasy version, the first import of the new version detects your
+existing ``diskcache``-format cache and migrates it automatically:
+
+- This is a **one-time** operation and can take a few minutes for a large cache; subsequent imports are
+  unaffected.
+- Your old cache is renamed to ``<cache path>.diskcache.backup`` and kept alongside the new one — delete
+  it yourself once you've confirmed the new cache works.
+- Automatic migration needs the ``diskcache`` package installed (``pip install diskcache`` — it is no
+  longer installed by default). If it isn't available, Speasy logs a warning and starts a fresh cache
+  instead of migrating; your old cache is left untouched on disk and nothing is lost. Install
+  ``diskcache`` and restart Python to trigger the migration whenever you're ready.
+
+.. note::
+    Speasy has no compiled ``pysciqlop-cache`` build for WASM/Pyodide (e.g. JupyterLite); on that
+    platform caching is transparently disabled (a no-op cache) rather than causing an import error.
+
 Index section
 -------------
 
