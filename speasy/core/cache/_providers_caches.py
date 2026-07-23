@@ -173,7 +173,16 @@ class _Cacheable:
         # it's up to the caller to check which one it is and if it's a PendingRequest to check if it's from
         # the current thread or not
         self.cache.add(key, PendingRequest(), expire=self.deduplication_timeout)
-        return self.cache.get(key)
+        entry = self.cache.get(key)
+        if not isinstance(entry, (CacheItem, PendingRequest)):
+            # A pre-existing entry could not be deserialized (Cache.get() already logged it and
+            # reported a miss) -- add() above was then a no-op since the unreadable entry still
+            # occupied the key. Drop it and retry so the caller gets a real PendingRequest instead
+            # of a value that would crash one line later in is_up_to_date()'s attribute access.
+            self.drop_cache_entry(fragment, product, **kwargs)
+            self.cache.add(key, PendingRequest(), expire=self.deduplication_timeout)
+            entry = self.cache.get(key)
+        return entry
 
     def get_from_cache(self, fragment, product, version, prefer_cache=False, wait_for_pending=True, **kwargs) -> \
         Optional[

@@ -448,6 +448,54 @@ class TestFunctionCache(unittest.TestCase):
         self.assertEqual(len(cache.keys()), initial_keys_count)
 
 
+class CacheResilientToUnreadableEntries(unittest.TestCase):
+    """A cache entry written by an incompatible library version (e.g. numpy's on-disk
+    pickle format changed between major versions) can fail to deserialize -- this must
+    be treated as a cache miss, not crash the caller. Real-world trigger: a cache
+    populated under one numpy major version, then read back under another."""
+
+    def test_get_returns_default_when_backend_raises_on_deserialization(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        c = Cache(tmp)
+        with mock.patch.object(c._data, "get", side_effect=ModuleNotFoundError("No module named 'numpy._core'")):
+            with self.assertLogs("speasy.core.cache.cache", level="WARNING"):
+                result = c.get("some_key", "fallback_default")
+        self.assertEqual(result, "fallback_default")
+
+    def test_get_or_lock_cache_entry_recovers_from_an_unreadable_pre_existing_entry(self):
+        """get_or_lock_cache_entry's contract is Union[CacheItem, PendingRequest] -- if a
+        pre-existing entry safety-netted to something else (e.g. None, once Cache.get()
+        catches a deserialization error), it must drop and retry rather than handing back
+        a value that crashes one line later in is_up_to_date()'s attribute access."""
+        from speasy.core.cache._providers_caches import _Cacheable
+        from speasy.core.cache._request_locker import PendingRequest
+
+        class _FakeUnreadableThenHealthyCache:
+            def __init__(self):
+                self._store = {"stale_key": "not_a_cacheitem_or_pendingrequest"}
+
+            def add(self, key, value, expire=None, tag=None):
+                if key in self._store:
+                    return False
+                self._store[key] = value
+                return True
+
+            def get(self, key, default=None):
+                return self._store.get(key, default)
+
+            def drop(self, key):
+                self._store.pop(key, None)
+
+            def __contains__(self, key):
+                return key in self._store
+
+        cacheable = _Cacheable(prefix="p", cache_instance=_FakeUnreadableThenHealthyCache(),
+                               entry_name=lambda *a, **k: "stale_key")
+        entry = cacheable.get_or_lock_cache_entry(start_date, "product")
+        self.assertIsInstance(entry, PendingRequest)
+
+
 class TestNoopCacheBackend(unittest.TestCase):
     """The fallback backend used when pysciqlop_cache is unavailable (e.g. WASM)
     must never store anything and always report a miss."""
