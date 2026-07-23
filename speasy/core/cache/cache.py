@@ -64,6 +64,12 @@ def _is_legacy_diskcache_layout(p: Path) -> bool:
     return (p / "cache.db").is_file() or bool(list(p.glob("*/cache.db")))
 
 
+def _restore_legacy_cache(p: Path, backup: Path) -> None:
+    if p.exists():
+        shutil.rmtree(str(p))
+    os.rename(str(backup), str(p))
+
+
 def _migrate_legacy_diskcache(full_path: str) -> bool:
     """Detect a legacy diskcache layout at ``full_path`` and migrate it to
     sciqlop-cache format. Returns True if a migration was performed.
@@ -112,9 +118,7 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     try:
         result = migrate(str(backup), str(p))
     except ImportError as e:
-        if p.exists():
-            shutil.rmtree(str(p))
-        os.rename(str(backup), str(p))
+        _restore_legacy_cache(p, backup)
         log.exception(
             f"Detected legacy diskcache layout at {p} but cannot migrate "
             f"(missing dependency: {e}). Install diskcache once to allow "
@@ -122,9 +126,7 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
         )
         return False
     except Exception:
-        if p.exists():
-            shutil.rmtree(str(p))
-        os.rename(str(backup), str(p))
+        _restore_legacy_cache(p, backup)
         raise
 
     log.info(

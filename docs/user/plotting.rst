@@ -90,7 +90,10 @@ Whether you're plotting a line or a colormap, ``.plot()`` also picks up a few IS
 automatically when the source metadata provides them: ``SCALETYP`` sets the default log/linear
 scale (still overridable with ``logy``/``logz``), ``FILLVAL`` entries are masked to NaN before
 plotting (disable with ``mask_fillval=False``), and ``LABLAXIS`` is preferred over the raw CDF
-variable name for axis and colorbar labels when you don't pass one explicitly.
+variable name for axis and colorbar labels when you don't pass one explicitly. For a colormap,
+``logy``'s ``SCALETYP`` hint comes from the y-axis (frequency/energy) variable's own metadata,
+while ``logz``'s comes from the plotted values' metadata — they're independent, so one axis can
+be logarithmic while the other isn't.
 
 .. code-block:: python
 

@@ -123,6 +123,15 @@ class ColormapHints(unittest.TestCase):
         mesh = ax.collections[0]
         self.assertFalse(np.ma.getmaskarray(mesh.get_array()).any())
 
+    def test_all_fillval_slice_does_not_crash(self):
+        """A slice that's entirely FILLVAL masks to all-NaN; vmin/vmax must not end up NaN
+        (LogNorm raises "Invalid vmin or vmax" on NaN bounds, so this must use the default
+        logz=True to reproduce)."""
+        values = np.full((3, 2), -999.0)
+        ax = _colormap_plot(values_meta={"FILLVAL": -999.0}, values_array=values).colormap()
+        mesh = ax.collections[0]
+        self.assertTrue(np.ma.getmaskarray(mesh.get_array()).all())
+
 
 if __name__ == "__main__":
     unittest.main()

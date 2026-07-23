@@ -73,6 +73,18 @@ class ConfigModule(unittest.TestCase):
         config.remove_entry(my_test_entry)
         os.environ.pop(my_test_entry.env_var_name)
 
+    def test_core_user_codecs_extra_dirs_default_is_empty_set(self):
+        """A set() default used to round-trip through str(default) -> type_ctor, turning an
+        intended empty set into {'set()'} (a set containing the literal string 'set()').
+        Checked via .default/.type_ctor directly (not .get()) so a stray value already
+        persisted to a developer's config.ini can't mask a regression here."""
+        entry = config.core.user_codecs_extra_dirs
+        self.assertEqual(set(), entry.type_ctor(entry.default))
+
+    def test_archive_extra_inventory_lookup_dirs_default_is_empty_set(self):
+        entry = config.archive.extra_inventory_lookup_dirs
+        self.assertEqual(set(), entry.type_ctor(entry.default))
+
 
 if __name__ == '__main__':
     unittest.main()
