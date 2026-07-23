@@ -123,6 +123,9 @@ Coding guidelines
 * If you want to add a new data provider, follow the existing structure in the `speasy.data_providers` module.
   You can have a look at existing providers such as sscweb or uiowa_eph_tool for reference.
 * If you want to add a new data format, create a new CODEC in the `speasy.core.codecs` module.
+  See "Adding support for a new file format" in the direct archive access docs
+  (`docs/user/direct_archive/direct_archive.rst`) for the full ``CodecInterface`` contract,
+  registration mechanism, and a worked example.
 
 Tips
 ----
