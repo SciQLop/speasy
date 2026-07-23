@@ -55,11 +55,10 @@ class LegacyDiskcacheMigration(unittest.TestCase):
             "2024-01-01T00:00:00+00:00")
 
     def test_falls_back_gracefully_when_diskcache_unavailable(self):
-        """diskcache is a dev-only dependency now (not installed for regular
-        users). ``migrate()`` imports it lazily inside its own body, so a
-        legacy cache detected on a machine without diskcache installed must
-        not crash the caller -- it should log and leave the legacy cache
-        untouched so Speasy falls back to a fresh cache at the same path.
+        """diskcache is a required runtime dependency, but ``migrate()`` imports it lazily
+        inside its own body, so an unusual install (e.g. ``--no-deps``) missing it must not
+        crash the caller when a legacy cache is detected -- it should log and leave the
+        legacy cache untouched so Speasy falls back to a fresh cache at the same path.
         """
         legacy = diskcache.Cache(self.root)
         legacy["some_key"] = "some_value"

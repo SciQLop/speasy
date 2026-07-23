@@ -90,6 +90,15 @@ class MaskFillValues(unittest.TestCase):
         mask_fill_values(values, {"FILLVAL": -9999.99})
         self.assertEqual(values[1], -9999.99)
 
+    def test_warns_and_skips_masking_when_fillval_type_is_incompatible(self):
+        """Real ISTP files can mis-declare a numeric variable's FILLVAL with a TT2000 attribute
+        type (e.g. CDAWeb's ela_att_solution_date, see tests/test_inventories.py); the data
+        codec stringifies it (a far-future date string) while the data itself stays numeric."""
+        values = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+        with self.assertLogs("speasy.plotting.istp_hints", level="WARNING"):
+            result = mask_fill_values(values, {"FILLVAL": "9999-12-31T23:59:59.999999999"})
+        np.testing.assert_array_equal(result, values)
+
 
 if __name__ == "__main__":
     unittest.main()

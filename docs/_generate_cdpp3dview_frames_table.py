@@ -33,9 +33,12 @@ def generate():
     now = utc_now_str()
     try:
         frames = _fetch_live_frames()
+        if not frames:
+            raise ValueError(f"{FRAMES_URL} returned zero frames")
         source_note = f"Fetched live from the 3DView server when these docs were built, on {now}."
     except Exception as e:  # any failure falls back, build must not break
-        fallback = json.load(open(FALLBACK_PATH))
+        with open(FALLBACK_PATH) as f:
+            fallback = json.load(f)
         frames = fallback["frames"]
         source_note = (
             f"The live query to the 3DView server failed during this build ({e}); "

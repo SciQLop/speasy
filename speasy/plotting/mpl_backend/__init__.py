@@ -43,8 +43,13 @@ class Plot:
         if xaxis_label is not None:
             ax.set_xlabel(f"{xaxis_label}")
 
-        vmin = np.nanmin(z[np.nonzero(z)]) if vmin is None else vmin
-        vmax = np.nanmax(z) if vmax is None else vmax
+        # A slice that's entirely masked/FILLVAL has no finite value to scale from; fall back to
+        # an arbitrary positive bound rather than feeding LogNorm/Normalize a NaN vmin/vmax.
+        nonzero = z[np.nonzero(z)]
+        if vmin is None:
+            vmin = np.nanmin(nonzero) if np.isfinite(nonzero).any() else 1.0
+        if vmax is None:
+            vmax = np.nanmax(z) if np.isfinite(z).any() else 1.0
 
         if logy:
             ax.semilogy()

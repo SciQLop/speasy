@@ -96,10 +96,11 @@ carries its own ``meta`` block, alongside a dataset-level one:
     subsequent ``get_data()`` call.
 
 .. important::
-    ``get_data()`` builds its result from the actual data file's own attributes, not from ``meta``
-    above — the ``UNITS``/``CATDESC`` you type here only show up when *browsing* the inventory
-    (``spz.inventories.data_tree...``) unless you also set ``meta_priority``, which patches this
-    ``meta`` onto every ``get_data()`` result too:
+    ``get_data()`` builds its result from the actual data file's own attributes, but ``meta``
+    above is also patched onto every ``get_data()`` result by default — not just when *browsing*
+    the inventory (``spz.inventories.data_tree...``). By default (``meta_priority: file``) it only
+    fills in fields the file doesn't already have; set ``meta_priority: yaml`` if you want a field
+    declared here to override the file's own value instead:
 
     .. code-block:: YAML
 
@@ -171,8 +172,8 @@ YAML field reference
      - Dataset-level metadata (e.g. ``Mission_group``, ``Data_type``). Required together with
        **variables**; optional alongside **master_file**/**master_cdf**, where it patches onto the
        metadata extracted from the master (see **meta_priority** for which side wins a clash).
-       Only affects the inventory browser by default — **meta_priority** also patches it onto
-       ``get_data()`` results.
+       Patched onto both the inventory browser entries and every ``get_data()`` result by default;
+       **meta_priority** only controls which side wins on a clash, not whether patching happens.
    * - **meta_priority**
      - ``file`` (default) or ``yaml``. The single knob resolving every YAML-vs-file metadata clash
        in this dataset: **meta** vs. the master's own metadata at inventory-build time, and the
@@ -283,7 +284,9 @@ with the requested interval, and loads them.
 
 - ``(?P<start>...)`` — start date extracted from the filename (mandatory). Must be parsable as a date.
 - ``(?P<stop>...)`` — stop date (optional). If absent, Speasy assumes each file ends when the next one starts.
-- ``(?P<version>...)`` — file version (optional). Used to pick the latest version when multiple exist.
+- ``(?P<version>...)`` — file version (optional). Captured for readability but not currently used
+  to select between multiple versions of the same time range — if several matching files overlap,
+  Speasy loads all of them.
 
 
 Extra inventory directories

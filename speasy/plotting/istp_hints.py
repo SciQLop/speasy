@@ -5,9 +5,12 @@ FILLVAL, LABLAXIS) to plotting defaults, mirroring SciQLop's istp_hints -> PlotH
 translation. A hint only fills in what the caller left unset -- callers always let an
 explicit keyword argument win.
 """
+import logging
 from typing import Optional
 
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 
 def _scalar_meta(meta: dict, key: str):
@@ -42,9 +45,19 @@ def mask_fill_values(values: np.ndarray, meta: dict) -> np.ndarray:
     the same array unchanged when there's nothing to mask).
 
     No-op if FILLVAL is absent, or if FILLVAL is itself NaN (some providers, e.g. AMDA,
-    use NaN directly as the fill sentinel, so there's nothing left to mask).
+    use NaN directly as the fill sentinel, so there's nothing left to mask). Also a no-op,
+    with a warning, if FILLVAL is a string while values are numeric -- some ISTP files
+    mis-declare a numeric variable's FILLVAL with a TT2000/EPOCH attribute type, which the
+    data codec stringifies (e.g. CDAWeb's ela_att_solution_date); there's no reliable way to
+    recover the intended numeric sentinel from that mismatch.
     """
     fillval = _scalar_meta(meta, "FILLVAL")
     if fillval is None or (isinstance(fillval, float) and np.isnan(fillval)):
+        return values
+    if isinstance(fillval, str) and np.issubdtype(values.dtype, np.number):
+        log.warning(
+            f"FILLVAL {fillval!r} is a string but the data is numeric ({values.dtype}); "
+            "skipping fill-value masking."
+        )
         return values
     return np.where(values == fillval, np.nan, values)

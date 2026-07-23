@@ -178,9 +178,9 @@ This is useful to avoid creating a new connection for each request.""",
                                       "description": """Sets the maximum number of pools to keep in the pool.
 This is useful to avoid creating a new pool for each request.""",
                                       "type_ctor": int},
-                     user_codecs_extra_dirs={"default": set(),
+                     user_codecs_extra_dirs={"default": "",
                                              "description": """A comma separated list of directories to scan for extra codecs.""",
-                                             "type_ctor": lambda x: set(x.split(','))},
+                                             "type_ctor": lambda x: set(filter(None, x.split(',')))},
                      )
 
 proxy = ConfigSection("PROXY",
@@ -232,9 +232,9 @@ amda = ConfigSection("AMDA",
                      )
 
 archive = ConfigSection("ARCHIVE",
-                        extra_inventory_lookup_dirs={"default": set(),
+                        extra_inventory_lookup_dirs={"default": "",
                                                      "description": """A comma separated list of directory path Archive provider will scann for YAML inventory files.""",
-                                                     "type_ctor": lambda x: set(x.split(','))}
+                                                     "type_ctor": lambda x: set(filter(None, x.split(',')))}
                         )
 
 inventories = ConfigSection("INVENTORIES",
