@@ -93,7 +93,7 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     try:
         from pysciqlop_cache.migrate import migrate
     except ImportError as e:
-        log.error(
+        log.exception(
             f"Detected legacy diskcache layout at {p} but cannot migrate "
             f"(missing dependency: {e}). Install diskcache once to allow "
             f"migration, or delete {p} to start fresh."
@@ -115,7 +115,7 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
         if p.exists():
             shutil.rmtree(str(p))
         os.rename(str(backup), str(p))
-        log.error(
+        log.exception(
             f"Detected legacy diskcache layout at {p} but cannot migrate "
             f"(missing dependency: {e}). Install diskcache once to allow "
             f"migration, or delete {p} to start fresh."

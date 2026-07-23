@@ -34,7 +34,7 @@ def generate():
     try:
         frames = _fetch_live_frames()
         source_note = f"Fetched live from the 3DView server when these docs were built, on {now}."
-    except Exception as e:  # noqa: BLE001 - any failure falls back, build must not break
+    except Exception as e:  # any failure falls back, build must not break
         fallback = json.load(open(FALLBACK_PATH))
         frames = fallback["frames"]
         source_note = (
