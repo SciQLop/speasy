@@ -125,9 +125,19 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
             f"migration, or delete {p} to start fresh."
         )
         return False
-    except Exception:
+    except Exception as e:
+        # Includes a legacy entry that fails to deserialize (e.g. pickled by an
+        # incompatible library version) -- migrate() has no per-entry error
+        # containment, so one bad entry aborts the whole migration. Never fatal:
+        # the legacy cache still works fine as a fallback, that's the entire point
+        # of not deleting it until migration succeeds.
         _restore_legacy_cache(p, backup)
-        raise
+        log.exception(
+            f"Migration of legacy cache at {p} failed ({e}); left the legacy cache "
+            f"in place, Speasy will keep using it and retry migration next time. "
+            f"Delete {p} to start fresh instead."
+        )
+        return False
 
     log.info(
         f"Migration complete: {result['migrated']} entries in "
@@ -257,7 +267,16 @@ class Cache:
         return self._data.add(key, value, expire=expire, tag=tag)
 
     def get(self, key, default_value=None):
-        return self._data.get(key, default_value)
+        try:
+            return self._data.get(key, default_value)
+        except Exception:
+            # An entry that fails to deserialize (e.g. pickled by an incompatible
+            # library version, such as a different numpy major version) is not
+            # readable by this process -- treat it as a miss instead of crashing.
+            log.warning(f"Cache entry {key!r} could not be loaded (possibly written by an "
+                       f"incompatible library version); treating it as a cache miss.",
+                       exc_info=True)
+            return default_value
 
     def incr(self, key, delta=1, default=0):
         return self._data.incr(key, delta, default=default)

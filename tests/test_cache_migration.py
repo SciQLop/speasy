@@ -72,6 +72,33 @@ class LegacyDiskcacheMigration(unittest.TestCase):
             os.path.isfile(os.path.join(self.root, "cache.db")),
             "legacy cache should be left untouched when migration can't run")
 
+    def test_falls_back_gracefully_when_migration_hits_an_incompatible_entry(self):
+        """A single legacy entry that fails to deserialize (e.g. pickled by an
+        incompatible numpy version -- a real, previously-seen symptom is
+        AttributeError: Can't get attribute '_reconstruct' on a numpy internal
+        module that moved between major versions) must not abort the whole
+        migration and crash the caller: pysciqlop_cache.migrate.migrate() iterates
+        every legacy entry with no per-entry error containment, so one bad entry
+        currently propagates straight out. Note this is distinct from a
+        ModuleNotFoundError (an ImportError subclass), which the branch above
+        already handles gracefully by coincidence -- AttributeError is not, and
+        hits the (currently re-raising) generic except Exception branch instead.
+        This must degrade the same way a missing dependency already does:
+        restore the legacy cache, log, and let Speasy fall back to it."""
+        legacy = diskcache.Cache(self.root)
+        legacy["some_key"] = "some_value"
+        legacy.close()
+
+        with mock.patch("pysciqlop_cache.migrate.migrate",
+                        side_effect=AttributeError(
+                            "Can't get attribute '_reconstruct' on <module 'numpy.core.multiarray'>")):
+            migrated = _migrate_legacy_diskcache(self.root)
+
+        self.assertFalse(migrated)
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.root, "cache.db")),
+            "legacy cache should be left untouched when migration fails")
+
     def test_stray_legacy_file_does_not_trigger_false_positive(self):
         """Real-world caches that migrated with an older pysciqlop-cache release can
         end up with a stray ``cache.db`` (diskcache's own filename) sitting next to
