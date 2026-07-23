@@ -55,6 +55,12 @@ Passing a frame the server doesn't know raises
 :class:`~speasy.data_providers.cdpp3dview.Cdpp3dViewWebException`, and the message lists the frames that
 are available.
 
+.. note::
+    ``coordinate_system`` (the kwarg name used by the SSCWeb and UiowaEphTool providers) is accepted as
+    an alias for ``coordinate_frame`` here too, so switching between trajectory providers doesn't
+    require renaming a kwarg. Passing both with different values raises
+    :class:`~speasy.data_providers.cdpp3dview.Cdpp3dViewWebException` rather than silently picking one.
+
 The table below is generated automatically from the server every time these docs are built, so it needs
 no manual updates and cannot go stale the way a hand-written list would. If the server couldn't be
 reached during the build, a note below says so and a cached snapshot is shown instead:
