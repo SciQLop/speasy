@@ -97,6 +97,7 @@ variable name for axis and colorbar labels when you don't pass one explicitly.
     csa = spz.inventories.tree.csa.Cluster.Cluster_1.CIS_HIA1.C1_CP_CIS_HIA_HS_1D_PEF
     flux = spz.get_data(csa.flux__C1_CP_CIS_HIA_HS_1D_PEF, "2006-11-01", "2006-11-02")
     flux.plot(cmap="jet")
+    plt.tight_layout()
     plt.show()
 
 .. image:: images/plotting_spectrogram.png
