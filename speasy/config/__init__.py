@@ -24,6 +24,13 @@ _config.read(SPEASY_CONFIG_FILE)
 _entries = {}
 
 
+def _parse_dir_set(value: str) -> set:
+    """Comma-separated directory list -> set, dropping empty entries and the literal
+    string 'set()' -- installs that ran before user_codecs_extra_dirs/extra_inventory_lookup_dirs
+    got an empty-string default may already have str(set()) persisted to their config.ini/env."""
+    return {p for p in value.split(',') if p and p != 'set()'}
+
+
 def _load_dict_from_repr(value: str):
     if value:
         d = ast.literal_eval(value)
@@ -180,7 +187,7 @@ This is useful to avoid creating a new pool for each request.""",
                                       "type_ctor": int},
                      user_codecs_extra_dirs={"default": "",
                                              "description": """A comma separated list of directories to scan for extra codecs.""",
-                                             "type_ctor": lambda x: set(filter(None, x.split(',')))},
+                                             "type_ctor": _parse_dir_set},
                      )
 
 proxy = ConfigSection("PROXY",
@@ -234,7 +241,7 @@ amda = ConfigSection("AMDA",
 archive = ConfigSection("ARCHIVE",
                         extra_inventory_lookup_dirs={"default": "",
                                                      "description": """A comma separated list of directory path Archive provider will scann for YAML inventory files.""",
-                                                     "type_ctor": lambda x: set(filter(None, x.split(',')))}
+                                                     "type_ctor": _parse_dir_set}
                         )
 
 inventories = ConfigSection("INVENTORIES",
