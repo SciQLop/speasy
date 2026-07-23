@@ -122,10 +122,10 @@ class TestListVariables(unittest.TestCase):
         self.assertIn('BGSEc', variables)
 
     def test_list_variables_raises_when_codec_does_not_implement_it(self):
-        # HapiCsv overrides neither list_variables nor does HapiBaseCodec: both inherit the
-        # CodecInterface Protocol stub, whose body is `...` and therefore returns None. A codec
-        # that cannot list the variables of a file must say so, rather than quietly hand back a
-        # None for its callers to trip over. The file is never read, it only has to exist.
+        # Neither HapiCsv nor its base class HapiBaseCodec overrides list_variables, so both
+        # inherit CodecInterface's own default implementation, which explicitly raises
+        # NotImplementedError -- a codec that cannot list the variables of a file must say so
+        # rather than silently fail some other way. The file is never read, it only has to exist.
         codec = get_codec("hapi/csv")
         self.assertIsNotNone(codec)
         with self.assertRaises(NotImplementedError):

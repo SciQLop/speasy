@@ -2,13 +2,51 @@ import os
 import tempfile
 import unittest
 
+import numpy as np
 import yaml
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
+from speasy.core.codecs.codec_interface import CodecInterface
+from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
 from speasy.data_providers.generic_archive import load_inventory_file
+from speasy.products import DataContainer, SpeasyVariable, VariableTimeAxis
+
+
+@register_codec
+class _MasterFileMetaTestCodec(CodecInterface):
+    """A minimal non-ISTP codec that implements list_variables, used only to reproduce/guard
+    against _dataset_from_master()'s non-ISTP branch building ParameterIndex objects without
+    entry_meta (which carries spz_ga_cfg -- get_data() needs it to know how to fetch)."""
+
+    def list_variables(self, file):
+        return ['foo']
+
+    def load_variables(self, variables, file, cache_remote_files=True, **kwargs):
+        time = np.array(['2020-01-01'], dtype='datetime64[ns]')
+        var = SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                             values=DataContainer(values=np.array([1.0])))
+        return {v: var for v in variables}
+
+    def load_variable(self, variable, file, cache_remote_files=True, **kwargs):
+        return self.load_variables([variable], file, cache_remote_files, **kwargs).get(variable)
+
+    def save_variables(self, variables, file=None, **kwargs):
+        raise NotImplementedError
+
+    @property
+    def supported_extensions(self):
+        return []
+
+    @property
+    def supported_mimetypes(self):
+        return []
+
+    @property
+    def name(self):
+        return "test_master_file_meta_codec"
 
 _REACHABLE_MASTER_CDF = (
     "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/"
@@ -139,8 +177,9 @@ _ISTP_CODEC_SPELLINGS = {
         'nc', 'nc4', 'application/x-netcdf', 'application/netcdf', 'IstpNetCDF'),
 }
 
-# hapi/csv is a registered, non-ISTP codec that does not override list_variables. The master file
-# is never read here (the Protocol stub returns before touching it), it only has to exist.
+# hapi/csv is a registered, non-ISTP codec that does not override list_variables, so it raises
+# NotImplementedError (see test_codecs.py). The master file is never actually read here, it only
+# has to exist.
 _NO_LIST_VARIABLES_CODEC_YAML = f"""\
 hapi_dataset:
   inventory_path: cda/test
@@ -481,13 +520,37 @@ ac_mfi_nc_remote_dataset:
 
     def test_skips_dataset_whose_codec_cannot_list_variables(self):
         # hapi/csv is registered, so it gets past the "unknown codec" guard, but neither it nor its
-        # base class overrides CodecInterface.list_variables, whose Protocol stub returns None.
-        # Iterating that None raises TypeError, which escapes load_inventory_file and build_inventory
-        # and ends up disabling the whole archive provider. Skip the dataset instead, like an
-        # unknown codec already does.
+        # base class overrides CodecInterface.list_variables, so calling it raises
+        # NotImplementedError, which would escape load_inventory_file and build_inventory and end
+        # up disabling the whole archive provider. Skip the dataset instead, like an unknown codec
+        # already does.
         root = _load_yaml_doc(_NO_LIST_VARIABLES_CODEC_YAML)  # must not raise
         test_node = root.__dict__['cda'].__dict__['test']
         self.assertNotIn('hapi_dataset', test_node.__dict__)
+
+    def test_get_data_works_for_master_file_with_non_istp_codec(self):
+        # _dataset_from_master()'s non-ISTP branch (codec.list_variables(master_file)) built
+        # ParameterIndex objects without entry_meta, so the dataset looked fine in the inventory
+        # but get_data() crashed with AttributeError: 'ParameterIndex' object has no attribute
+        # 'spz_ga_cfg' -- entry_meta is where spz_ga_cfg lives. This test fails before the fix.
+        from speasy.data_providers.generic_archive import GenericArchive
+
+        master_meta_yaml = f"""\
+master_meta_dataset:
+  inventory_path: cda/test
+  master_file: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+  codec: test_master_file_meta_codec
+  split_rule: regular
+  split_frequency: none
+  url_pattern: {__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf
+"""
+        root = _load_yaml_doc(master_meta_yaml)
+        param = root.__dict__['cda'].__dict__['test'].__dict__['master_meta_dataset'].__dict__['foo']
+
+        provider = object.__new__(GenericArchive)
+        result = provider._get_data(product=param, start_time="2020-01-01", stop_time="2020-01-02")
+
+        self.assertIsNotNone(result)
 
     def test_bad_entry_does_not_drop_the_rest_of_the_file(self):
         # load_inventory_file loops over the entries with no guard, so the KeyError raised by the
