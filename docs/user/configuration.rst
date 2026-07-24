@@ -174,6 +174,10 @@ existing ``diskcache``-format cache and migrates it automatically:
   install step needed. In the unlikely case it's unavailable in your environment (e.g. a custom install
   with ``--no-deps``), Speasy logs a warning and starts a fresh cache instead of migrating; your old cache
   is left untouched on disk and nothing is lost.
+- If you switch back to a pre-1.8 Speasy version after already migrating (which doesn't know about
+  sciqlop-cache, so it writes its own fresh ``diskcache`` alongside the live cache) and fetch new data,
+  the next 1.8+ import detects and merges those new entries into the live cache automatically — you
+  won't lose anything by switching back and forth.
 
 Once you've confirmed the new cache works, delete the backup(s) with:
 

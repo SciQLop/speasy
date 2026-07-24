@@ -70,6 +70,70 @@ def _restore_legacy_cache(p: Path, backup: Path) -> None:
     os.rename(str(backup), str(p))
 
 
+def _merge_stray_legacy_entries(p: Path) -> bool:
+    """A ``cache.db`` sitting next to an already-migrated ``sciqlop-cache.db`` most
+    often means an older Speasy version (which knows nothing about sciqlop-cache)
+    was used since the last migration and wrote its own fresh diskcache into the
+    same directory. Merge those entries directly into the *existing* live cache in
+    place. Returns True if anything was merged.
+
+    This is deliberately not ``_migrate_legacy_diskcache``'s rename-the-whole-
+    directory-then-recreate approach: that would sweep the live sciqlop-cache.db
+    into the backup too, and migrate() only ever reads from diskcache, so the
+    live data would be orphaned in the backup, never restored.
+    """
+    legacy_db = p / "cache.db"
+    if not legacy_db.is_file():
+        return False
+
+    import diskcache as dc
+
+    try:
+        legacy = dc.Cache(str(p))
+        keys = list(legacy)
+    except Exception:
+        log.exception(
+            f"Found {legacy_db} alongside the live cache, but it doesn't look like "
+            f"a valid diskcache (probably harmless leftover debris); leaving it and "
+            f"the live cache untouched."
+        )
+        return False
+
+    if not keys:
+        legacy.close()
+        return False
+
+    log.warning(
+        f"Detected {len(keys)} diskcache entries alongside the live cache at {p} "
+        f"(likely written by an older Speasy version used since the last "
+        f"migration); merging them into the live cache."
+    )
+    live = sc.Cache(cache_path=str(p), max_size=cache_cfg.size())
+    merged = 0
+    for key in keys:
+        try:
+            value = legacy.get(key)
+        except Exception:
+            log.exception(f"Could not read legacy entry {key!r} at {p}, skipping")
+            continue
+        if value is None:
+            continue
+        try:
+            live.set(key, value)
+            merged += 1
+        except Exception:
+            log.exception(f"Failed to merge legacy entry {key!r} into the live cache at {p}")
+    legacy.close()
+
+    for suffix in ("", "-wal", "-shm", "-journal"):
+        stray = Path(f"{legacy_db}{suffix}")
+        if stray.exists():
+            stray.unlink()
+
+    log.info(f"Merged {merged} new entries from a legacy diskcache found at {p} into the live cache.")
+    return True
+
+
 def _migrate_legacy_diskcache(full_path: str, move: bool = False) -> bool:
     """Detect a legacy diskcache layout at ``full_path`` and migrate it to
     sciqlop-cache format. Returns True if a migration was performed.
@@ -101,6 +165,13 @@ def _migrate_legacy_diskcache(full_path: str, move: bool = False) -> bool:
         cache is fully intact until migration succeeds outright.
     """
     p = Path(full_path)
+
+    if _is_already_sciqlop_cache_layout(p):
+        # Already migrated -- but a cache.db here too means a pre-1.8 Speasy
+        # version was used again since, and wrote fresh legacy data alongside the
+        # live cache. Merge it in rather than silently discarding it.
+        return _merge_stray_legacy_entries(p)
+
     if not _is_legacy_diskcache_layout(p):
         return False
 
