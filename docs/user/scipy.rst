@@ -4,6 +4,9 @@ SciPy compatibility
 .. toctree::
    :maxdepth: 1
 
+This page assumes you already have one or more ``SpeasyVariable`` objects from :func:`speasy.get_data`;
+see :doc:`concepts` first if you don't have one yet.
+
 When working with space physics data, you often need to combine measurements from different instruments
 that sample at different rates, or remove low-frequency trends from a signal. Speasy provides
 ready-to-use functions for these common tasks, built on top of `SciPy <https://www.scipy.org/>`_.

@@ -2,9 +2,12 @@ Configuration
 =============
 
 Speasy can be configured through the ``config`` module, environment variables, or by editing an INI file directly.
+For any entry, the environment variable (named ``SPEASY_<SECTION>_<ENTRY>``) takes precedence over the config
+file, which takes precedence over the built-in default.
 
-The configuration file is an INI file located in your platform's user config directory under ``speasy/LPP/config.ini``
-(e.g. ``~/.config/speasy/LPP/config.ini`` on Linux, ``~/Library/Application Support/speasy/LPP/config.ini`` on macOS).
+The configuration file is an INI file located in your platform's user config directory:
+``~/.config/speasy/config.ini`` on Linux, ``~/Library/Application Support/speasy/config.ini`` on macOS,
+``%LOCALAPPDATA%\LPP\speasy\config.ini`` on Windows (the ``LPP`` author segment only appears on Windows).
 You can also find the exact path programmatically:
 
     >>> import speasy as spz
@@ -26,12 +29,13 @@ Disabling data providers
 
 Sometimes you may want to disable some data providers either to speed up Speasy import or because you don't need them.
 This can be done by adding the provider name to the ``disabled_providers`` list in the configuration file.
+By default, only ``cdpp3dview`` is disabled; see :doc:`cdpp3dview/cdpp3dview` for why.
 
 For example, to disable AMDA and CDAWeb, add the following to the configuration file:
 
 .. code-block:: ini
 
-        [core]
+        [CORE]
         disabled_providers = amda,cdaweb
 
 Or from Python:
@@ -39,11 +43,88 @@ Or from Python:
     >>> import speasy as spz
     >>> spz.config.core.disabled_providers.set('amda,cdaweb') # doctest: +SKIP
 
+Other core entries
+~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``http_rewrite_rules`` / ``SPEASY_CORE_HTTP_REWRITE_RULES``
+     - ``{"https://cdaweb.gsfc.nasa.gov/pub/": "https://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"}``
+     - A Python dict literal of URL prefixes to rewrite before sending requests
+       (e.g. ``{"http://example.com": "http://localhost:8000"}``).
+   * - ``http_user_agent`` / ``SPEASY_CORE_HTTP_USER_AGENT``
+     - ``""``
+     - User agent string sent with HTTP requests. Empty uses Speasy's default user agent.
+   * - ``urlib_pool_size`` / ``SPEASY_CORE_URLIB_POOL_SIZE``
+     - ``10``
+     - Maximum number of connections to keep in the underlying ``urllib3`` connection pool.
+   * - ``urlib_num_pools`` / ``SPEASY_CORE_URLIB_NUM_POOLS``
+     - ``10``
+     - Maximum number of connection pools kept by ``urllib3``.
+   * - ``user_codecs_extra_dirs`` / ``SPEASY_CORE_USER_CODECS_EXTRA_DIRS``
+     - *(empty)*
+     - Comma-separated list of extra directories to scan for user-defined codecs.
+
+.. _proxy_section:
+
+Proxy section
+-------------
+
+Speasy can go through the `SciQLop community proxy <http://sciqlop.lpp.polytechnique.fr/cache>`_, a
+caching server shared by all Speasy users that avoids redundant downloads of the same data. This is
+unrelated to a corporate/network HTTP proxy — see :ref:`http_forward_proxy` below for that.
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``enabled`` / ``SPEASY_PROXY_ENABLED``
+     - ``True``
+     - Whether to use the Speasy caching proxy at all.
+   * - ``url`` / ``SPEASY_PROXY_URL``
+     - ``https://sciqlop.lpp.polytechnique.fr/cache``
+     - URL of the Speasy caching proxy server.
+
+.. code-block:: ini
+
+        [PROXY]
+        enabled = true
+        url = https://sciqlop.lpp.polytechnique.fr/cache
+
+Or from Python:
+
+    >>> import speasy as spz
+    >>> spz.config.proxy.enabled.set(True) # doctest: +SKIP
+    >>> spz.config.proxy.url.set('https://sciqlop.lpp.polytechnique.fr/cache') # doctest: +SKIP
+
 Cache section
 -------------
 
-You can configure the cache location and maximum size (in bytes) by editing the ``cache`` section of the configuration file.
-The default maximum cache size is 20 GB (20e9 bytes).
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``path`` / ``SPEASY_CACHE_PATH``
+     - platform user cache dir
+     - Where Speasy stores the local disk cache.
+   * - ``size`` / ``SPEASY_CACHE_SIZE``
+     - ``20e9`` (20 GB)
+     - Maximum cache size in bytes.
+   * - ``migrate_by_moving`` / ``SPEASY_CACHE_MIGRATE_BY_MOVING``
+     - ``false``
+     - Trades the migration rollback backup for lower peak disk usage — see
+       :ref:`migrating_by_moving` below.
 
 .. code-block:: ini
 
@@ -57,7 +138,186 @@ Or from Python:
         >>> spz.config.cache.path.set('/path/to/cache') # doctest: +SKIP
         >>> spz.config.cache.size.set(1e9)              # doctest: +SKIP
 
+Inspecting and clearing the cache
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    >>> from speasy.core.cache import cache_len, cache_disk_size, entries, drop_item, drop_matching_entries # doctest: +SKIP
+    >>> cache_len() # doctest: +SKIP
+    130169
+    >>> cache_disk_size() # doctest: +SKIP
+    78207505517
+    >>> list(entries())[:1] # doctest: +SKIP
+    ['UiowaEphTool_orbits/Callisto_Cassini_Co-rotational/2010-01-01T00:00:00+00:00']
+    >>> drop_item(list(entries())[0]) # doctest: +SKIP
+    >>> drop_matching_entries(".*amda.*") # doctest: +SKIP
+    >>> # clears every entry
+    >>> drop_matching_entries(".*") # doctest: +SKIP
+
+If your data still looks stale after clearing the cache, remember the local cache is only one layer:
+the :ref:`Speasy proxy <proxy_section>` may also be serving a cached response, and provider-specific
+caches (e.g. AMDA's ``user_cache_retention``) apply on top.
+
+Migrating an older cache
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Speasy's local disk cache is backed by `pysciqlop-cache <https://pypi.org/project/pysciqlop-cache/>`_,
+a native cache library, replacing the pure-Python ``diskcache`` package used in older Speasy versions.
+
+If you had already used an older Speasy version, the first import of the new version detects your
+existing ``diskcache``-format cache and migrates it automatically:
+
+- This is a **one-time** operation and can take a few minutes for a large cache; subsequent imports are
+  unaffected.
+- Your old cache is renamed to ``<cache path>.diskcache.backup`` and kept alongside the new one. Speasy
+  reminds you with a warning on every import for as long as a backup still exists.
+- Speasy still depends on ``diskcache`` precisely so this migration can run out of the box, with no extra
+  install step needed. In the unlikely case it's unavailable in your environment (e.g. a custom install
+  with ``--no-deps``), Speasy logs a warning and starts a fresh cache instead of migrating; your old cache
+  is left untouched on disk and nothing is lost.
+- If you switch back to a pre-1.8 Speasy version after already migrating (which doesn't know about
+  sciqlop-cache, so it writes its own fresh ``diskcache`` alongside the live cache) and fetch new data,
+  the next 1.8+ import detects and merges those new entries into the live cache automatically — you
+  won't lose anything by switching back and forth.
+
+Once you've confirmed the new cache works, delete the backup(s) with:
+
+    >>> from speasy.core.cache import migration_backups, delete_migration_backups # doctest: +SKIP
+    >>> migration_backups() # doctest: +SKIP
+    ['/home/user/.cache/speasy/Cache.diskcache.backup', '/home/user/.local/share/speasy/index.diskcache.backup']
+    >>> delete_migration_backups() # doctest: +SKIP
+    ['/home/user/.cache/speasy/Cache.diskcache.backup', '/home/user/.local/share/speasy/index.diskcache.backup']
+
+``delete_migration_backups()`` only ever removes these ``.diskcache.backup`` directories, never a live cache.
+
+.. note::
+    Speasy has no compiled ``pysciqlop-cache`` build for WASM/Pyodide (e.g. JupyterLite); on that
+    platform caching is transparently disabled (a no-op cache) rather than causing an import error.
+
+.. _migrating_by_moving:
+
+Migrating with limited disk space
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, migration is a **copy**: your old cache is renamed to ``<cache path>.diskcache.backup``
+and kept fully intact while every entry is also written into the new cache — so for a short window,
+both copies exist on disk at once (roughly double the cache's size in free space needed).
+
+If disk space is tight, set ``migrate_by_moving`` to **move** instead: each entry is deleted from the
+old cache as soon as it's written to the new one, so at most one entry's worth of duplication ever
+exists at a time.
+
+.. code-block:: ini
+
+    [CACHE]
+    migrate_by_moving = true
+
+.. warning::
+    Moving trades away the rollback safety net: once an entry is moved, it's gone from the old cache,
+    so there's nothing left to fall back to if the new cache turns out to have a problem afterwards.
+    Prefer the default (copy) unless you're genuinely short on disk space.
+
+Index section
+-------------
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``path`` / ``SPEASY_INDEX_PATH``
+     - platform user data dir + ``/index``
+     - Where Speasy stores its product index database.
+
+CDAWeb section
+--------------
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``inventory_data_path`` / ``SPEASY_CDAWEB_INVENTORY_DATA_PATH``
+     - platform user data dir + ``/cda_inventory``
+     - Where Speasy caches the CDAWeb inventory.
+   * - ``preferred_access_method`` / ``SPEASY_CDAWEB_PREFERRED_ACCESS_METHOD``
+     - ``BEST``
+     - ``API``, ``FILE``, or ``BEST``; see :doc:`cdaweb/cdaweb` for what each one means.
+
+AMDA section
+------------
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``username`` / ``SPEASY_AMDA_USERNAME``
+     - ``""``
+     - Your AMDA username. Once set (together with ``password``), you can access your private AMDA products.
+   * - ``password`` / ``SPEASY_AMDA_PASSWORD``
+     - ``""``
+     - Your AMDA password.
+   * - ``user_cache_retention`` / ``SPEASY_AMDA_USER_CACHE_RETENTION``
+     - ``900`` (15 minutes)
+     - Cache retention, in seconds, for AMDA requests such as ``list_catalogs``; see :doc:`amda/amda`
+       for when a change takes effect.
+   * - ``max_chunk_size_days`` / ``SPEASY_AMDA_MAX_CHUNK_SIZE_DAYS``
+     - ``10``
+     - Maximum request duration in days; longer requests are automatically split into smaller ones.
+   * - ``entry_point`` / ``SPEASY_AMDA_ENTRY_POINT``
+     - ``https://amda.irap.omp.eu``
+     - Base URL of the AMDA web service.
+   * - ``output_format`` / ``SPEASY_AMDA_OUTPUT_FORMAT``
+     - ``CDF_ISTP``
+     - File format requested from AMDA. Only ``CDF_ISTP`` is supported today.
+
+For example, from Python:
+
+    >>> import speasy as spz
+    >>> spz.config.amda.username.set('my_amda_username') # doctest: +SKIP
+    >>> spz.config.amda.password.set('my_amda_password') # doctest: +SKIP
+
+Archive section
+---------------
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``extra_inventory_lookup_dirs`` / ``SPEASY_ARCHIVE_EXTRA_INVENTORY_LOOKUP_DIRS``
+     - *(empty)*
+     - Comma-separated list of extra directories the Direct Archive provider scans for YAML inventory
+       files, beyond its default user directory. See :doc:`direct_archive/direct_archive`.
+
+Inventories section
+-------------------
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``cache_retention_days`` / ``SPEASY_INVENTORIES_CACHE_RETENTION_DAYS``
+     - ``2``
+     - Maximum age, in days, Speasy keeps a provider's inventory cached before re-fetching it.
+
+.. _http_forward_proxy:
+
 Connecting behind an HTTP proxy
 --------------------------------
 
-Speasy automatically uses the ``HTTP_PROXY`` and ``HTTPS_PROXY`` environment variables if they are set.
+If your network requires going through a forward HTTP proxy to reach the internet, Speasy honors the
+standard ``HTTP_PROXY`` environment variable for its HTTP traffic. Note that ``HTTPS_PROXY`` is **not**
+currently read — set ``HTTP_PROXY`` even for HTTPS requests. This is unrelated to the Speasy caching
+proxy described in the :ref:`proxy_section` above.

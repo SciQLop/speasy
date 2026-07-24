@@ -5,7 +5,7 @@ import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 try:
     import pysciqlop_cache as sc
@@ -48,13 +48,93 @@ class CacheItem:
             return False
 
 
+def _is_already_sciqlop_cache_layout(p: Path) -> bool:
+    return (p / "sciqlop-cache.db").is_file() or bool(list(p.glob("*/sciqlop-cache.db")))
+
+
 def _is_legacy_diskcache_layout(p: Path) -> bool:
     if not p.exists():
+        return False
+    # A directory already on the new backend can still have a stray ``cache.db``
+    # left over from an older pysciqlop-cache release (before that file was
+    # renamed to ``sciqlop-cache.db``). Presence of the new backend's own file is
+    # definitive: never treat such a directory as needing (re-)migration.
+    if _is_already_sciqlop_cache_layout(p):
         return False
     return (p / "cache.db").is_file() or bool(list(p.glob("*/cache.db")))
 
 
-def _migrate_legacy_diskcache(full_path: str) -> bool:
+def _restore_legacy_cache(p: Path, backup: Path) -> None:
+    if p.exists():
+        shutil.rmtree(str(p))
+    os.rename(str(backup), str(p))
+
+
+def _merge_stray_legacy_entries(p: Path) -> bool:
+    """A ``cache.db`` sitting next to an already-migrated ``sciqlop-cache.db`` most
+    often means an older Speasy version (which knows nothing about sciqlop-cache)
+    was used since the last migration and wrote its own fresh diskcache into the
+    same directory. Merge those entries directly into the *existing* live cache in
+    place. Returns True if anything was merged.
+
+    This is deliberately not ``_migrate_legacy_diskcache``'s rename-the-whole-
+    directory-then-recreate approach: that would sweep the live sciqlop-cache.db
+    into the backup too, and migrate() only ever reads from diskcache, so the
+    live data would be orphaned in the backup, never restored.
+    """
+    legacy_db = p / "cache.db"
+    if not legacy_db.is_file():
+        return False
+
+    import diskcache as dc
+
+    try:
+        legacy = dc.Cache(str(p))
+        keys = list(legacy)
+    except Exception:
+        log.exception(
+            f"Found {legacy_db} alongside the live cache, but it doesn't look like "
+            f"a valid diskcache (probably harmless leftover debris); leaving it and "
+            f"the live cache untouched."
+        )
+        return False
+
+    if not keys:
+        legacy.close()
+        return False
+
+    log.warning(
+        f"Detected {len(keys)} diskcache entries alongside the live cache at {p} "
+        f"(likely written by an older Speasy version used since the last "
+        f"migration); merging them into the live cache."
+    )
+    live = sc.Cache(cache_path=str(p), max_size=cache_cfg.size())
+    merged = 0
+    for key in keys:
+        try:
+            value = legacy.get(key)
+        except Exception:
+            log.exception(f"Could not read legacy entry {key!r} at {p}, skipping")
+            continue
+        if value is None:
+            continue
+        try:
+            live.set(key, value)
+            merged += 1
+        except Exception:
+            log.exception(f"Failed to merge legacy entry {key!r} into the live cache at {p}")
+    legacy.close()
+
+    for suffix in ("", "-wal", "-shm", "-journal"):
+        stray = Path(f"{legacy_db}{suffix}")
+        if stray.exists():
+            stray.unlink()
+
+    log.info(f"Merged {merged} new entries from a legacy diskcache found at {p} into the live cache.")
+    return True
+
+
+def _migrate_legacy_diskcache(full_path: str, move: bool = False) -> bool:
     """Detect a legacy diskcache layout at ``full_path`` and migrate it to
     sciqlop-cache format. Returns True if a migration was performed.
 
@@ -65,9 +145,33 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
 
     For large caches this can take minutes — a one-time cost on first launch
     after upgrading. The legacy backup is kept so the user can verify and
-    delete it manually.
+    delete it manually, unless ``move`` is set.
+
+    Parameters
+    ----------
+    move : bool
+        If True, delete each legacy entry as soon as it's migrated instead of
+        preserving the whole legacy cache as a rollback backup. Uses much less
+        peak disk space during migration, at the cost of not being able to fall
+        back to the legacy cache afterwards. See the ``migrate_by_moving`` config
+        entry (``[CACHE] migrate_by_moving`` / ``SPEASY_CACHE_MIGRATE_BY_MOVING``)
+        for the user-facing toggle.
+
+        Note: if migration itself fails partway through (see the ``except
+        Exception`` branch below), any entries already dropped from the legacy
+        cache before the failure are only recoverable from the (discarded) new
+        cache, not from the restored legacy one -- a narrow gap inherent to
+        deleting-as-you-go, unlike the default (non-move) mode where the legacy
+        cache is fully intact until migration succeeds outright.
     """
     p = Path(full_path)
+
+    if _is_already_sciqlop_cache_layout(p):
+        # Already migrated -- but a cache.db here too means a pre-1.8 Speasy
+        # version was used again since, and wrote fresh legacy data alongside the
+        # live cache. Merge it in rather than silently discarding it.
+        return _merge_stray_legacy_entries(p)
+
     if not _is_legacy_diskcache_layout(p):
         return False
 
@@ -83,7 +187,7 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     try:
         from pysciqlop_cache.migrate import migrate
     except ImportError as e:
-        log.error(
+        log.exception(
             f"Detected legacy diskcache layout at {p} but cannot migrate "
             f"(missing dependency: {e}). Install diskcache once to allow "
             f"migration, or delete {p} to start fresh."
@@ -100,19 +204,99 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     # final path; restore the legacy cache on any failure.
     os.rename(str(p), str(backup))
     try:
-        result = migrate(str(backup), str(p))
-    except Exception:
-        if p.exists():
-            shutil.rmtree(str(p))
-        os.rename(str(backup), str(p))
-        raise
+        result = migrate(str(backup), str(p), drop=move)
+    except ImportError as e:
+        _restore_legacy_cache(p, backup)
+        log.exception(
+            f"Detected legacy diskcache layout at {p} but cannot migrate "
+            f"(missing dependency: {e}). Install diskcache once to allow "
+            f"migration, or delete {p} to start fresh."
+        )
+        return False
+    except Exception as e:
+        # Includes a legacy entry that fails to deserialize (e.g. pickled by an
+        # incompatible library version) -- migrate() has no per-entry error
+        # containment, so one bad entry aborts the whole migration. Never fatal:
+        # the legacy cache still works fine as a fallback, that's the entire point
+        # of not deleting it until migration succeeds.
+        _restore_legacy_cache(p, backup)
+        log.exception(
+            f"Migration of legacy cache at {p} failed ({e}); left the legacy cache "
+            f"in place, Speasy will keep using it and retry migration next time. "
+            f"Delete {p} to start fresh instead."
+        )
+        return False
 
-    log.info(
-        f"Migration complete: {result['migrated']} entries in "
-        f"{result['elapsed_secs']}s. Legacy cache preserved at {backup}; "
-        f"delete it once you've verified the new cache works."
-    )
+    if move:
+        log.info(
+            f"Migration complete: {result['migrated']} entries moved in "
+            f"{result['elapsed_secs']}s. Legacy entries were deleted as they "
+            f"migrated, so {backup} should already be empty."
+        )
+    else:
+        log.info(
+            f"Migration complete: {result['migrated']} entries in "
+            f"{result['elapsed_secs']}s. Legacy cache preserved at {backup}; "
+            f"delete it once you've verified the new cache works."
+        )
     return True
+
+
+def _warn_if_backup_present(full_path: str) -> None:
+    """Log a reminder if a migration backup still sits next to ``full_path``.
+
+    Called on every construction of a cache/index built at this path, so the
+    reminder keeps showing up (once per import) until the user actually
+    deletes the backup with :func:`delete_migration_backups`.
+    """
+    backup = Path(f"{full_path}.diskcache.backup")
+    if backup.exists():
+        log.warning(
+            f"A legacy cache backup from migrating to sciqlop-cache is still "
+            f"present at {backup}. Once you've verified the new cache works, "
+            f"delete it with speasy.core.cache.delete_migration_backups()."
+        )
+
+
+def _known_migratable_paths() -> List[str]:
+    """Paths of every cache/index Speasy builds that could carry a legacy
+    diskcache layout -- i.e. every call site of :func:`_migrate_legacy_diskcache`.
+    """
+    from speasy.config import index as index_cfg
+    return [f"{cache_cfg.path()}/Cache", index_cfg.path()]
+
+
+def migration_backups() -> List[str]:
+    """List legacy diskcache backups left over from migrating to sciqlop-cache.
+
+    Returns
+    -------
+    List[str]
+        Paths to backup directories that currently exist on disk.
+    """
+    return [
+        backup for backup in (f"{p}.diskcache.backup" for p in _known_migratable_paths())
+        if os.path.isdir(backup)
+    ]
+
+
+def delete_migration_backups() -> List[str]:
+    """Delete legacy diskcache backups left over from migrating to sciqlop-cache.
+
+    Safe to call at any time: only removes the ``<path>.diskcache.backup``
+    directories created by the one-time migration, never a live cache.
+
+    Returns
+    -------
+    List[str]
+        Paths that were actually deleted.
+    """
+    deleted = []
+    for backup in migration_backups():
+        shutil.rmtree(backup)
+        deleted.append(backup)
+        log.info(f"Deleted migration backup at {backup}")
+    return deleted
 
 
 class Cache:
@@ -120,7 +304,8 @@ class Cache:
 
     def __init__(self, cache_path: str = "", cache_type: str = "Cache"):
         full_path = f"{cache_path}/{cache_type}"
-        _migrate_legacy_diskcache(full_path)
+        _migrate_legacy_diskcache(full_path, move=cache_cfg.migrate_by_moving())
+        _warn_if_backup_present(full_path)
 
         if cache_type == "Fanout":
             self._data = sc.FanoutCache(
@@ -177,7 +362,16 @@ class Cache:
         return self._data.add(key, value, expire=expire, tag=tag)
 
     def get(self, key, default_value=None):
-        return self._data.get(key, default_value)
+        try:
+            return self._data.get(key, default_value)
+        except Exception:
+            # An entry that fails to deserialize (e.g. pickled by an incompatible
+            # library version, such as a different numpy major version) is not
+            # readable by this process -- treat it as a miss instead of crashing.
+            log.warning(f"Cache entry {key!r} could not be loaded (possibly written by an "
+                       f"incompatible library version); treating it as a cache miss.",
+                       exc_info=True)
+            return default_value
 
     def incr(self, key, delta=1, default=0):
         return self._data.incr(key, delta, default=default)

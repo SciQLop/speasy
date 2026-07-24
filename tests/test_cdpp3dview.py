@@ -145,6 +145,21 @@ class Cdpp3dViewTest(unittest.TestCase):
         self.assertIsInstance(
             spz.inventories.tree.cdpp3dview.Trajectories.ASTEROID.Dimorphos, ParameterIndex)
 
+    def test_get_data_accepts_coordinate_system_alias(self):
+        # SSCWeb/UiowaEphTool call this kwarg 'coordinate_system'; 3dView's own REST API (and
+        # thus this provider) calls it 'coordinate_frame'. Accept both spellings so switching
+        # between trajectory providers doesn't require renaming a kwarg.
+        result = spz.cdpp3dview.get_data(
+            "GEOTAIL",
+            datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc),
+            datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc),
+            coordinate_system="GSE",
+            disable_cache=True,
+            disable_proxy=True,
+        )
+        self.assertIsNotNone(result)
+        self.assertGreater(len(result), 0)
+
     def test_get_frames(self):
         frames = spz.cdpp3dview.get_frames()
         self.assertGreater(len(frames), 0)
@@ -200,6 +215,19 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
                                  disable_cache=True,
                                  disable_proxy=True
                                  )
+
+    def test_get_data_conflicting_coordinate_aliases_raises(self):
+        # coordinate_system is just an alias for coordinate_frame -- passing both with different
+        # values is ambiguous and must fail loudly, not silently prefer one. Raised before any
+        # network call, so no cache/proxy kwargs are needed here.
+        with self.assertRaises(cdpp3dview.Cdpp3dViewWebException):
+            spz.cdpp3dview.get_data(
+                "GEOTAIL",
+                datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc),
+                datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc),
+                coordinate_frame="GSE",
+                coordinate_system="J2000",
+            )
 
     @data(
         {

@@ -124,7 +124,7 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_
     if variables is None:  # codec does not implement list_variables, it cannot describe a master
         log.warning(f"Codec '{codec_id}' cannot list variables for dataset {name}, skipping")
         return None
-    parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}")
+    parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}", meta=entry_meta)
                   for var in variables]
     meta = _merge_meta({}, dataset_meta or {}, meta_priority)
     return make_dataset_index(name=name, provider='archive', uid=path,

@@ -73,6 +73,29 @@ class ConfigModule(unittest.TestCase):
         config.remove_entry(my_test_entry)
         os.environ.pop(my_test_entry.env_var_name)
 
+    def test_core_user_codecs_extra_dirs_default_is_empty_set(self):
+        """A set() default used to round-trip through str(default) -> type_ctor, turning an
+        intended empty set into {'set()'} (a set containing the literal string 'set()').
+        Checked via .default/.type_ctor directly (not .get()) so a stray value already
+        persisted to a developer's config.ini can't mask a regression here."""
+        entry = config.core.user_codecs_extra_dirs
+        self.assertEqual(set(), entry.type_ctor(entry.default))
+
+    def test_archive_extra_inventory_lookup_dirs_default_is_empty_set(self):
+        entry = config.archive.extra_inventory_lookup_dirs
+        self.assertEqual(set(), entry.type_ctor(entry.default))
+
+    def test_user_codecs_extra_dirs_ignores_stray_persisted_set_literal(self):
+        """Installs that ran before the empty-set-default fix may have 'set()' (the literal
+        stringified default) already persisted to their config.ini/env; that value must be
+        treated the same as empty, not as a directory literally named 'set()'."""
+        entry = config.core.user_codecs_extra_dirs
+        self.assertEqual(set(), entry.type_ctor("set()"))
+
+    def test_user_codecs_extra_dirs_keeps_real_paths_alongside_stray_set_literal(self):
+        entry = config.core.user_codecs_extra_dirs
+        self.assertEqual({"/my/codecs"}, entry.type_ctor("set(),/my/codecs"))
+
 
 if __name__ == '__main__':
     unittest.main()

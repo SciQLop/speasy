@@ -24,6 +24,13 @@ _config.read(SPEASY_CONFIG_FILE)
 _entries = {}
 
 
+def _parse_dir_set(value: str) -> set:
+    """Comma-separated directory list -> set, dropping empty entries and the literal
+    string 'set()' -- installs that ran before user_codecs_extra_dirs/extra_inventory_lookup_dirs
+    got an empty-string default may already have str(set()) persisted to their config.ini/env."""
+    return {p for p in value.split(',') if p and p != 'set()'}
+
+
 def _load_dict_from_repr(value: str):
     if value:
         d = ast.literal_eval(value)
@@ -178,9 +185,9 @@ This is useful to avoid creating a new connection for each request.""",
                                       "description": """Sets the maximum number of pools to keep in the pool.
 This is useful to avoid creating a new pool for each request.""",
                                       "type_ctor": int},
-                     user_codecs_extra_dirs={"default": set(),
+                     user_codecs_extra_dirs={"default": "",
                                              "description": """A comma separated list of directories to scan for extra codecs.""",
-                                             "type_ctor": lambda x: set(x.split(','))},
+                                             "type_ctor": _parse_dir_set},
                      )
 
 proxy = ConfigSection("PROXY",
@@ -197,7 +204,13 @@ cache = ConfigSection("CACHE",
                       size={"default": 20e9, "description": """Sets the maximum cache capacity.""",
                             "type_ctor": lambda x: int(float(x))},
                       path={"default": str(appdirs.user_cache_dir("speasy", "LPP")),
-                            "description": """Sets Speasy cache path."""}
+                            "description": """Sets Speasy cache path."""},
+                      migrate_by_moving={"default": False,
+                                        "description": """If true, the one-time diskcache -> sciqlop-cache
+migration deletes each legacy entry as soon as it's copied, instead of preserving the whole legacy cache
+as a rollback backup. Uses much less peak disk space during migration, at the cost of not being able to
+fall back to the legacy cache if the new one turns out to have an issue. Off by default.""",
+                                        "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
                       )
 
 index = ConfigSection("INDEX",
@@ -232,9 +245,9 @@ amda = ConfigSection("AMDA",
                      )
 
 archive = ConfigSection("ARCHIVE",
-                        extra_inventory_lookup_dirs={"default": set(),
+                        extra_inventory_lookup_dirs={"default": "",
                                                      "description": """A comma separated list of directory path Archive provider will scann for YAML inventory files.""",
-                                                     "type_ctor": lambda x: set(x.split(','))}
+                                                     "type_ctor": _parse_dir_set}
                         )
 
 inventories = ConfigSection("INVENTORIES",

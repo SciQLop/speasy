@@ -44,6 +44,18 @@ def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
     return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
 
 
+def _resolve_coordinate_frame(coordinate_frame: Optional[str], coordinate_system: Optional[str]) -> str:
+    """coordinate_system is an alias for coordinate_frame (SSCWeb/UiowaEphTool call it
+    coordinate_system; 3dView's own REST API calls it frame/coordinate_frame). Accept either
+    spelling, but reject the two disagreeing rather than silently picking one."""
+    if coordinate_frame is not None and coordinate_system is not None and coordinate_frame != coordinate_system:
+        raise Cdpp3dViewWebException(
+            f"Got conflicting coordinate_frame={coordinate_frame!r} and "
+            f"coordinate_system={coordinate_system!r} -- they are aliases for the same thing, pass only one."
+        )
+    return coordinate_frame or coordinate_system or "J2000"
+
+
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"cdpp3dview/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_frame', 'J2000'),
@@ -128,11 +140,13 @@ class Cdpp3dViewWebservice(DataProvider):
         product: str,
         start_time: AnyDateTimeType,
         stop_time: AnyDateTimeType,
-        coordinate_frame: str = "J2000",
+        coordinate_frame: Optional[str] = None,
+        coordinate_system: Optional[str] = None,
         sampling: str = "600",
         if_newer_than: Optional[AnyDateTimeType] = None,
         **kwargs,
     ) -> Optional[SpeasyVariable]:
+        coordinate_frame = _resolve_coordinate_frame(coordinate_frame, coordinate_system)
         available_frames = self.get_frames()
         if not available_frames:
             log.warning(

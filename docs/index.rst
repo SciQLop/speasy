@@ -13,11 +13,13 @@ Space Physics made EASY
    :maxdepth: 2
 
    installation
+   user/concepts
    user/data_providers
+   examples/index
+   user/plotting
    user/numpy
    user/scipy
    user/configuration
-   examples/index
    dev/index
    history
    contributing
@@ -136,6 +138,7 @@ Features
 - Dynamic inventory to discover available data from your favourite Python environment completion
 - Speasy variables support :doc:`NumPy operations <user/numpy>`
 - Speasy variables support :doc:`filtering, resampling, and interpolation <user/scipy>`
+- Quick :doc:`line and spectrogram plotting <user/plotting>`
 - Local cache to avoid redundant downloads
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`__ API

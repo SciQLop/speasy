@@ -35,7 +35,8 @@ dependencies = ['PyYAML',
  'appdirs',
  'astropy',
  'astroquery',
- 'pysciqlop-cache>=0.1.4; sys_platform != "emscripten"',
+ 'diskcache',
+ 'pysciqlop-cache>=0.1.5; sys_platform != "emscripten"',
  'humanize',
  'matplotlib',
  'numpy',
@@ -61,7 +62,6 @@ zstd = ["pyzstd"]
 [dependency-groups]
 dev = [
     "ddt",
-    "diskcache",
     "pytest",
     "pytest-cov",
     "pyzstd",

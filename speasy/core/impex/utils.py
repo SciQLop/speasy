@@ -1,4 +1,4 @@
-"""AMDA_Webservice utility functions. This module defines some conversion functions specific to AMDA_Webservice, mainly
+"""AmdaWebservice utility functions. This module defines some conversion functions specific to AmdaWebservice, mainly
 conversion procedures for parsing CSV and VOTable data.
 
 """

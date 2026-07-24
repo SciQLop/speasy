@@ -16,16 +16,19 @@ class Plot:
             fig, ax = plt.subplots()
         return ax
 
-    def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, *args, **kwargs):
+    def line(self, x, y, ax=None, labels=None, units=None, xaxis_label=None, yaxis_label=None, logy=False, *args,
+             **kwargs):
         ax = self._get_ax(ax)
         ax.tick_params(axis='x', labelrotation=45)
-        ax.plot(x, y, label=labels)
+        ax.plot(x, y, label=labels, *args, **kwargs)
         if labels is not None:
             ax.legend()
         if units is not None and yaxis_label is not None:
             ax.set_ylabel(f"{yaxis_label} ({units})")
         if xaxis_label is not None:
             ax.set_xlabel(f"{xaxis_label}")
+        if logy:
+            ax.semilogy()
         return ax
 
     def colormap(self, x, y, z, xaxis_label=None, yaxis_label=None, yaxis_units=None, zaxis_label=None,
@@ -40,8 +43,13 @@ class Plot:
         if xaxis_label is not None:
             ax.set_xlabel(f"{xaxis_label}")
 
-        vmin = vmin or np.nanmin(z[np.nonzero(z)])
-        vmax = vmax or np.nanmax(z)
+        # A slice that's entirely masked/FILLVAL has no finite value to scale from; fall back to
+        # an arbitrary positive bound rather than feeding LogNorm/Normalize a NaN vmin/vmax.
+        nonzero = z[np.nonzero(z)]
+        if vmin is None:
+            vmin = np.nanmin(nonzero) if np.isfinite(nonzero).any() else 1.0
+        if vmax is None:
+            vmax = np.nanmax(z) if np.isfinite(z).any() else 1.0
 
         if logy:
             ax.semilogy()
