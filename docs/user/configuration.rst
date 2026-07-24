@@ -121,6 +121,10 @@ Cache section
    * - ``size`` / ``SPEASY_CACHE_SIZE``
      - ``20e9`` (20 GB)
      - Maximum cache size in bytes.
+   * - ``migrate_by_moving`` / ``SPEASY_CACHE_MIGRATE_BY_MOVING``
+     - ``false``
+     - Trades the migration rollback backup for lower peak disk usage — see
+       :ref:`migrating_by_moving` below.
 
 .. code-block:: ini
 
@@ -184,6 +188,29 @@ Once you've confirmed the new cache works, delete the backup(s) with:
 .. note::
     Speasy has no compiled ``pysciqlop-cache`` build for WASM/Pyodide (e.g. JupyterLite); on that
     platform caching is transparently disabled (a no-op cache) rather than causing an import error.
+
+.. _migrating_by_moving:
+
+Migrating with limited disk space
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, migration is a **copy**: your old cache is renamed to ``<cache path>.diskcache.backup``
+and kept fully intact while every entry is also written into the new cache — so for a short window,
+both copies exist on disk at once (roughly double the cache's size in free space needed).
+
+If disk space is tight, set ``migrate_by_moving`` to **move** instead: each entry is deleted from the
+old cache as soon as it's written to the new one, so at most one entry's worth of duplication ever
+exists at a time.
+
+.. code-block:: ini
+
+    [CACHE]
+    migrate_by_moving = true
+
+.. warning::
+    Moving trades away the rollback safety net: once an entry is moved, it's gone from the old cache,
+    so there's nothing left to fall back to if the new cache turns out to have a problem afterwards.
+    Prefer the default (copy) unless you're genuinely short on disk space.
 
 Index section
 -------------

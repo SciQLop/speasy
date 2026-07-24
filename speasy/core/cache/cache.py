@@ -70,7 +70,7 @@ def _restore_legacy_cache(p: Path, backup: Path) -> None:
     os.rename(str(backup), str(p))
 
 
-def _migrate_legacy_diskcache(full_path: str) -> bool:
+def _migrate_legacy_diskcache(full_path: str, move: bool = False) -> bool:
     """Detect a legacy diskcache layout at ``full_path`` and migrate it to
     sciqlop-cache format. Returns True if a migration was performed.
 
@@ -81,7 +81,24 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
 
     For large caches this can take minutes — a one-time cost on first launch
     after upgrading. The legacy backup is kept so the user can verify and
-    delete it manually.
+    delete it manually, unless ``move`` is set.
+
+    Parameters
+    ----------
+    move : bool
+        If True, delete each legacy entry as soon as it's migrated instead of
+        preserving the whole legacy cache as a rollback backup. Uses much less
+        peak disk space during migration, at the cost of not being able to fall
+        back to the legacy cache afterwards. See the ``migrate_by_moving`` config
+        entry (``[CACHE] migrate_by_moving`` / ``SPEASY_CACHE_MIGRATE_BY_MOVING``)
+        for the user-facing toggle.
+
+        Note: if migration itself fails partway through (see the ``except
+        Exception`` branch below), any entries already dropped from the legacy
+        cache before the failure are only recoverable from the (discarded) new
+        cache, not from the restored legacy one -- a narrow gap inherent to
+        deleting-as-you-go, unlike the default (non-move) mode where the legacy
+        cache is fully intact until migration succeeds outright.
     """
     p = Path(full_path)
     if not _is_legacy_diskcache_layout(p):
@@ -116,7 +133,7 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
     # final path; restore the legacy cache on any failure.
     os.rename(str(p), str(backup))
     try:
-        result = migrate(str(backup), str(p))
+        result = migrate(str(backup), str(p), drop=move)
     except ImportError as e:
         _restore_legacy_cache(p, backup)
         log.exception(
@@ -139,11 +156,18 @@ def _migrate_legacy_diskcache(full_path: str) -> bool:
         )
         return False
 
-    log.info(
-        f"Migration complete: {result['migrated']} entries in "
-        f"{result['elapsed_secs']}s. Legacy cache preserved at {backup}; "
-        f"delete it once you've verified the new cache works."
-    )
+    if move:
+        log.info(
+            f"Migration complete: {result['migrated']} entries moved in "
+            f"{result['elapsed_secs']}s. Legacy entries were deleted as they "
+            f"migrated, so {backup} should already be empty."
+        )
+    else:
+        log.info(
+            f"Migration complete: {result['migrated']} entries in "
+            f"{result['elapsed_secs']}s. Legacy cache preserved at {backup}; "
+            f"delete it once you've verified the new cache works."
+        )
     return True
 
 
@@ -209,7 +233,7 @@ class Cache:
 
     def __init__(self, cache_path: str = "", cache_type: str = "Cache"):
         full_path = f"{cache_path}/{cache_type}"
-        _migrate_legacy_diskcache(full_path)
+        _migrate_legacy_diskcache(full_path, move=cache_cfg.migrate_by_moving())
         _warn_if_backup_present(full_path)
 
         if cache_type == "Fanout":

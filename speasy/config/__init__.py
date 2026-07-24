@@ -204,7 +204,13 @@ cache = ConfigSection("CACHE",
                       size={"default": 20e9, "description": """Sets the maximum cache capacity.""",
                             "type_ctor": lambda x: int(float(x))},
                       path={"default": str(appdirs.user_cache_dir("speasy", "LPP")),
-                            "description": """Sets Speasy cache path."""}
+                            "description": """Sets Speasy cache path."""},
+                      migrate_by_moving={"default": False,
+                                        "description": """If true, the one-time diskcache -> sciqlop-cache
+migration deletes each legacy entry as soon as it's copied, instead of preserving the whole legacy cache
+as a rollback backup. Uses much less peak disk space during migration, at the cost of not being able to
+fall back to the legacy cache if the new one turns out to have an issue. Off by default.""",
+                                        "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
                       )
 
 index = ConfigSection("INDEX",
