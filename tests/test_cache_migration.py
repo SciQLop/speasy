@@ -14,6 +14,7 @@ import diskcache
 import pysciqlop_cache as sc
 
 from speasy.core.cache.cache import (
+    Cache,
     _migrate_legacy_diskcache,
     _is_legacy_diskcache_layout,
     _warn_if_backup_present,
@@ -53,6 +54,45 @@ class LegacyDiskcacheMigration(unittest.TestCase):
         self.assertEqual(
             migrated.get("proxy_inventories_save_date/amda", None),
             "2024-01-01T00:00:00+00:00")
+
+    def test_move_true_empties_the_legacy_backup_as_entries_migrate(self):
+        """move=True (the migrate_by_moving config option) deletes each legacy
+        entry as soon as it's migrated, instead of preserving the whole legacy
+        cache as a rollback backup -- trades the safety net for much less peak
+        disk usage during migration."""
+        legacy = diskcache.Cache(self.root)
+        legacy["some_key"] = "some_value"
+        legacy.close()
+
+        self.assertTrue(_migrate_legacy_diskcache(self.root, move=True))
+
+        backup = f"{self.root}.diskcache.backup"
+        remaining = diskcache.Cache(backup)
+        self.assertEqual(list(remaining), [],
+                         "legacy entries should be deleted once migrated in move mode")
+
+        migrated = sc.Index(path=self.root)
+        self.assertEqual(migrated.get("some_key", None), "some_value")
+
+    def test_cache_construction_honors_migrate_by_moving_config(self):
+        """migrate_by_moving (env var SPEASY_CACHE_MIGRATE_BY_MOVING) is what a real
+        user actually sets -- confirm Cache() picks it up end-to-end, not just
+        _migrate_legacy_diskcache's own move= parameter in isolation. Cache()
+        migrates at "<cache_path>/<cache_type>" (default cache_type "Cache"), so
+        the legacy layout must live there, not at self.root directly."""
+        full_path = f"{self.root}/Cache"
+        self.addCleanup(shutil.rmtree, f"{full_path}.diskcache.backup", ignore_errors=True)
+        legacy = diskcache.Cache(full_path)
+        legacy["some_key"] = "some_value"
+        legacy.close()
+
+        with mock.patch.dict(os.environ, {"SPEASY_CACHE_MIGRATE_BY_MOVING": "true"}):
+            Cache(self.root)
+
+        backup = f"{full_path}.diskcache.backup"
+        remaining = diskcache.Cache(backup)
+        self.assertEqual(list(remaining), [],
+                         "legacy entries should be deleted once migrated in move mode")
 
     def test_falls_back_gracefully_when_diskcache_unavailable(self):
         """diskcache is a required runtime dependency, but ``migrate()`` imports it lazily
