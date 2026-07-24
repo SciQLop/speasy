@@ -139,6 +139,35 @@ class LegacyDiskcacheMigration(unittest.TestCase):
             os.path.isfile(os.path.join(self.root, "cache.db")),
             "legacy cache should be left untouched when migration fails")
 
+    def test_switching_back_to_pre_18_and_forward_again_merges_the_new_entries(self):
+        """A user who switches back to a pre-1.8 Speasy version (which knows nothing
+        about sciqlop-cache) after already migrating, then fetches new data, ends up
+        with a fresh legacy cache.db sitting next to the live sciqlop-cache.db --
+        _is_legacy_diskcache_layout treats that as already-migrated and skips it
+        entirely, silently losing everything cached during that pre-1.8 session on
+        the next switch back to 1.8+."""
+        # Run 1: pre-1.8, first use.
+        legacy = diskcache.Cache(self.root)
+        legacy["old_key"] = "value_from_pre18_run1"
+        legacy.close()
+
+        # Run 2: switch to 1.8+, triggers the real migration.
+        self.assertTrue(_migrate_legacy_diskcache(self.root))
+        live = sc.Cache(cache_path=self.root, max_size=int(20e9))
+        self.assertEqual(live.get("old_key", None), "value_from_pre18_run1")
+
+        # Run 3: switch back to pre-1.8, which writes its own fresh diskcache
+        # (it has no idea sciqlop-cache exists) alongside the live one.
+        legacy2 = diskcache.Cache(self.root)
+        legacy2["new_key_from_run3"] = "value_from_pre18_run3"
+        legacy2.close()
+
+        # Run 4: switch to 1.8+ again -- must recover the new entry, not lose it.
+        _migrate_legacy_diskcache(self.root)
+        live2 = sc.Cache(cache_path=self.root, max_size=int(20e9))
+        self.assertEqual(live2.get("new_key_from_run3", None), "value_from_pre18_run3")
+        self.assertEqual(live2.get("old_key", None), "value_from_pre18_run1")
+
     def test_stray_legacy_file_does_not_trigger_false_positive(self):
         """Real-world caches that migrated with an older pysciqlop-cache release can
         end up with a stray ``cache.db`` (diskcache's own filename) sitting next to
