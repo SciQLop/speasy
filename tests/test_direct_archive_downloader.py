@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 from multiprocessing import Pool
 from ddt import ddt, data, unpack
@@ -11,6 +12,27 @@ from speasy.core.direct_archive_downloader import get_product
 import speasy.core.direct_archive_downloader.direct_archive_downloader as dad
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
+
+
+class _LocalHttpArchive:
+    """Serves a directory tree over HTTP, so remote file listing and its cache are really exercised."""
+
+    def __init__(self, root: str):
+        import functools
+        import threading
+        from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+        class _QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+        self._server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(_QuietHandler, directory=root))
+        threading.Thread(target=self._server.serve_forever, daemon=True).start()
+        self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
+
+    def close(self):
+        self._server.shutdown()
+        self._server.server_close()
 
 
 def _custom_cdf_loader(url, variable, *args, **kwargs):
@@ -58,6 +80,64 @@ class DirectArchiveDownloader(unittest.TestCase):
     def test_unknown_split_rules_raises(self):
         with self.assertRaises(ValueError):
             dad.spilt_range(split_frequency='unknown', start_time='2010-01-01', stop_time='2011-01-01')
+
+    def test_monthly_split_spans_whole_years(self):
+        # relativedelta(stop, start).months is the *residual* months after whole years, so a range
+        # longer than a year used to yield only its residual months (14 months -> 3 fragments).
+        self.assertListEqual(
+            dad.spilt_range(split_frequency='monthly', start_time='2018-01-01', stop_time='2019-03-05'),
+            [make_utc_datetime(f'2018-{month:02d}-01') for month in range(1, 13)] +
+            [make_utc_datetime(f'2019-{month:02d}-01') for month in range(1, 4)]
+        )
+
+    def test_force_refresh_refreshes_the_file_listing_of_a_regular_split_dataset(self):
+        # force_refresh only reached the file *reader*'s cache, never list_files(), so a dataset
+        # using use_file_list kept resolving to the file version listed up to 12h earlier.
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018'))
+            open(os.path.join(archive, '2018', 'data_20180101_v01.cdf'), 'w').close()
+            server = _LocalHttpArchive(archive)
+            self.addCleanup(server.close)
+
+            resolved = []
+
+            def record_url(url, variable, **kwargs):
+                resolved.append(url.rsplit('/', 1)[-1])
+                return None
+
+            request = dict(url_pattern=server.url + r"/{Y}/data_{Y}{M:02d}{D:02d}_v\d+\.cdf",
+                           split_rule='regular', variable='B',
+                           start_time='2018-01-01', stop_time='2018-01-01',
+                           use_file_list=True, file_reader=record_url)
+
+            get_product(**request)
+            open(os.path.join(archive, '2018', 'data_20180101_v02.cdf'), 'w').close()
+            get_product(**request)
+            get_product(**request, force_refresh=True)
+
+        self.assertListEqual(resolved, ['data_20180101_v01.cdf',   # only version published yet
+                                        'data_20180101_v01.cdf',   # v02 exists but listing is cached
+                                        'data_20180101_v02.cdf'])  # force_refresh re-lists
+
+    def test_random_split_scans_every_month_folder_of_a_multi_year_range(self):
+        # End to end consequence of the above: a monthly-foldered random-split dataset silently
+        # returned only the files of its first months, the rest were never even listed.
+        with tempfile.TemporaryDirectory() as archive:
+            expected = []
+            for year, first, last in ((2018, 1, 12), (2019, 1, 3)):
+                for month in range(first, last + 1):
+                    folder = os.path.join(archive, f"{year}", f"{month:02d}")
+                    os.makedirs(folder)
+                    open(os.path.join(folder, f"data_{year}{month:02d}01.cdf"), 'w').close()
+                    expected.append(f"{folder}/data_{year}{month:02d}01.cdf")
+
+            found = dad.RandomSplitDirectDownload.list_files(
+                split_frequency='monthly',
+                url_pattern=archive + r"/{Y}/{M:02d}/data_\d+\.cdf",
+                start_time='2018-01-01', stop_time='2019-03-05',
+                fname_regex=r"data_(?P<start>\d+)\.cdf")
+
+        self.assertListEqual(sorted(found), sorted(expected))
 
     @data(
         (

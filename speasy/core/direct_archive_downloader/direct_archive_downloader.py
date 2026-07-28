@@ -42,12 +42,12 @@ def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] =
                                                         cache_remote_files=True)
 
 
-def _build_url(url_pattern: str, date: datetime, use_file_list=False) -> Optional[str]:
+def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refresh=False) -> Optional[str]:
     base_ulr = apply_date_format(url_pattern, date)
     if not use_file_list:
         return base_ulr
     folder_url, rx = base_ulr.rsplit('/', 1)
-    files = sorted(list_files(folder_url, re.compile(rx)))
+    files = sorted(list_files(folder_url, re.compile(rx), force_refresh=force_refresh))
     if len(files):
         return '/'.join((folder_url, files[-1]))
     return None
@@ -83,7 +83,9 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
         return [start + timedelta(days=d) for d in range((stop - start).days + 1)]
     if split_frequency.lower() == "monthly":
         start = start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        return [start + relativedelta(months=m) for m in range(relativedelta(stop, start).months + 1)]
+        # relativedelta's months field only holds the months left over after whole years
+        elapsed = relativedelta(stop, start)
+        return [start + relativedelta(months=m) for m in range(elapsed.years * 12 + elapsed.months + 1)]
     if split_frequency.lower() == "yearly":
         start = start.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         return [start + relativedelta(years=y) for y in range(relativedelta(stop, start).years + 1)]
@@ -222,9 +224,12 @@ class RegularSplitDirectDownload:
                     file_reader: FileLoaderCallable = _read_cdf,
                     **kwargs) -> \
         Optional[SpeasyVariable]:
+        # kept in kwargs on purpose: it must also reach the file reader's own cache
+        force_refresh = kwargs.get('force_refresh', False)
         v = merge(randomized_map(
-            lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list), variable=variable,
-                                     **kwargs),
+            lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list,
+                                                force_refresh=force_refresh),
+                                     variable=variable, **kwargs),
             spilt_range(split_frequency=split_frequency, start_time=start_time, stop_time=stop_time)))
         if v is not None:
             return v[make_utc_datetime(start_time):make_utc_datetime(stop_time)]
