@@ -411,7 +411,8 @@ dataset always lists its folders — but it is harmless, which is why real inven
   around). When several files cover the same time range, only the highest version is loaded;
   version numbers compare component by component, so ``v10`` supersedes ``v9`` and ``v5.10.0``
   supersedes ``v5.9.1``. Without this group nothing says which file supersedes which, so every
-  overlapping file is loaded and merged instead.
+  overlapping file is loaded and merged instead — and if two files really do cover the same
+  instant, Speasy logs a warning naming them, rather than silently keeping one.
 
 
 .. _static_datasets:
@@ -498,6 +499,9 @@ Troubleshooting
   similarly, ``url_pattern``). Unlike most malformed-entry mistakes, these two aren't validated
   until the first actual fetch, so the dataset can look completely normal in the inventory right up
   until you call ``get_data()``.
+- **The log says several files cover the same time range**: your archive keeps more than one
+  version of a file and ``fname_regex`` has no ``(?P<version>...)`` group, so Speasy can't tell
+  which one is current and merges them all. Add the group — see :ref:`random_split_datasets`.
 - **A dataset silently doesn't appear in the inventory at all**: check the log for a warning — the
   usual causes are an unreachable/nonexistent master file, an unrecognized ``codec``, or a codec that
   can't enumerate a master file's variables (see :ref:`supported_file_formats`).

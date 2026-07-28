@@ -207,6 +207,25 @@ class DirectArchiveDownloader(unittest.TestCase):
                  'brst_20180101120000_v2.0.0.cdf': [2., 2., 2., 2.]}),
             [2., 2., 2., 2.])
 
+    def test_duplicate_intervals_without_a_version_group_are_reported(self):
+        # silently picking one of them is the worst outcome: say so, and say what would fix it
+        with self.assertLogs(dad.__name__, level='WARNING') as logged:
+            self._burst_folder_values(
+                ['brst_20180101120000_v1.0.0.cdf', 'brst_20180101120000_v2.0.0.cdf'],
+                r"brst_(?P<start>\d+)_v[\d.]+\.cdf",
+                {'brst_20180101120000_v1.0.0.cdf': [1., 1., 1.],
+                 'brst_20180101120000_v2.0.0.cdf': [2., 2., 2.]})
+        self.assertTrue(any('(?P<version>' in line and '20180101120000' in line for line in logged.output),
+                        f"expected an actionable warning, got {logged.output}")
+
+    def test_no_warning_when_intervals_are_distinct_or_versions_declared(self):
+        with self.assertNoLogs(dad.__name__, level='WARNING'):
+            self._burst_folder_values(   # same interval, but the version group resolves it
+                ['brst_20180101120000_v1.0.0.cdf', 'brst_20180101120000_v2.0.0.cdf'],
+                r"brst_(?P<start>\d+)_v(?P<version>[\d.]+)\.cdf",
+                {'brst_20180101120000_v1.0.0.cdf': [1., 1., 1.],
+                 'brst_20180101120000_v2.0.0.cdf': [2., 2., 2.]})
+
     def test_random_split_pairs_files_chronologically_not_in_listing_order(self):
         # without an explicit stop group, a file is assumed to end where the next one starts, which
         # only holds if the files are in chronological order. Listings are alphabetical, so a name
