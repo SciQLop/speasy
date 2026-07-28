@@ -3,10 +3,12 @@
 
    from speasy.core.direct_archive_downloader.direct_archive_downloader import *
 """
+import logging
 import re
+from collections import defaultdict
 from datetime import timedelta, datetime
 from functools import partial
-from typing import Optional, List, Callable, Union, Tuple
+from typing import Dict, Optional, List, Callable, Union, Tuple
 
 from dateutil.relativedelta import relativedelta
 
@@ -18,6 +20,8 @@ from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
 from speasy.products.variable import merge
 from speasy.core.algorithms import randomized_map
+
+log = logging.getLogger(__name__)
 
 # Change to this when we drop Python 3.8
 # FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
@@ -116,23 +120,39 @@ def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -
     return make_utc_datetime(datetime.strptime(date, date_format))
 
 
+def _group_by_time_range(files: List[re.Match]) -> Dict[Tuple[str, Optional[str]], List[re.Match]]:
+    grouped = defaultdict(list)
+    for file in files:
+        groups = file.groupdict()
+        grouped[(groups['start'], groups.get('stop'))].append(file)
+    return grouped
+
+
+def _warn_about_undecidable_duplicates(grouped: Dict[Tuple[str, Optional[str]], List[re.Match]]) -> None:
+    duplicated = [group for group in grouped.values() if len(group) > 1]
+    if duplicated:
+        example = sorted(file.string for file in duplicated[0])
+        log.warning(
+            f"{len(duplicated)} time range(s) are covered by more than one file, for instance "
+            f"{example}, and fname_regex declares no (?P<version>...) group to tell which one "
+            f"supersedes the others. All of them are loaded and merged, which keeps whichever "
+            f"holds the most records. Add a version group to always get the newest file.")
+
+
 def _drop_superseded_versions(files: List[re.Match]) -> List[re.Match]:
     """Keeps only the newest file of each time range, when fname_regex declares a 'version' group.
 
     Without that group nothing says which of two files covering the same range supersedes the
-    other, so they are all kept and left to merge().
+    other, so they are all kept, left to merge(), and reported.
     """
-    if not files or 'version' not in files[0].groupdict():
+    if not files:
         return files
-    newest = {}
-    for file in files:
-        groups = file.groupdict()
-        key = (groups['start'], groups.get('stop'))
-        previous = newest.get(key)
-        if previous is None or _natural_order(groups['version']) > _natural_order(
-            previous.groupdict()['version']):
-            newest[key] = file
-    return list(newest.values())
+    grouped = _group_by_time_range(files)
+    if 'version' not in files[0].groupdict():
+        _warn_about_undecidable_duplicates(grouped)
+        return files
+    return [max(group, key=lambda file: _natural_order(file.groupdict()['version']))
+            for group in grouped.values()]
 
 
 @CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
