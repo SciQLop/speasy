@@ -18,6 +18,13 @@ def scalar_meta(meta: Dict, key: str) -> Any:
     return value
 
 
+def _fits_in(fillval, dtype: np.dtype) -> bool:
+    if np.isnan(fillval):
+        return True  # NaN compares False against everything, a range check included
+    info = np.iinfo(dtype) if np.issubdtype(dtype, np.integer) else np.finfo(dtype)
+    return bool(info.min <= fillval <= info.max)
+
+
 def fill_value_mask(values: np.ndarray, meta: Dict) -> Optional[np.ndarray]:
     """Returns a boolean mask of the entries equal to the ISTP FILLVAL, or None when no mask can
     be computed at all.
@@ -34,10 +41,18 @@ def fill_value_mask(values: np.ndarray, meta: Dict) -> Optional[np.ndarray]:
     fillval = scalar_meta(meta, "FILLVAL")
     if fillval is None:
         return None
-    if isinstance(fillval, str) and np.issubdtype(values.dtype, np.number):
+    if not np.issubdtype(values.dtype, np.number):
+        return values == fillval
+    if isinstance(fillval, str):
         log.warning(
             f"FILLVAL {fillval!r} is a string but the data is numeric ({values.dtype}); "
             "skipping fill-value masking."
+        )
+        return None
+    if not _fits_in(fillval, values.dtype):
+        log.warning(
+            f"FILLVAL {fillval!r} is outside the range of the data type ({values.dtype}), so no "
+            "sample can ever equal it; skipping fill-value masking."
         )
         return None
     return values == fillval

@@ -34,6 +34,13 @@ class FillValueMask(unittest.TestCase):
                 mask = fill_value_mask(np.array([1.0, np.nan, 3.0]), {"FILLVAL": [fillval]})
                 np.testing.assert_array_equal(mask, [False, False, False])
 
+    def test_warns_and_returns_none_when_fillval_is_outside_the_data_range(self):
+        """ISIS ampl is CDF_UINT1 yet declares FILLVAL -128, which no uint8 sample can equal."""
+        values = np.array([1, 200, 255], dtype=np.uint8)
+        with self.assertLogs("speasy.core.data_containers", level="WARNING") as logged:
+            self.assertIsNone(fill_value_mask(values, {"FILLVAL": [-128]}))
+        self.assertTrue(any("uint8" in line for line in logged.output), logged.output)
+
     def test_warns_and_returns_none_when_fillval_type_is_incompatible(self):
         """Real ISTP files can mis-declare a numeric variable's FILLVAL with a TT2000 attribute
         type (e.g. CDAWeb's ela_att_solution_date); the codec stringifies it while the data
