@@ -64,10 +64,12 @@ Supported file formats
      - a name you choose
      - Write your own codec — see :ref:`writing_a_codec`.
 
-A codec can also be referenced by its Python class name (e.g. ``codec: IstpCdf``,
-``codec: IstpNetCDF``) — every spelling that resolves to the same codec is interchangeable.
-Resolution is a flat, case-sensitive lookup, so pick a distinctive ``codec:`` value if you write
-your own.
+Every spelling that resolves to the same codec is interchangeable: a codec registers itself under
+its own ``name`` plus each of its declared extensions and MIME types, and any of those keys works
+as a ``codec:`` value. For the two ISTP codecs the registered name happens to be the class name,
+so ``codec: IstpCdf`` and ``codec: IstpNetCDF`` work too — that is a property of *those* codecs,
+not a general rule, and your own codec will only answer to the ``name`` it declares. Resolution is
+a flat, case-sensitive lookup over a single shared namespace, so pick a distinctive name.
 
 Quick start: adding a dataset
 ------------------------------
@@ -77,10 +79,23 @@ Quick start: adding a dataset
 Create a YAML file (e.g. ``my_datasets.yaml``) in Speasy's user inventory directory.
 On Linux this is ``~/.config/speasy/archive/``, on macOS ``~/Library/Application Support/speasy/archive/``
 (the ``LPP`` author segment only appears in the Windows path, ``%LOCALAPPDATA%\LPP\speasy\archive``).
-You can confirm the exact path:
+The directory doesn't exist until you create it, and only files ending in ``.yaml`` or ``.yml`` are
+loaded. You can confirm the exact path:
 
     >>> import speasy as spz
     >>> print(spz.data_providers.generic_archive.user_inventory_dir()) # doctest: +SKIP
+
+.. tip::
+    **Want a working file to start from?** Speasy ships one, ``themis_cdpp.yaml.example``,
+    describing 60 THEMIS L2 datasets hosted at CDPP. Copy it into the directory above, drop the
+    ``.example`` suffix so it gets loaded, and restart Python. Its location:
+
+        >>> import os, speasy # doctest: +SKIP
+        >>> print(os.path.join(os.path.dirname(speasy.__file__), 'data', 'archive')) # doctest: +SKIP
+
+    The same folder holds ``cda.yaml``, the inventory Speasy loads out of the box — which is why
+    ``spz.inventories.data_tree.archive.cda`` already contains MMS, Arase and ACE datasets before
+    you add anything. Both files are also worth reading as real-world examples.
 
 **Step 2: Describe your dataset in YAML**
 
@@ -95,6 +110,26 @@ Here is a minimal example for THEMIS-A FGM data hosted at CDPP, with one CDF fil
       split_rule: regular
       url_pattern: http://cdpp.irap.omp.eu/themisdata/tha/l2/fgm/{Y}/tha_l2_fgm_{Y}{M:02d}{D:02d}_v\d+.cdf
       use_file_list: true
+
+.. note::
+    **What is a master file?** A *master* (or *skeleton*) file is a CDF/NetCDF that contains the
+    dataset's full metadata — variable names, units, labels, fill values — but no data records. Most
+    archives publish one per dataset, precisely so tools can describe a dataset without downloading
+    any actual data: CDAWeb serves them from
+    ``https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/``, and CDPP from a ``0000``
+    directory next to the data years, as above. Speasy reads it once to fill the inventory; the
+    values you get from ``get_data()`` always come from the real data files.
+
+Your files don't have to be remote. A local archive works the same way — just point ``url_pattern``
+(and, if you have one, ``master_file``) at a path, always with forward slashes even on Windows:
+
+.. code-block:: YAML
+
+    my_lab_data:
+      inventory_path: my_data/LAB
+      master_file: /home/me/data/master.cdf
+      split_rule: regular
+      url_pattern: /home/me/data/{Y}/{M:02d}/mydata_{Y}{M:02d}{D:02d}.cdf
 
 Alternatively, you can describe the variables inline — no master file needed, and no network access at
 inventory build time. Speasy then needs the metadata a master file would have provided, so each variable
@@ -133,11 +168,16 @@ carries its own ``meta`` block, alongside a dataset-level one:
     subsequent ``get_data()`` call.
 
 .. important::
-    ``get_data()`` builds its result from the actual data file's own attributes, but ``meta``
-    above is also patched onto every ``get_data()`` result by default — not just when *browsing*
-    the inventory (``spz.inventories.data_tree...``). By default (``meta_priority: file``) it only
-    fills in fields the file doesn't already have; set ``meta_priority: yaml`` if you want a field
-    declared here to override the file's own value instead:
+    The two ``meta`` blocks above do **not** travel the same way:
+
+    - a **variable**'s ``meta`` (under ``variables:``) is patched onto every ``get_data()`` result
+      for that variable, on top of the attributes read from the data file itself;
+    - the **dataset-level** ``meta`` only describes the dataset node you see when *browsing* the
+      inventory (``spz.inventories.data_tree.archive...``). It never reaches a ``SpeasyVariable``
+      returned by ``get_data()`` — just like a CDF's own global attributes don't.
+
+    For the variable-level patching, ``meta_priority`` decides who wins when the YAML and the data
+    file both define a field. Fields declared only in YAML always come through either way:
 
     .. code-block:: YAML
 
@@ -216,18 +256,19 @@ YAML field reference
      - Dataset-level metadata (e.g. ``Mission_group``, ``Data_type``). Required together with
        **variables**; optional alongside **master_file**/**master_cdf**, where it patches onto the
        metadata extracted from the master (see **meta_priority** for which side wins a clash).
-       Patched onto both the inventory browser entries and every ``get_data()`` result by default;
-       **meta_priority** only controls which side wins on a clash, not whether patching happens.
+       This block describes the **dataset node in the inventory only** — it is not added to the
+       ``SpeasyVariable`` objects ``get_data()`` returns. Metadata that should reach ``get_data()``
+       results belongs in each variable's own ``meta``, under **variables**.
        Note that browsing the inventory only ever shows a curated subset of a master file's own
        attributes (things like ``CATDESC``, ``UNITS``, ``FILLVAL``) — anything else you want visible
        while browsing (e.g. ``Mission_group``) must come from this **meta** block, not the master file.
    * - **meta_priority**
      - ``file`` (default) or ``yaml``. The single knob resolving every YAML-vs-file metadata clash
-       in this dataset: **meta** vs. the master's own metadata at inventory-build time, and the
-       built inventory metadata vs. the real data file's own attributes inside every ``get_data()``
-       call. Either way, fields declared only in YAML always come through. Has no effect for inline
-       **variables** datasets (there's no master to clash with) — it still applies to the
-       ``get_data()``-time patching in that case.
+       in this dataset, at both levels: dataset-level **meta** vs. the master's own dataset
+       metadata when the inventory is built, and each variable's inventory metadata vs. the real
+       data file's own attributes inside every ``get_data()`` call. Either way, fields declared
+       only in YAML always come through. Inline **variables** datasets have no master to clash
+       with, but it still arbitrates their ``get_data()``-time patching.
    * - **variables**
      - Inline description of the dataset's variables, as a mapping of variable name to a ``meta`` block.
        Use this when you want to avoid any network access at inventory build time. Both a dataset-level
@@ -264,12 +305,25 @@ YAML field reference
        forward slashes for directory separators, even for a local Windows path — see
        :ref:`archive_platform_notes`.
    * - **use_file_list**
-     - If ``true``, Speasy lists the files in each directory and selects the last one matching
-       the URL pattern. Set this to ``true`` when parts of the filename are unpredictable (like version numbers).
-       Default: ``false``.
+     - If ``true``, Speasy lists the files in each directory and keeps the **last one in
+       alphabetical order** among those matching the URL pattern. Set this to ``true`` when parts
+       of the filename are unpredictable (like version numbers). Default: ``false``. Ignored for
+       ``random`` split datasets, which always list their folders.
+
+       .. warning::
+           The pick is alphabetical, not numerical: with ``_v9.cdf`` and ``_v10.cdf`` side by side
+           it selects ``_v9``. Public archives zero-pad their version numbers (``_v01``,
+           ``_v10``), which sorts correctly — do the same in your own file names.
    * - **fname_regex**
      - Only for ``random`` split datasets. A Python regular expression to extract the start date
        (and optionally stop date and version) from each filename. See :ref:`random_split_datasets`.
+   * - **date_format**
+     - Only for ``random`` split datasets. A :meth:`~datetime.datetime.strptime` format string used
+       to read the dates captured by **fname_regex**. Optional: without it the captured text is
+       parsed automatically, which already handles the usual ``20180605`` / ``20180605120000`` /
+       ``2018-06-05`` spellings. Set it when that automatic parsing fails or guesses wrong on your
+       file names — e.g. ``date_format: "%d%m%Y"`` for a day-first ``05062018`` stamp, which is
+       otherwise rejected as "month must be in 1..12".
 
 .. _url_placeholders:
 
@@ -316,7 +370,10 @@ The ``url_pattern`` uses Python ``str.format()`` syntax. Available placeholders:
      - AM/PM, paired with ``{I}``
      - ``AM`` or ``PM``
 
-Regex parts of the pattern (like ``\d+`` for version numbers) are only interpreted when ``use_file_list: true``.
+Regex parts of the pattern (like ``\d+`` for version numbers) are interpreted whenever Speasy has
+to list a folder, i.e. when ``use_file_list: true`` **or** ``split_rule: random`` (which always
+lists). With ``split_rule: regular`` and ``use_file_list: false``, the expanded pattern is used
+verbatim as a URL, so a ``\d+`` in it would be requested literally.
 
 .. _random_split_datasets:
 
@@ -344,11 +401,13 @@ to extract the time range it covers.
 applies ``fname_regex`` to extract the start time from each filename, keeps only the files that overlap
 with the requested interval, and loads them. If the file list looks stale (a fetch attempt gets an
 HTTP 404), Speasy automatically retries once with a fresh listing, in case a new file version appeared
-since the last time the folder was scanned.
+since the last time the folder was scanned. ``use_file_list`` is not needed here — a ``random``
+dataset always lists its folders — but it is harmless, which is why real inventories often carry it.
 
 **fname_regex named groups:**
 
-- ``(?P<start>...)`` — start date extracted from the filename (mandatory). Must be parsable as a date.
+- ``(?P<start>...)`` — start date extracted from the filename (mandatory). Must be parsable as a
+  date, either automatically or through ``date_format``.
 - ``(?P<stop>...)`` — stop date (optional). If absent, Speasy assumes each file ends when the next one starts.
 - ``(?P<version>...)`` — file version (optional). Captured for readability but not currently used
   to select between multiple versions of the same time range — if several matching files overlap,
@@ -391,8 +450,12 @@ A few things about metadata and caching are easy to miss:
   ``CATDESC``, ``FIELDNAM``, ``UNITS``, ``FILLVAL``, ``LABLAXIS``), not everything the file
   contains. ``get_data()`` results, by contrast, carry the file's **complete, unfiltered** attribute
   set, read live from the fetched file. So a dataset-level attribute like ``Mission_group`` used in
-  the examples above never comes from the master file's own metadata — it only appears if you add it
-  yourself via ``meta:``.
+  the examples above never comes from the master file's own metadata — it only shows up in the
+  inventory, and only if you declare it yourself via a dataset-level ``meta:``.
+- **Both sides of that split are variable-scoped.** Whether it comes from the file or from YAML,
+  everything on a ``get_data()`` result describes *that variable*. Dataset-wide metadata lives on
+  the dataset node in the inventory (``spz.inventories.data_tree.archive...``) and is never copied
+  onto the returned ``SpeasyVariable``.
 - **Master file extraction is cached for 7 days**, on disk, across process restarts — not just the raw
   download, but the parsed result (variable names, metadata). If you only change the master file
   itself (not the YAML entry), a Python restart alone won't pick up the change until the cache expires.
@@ -415,7 +478,9 @@ A few things about metadata and caching are easy to miss:
    * - Keyword
      - Supported?
    * - ``force_refresh=True``
-     - Yes — bypasses the file-listing cache, useful right after a remote file changed.
+     - Yes — re-lists the remote folders instead of reusing the cached listing, and re-reads the
+       data files instead of reusing their cached content. Useful right after a new file or a new
+       file version was published.
    * - ``disable_cache=True`` / ``prefer_cache=True``
      - Yes — the usual cache-control kwargs, same as other providers.
    * - ``extra_http_headers=...`` / ``progress=...``
@@ -436,9 +501,17 @@ Troubleshooting
 - **A dataset silently doesn't appear in the inventory at all**: check the log for a warning — the
   usual causes are an unreachable/nonexistent master file, an unrecognized ``codec``, or a codec that
   can't enumerate a master file's variables (see :ref:`supported_file_formats`).
+- **The log says** ``Unknown codec 'nc'`` **even though the spelling is right**: the NetCDF codec is
+  only registered when the optional ``netCDF4`` package is importable. A missing dependency and a
+  typo produce the same message — check ``python -c "import netCDF4"`` first.
+- **The dataset appears but has no variables in it**: the master file was read, but nothing in it
+  looked like an ISTP data variable. Look for ``Non compliant ISTP file: ...`` in the log — the
+  usual cause is pointing an ISTP codec (``cdf``/``nc``) at a file that doesn't follow the ISTP
+  conventions. Describe the variables with **variables** instead, or write a codec for that format.
 - ``get_data()`` **returns** ``None`` **rather than raising**: this is normal when the requested time
   range isn't covered by any file, or falls entirely outside the dataset's actual data range — it's
-  not an error.
+  not an error. A misspelled ``split_rule`` (anything other than ``regular`` or ``random``) produces
+  exactly the same silent ``None``, so check that spelling before investigating your time range.
 - **Nothing changed after I updated my master file**: see the 7-day caching note in
   :ref:`archive_metadata_and_caching` above.
 
