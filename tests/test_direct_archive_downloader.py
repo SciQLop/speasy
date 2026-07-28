@@ -151,6 +151,28 @@ class DirectArchiveDownloader(unittest.TestCase):
                                         'data_20180101_v01.cdf',   # v02 exists but listing is cached
                                         'data_20180101_v02.cdf'])  # force_refresh re-lists
 
+    def test_random_split_pairs_files_chronologically_not_in_listing_order(self):
+        # without an explicit stop group, a file is assumed to end where the next one starts, which
+        # only holds if the files are in chronological order. Listings are alphabetical, so a name
+        # carrying its version before its timestamp yielded a range ending before it started, and
+        # filter_ranges rejected it with "You must provide a Span like object".
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018', '01'))
+            for name in ('brst_v1_20180101120000.cdf', 'brst_v2_20180101100000.cdf'):
+                open(os.path.join(archive, '2018', '01', name), 'w').close()
+            server = _LocalHttpArchive(archive)
+            self.addCleanup(server.close)
+
+            found = dad.RandomSplitDirectDownload.list_files(
+                split_frequency='monthly',
+                url_pattern=server.url + r"/{Y}/{M:02d}/brst_v\d+_\d+\.cdf",
+                start_time='2018-01-01', stop_time='2018-01-02',
+                fname_regex=r"brst_v(?P<version>\d+)_(?P<start>\d+)\.cdf")
+
+        self.assertListEqual([url.rsplit('/', 1)[-1] for url in found],
+                             ['brst_v2_20180101100000.cdf',    # 10:00
+                              'brst_v1_20180101120000.cdf'])   # 12:00
+
     def test_random_split_scans_every_month_folder_of_a_multi_year_range(self):
         # End to end consequence of the above: a monthly-foldered random-split dataset silently
         # returned only the files of its first months, the rest were never even listed.

@@ -134,6 +134,9 @@ def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[s
                                              _parse_date(d['stop'],
                                                          date_format))))
         else:
+            # a file ends where the next one starts, which only holds once they are in
+            # chronological order -- a directory listing is alphabetical, which is not the same
+            files = sorted(files, key=lambda f: _parse_date(f.groupdict()['start'], date_format))
             start_dates = [_parse_date(f.groupdict()['start'], date_format) for f in files]
             start_dates += [None]
             ranges = list(zip([f.string for f in files], zip(start_dates, start_dates[1:])))
