@@ -32,6 +32,14 @@ The CDAWeb module lets you choose the access method among ``BEST``, ``FILE``, an
 * ``FILE`` — downloads CDF files directly from the CDAWeb archive.
 * ``API`` — retrieves data through the CDAWeb REST API.
 
+.. note::
+    ``FILE`` (and therefore ``BEST``, the default) reuses the :doc:`../direct_archive/direct_archive`
+    machinery: Speasy translates CDAWeb's own description of how a dataset's files are named and
+    foldered into the same ``split_rule`` / ``url_pattern`` / ``fname_regex`` settings you would
+    write by hand for your own archive. Nothing to configure, but that page is where the behaviour
+    is documented — in particular how file versions are picked when an archive publishes several
+    for the same time range.
+
 You can specify the method by passing the ``method`` argument to ``spz.get_data()``.
 
     >>> import speasy as spz
