@@ -85,14 +85,27 @@ def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> 
         file_naming = file_naming.replace(old, new, 1)
 
     file_naming = _version_regex.sub(r".*", file_naming)
+    url_pattern = f"{url}/{subdivided_by}{subdivided_by and '/'}{file_naming}"
 
     date_format = _build_date_format(fname_regex)
+    if date_format is None:
+        # nothing in the file name to read a start time from, so the random rule cannot describe
+        # this dataset: it is a single fixed file (omni2.cdf, voyager1.cdf...) the regular rule
+        # already covers. fname_regex/date_format are left out on purpose, they are random-only
+        # and would be forwarded all the way down to the file reader.
+        return {
+            "url_pattern": url_pattern,
+            "split_rule": 'regular',
+            "split_frequency": split_frequency,
+            "use_file_list": True,
+        }
+
     fname_regex = _date_format_regex.sub(r"(?P<start>\\d+t?T?\\d+)", fname_regex, 1)
     fname_regex = _date_format_regex.sub(r"(?P<stop>\\d+t?T?\\d+)", fname_regex, 1)
     fname_regex = _version_regex.sub(r"(?P<version>.*)", fname_regex)
 
     return {
-        "url_pattern": f"{url}/{subdivided_by}{subdivided_by and '/'}{file_naming}",
+        "url_pattern": url_pattern,
         "split_rule": 'random',
         "split_frequency": split_frequency,
         "fname_regex": fname_regex,

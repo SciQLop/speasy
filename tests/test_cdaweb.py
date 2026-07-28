@@ -504,6 +504,50 @@ class DirectArchiveConverter(unittest.TestCase):
         self.assertIsNotNone(fname_regex.search(test_url))
         self.assertIsNotNone(url_pattern.search(test_url))
 
+    @data("omni2.cdf", "voyager1.cdf", "helios1.cdf", "pioneer10.cdf", "ulysses.cdf")
+    def test_dateless_file_naming_is_not_a_random_split(self, file_naming):
+        # CDAWeb describes nine datasets as a single file whose name carries no date at all. The
+        # random rule cannot describe those: it extracts each file's start time from its name, and
+        # there is nothing there to extract.
+        params = to_direct_archive_params(file_naming=file_naming, subdivided_by="None",
+                                          url="https://spdf.gsfc.nasa.gov/pub/data/somewhere")
+        self.assertEqual(params['split_rule'], 'regular')
+        self.assertEqual(params['split_frequency'], 'none')
+        self.assertNotIn('fname_regex', params)   # random-only, and would reach the file reader
+
+    def test_best_method_does_not_warn_when_it_falls_back_to_the_web_service(self):
+        # BEST means "use whichever works", so falling back is its normal outcome, not something to
+        # warn about. mode_is_best compared the method against the lowercase 'best' while the
+        # documented and default value is 'BEST', so every fallback warned. 123 CDAWeb datasets are
+        # NetCDF and always take this path.
+        from unittest.mock import patch
+
+        netcdf_dataset = next(ds for ds in spz.inventories.flat_inventories.cda.datasets.values()
+                              if to_direct_archive_params(file_naming=ds.filenaming,
+                                                          subdivided_by=ds.subdividedby,
+                                                          url=ds.url) is None)
+        variable = next(iter(v for v in netcdf_dataset.__dict__.values() if hasattr(v, 'spz_uid')))
+
+        with patch.object(spz.cda, '_get_data_with_ws', return_value=None) as web_service:
+            with self.assertNoLogs('speasy.data_providers.cda', level='WARNING'):
+                spz.cda.get_data(variable.spz_uid(), "2020-01-01", "2020-01-02", method='BEST')
+            self.assertTrue(web_service.called)   # it really did take the fallback path
+
+    def test_dateless_file_naming_resolves_its_only_file(self):
+        # before the fix this raised KeyError: 'start' when the folder was listable, and silently
+        # returned nothing when it wasn't
+        import tempfile
+        from speasy.core.direct_archive_downloader import get_product
+
+        resolved = []
+        with tempfile.TemporaryDirectory() as archive:
+            open(os.path.join(archive, 'omni2.cdf'), 'w').close()
+            params = to_direct_archive_params(file_naming="omni2.cdf", subdivided_by="None", url=archive)
+            get_product(variable='F', start_time='2010-01-01', stop_time='2010-01-02',
+                        file_reader=lambda url, variable, **kw: resolved.append(url), **params)
+
+        self.assertListEqual([url.rsplit('/', 1)[-1] for url in resolved], ['omni2.cdf'])
+
 
 if __name__ == '__main__':
     unittest.main()
