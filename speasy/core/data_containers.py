@@ -19,18 +19,20 @@ def scalar_meta(meta: Dict, key: str) -> Any:
 
 
 def fill_value_mask(values: np.ndarray, meta: Dict) -> Optional[np.ndarray]:
-    """Returns a boolean mask of the entries equal to the ISTP FILLVAL, or None when there is
-    nothing to mask or no way to decide.
+    """Returns a boolean mask of the entries equal to the ISTP FILLVAL, or None when no mask can
+    be computed at all.
 
-    None is returned when FILLVAL is absent, when it is itself NaN (some providers, e.g. AMDA, use
-    NaN directly as the sentinel, so there is nothing left to mask), and -- with a warning -- when
-    it is a string while the data is numeric. That last case is a real ISTP pattern rather than a
-    hypothetical: CDAWeb mis-declares some numeric variables' FILLVAL with a TT2000/EPOCH attribute
-    type, which the data codec stringifies (e.g. ela_att_solution_date), and there is no reliable
-    way to recover the intended numeric sentinel from that mismatch.
+    None means undecidable, not "nothing matched": either FILLVAL is absent, or it is a string
+    while the data is numeric, which warns. That second case is a real ISTP pattern rather than a
+    hypothetical -- CDAWeb mis-declares some numeric variables' FILLVAL with a TT2000/EPOCH
+    attribute type, which the data codec stringifies (e.g. ela_att_solution_date), and there is no
+    reliable way to recover the intended numeric sentinel from that mismatch.
+
+    A NaN FILLVAL needs no special case: NaN != NaN, so it simply matches nothing, which is right
+    because such data already carries NaN where it means fill.
     """
     fillval = scalar_meta(meta, "FILLVAL")
-    if fillval is None or (isinstance(fillval, float) and np.isnan(fillval)):
+    if fillval is None:
         return None
     if isinstance(fillval, str) and np.issubdtype(values.dtype, np.number):
         log.warning(

@@ -27,9 +27,12 @@ class FillValueMask(unittest.TestCase):
     def test_returns_none_when_fillval_absent(self):
         self.assertIsNone(fill_value_mask(np.array([1.0, 2.0, 3.0]), {}))
 
-    def test_returns_none_when_fillval_is_nan(self):
-        """Some providers (e.g. AMDA) report FILLVAL: [nan] -- data already uses NaN directly."""
-        self.assertIsNone(fill_value_mask(np.array([1.0, np.nan, 3.0]), {"FILLVAL": [float("nan")]}))
+    def test_flags_nothing_when_fillval_is_nan(self):
+        """A NaN sentinel matches nothing, since NaN != NaN -- the data already carries NaN."""
+        for fillval in (float("nan"), np.float64("nan"), np.float32("nan")):
+            with self.subTest(fillval=type(fillval).__name__):
+                mask = fill_value_mask(np.array([1.0, np.nan, 3.0]), {"FILLVAL": [fillval]})
+                np.testing.assert_array_equal(mask, [False, False, False])
 
     def test_warns_and_returns_none_when_fillval_type_is_incompatible(self):
         """Real ISTP files can mis-declare a numeric variable's FILLVAL with a TT2000 attribute
