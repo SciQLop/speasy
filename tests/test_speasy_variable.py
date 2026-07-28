@@ -457,6 +457,21 @@ class ASpeasyVariable(unittest.TestCase):
         var.replace_fillval_by_nan(inplace=True)
         self.assertTrue(np.isnan(var.values[4, 0]))
 
+    def test_replaces_fill_value_wrapped_in_a_single_element_list(self):
+        # CDF attributes arrive as one-element lists, which is what a real fetched variable carries
+        var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": [50.]})
+        self.assertTrue(np.isnan(var.replace_fillval_by_nan().values[4, 0]))
+
+    def test_warns_and_skips_masking_when_fillval_type_is_incompatible(self):
+        # CDAWeb mis-declares some numeric variables' FILLVAL with a TT2000/EPOCH attribute type,
+        # which the codec stringifies. Comparing that to a numeric array silently matches nothing,
+        # so say so instead of pretending the data was cleaned.
+        var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": "9999-12-31T23:59:59.999999999"})
+        with self.assertLogs('speasy.core.data_containers', level='WARNING') as logged:
+            cleaned = var.replace_fillval_by_nan()
+        self.assertFalse(np.any(np.isnan(cleaned.values)))
+        self.assertTrue(any('FILLVAL' in line for line in logged.output), logged.output)
+
     def test_replaces_fill_value_non_float(self):
         var = make_simple_var(1., 10., 1., 10., meta={"FILLVAL": 50.}).astype(np.int32)
         self.assertEqual(var.fill_value, 50.)

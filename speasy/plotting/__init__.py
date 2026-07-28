@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+import numpy as np
+
 from .mpl_backend import Plot as MplPlot
-from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
-from .istp_hints import is_log_scale, label_from_meta, mask_fill_values
+from ..core.data_containers import DataContainer, VariableAxis, VariableTimeAxis, fill_value_mask
+from .istp_hints import is_log_scale, label_from_meta
 from typing import List
 from enum import Enum
 from copy import copy
@@ -38,6 +40,12 @@ class Plot:
         new._set_backend(backend)
         return new
 
+    def _masked_values(self):
+        """Values with ISTP fill entries replaced by NaN, so a sentinel never reaches the axes."""
+        values = self.values.values
+        mask = fill_value_mask(values, self.values.meta)
+        return values if mask is None else np.where(mask, np.nan, values)
+
     def _infer_plot_type(self):
         if self.values.meta.get("DISPLAY_TYPE", "").lower() == "spectrogram":
             return PlotType.SPECTRO
@@ -54,7 +62,7 @@ class Plot:
         if logy is None:
             logy = False
         mask_fillval = kwargs.pop("mask_fillval", True)
-        y = mask_fill_values(self.values.values, self.values.meta) if mask_fillval else self.values.values
+        y = self._masked_values() if mask_fillval else self.values.values
         return self._get_backend(backend).line(x=self.axes[0].values, y=y, labels=labels,
                                                units=units,
                                                xaxis_label=xaxis_label,
@@ -77,7 +85,7 @@ class Plot:
         if logz is None:
             logz = True
         mask_fillval = kwargs.pop("mask_fillval", True)
-        z = mask_fill_values(self.values.values, self.values.meta) if mask_fillval else self.values.values
+        z = self._masked_values() if mask_fillval else self.values.values
         return self._get_backend(backend).colormap(x=self.axes[0].values, y=self.axes[1].values.T,
                                                    z=z.T,
                                                    xaxis_label=x_axis_label,
