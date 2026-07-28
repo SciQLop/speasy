@@ -305,15 +305,13 @@ YAML field reference
        forward slashes for directory separators, even for a local Windows path — see
        :ref:`archive_platform_notes`.
    * - **use_file_list**
-     - If ``true``, Speasy lists the files in each directory and keeps the **last one in
-       alphabetical order** among those matching the URL pattern. Set this to ``true`` when parts
-       of the filename are unpredictable (like version numbers). Default: ``false``. Ignored for
-       ``random`` split datasets, which always list their folders.
+     - If ``true``, Speasy lists the files in each directory and keeps the **highest** one among
+       those matching the URL pattern. Set this to ``true`` when parts of the filename are
+       unpredictable (like version numbers). Default: ``false``. Ignored for ``random`` split
+       datasets, which always list their folders.
 
-       .. warning::
-           The pick is alphabetical, not numerical: with ``_v9.cdf`` and ``_v10.cdf`` side by side
-           it selects ``_v9``. Public archives zero-pad their version numbers (``_v01``,
-           ``_v10``), which sorts correctly — do the same in your own file names.
+       Names are ordered naturally: digit runs compare as numbers, so ``_v10`` ranks above ``_v9``
+       and ``_v5.10.0`` above ``_v5.9.1``, whether or not your version numbers are zero-padded.
    * - **fname_regex**
      - Only for ``random`` split datasets. A Python regular expression to extract the start date
        (and optionally stop date and version) from each filename. See :ref:`random_split_datasets`.
