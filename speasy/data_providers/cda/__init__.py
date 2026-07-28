@@ -220,7 +220,7 @@ class CdaWebservice(DataProvider):
             return self._get_data_with_direct_archive(product=product, start_time=start_time, stop_time=stop_time,
                                                       if_newer_than=if_newer_than,
                                                       extra_http_headers=extra_http_headers,
-                                                      mode_is_best=method == 'best')
+                                                      mode_is_best=method.upper() == 'BEST')
         else:
             return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
                                           if_newer_than=if_newer_than, extra_http_headers=extra_http_headers, **kwargs)
