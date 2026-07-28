@@ -15,7 +15,7 @@ from ...config import core as core_cfg
 from ...products import *
 from ...data_providers import (AmdaWebservice, CdaWebservice, CsaWebservice,
                                SscWebservice, GenericArchive, UiowaEphTool,
-                               Cdpp3dViewWebservice)
+                               Cdpp3dViewWebservice, SuperMAGWebservice)
 from ..http import is_server_up
 
 log = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ ssc = None
 archive = None
 uiowaephtool = None
 cdpp3dview = None
+supermag = None
 
 
 def _is_server_up(ws_class):
@@ -123,6 +124,11 @@ def init_cdpp3dview(ignore_disabled_status=False):
                         ignore_disabled_status=ignore_disabled_status)
 
 
+def init_supermag(ignore_disabled_status=False):
+    _safe_init_provider(SuperMAGWebservice, ['supermag', 'SuperMAG'],
+                        ignore_disabled_status=ignore_disabled_status)
+
+
 def init_providers(ignore_disabled_status=False):
     init_amda(ignore_disabled_status=ignore_disabled_status)
     init_csa(ignore_disabled_status=ignore_disabled_status)
@@ -131,6 +137,7 @@ def init_providers(ignore_disabled_status=False):
     init_archive(ignore_disabled_status=ignore_disabled_status)
     init_uiowaephtool(ignore_disabled_status=ignore_disabled_status)
     init_cdpp3dview(ignore_disabled_status=ignore_disabled_status)
+    init_supermag(ignore_disabled_status=ignore_disabled_status)
 
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
