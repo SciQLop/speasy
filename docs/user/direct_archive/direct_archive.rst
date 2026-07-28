@@ -407,9 +407,11 @@ dataset always lists its folders — but it is harmless, which is why real inven
 - ``(?P<start>...)`` — start date extracted from the filename (mandatory). Must be parsable as a
   date, either automatically or through ``date_format``.
 - ``(?P<stop>...)`` — stop date (optional). If absent, Speasy assumes each file ends when the next one starts.
-- ``(?P<version>...)`` — file version (optional). Captured for readability but not currently used
-  to select between multiple versions of the same time range — if several matching files overlap,
-  Speasy loads all of them.
+- ``(?P<version>...)`` — file version (optional, but declare it if your archive keeps old versions
+  around). When several files cover the same time range, only the highest version is loaded;
+  version numbers compare component by component, so ``v10`` supersedes ``v9`` and ``v5.10.0``
+  supersedes ``v5.9.1``. Without this group nothing says which file supersedes which, so every
+  overlapping file is loaded and merged instead.
 
 
 .. _static_datasets:
