@@ -90,6 +90,38 @@ class DirectArchiveDownloader(unittest.TestCase):
             [make_utc_datetime(f'2019-{month:02d}-01') for month in range(1, 4)]
         )
 
+    def _resolve_from_local_folder(self, file_names):
+        """Runs use_file_list against a real folder and returns the file name it settled on."""
+        resolved = []
+
+        def record_url(url, variable, **kwargs):
+            resolved.append(url.rsplit('/', 1)[-1])
+            return None
+
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018'))
+            for name in file_names:
+                open(os.path.join(archive, '2018', name), 'w').close()
+            get_product(url_pattern=archive + r"/{Y}/data_{Y}{M:02d}{D:02d}_v[\d.]+\.cdf",
+                        split_rule='regular', variable='B',
+                        start_time='2018-01-01', stop_time='2018-01-01',
+                        use_file_list=True, file_reader=record_url)
+        return resolved
+
+    def test_use_file_list_picks_the_highest_version_number(self):
+        # plain sorted() compares digit by digit, so "_v9" landed after "_v10" and a folder that
+        # reached double digit versions kept serving its last single digit one.
+        self.assertListEqual(
+            self._resolve_from_local_folder([f"data_20180101_v{version}.cdf" for version in (8, 9, 10, 11)]),
+            ['data_20180101_v11.cdf'])
+
+    def test_use_file_list_compares_dotted_versions_component_wise(self):
+        # CDAWeb style versions, e.g. mms1_fgm_srvy_l2_20180101_v5.87.0.cdf
+        self.assertListEqual(
+            self._resolve_from_local_folder([f"data_20180101_v{version}.cdf"
+                                             for version in ('5.9.0', '5.10.0', '5.9.1')]),
+            ['data_20180101_v5.10.0.cdf'])
+
     def test_force_refresh_refreshes_the_file_listing_of_a_regular_split_dataset(self):
         # force_refresh only reached the file *reader*'s cache, never list_files(), so a dataset
         # using use_file_list kept resolving to the file version listed up to 12h earlier.

@@ -42,14 +42,30 @@ def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] =
                                                         cache_remote_files=True)
 
 
+_DIGITS = re.compile(r'(\d+)')
+
+
+def _natural_order(file_name: str) -> List[Tuple[int, Union[int, str]]]:
+    """Sort key comparing digit runs as numbers, so 'f_v10.cdf' comes after 'f_v9.cdf'.
+
+    The leading rank keeps numbers and text from ever being compared to each other.
+
+    Examples
+    --------
+    >>> max(['f_v9.cdf', 'f_v10.cdf'], key=_natural_order)
+    'f_v10.cdf'
+    """
+    return [(1, int(chunk)) if chunk.isdigit() else (0, chunk) for chunk in _DIGITS.split(file_name)]
+
+
 def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refresh=False) -> Optional[str]:
     base_ulr = apply_date_format(url_pattern, date)
     if not use_file_list:
         return base_ulr
     folder_url, rx = base_ulr.rsplit('/', 1)
-    files = sorted(list_files(folder_url, re.compile(rx), force_refresh=force_refresh))
+    files = list_files(folder_url, re.compile(rx), force_refresh=force_refresh)
     if len(files):
-        return '/'.join((folder_url, files[-1]))
+        return '/'.join((folder_url, max(files, key=_natural_order)))
     return None
 
 
