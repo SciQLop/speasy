@@ -434,6 +434,25 @@ class DirectArchiveConverter(unittest.TestCase):
             datetime(1996, 1, 1, tzinfo=timezone.utc)
         ),
         (
+            # day-of-year folders: 76 CDAWeb datasets use them, and none at all use the %Y/%m/%d
+            # layout the converter was written for
+            "i1_av_ott_%Y%j%H%M%S_%Q.cdf",
+            "%Y/%j",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/isis/topside_sounder/ionogram_cdf/isis1/OTT_45N_284E",
+            {
+                'date_format': '%Y%j%H%M%S',
+                'fname_regex': 'i1_av_ott_(?P<start>\\d+t?T?\\d+)_(?P<version>.*).cdf',
+                'split_frequency': 'daily',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/isis/topside_sounder/ionogram_cdf/isis1/'
+                               'OTT_45N_284E/{Y}/{j:03d}/i1_av_ott_{Y}{j:03d}[0-2]\\d[0-5]\\d[0-5]\\d_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/isis/topside_sounder/ionogram_cdf/isis1/OTT_45N_284E/"
+            "1969/030/i1_av_ott_1969030145012_v01.cdf",
+            datetime(1969, 1, 30, tzinfo=timezone.utc)
+        ),
+        (
             "csswe_reptile_6sec-flux-l2_%Y%m%d_%Q.cdf",
             "%Y",
             "https://cdaweb.gsfc.nasa.gov/pub/data/csswe/l2/reptile/flux",
