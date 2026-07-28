@@ -11,6 +11,7 @@ from speasy.core.data_containers import (
     VariableAxis,
     VariableTimeAxis,
     _to_index,
+    fill_value_mask,
     np_build_result_name
 )
 from speasy.plotting import Plot
@@ -753,8 +754,8 @@ class SpeasyVariable(SpeasyProduct):
             res = deepcopy(self)  # no need to convert, just copy because not inplace
         else:
             res = self.astype(float)  # need to convert, do it on a new variable
-        if (fill_value := self.fill_value) is not None:
-            res[res == fill_value] = np.nan
+        if (mask := fill_value_mask(res.values, res.meta)) is not None:
+            res[mask] = np.nan
         return res
 
     def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None, convert_to_float=False) -> "SpeasyVariable":

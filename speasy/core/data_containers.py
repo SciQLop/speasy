@@ -1,10 +1,44 @@
+import logging
 from copy import deepcopy, copy
 from datetime import datetime, timezone
 from sys import getsizeof
-from typing import Dict, List, Protocol, TypeVar, Union, Any
+from typing import Dict, List, Optional, Protocol, TypeVar, Union, Any
 
 import astropy.units
 import numpy as np
+
+log = logging.getLogger(__name__)
+
+
+def scalar_meta(meta: Dict, key: str) -> Any:
+    """Returns a metadata entry, unwrapped from the single-element list CDF attributes arrive in."""
+    value = meta.get(key)
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
+
+
+def fill_value_mask(values: np.ndarray, meta: Dict) -> Optional[np.ndarray]:
+    """Returns a boolean mask of the entries equal to the ISTP FILLVAL, or None when there is
+    nothing to mask or no way to decide.
+
+    None is returned when FILLVAL is absent, when it is itself NaN (some providers, e.g. AMDA, use
+    NaN directly as the sentinel, so there is nothing left to mask), and -- with a warning -- when
+    it is a string while the data is numeric. That last case is a real ISTP pattern rather than a
+    hypothetical: CDAWeb mis-declares some numeric variables' FILLVAL with a TT2000/EPOCH attribute
+    type, which the data codec stringifies (e.g. ela_att_solution_date), and there is no reliable
+    way to recover the intended numeric sentinel from that mismatch.
+    """
+    fillval = scalar_meta(meta, "FILLVAL")
+    if fillval is None or (isinstance(fillval, float) and np.isnan(fillval)):
+        return None
+    if isinstance(fillval, str) and np.issubdtype(values.dtype, np.number):
+        log.warning(
+            f"FILLVAL {fillval!r} is a string but the data is numeric ({values.dtype}); "
+            "skipping fill-value masking."
+        )
+        return None
+    return values == fillval
 
 
 def _name(input_p: Any) -> str:
