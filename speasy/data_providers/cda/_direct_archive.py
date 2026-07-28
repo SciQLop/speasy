@@ -45,6 +45,20 @@ none_or_stop_date_substitutions = substitutions + (
 )
 
 
+# How CDAWeb spells a dataset's folder layout, mapped to the split frequency it implies, the
+# placeholders that rebuild it, and the substitutions to apply to the file name inside it.
+# %Y/%m/%d is kept although no dataset currently declares it, while the %j layouts below cover 78.
+folder_layouts = {
+    "%Y": ("yearly", "{Y}", substitutions_yearly),
+    "%Y/%m": ("monthly", "{Y}/{M:02d}", substitutions_monthly),
+    "%Y/%m/%d": ("daily", "{Y}/{M:02d}/{D:02d}", substitutions_daily),
+    "%Y/%j": ("daily", "{Y}/{j:03d}", substitutions_daily),
+    "%y/%j": ("daily", "{y:02d}/{j:03d}", substitutions_daily),
+    "%Y%j": ("daily", "{Y}{j:03d}", substitutions_daily),
+    "None": ("none", "", none_or_stop_date_substitutions),
+}
+
+
 def _build_date_format(file_naming: str) -> Optional[str]:
     date_format = _date_format_regex.search(file_naming)
     if date_format is None:
@@ -58,28 +72,12 @@ def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> 
 
     fname_regex = file_naming
 
-    if subdivided_by == "%Y":
-        split_frequency = "yearly"
-        subdivided_by = "{Y}"
-        for old, new in substitutions_yearly:
-            file_naming = file_naming.replace(old, new, 1)
-    elif subdivided_by == "%Y/%m":
-        split_frequency = "monthly"
-        subdivided_by = "{Y}/{M:02d}"
-        for old, new in substitutions_monthly:
-            file_naming = file_naming.replace(old, new, 1)
-    elif subdivided_by == "%Y/%m/%d":
-        split_frequency = "daily"
-        subdivided_by = "{Y}/{M:02d}/{D:02d}"
-        for old, new in substitutions_daily:
-            file_naming = file_naming.replace(old, new, 1)
-    elif subdivided_by == "None":
-        split_frequency = "none"
-        subdivided_by = ""
-        for old, new in none_or_stop_date_substitutions:
-            file_naming = file_naming.replace(old, new, 1)
-    else:
+    layout = folder_layouts.get(subdivided_by)
+    if layout is None:
         return None
+    split_frequency, subdivided_by, folder_substitutions = layout
+    for old, new in folder_substitutions:
+        file_naming = file_naming.replace(old, new, 1)
 
     for old, new in none_or_stop_date_substitutions:
         file_naming = file_naming.replace(old, new, 1)
