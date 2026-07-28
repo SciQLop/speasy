@@ -528,6 +528,15 @@ ac_mfi_nc_remote_dataset:
         test_node = root.__dict__['cda'].__dict__['test']
         self.assertNotIn('hapi_dataset', test_node.__dict__)
 
+    def test_codec_that_cannot_list_variables_says_so_in_the_log(self):
+        # the dataset is skipped either way, but list_variables *raises* instead of returning None,
+        # so the "cannot list variables" branch was dead code and users only got the catch-all
+        # "could not be loaded" warning plus a traceback, which reads like a malformed YAML entry.
+        with self.assertLogs('speasy.data_providers.generic_archive', level='WARNING') as logged:
+            _load_yaml_doc(_NO_LIST_VARIABLES_CODEC_YAML)
+        self.assertTrue(any("cannot list variables" in line for line in logged.output),
+                        f"expected an explicit warning, got {logged.output}")
+
     def test_get_data_works_for_master_file_with_non_istp_codec(self):
         # _dataset_from_master()'s non-ISTP branch (codec.list_variables(master_file)) built
         # ParameterIndex objects without entry_meta, so the dataset looked fine in the inventory
