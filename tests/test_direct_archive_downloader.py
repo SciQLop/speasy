@@ -10,6 +10,7 @@ from speasy.core import make_utc_datetime
 from speasy.core.cdf.inventory_extractor import extract_parameters
 from speasy.core.direct_archive_downloader import get_product
 import speasy.core.direct_archive_downloader.direct_archive_downloader as dad
+from speasy.products import DataContainer, SpeasyVariable, VariableTimeAxis
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
@@ -150,6 +151,61 @@ class DirectArchiveDownloader(unittest.TestCase):
         self.assertListEqual(resolved, ['data_20180101_v01.cdf',   # only version published yet
                                         'data_20180101_v01.cdf',   # v02 exists but listing is cached
                                         'data_20180101_v02.cdf'])  # force_refresh re-lists
+
+    def _burst_folder_values(self, file_names, fname_regex, values_per_file):
+        """Serves a burst folder and returns the values get_product() settled on."""
+
+        def read_one(url, variable, **kwargs):
+            name = url.rsplit('/', 1)[-1]
+            values = np.array(values_per_file[name], dtype=float)
+            time = np.arange('2018-01-01T12:00', len(values), dtype='datetime64[m]').astype('datetime64[ns]')
+            return SpeasyVariable(axes=[VariableTimeAxis(values=time)], values=DataContainer(values=values))
+
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018', '01'))
+            for name in file_names:
+                open(os.path.join(archive, '2018', '01', name), 'w').close()
+            server = _LocalHttpArchive(archive)
+            self.addCleanup(server.close)
+
+            product = get_product(url_pattern=server.url + r"/{Y}/{M:02d}/brst_\d+_v[\d.]+\.cdf",
+                                  split_rule='random', split_frequency='monthly', variable='B',
+                                  start_time='2018-01-01', stop_time='2018-01-02',
+                                  fname_regex=fname_regex, file_reader=read_one)
+        return [] if product is None else list(product.values.flatten())
+
+    def test_reprocessed_version_of_an_interval_supersedes_the_older_one(self):
+        # every version covering one interval was fetched and handed to merge(), which keeps
+        # whichever holds the most records -- so an archive publishing a corrected v2 next to its
+        # v1 silently served the superseded v1 whenever v2 wasn't strictly longer.
+        self.assertListEqual(
+            self._burst_folder_values(
+                ['brst_20180101120000_v1.0.0.cdf', 'brst_20180101120000_v2.0.0.cdf'],
+                r"brst_(?P<start>\d+)_v(?P<version>[\d.]+)\.cdf",
+                {'brst_20180101120000_v1.0.0.cdf': [1., 1., 1.],
+                 'brst_20180101120000_v2.0.0.cdf': [2., 2., 2.]}),
+            [2., 2., 2.])
+
+    def test_the_declared_version_decides_not_the_listing_order(self):
+        # v02 is listed first (alphabetically) and is the one merge() used to keep, but v10 is the
+        # newer file
+        self.assertListEqual(
+            self._burst_folder_values(
+                ['brst_20180101120000_v02.0.0.cdf', 'brst_20180101120000_v10.0.0.cdf'],
+                r"brst_(?P<start>\d+)_v(?P<version>[\d.]+)\.cdf",
+                {'brst_20180101120000_v02.0.0.cdf': [2., 2., 2.],
+                 'brst_20180101120000_v10.0.0.cdf': [10., 10., 10.]}),
+            [10., 10., 10.])
+
+    def test_without_a_version_group_every_overlapping_file_is_still_merged(self):
+        # nothing declares which file supersedes which, so the merge() behaviour is left alone
+        self.assertListEqual(
+            self._burst_folder_values(
+                ['brst_20180101120000_v1.0.0.cdf', 'brst_20180101120000_v2.0.0.cdf'],
+                r"brst_(?P<start>\d+)_v[\d.]+\.cdf",
+                {'brst_20180101120000_v1.0.0.cdf': [1., 1., 1.],
+                 'brst_20180101120000_v2.0.0.cdf': [2., 2., 2., 2.]}),
+            [2., 2., 2., 2.])
 
     def test_random_split_pairs_files_chronologically_not_in_listing_order(self):
         # without an explicit stop group, a file is assumed to end where the next one starts, which

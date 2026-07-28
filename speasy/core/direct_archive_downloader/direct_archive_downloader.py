@@ -116,15 +116,34 @@ def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -
     return make_utc_datetime(datetime.strptime(date, date_format))
 
 
+def _drop_superseded_versions(files: List[re.Match]) -> List[re.Match]:
+    """Keeps only the newest file of each time range, when fname_regex declares a 'version' group.
+
+    Without that group nothing says which of two files covering the same range supersedes the
+    other, so they are all kept and left to merge().
+    """
+    if not files or 'version' not in files[0].groupdict():
+        return files
+    newest = {}
+    for file in files:
+        groups = file.groupdict()
+        key = (groups['start'], groups.get('stop'))
+        previous = newest.get(key)
+        if previous is None or _natural_order(groups['version']) > _natural_order(
+            previous.groupdict()['version']):
+            newest[key] = file
+    return list(newest.values())
+
+
 @CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
 def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[str] = None) -> List[
     Tuple[str, Tuple[datetime, datetime]]]:
     if type(fname_regex) is str:
         fname_regex = re.compile(fname_regex)
-    files: List[re.Match] = list(
+    files: List[re.Match] = _drop_superseded_versions(list(
         filter(lambda m: m is not None, map(fname_regex.match,
                                             list_files(url.rsplit('/', 1)[0],
-                                                       re.compile(url.rsplit('/', 1)[1])))))
+                                                       re.compile(url.rsplit('/', 1)[1]))))))
     ranges = []
     if len(files):
         if files[0].groupdict().get('stop', None):
