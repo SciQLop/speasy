@@ -37,7 +37,7 @@ class ConfigModule(unittest.TestCase):
 
     def test_cfg_entry_call_is_get(self):
         my_test_entry = config.ConfigEntry("unit-tests", "from-env", default="10", type_ctor=int)
-        self.assertEqual(10, my_test_entry())
+        self.assertEqual(my_test_entry(), 10)
         config.remove_entry(my_test_entry)
 
     def test_reads_first_from_env(self):
@@ -49,14 +49,14 @@ class ConfigModule(unittest.TestCase):
 
     def test_returns_default_when_not_set(self):
         my_test_entry = config.ConfigEntry("unit-tests", "default_value", "DEFAULT")
-        self.assertEqual("DEFAULT", my_test_entry.get())
+        self.assertEqual(my_test_entry.get(), "DEFAULT")
         config.remove_entry(my_test_entry)
 
     def test_returns_set_value_when_set(self):
         my_test_entry = config.ConfigEntry("unit-tests", "default_value", "DEFAULT")
-        self.assertEqual("DEFAULT", my_test_entry.get())
+        self.assertEqual(my_test_entry.get(), "DEFAULT")
         my_test_entry.set("NEW VALUE")
-        self.assertEqual("NEW VALUE", my_test_entry.get())
+        self.assertEqual(my_test_entry.get(), "NEW VALUE")
         config.remove_entry(my_test_entry)
 
     def test_set_doesnt_touch_env_if_entry_is_not_in_env(self):
@@ -94,7 +94,7 @@ class ConfigModule(unittest.TestCase):
 
     def test_user_codecs_extra_dirs_keeps_real_paths_alongside_stray_set_literal(self):
         entry = config.core.user_codecs_extra_dirs
-        self.assertEqual({"/my/codecs"}, entry.type_ctor("set(),/my/codecs"))
+        self.assertEqual(entry.type_ctor("set(),/my/codecs"), {"/my/codecs"})
 
 
 if __name__ == '__main__':

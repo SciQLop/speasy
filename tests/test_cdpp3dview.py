@@ -220,14 +220,11 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
         # coordinate_system is just an alias for coordinate_frame -- passing both with different
         # values is ambiguous and must fail loudly, not silently prefer one. Raised before any
         # network call, so no cache/proxy kwargs are needed here.
+        start = datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc)
+        stop = datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc)
         with self.assertRaises(cdpp3dview.Cdpp3dViewWebException):
-            spz.cdpp3dview.get_data(
-                "GEOTAIL",
-                datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc),
-                datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc),
-                coordinate_frame="GSE",
-                coordinate_system="J2000",
-            )
+            spz.cdpp3dview.get_data("GEOTAIL", start, stop,
+                                    coordinate_frame="GSE", coordinate_system="J2000")
 
     @data(
         {
