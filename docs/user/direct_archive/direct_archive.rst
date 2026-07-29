@@ -414,6 +414,15 @@ dataset always lists its folders — but it is harmless, which is why real inven
   overlapping file is loaded and merged instead — and if two files really do cover the same
   instant, Speasy logs a warning naming them, rather than silently keeping one.
 
+.. note::
+    Files whose time ranges overlap are a dataset defect rather than something Speasy can repair:
+    when one file's timestamps run into the next file's range, at most one of them can be right
+    about when those samples were taken. Speasy keeps the file covering the overlap and drops the
+    other's samples inside it, so a result is always strictly increasing in time. A few legacy
+    archives do this at a handful of boundaries — the digitised Alouette/ISIS ionograms are the
+    known case — which is why they can return marginally fewer records than the same request served
+    by a web service that simply concatenates the files.
+
 
 .. _static_datasets:
 
