@@ -255,9 +255,12 @@ class DirectArchiveDownloader(unittest.TestCase):
             expected = []
             for year, first, last in ((2018, 1, 12), (2019, 1, 3)):
                 for month in range(first, last + 1):
-                    folder = os.path.join(archive, f"{year}", f"{month:02d}")
+                    # forward slashes, like the url_pattern below and like every documented
+                    # pattern: os.path.join would build the expectation with backslashes on
+                    # Windows while the code under test expands the pattern verbatim
+                    folder = f"{archive}/{year}/{month:02d}"
                     os.makedirs(folder)
-                    open(os.path.join(folder, f"data_{year}{month:02d}01.cdf"), 'w').close()
+                    open(f"{folder}/data_{year}{month:02d}01.cdf", 'w').close()
                     expected.append(f"{folder}/data_{year}{month:02d}01.cdf")
 
             found = dad.RandomSplitDirectDownload.list_files(
