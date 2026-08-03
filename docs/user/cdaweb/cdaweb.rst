@@ -29,8 +29,18 @@ Specific CDAWeb options
 The CDAWeb module lets you choose the access method among ``BEST``, ``FILE``, and ``API``. The default is ``BEST``.
 
 * ``BEST`` — automatically selects between ``FILE`` and ``API`` for each dataset.
-* ``FILE`` — downloads CDF files directly from the CDAWeb archive.
+* ``FILE`` — downloads data files directly from the CDAWeb archive.
 * ``API`` — retrieves data through the CDAWeb REST API.
+
+.. note::
+    Most CDAWeb datasets are CDF, but 70 are NetCDF. Those can go through ``FILE`` too, on two
+    conditions the container format does not tell: their files must carry the ISTP attributes the
+    NetCDF codec needs (``DEPEND_0``, ``VAR_TYPE``), and CDAWeb's file naming must really describe
+    the archive. Speasy settles it by loading the requested variable from the first file it would
+    download, and remembers the answer for a week. Whatever fails — plain NetCDF, the datasets
+    CDAWeb describes with one sample file name instead of a pattern, the seven published as GIF or
+    MPEG, and every parameter CDAWeb computes itself — keeps going through the REST API. None of
+    the current NetCDF datasets passes, so this mostly opens the door for the ones to come.
 
 .. note::
     ``FILE`` (and therefore ``BEST``, the default) reuses the :doc:`../direct_archive/direct_archive`
