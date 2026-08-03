@@ -45,14 +45,20 @@ def _convert_attributes_to_variables(variable_name: str, attrs: Mapping, cdf: py
     return clean_attrs
 
 
-def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False) -> bool:
+def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False,
+                time_axis_name: Optional[str] = None) -> bool:
     data_type = None
     if ax.values.dtype == np.dtype("datetime64[ns]"):
         data_type = pycdfpp.DataType.CDF_TIME_TT2000
+    # only the record varying marker, not the whole axis meta: that is how the reader tells a
+    # record varying axis from a fixed one, and without it a grid spanning every dimension comes
+    # back time independent and then matches none of them
+    attributes = {"DEPEND_0": time_axis_name} if time_axis_name is not None and ax.is_time_dependent else None
     cdf.add_variable(
         name=ax.name,
         values=_simplify_shape(ax.values),
         data_type=data_type,
+        attributes=attributes,
         compression=pycdfpp.CompressionType.gzip_compression if compress_variables else pycdfpp.CompressionType.no_compression
     )
     return True
@@ -70,7 +76,7 @@ def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: Lis
     for index, ax in enumerate(v.axes):
         a = _already_in_cdf(ax)
         if a is None:
-            _write_axis(ax, cdf, compress_variables)
+            _write_axis(ax, cdf, compress_variables, time_axis_name=v.axes[0].name if index else None)
             depends[f"DEPEND_{index}"] = ax.name
             already_saved_axes.append(ax)
         else:
