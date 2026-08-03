@@ -81,6 +81,87 @@ def make_2d_var_1d_y(start: float = 0., stop: float = 0., step: float = 1., coef
         values=DataContainer(values, is_time_dependent=True), columns=["Values"])
 
 
+def make_var_with_per_cell_coordinates(start: float = 0., stop: float = 10., step: float = 1.,
+                                       height: int = 5, depth: int = 3):
+    """A variable whose extra axes are coordinate grids spanning every non-time dimension.
+
+    That is how CDAWeb ships map products such as GOLD_L2_ON2: DEPEND_1 and DEPEND_2 both point
+    at the full latitude/longitude grid rather than at one vector per dimension, and both are
+    non-record-varying. Same construct as PSP_ISOIS-EPILO's energy axis (see make_var_with_
+    record_varying_per_cell_coordinate), only time independent.
+    """
+    time = np.arange(start, stop, step)
+    values = np.random.random((len(time), height, depth))
+    latitude = np.repeat(np.arange(height), depth).reshape(height, depth).astype(np.float64)
+    longitude = np.tile(np.arange(depth), height).reshape(height, depth).astype(np.float64)
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
+              VariableAxis(name='latitude', values=latitude),
+              VariableAxis(name='longitude', values=longitude)],
+        values=DataContainer(values, is_time_dependent=True, meta={"DISPLAY_TYPE": "map_image"}),
+        columns=["Values"])
+
+
+def make_var_with_record_varying_per_cell_coordinate(start: float = 0., stop: float = 10., step: float = 1.,
+                                                     height: int = 5, depth: int = 3):
+    """PSP_ISOIS-EPILO_L2-PE's shape: an energy axis given for every (time, look direction) cell.
+
+    Kept as a regression guard for https://github.com/SciQLop/speasy/issues/225.
+    """
+    time = np.arange(start, stop, step)
+    values = np.random.random((len(time), height, depth))
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=epoch_to_datetime64(time)),
+              VariableAxis(name='look_direction', values=np.arange(height)),
+              VariableAxis(name='energy', values=np.random.random((len(time), height, depth)),
+                           is_time_dependent=True)],
+        values=DataContainer(values, is_time_dependent=True, meta={"DISPLAY_TYPE": "spectrogram"}),
+        columns=["Values"])
+
+
+@ddt
+class PerCellCoordinateAxes(unittest.TestCase):
+    """Axes that give a coordinate per data cell instead of one value per index.
+
+    Issue #225 taught _check_time_dependent_axis about them; the time independent branch never
+    learned, which is why GOLD_L2_ON2 could not be loaded at all.
+    """
+
+    def test_time_independent_coordinate_grids_are_accepted(self):
+        var = make_var_with_per_cell_coordinates()
+        self.assertEqual(var.values.shape, (10, 5, 3))
+        self.assertEqual(var.axes[1].shape, (5, 3))
+        self.assertEqual(var.axes[2].shape, (5, 3))
+
+    def test_record_varying_coordinate_grid_is_still_accepted(self):
+        var = make_var_with_record_varying_per_cell_coordinate()
+        self.assertEqual(var.axes[2].shape, (10, 5, 3))
+
+    def test_an_axis_that_matches_no_dimension_is_still_refused(self):
+        with self.assertRaises(ValueError) as e:
+            SpeasyVariable(
+                axes=[VariableTimeAxis(values=epoch_to_datetime64(np.arange(3.))),
+                      VariableAxis(name='nonsense', values=np.arange(8).reshape(4, 2).astype(np.float64))],
+                values=DataContainer(values=np.random.random((3, 5, 3)), is_time_dependent=True),
+                columns=["Values"])
+        self.assertIn("must match data shape", str(e.exception))
+
+    @data(np.sum, np.mean, np.max, np.min)
+    def test_reducing_a_dimension_reduces_the_coordinate_grids(self, func):
+        var = make_var_with_per_cell_coordinates()
+        for axis, remaining in ((1, (3,)), (2, (5,))):
+            result = func(var, axis=axis)
+            self.assertEqual(len(result.axes), 2)
+            self.assertEqual(result.axes[1].shape, remaining)
+
+    @data(np.sum, np.mean, np.max, np.min)
+    def test_reducing_a_dimension_reduces_a_record_varying_grid(self, func):
+        var = make_var_with_record_varying_per_cell_coordinate()
+        result = func(var, axis=1)
+        self.assertEqual(len(result.axes), 2)
+        self.assertEqual(result.axes[1].shape, (10, 3))
+
+
 @ddt
 class SpeasyVariableSlice(unittest.TestCase):
 
