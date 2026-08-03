@@ -56,31 +56,49 @@ def _write_time_axis(axis, ds) -> str:
     return dim_name
 
 
-def _write_extra_axis(axis, time_dim_name: str, ds):
-    ax_dim_name = f"dim_{axis.name}"
+def _data_dimensions(v: SpeasyVariable, time_dim_name: str, ds) -> List[str]:
+    """One dimension per dimension of the data, named after the axis describing it when there is one.
+
+    Sizing them from the data rather than from the axes is what lets an axis span several of them.
+    """
+    names = [time_dim_name]
+    for index, size in enumerate(v.values.shape[1:], start=1):
+        name = f"dim_{v.axes[index].name}" if index < len(v.axes) else f"dim_{index}"
+        if name not in ds.dimensions:
+            ds.createDimension(name, size)
+        names.append(name)
+    return names
+
+
+def _axis_dimensions(axis, axis_index: int, data_dims: List[str], data_shape) -> tuple:
+    """The dimensions an axis spans: a coordinate grid covers several, a plain axis covers one."""
+    if axis.values.shape == data_shape:
+        return tuple(data_dims)
+    if axis.values.shape == data_shape[1:]:
+        return tuple(data_dims[1:])
     if axis.is_time_dependent:
-        dims = (time_dim_name, ax_dim_name)
-        size = axis.values.shape[-1]
-    else:
-        dims = (ax_dim_name,)
-        size = axis.values.shape[0]
-    if ax_dim_name not in ds.dimensions:
-        ds.createDimension(ax_dim_name, size)
+        return data_dims[0], data_dims[axis_index]
+    return (data_dims[axis_index],)
+
+
+def _write_extra_axis(axis, dims: tuple, time_dim_name: str, ds):
     if axis.name not in ds.variables:
         var = ds.createVariable(axis.name, _nc_dtype(axis.values), dims)
         var[:] = axis.values
         for k, val in axis.meta.items():
             _try_set_attr(var, k, val)
+        if axis.is_time_dependent:
+            # this is how the reader tells a record varying axis from a fixed one
+            var.DEPEND_0 = time_dim_name
 
 
 def _write_variable_nc(v: SpeasyVariable, ds, written_axes: list):
     time_dim_name = _write_time_axis(v.axes[0], ds)
-    var_dims = [time_dim_name]
-    for ax in v.axes[1:]:
+    var_dims = _data_dimensions(v, time_dim_name, ds)
+    for index, ax in enumerate(v.axes[1:], start=1):
         if ax.name not in written_axes:
-            _write_extra_axis(ax, time_dim_name, ds)
+            _write_extra_axis(ax, _axis_dimensions(ax, index, var_dims, v.values.shape), time_dim_name, ds)
             written_axes.append(ax.name)
-        var_dims.append(f"dim_{ax.name}")
     var = ds.createVariable(v.name, _nc_dtype(v.values), tuple(var_dims))
     var[:] = v.values
     for k, val in v.meta.items():
