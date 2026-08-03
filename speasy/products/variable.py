@@ -47,9 +47,12 @@ def _check_time_dependent_axis(axis: VariableAxis, axis_index, time_axis: Variab
 
 
 def _check_time_independent_axis(axis: VariableAxis, axis_index, values: DataContainer):
-    if axis.shape[0] != values.shape[axis_index]:
+    # an axis spanning every non-time dimension gives a coordinate per data cell instead of one
+    # value per index, the way CDAWeb ships map products (GOLD's latitude/longitude grids). Same
+    # allowance as the time dependent case above, where the grid also varies with time.
+    if (axis.shape != values.shape[1:]) and (axis.shape[0] != values.shape[axis_index]):
         raise ValueError(
-            f"Axis {axis_index} must match data shape, got {axis.shape[0]} and {values.shape[axis_index]}"
+            f"Axis {axis_index} must match data shape, got axis:{axis.shape} and values:{values.shape}"
         )
 
 
@@ -331,14 +334,23 @@ class SpeasyVariable(SpeasyProduct):
         if axis is None or self.ndim == other.ndim:
             return deepcopy(self.__axes)
         else:
-            axes = []
-            for i, ax in enumerate(self.__axes):
-                if i != axis:
-                    # needs to reduce axis
-                    if len(ax.shape) == len(self.values.shape):
-                        ax = np.mean(ax, axis=axis, keepdims=False)
-                    axes.append(deepcopy(ax))
-            return axes
+            return [deepcopy(self.__reduce_axis(i, ax, axis))
+                    for i, ax in enumerate(self.__axes) if i != axis]
+
+    def __reduce_axis(self, index: int, ax, reduced_dimension: int):
+        """Drops the reduced dimension from an axis that carries a coordinate per data cell.
+
+        Such an axis spans the data's dimensions, so losing one of them means losing the same
+        dimension of the axis -- offset by one when the axis does not carry the time dimension.
+        Axes holding one value per index are unaffected, they never described that dimension.
+        """
+        if index == 0:
+            return ax
+        if ax.shape == self.values.shape:
+            return np.mean(ax, axis=reduced_dimension, keepdims=False)
+        if ax.shape == self.values.shape[1:]:
+            return np.mean(ax, axis=reduced_dimension - 1, keepdims=False)
+        return ax
 
     def __array_function__(self, func, types, args, kwargs):
         if func.__name__ in SpeasyVariable.__LIKE_NP_FUNCTIONS__:
