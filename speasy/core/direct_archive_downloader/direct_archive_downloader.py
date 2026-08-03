@@ -294,6 +294,26 @@ class RegularSplitDirectDownload:
         return None
 
 
+def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
+               use_file_list: bool = False, split_frequency: str = "daily", fname_regex: Optional[str] = None,
+               date_format=None, **kwargs) -> Optional[str]:
+    """URL of the first file this archive would read for that range, None when it resolves none.
+
+    Lets a caller look at one real file -- its variable list, its metadata -- without loading data.
+    """
+    if split_rule.lower() == "random":
+        files = RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
+                                                     start_time=start_time, stop_time=stop_time,
+                                                     fname_regex=fname_regex, date_format=date_format)
+        return files[0] if len(files) else None
+    if split_rule.lower() == "regular":
+        urls = (_build_url(url_pattern, date, use_file_list=use_file_list)
+                for date in spilt_range(split_frequency=split_frequency, start_time=start_time,
+                                        stop_time=stop_time))
+        return next(filter(None, urls), None)
+    return None
+
+
 def get_product(url_pattern: str, split_rule: str, variable: str, start_time: AnyDateTimeType,
                 stop_time: AnyDateTimeType, use_file_list: bool = False, file_reader: FileLoaderCallable = _read_cdf,
                 codec: Optional[str] = None,

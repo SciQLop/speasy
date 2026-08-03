@@ -16,7 +16,7 @@ from speasy.core import AllowedKwargs, EnsureUTCDateTime
 from speasy.core import http, url_utils
 from speasy.config import cdaweb as cda_cfg
 from speasy.core.codecs import get_codec
-from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
+from speasy.core.cache import CACHE_ALLOWED_KWARGS, CacheCall, UnversionedProviderCache
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck)
 from speasy.core.datetime_range import DateTimeRange
@@ -24,7 +24,7 @@ from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.core.requests_scheduling import SplitLargeRequests
-from speasy.core.direct_archive_downloader import get_product as direct_archive_get_product
+from speasy.core.direct_archive_downloader import first_file, get_product as direct_archive_get_product
 from speasy.products.variable import SpeasyVariable
 from ._direct_archive import to_direct_archive_params
 
@@ -41,6 +41,58 @@ def _is_burst_product(product: ParameterIndex or str) -> bool:
 
 def _is_virtual_parameter(product: ParameterIndex) -> bool:
     return product.__dict__.get('VIRTUAL', 'FALSE').upper() == 'TRUE'
+
+
+@CacheCall(cache_retention=timedelta(days=7), is_pure=True)
+def _codec_can_read(file_url: str, codec: str, variable: str) -> bool:
+    """Does the codec really get that variable out of that file?
+
+    Listing the variables is not enough: the ICON_L2-7_IVM-A files list 125 of them and then raise
+    while pyistp walks the axes of half. Only the load answers the question for sure.
+    """
+    try:
+        return get_codec(codec).load_variable(variable, file=file_url) is not None
+    except IOError:
+        raise   # transient, and the caller must not remember it as a verdict on the dataset
+    except Exception as e:
+        log.warning(f"The {codec} codec failed on {file_url}: {type(e).__name__}: {e}")
+        return False
+
+
+def _codec_can_read_archive(archive_params: Dict, variable: str, start_time: datetime,
+                            stop_time: datetime) -> bool:
+    """Can this product be read from the first file the archive serves for that range?
+
+    Asks a real file rather than looking at what get_data() returned: an empty result only means
+    the interval holds no data, while a file the codec can't get the variable out of is a property
+    of the dataset. The retention window gives a dataset that later becomes readable another try.
+    """
+    codec = archive_params['codec']
+    if get_codec(codec) is None:
+        log.warning(f"No {codec} codec available, switching to web service")
+        return False
+    sample_file = first_file(start_time=start_time, stop_time=stop_time, **archive_params)
+    if sample_file is None:
+        return False
+    try:
+        return _codec_can_read(sample_file, codec, variable)
+    except IOError as e:
+        log.warning(f"Failed to probe {sample_file} with the {codec} codec, switching to web service: {e}")
+        return False
+
+
+def _archive_params_for(dataset: DatasetIndex, product_index: ParameterIndex, variable: str,
+                        start_time: datetime, stop_time: datetime) -> Optional[Dict]:
+    """Direct archive parameters when this product can really be served from files, None otherwise."""
+    if _is_virtual_parameter(product_index):
+        return None
+    params = to_direct_archive_params(file_naming=dataset.filenaming, subdivided_by=dataset.subdividedby,
+                                      url=dataset.url)
+    if params is None:
+        return None
+    if 'codec' not in params:
+        return {**params, 'master_cdf_url': dataset.mastercdf}
+    return params if _codec_can_read_archive(params, variable, start_time, stop_time) else None
 
 
 def _large_request_max_duration(product):
@@ -194,19 +246,15 @@ class CdaWebservice(DataProvider):
             product_index = self.flat_inventory.parameters[product]
         else:
             product_index = product
-        archive_params = to_direct_archive_params(file_naming=dataset.filenaming,
-                                                  subdivided_by=dataset.subdividedby,
-                                                  url=dataset.url)
+        archive_params = _archive_params_for(dataset, product_index, variable, start_time, stop_time)
         log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
-        if archive_params is not None and not _is_virtual_parameter(product_index):
+        if archive_params is not None:
             return direct_archive_get_product(variable=variable, start_time=start_time, stop_time=stop_time,
-                                              **archive_params,
-                                              master_cdf_url=dataset.mastercdf)
-        else:
-            if not mode_is_best:
-                log.warning(f"Can't get {product} without web service, switching to web service")
-            return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
-                                          if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
+                                              **archive_params)
+        if not mode_is_best:
+            log.warning(f"Can't get {product} without web service, switching to web service")
+        return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
+                                      if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than', 'method'])

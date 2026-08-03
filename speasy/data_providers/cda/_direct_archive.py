@@ -59,6 +59,16 @@ folder_layouts = {
 }
 
 
+# CDAWeb tells the file format through the file naming: 2850 datasets are CDF, 70 NetCDF and 7 are
+# GIF or MPEG movies Speasy has no codec for. CDF maps to no codec because it is the direct archive
+# downloader's own default reader.
+codec_by_extension = {
+    "cdf": None,
+    "nc": "nc",
+    "nc4": "nc",
+}
+
+
 def _build_date_format(file_naming: str) -> Optional[str]:
     date_format = _date_format_regex.search(file_naming)
     if date_format is None:
@@ -67,8 +77,11 @@ def _build_date_format(file_naming: str) -> Optional[str]:
 
 
 def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> Optional[Dict]:
-    if not file_naming.endswith('.cdf'):
+    extension = file_naming.rsplit('.', 1)[-1].lower()
+    if extension not in codec_by_extension:
         return None
+    codec = codec_by_extension[extension]
+    codec_params = {"codec": codec} if codec else {}
 
     fname_regex = file_naming
 
@@ -87,6 +100,11 @@ def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> 
 
     date_format = _build_date_format(fname_regex)
     if date_format is None:
+        if split_frequency != 'none':
+            # a file name with no date under folders that have one is CDAWeb quoting one real file
+            # instead of a pattern (five datasets do). Taken literally it resolves that same file
+            # for every year asked for, so there is nothing here to describe the archive with.
+            return None
         # nothing in the file name to read a start time from, so the random rule cannot describe
         # this dataset: it is a single fixed file (omni2.cdf, voyager1.cdf...) the regular rule
         # already covers. fname_regex/date_format are left out on purpose, they are random-only
@@ -96,6 +114,7 @@ def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> 
             "split_rule": 'regular',
             "split_frequency": split_frequency,
             "use_file_list": True,
+            **codec_params,
         }
 
     fname_regex = _date_format_regex.sub(r"(?P<start>\\d+t?T?\\d+)", fname_regex, 1)
@@ -108,5 +127,6 @@ def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> 
         "split_frequency": split_frequency,
         "fname_regex": fname_regex,
         "use_file_list": True,
-        "date_format": date_format
+        "date_format": date_format,
+        **codec_params,
     }

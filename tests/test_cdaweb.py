@@ -523,6 +523,15 @@ class DirectArchiveConverter(unittest.TestCase):
         self.assertIsNotNone(fname_regex.search(test_url))
         self.assertIsNotNone(url_pattern.search(test_url))
 
+    @data("aim_cips_sci_3a_2007-144_%Q.20_r05.nc", "gold_l2_nmax_2018_278_v05_r01_c01.nc")
+    def test_dateless_file_naming_under_dated_folders_is_a_sample_not_a_pattern(self, file_naming):
+        # five CDAWeb datasets describe their files with one real file name instead of a pattern.
+        # The year folders give it away: a single fixed file would not be foldered by year. Taken
+        # literally the name resolves that same file for every year asked for, so those datasets
+        # cannot be served from the archive at all.
+        self.assertIsNone(to_direct_archive_params(file_naming=file_naming, subdivided_by="%Y",
+                                                   url="https://cdaweb.gsfc.nasa.gov/pub/data/somewhere"))
+
     @data("omni2.cdf", "voyager1.cdf", "helios1.cdf", "pioneer10.cdf", "ulysses.cdf")
     def test_dateless_file_naming_is_not_a_random_split(self, file_naming):
         # CDAWeb describes nine datasets as a single file whose name carries no date at all. The
@@ -537,15 +546,15 @@ class DirectArchiveConverter(unittest.TestCase):
     def test_best_method_does_not_warn_when_it_falls_back_to_the_web_service(self):
         # BEST means "use whichever works", so falling back is its normal outcome, not something to
         # warn about. mode_is_best compared the method against the lowercase 'best' while the
-        # documented and default value is 'BEST', so every fallback warned. 123 CDAWeb datasets are
-        # NetCDF and always take this path.
+        # documented and default value is 'BEST', so every fallback warned. A dozen CDAWeb datasets
+        # cannot be described as an archive at all and always take this path.
         from unittest.mock import patch
 
-        netcdf_dataset = next(ds for ds in spz.inventories.flat_inventories.cda.datasets.values()
-                              if to_direct_archive_params(file_naming=ds.filenaming,
-                                                          subdivided_by=ds.subdividedby,
-                                                          url=ds.url) is None)
-        variable = next(iter(v for v in netcdf_dataset.__dict__.values() if hasattr(v, 'spz_uid')))
+        undescribable_dataset = next(ds for ds in spz.inventories.flat_inventories.cda.datasets.values()
+                                     if to_direct_archive_params(file_naming=ds.filenaming,
+                                                                 subdivided_by=ds.subdividedby,
+                                                                 url=ds.url) is None)
+        variable = next(iter(v for v in undescribable_dataset.__dict__.values() if hasattr(v, 'spz_uid')))
 
         with patch.object(spz.cda, '_get_data_with_ws', return_value=None) as web_service:
             with self.assertNoLogs('speasy.data_providers.cda', level='WARNING'):
