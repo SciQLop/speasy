@@ -133,5 +133,128 @@ class ColormapHints(unittest.TestCase):
         self.assertTrue(np.ma.getmaskarray(mesh.get_array()).all())
 
 
+_MAP_TIME = np.array(["2018-10-05", "2018-10-06"], dtype="datetime64[ns]")
+
+
+def _map_plot(display_type="map_image>THUMBSIZE>166>MAP_PROJ>7>SMOOTH>x=latitude,y=longitude",
+              time_dependent_grids=False):
+    """A GOLD_L2_ON2 shaped variable: latitude and longitude grids over the two spatial dims."""
+    latitude = np.array([[0., 0., 0.], [1., 1., 1.]])
+    longitude = np.array([[0., 1., 2.], [0., 1., 2.]])
+    if time_dependent_grids:
+        latitude = np.stack([latitude, latitude])
+        longitude = np.stack([longitude, longitude])
+    return Plot(
+        axes=[VariableTimeAxis(values=_MAP_TIME),
+              VariableAxis(values=latitude, name="latitude", is_time_dependent=time_dependent_grids),
+              VariableAxis(values=longitude, name="longitude", is_time_dependent=time_dependent_grids)],
+        values=DataContainer(values=np.arange(12.).reshape(2, 2, 3),
+                             meta={"DISPLAY_TYPE": display_type}, name="on2"),
+        columns_names=["value"],
+    )
+
+
+class DisplayTypeDispatch(unittest.TestCase):
+    """DISPLAY_TYPE was compared whole, so anything carrying modifiers fell through to a line plot.
+
+    1012 CDAWeb parameters spell it 'spectrogram>y=...,z=...' rather than plain 'spectrogram'.
+    """
+
+    def setUp(self):
+        self.addCleanup(plt.close, "all")
+
+    def test_plain_spectrogram_is_a_colormap(self):
+        ax = _colormap_plot(values_meta={"DISPLAY_TYPE": "spectrogram"})()
+        self.assertEqual(len(ax.collections), 1)
+
+    def test_spectrogram_with_modifiers_is_a_colormap(self):
+        ax = _colormap_plot(
+            values_meta={"DISPLAY_TYPE": "spectrogram>y=Center_Scan, z=MEDUSA_Electron(1,*)"})()
+        self.assertEqual(len(ax.collections), 1)
+
+    def test_time_series_is_a_line(self):
+        ax = _line_plot(values_meta={"DISPLAY_TYPE": "time_series"})()
+        self.assertEqual(len(ax.get_lines()), 1)
+
+    def test_no_display_type_is_a_line(self):
+        ax = _line_plot()()
+        self.assertEqual(len(ax.get_lines()), 1)
+
+    def test_map_image_is_a_colormap(self):
+        ax = _map_plot()()
+        self.assertEqual(len(ax.collections), 1)
+
+
+class ColormapOverCoordinateGrids(unittest.TestCase):
+    """A map is a colormap whose axes happen to be grids, not a plot type of its own."""
+    def setUp(self):
+        self.addCleanup(plt.close, "all")
+
+    def test_uses_the_coordinate_grids_named_by_the_hint(self):
+        # CDAWeb spells GOLD's hint 'x=latitude,y=longitude', so the axes are not in array order
+        ax = _map_plot().colormap()
+        self.assertEqual(ax.get_xlabel(), "latitude")
+        self.assertEqual(ax.get_ylabel(), "longitude")
+
+    def test_falls_back_to_array_order_without_a_hint(self):
+        ax = _map_plot(display_type="map_image").colormap()
+        self.assertEqual(ax.get_xlabel(), "longitude")
+        self.assertEqual(ax.get_ylabel(), "latitude")
+
+    def test_plots_one_time_step(self):
+        ax = _map_plot().colormap(time_index=1)
+        mesh = ax.collections[0]
+        self.assertEqual(mesh.get_array().size, 6)
+
+    def test_grids_with_holes_still_draw(self):
+        # 37% of GOLD_L2_ON2's grid is NaN, the cells looking off the Earth's disk, and
+        # pcolormesh refuses non-finite coordinates outright
+        plot = _map_plot()
+        plot.axes[1].values[0, 0] = np.nan
+        plot.axes[2].values[0, 0] = np.nan
+        ax = plot.colormap()
+        self.assertEqual(len(ax.collections), 1)
+
+    def test_record_varying_grids_are_indexed_by_time_too(self):
+        ax = _map_plot(time_dependent_grids=True).colormap(time_index=1)
+        self.assertEqual(len(ax.collections), 1)
+
+
+class ColormapRefusesMoreThanTwoDimensions(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(plt.close, "all")
+
+    def test_one_grid_among_plain_axes_is_not_a_map(self):
+        # PSP_ISOIS-EPILO_L2-PE has a plain look direction axis and an energy grid over every
+        # dimension. Only one of its two spatial dimensions has a coordinate, so there is nothing
+        # to spread a map over and it must ask for a reduction like any other 3D spectrogram.
+        plot = Plot(
+            axes=[VariableTimeAxis(values=_MAP_TIME),
+                  VariableAxis(values=np.arange(2.), name="look_direction"),
+                  VariableAxis(values=np.random.random((2, 2, 3)), name="energy",
+                               is_time_dependent=True)],
+            values=DataContainer(values=np.arange(12.).reshape(2, 2, 3),
+                                 meta={"DISPLAY_TYPE": "spectrogram"}, name="counts"),
+            columns_names=["value"])
+        with self.assertRaises(ValueError) as e:
+            plot.colormap()
+        self.assertIn("3 dimensions", str(e.exception))
+
+    def test_error_names_the_way_out(self):
+        # PSP_ISOIS-EPILO_L2-PE is a 3D spectrogram; matplotlib used to answer with an opaque
+        # "Dimensions of C (3, 5, 6) should be one smaller than X(6) and Y(5)"
+        plot = Plot(
+            axes=[VariableTimeAxis(values=_MAP_TIME),
+                  VariableAxis(values=np.arange(2.), name="look_direction"),
+                  VariableAxis(values=np.arange(3.), name="energy")],
+            values=DataContainer(values=np.arange(12.).reshape(2, 2, 3),
+                                 meta={"DISPLAY_TYPE": "spectrogram"}, name="counts"),
+            columns_names=["value"])
+        with self.assertRaises(ValueError) as e:
+            plot.colormap()
+        self.assertIn("3 dimensions", str(e.exception))
+        self.assertIn("axis=", str(e.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

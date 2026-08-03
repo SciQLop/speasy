@@ -31,18 +31,17 @@ class Plot:
             ax.semilogy()
         return ax
 
-    def colormap(self, x, y, z, xaxis_label=None, yaxis_label=None, yaxis_units=None, zaxis_label=None,
-                 zaxis_units=None, ax=None,
-                 cmap=None, logy=True,
-                 logz=True, vmin=None, vmax=None, *args,
-                 **kwargs):
-        ax = self._get_ax(ax)
+    def _mesh(self, ax, x, y, z, *args, **kwargs):
+        """Cells the instrument was not looking through carry no coordinate at all.
 
-        if yaxis_units is not None and yaxis_label is not None:
-            ax.set_ylabel(f"{yaxis_label} ({yaxis_units})")
-        if xaxis_label is not None:
-            ax.set_xlabel(f"{xaxis_label}")
+        pcolormesh refuses non-finite coordinates outright rather than skipping those cells, while
+        pcolor drops just the quads it cannot place, so a punctured grid goes through pcolor.
+        """
+        if np.all(np.isfinite(x)) and np.all(np.isfinite(y)):
+            return ax.pcolormesh(x, y, z, *args, **kwargs)
+        return ax.pcolor(np.ma.masked_invalid(x), np.ma.masked_invalid(y), z, *args, **kwargs)
 
+    def _norm(self, z, logz, vmin, vmax):
         # A slice that's entirely masked/FILLVAL has no finite value to scale from; fall back to
         # an arbitrary positive bound rather than feeding LogNorm/Normalize a NaN vmin/vmax.
         nonzero = z[np.nonzero(z)]
@@ -50,18 +49,31 @@ class Plot:
             vmin = np.nanmin(nonzero) if np.isfinite(nonzero).any() else 1.0
         if vmax is None:
             vmax = np.nanmax(z) if np.isfinite(z).any() else 1.0
+        if logz:
+            return colors.LogNorm(vmin=vmin, vmax=vmax)
+        return colors.Normalize(vmin=vmin, vmax=vmax)
+
+    def colormap(self, x, y, z, xaxis_label=None, yaxis_label=None, yaxis_units=None, zaxis_label=None,
+                 zaxis_units=None, ax=None,
+                 cmap=None, logy=True,
+                 logz=True, vmin=None, vmax=None, *args,
+                 **kwargs):
+        ax = self._get_ax(ax)
+
+        if yaxis_label is not None:
+            ax.set_ylabel(f"{yaxis_label} ({yaxis_units})" if yaxis_units else yaxis_label)
+        if xaxis_label is not None:
+            ax.set_xlabel(f"{xaxis_label}")
 
         if logy:
             ax.semilogy()
-        if logz:
-            norm = colors.LogNorm(vmin=vmin, vmax=vmax)
-        else:
-            norm = colors.Normalize(vmin=vmin, vmax=vmax)
+        norm = self._norm(z, logz, vmin, vmax)
 
-        ax.tick_params(axis='x', labelrotation=45)
-        cm = ax.pcolormesh(x, y, z,
-                           cmap=cmap or 'plasma',
-                           norm=norm, *args, **kwargs)
+        if np.issubdtype(np.asarray(x).dtype, np.datetime64):   # dates need the room, degrees don't
+            ax.tick_params(axis='x', labelrotation=45)
+        cm = self._mesh(ax, x, y, z,
+                        cmap=cmap or 'plasma',
+                        norm=norm, *args, **kwargs)
         cbar = plt.colorbar(cm, ax=ax)
         if zaxis_units is not None and zaxis_label is not None:
             cbar.set_label(f'{zaxis_label} ({zaxis_units})')
