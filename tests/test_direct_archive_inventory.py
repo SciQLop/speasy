@@ -3,13 +3,16 @@ import io
 import os
 import tempfile
 import unittest
+import unittest.mock
 
 import numpy as np
 import yaml
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
-from speasy.core.cdf.inventory_extractor import extract_parameter, make_dataset_index, extract_from_master
+import speasy.core.cdf.inventory_extractor as inventory_extractor
+from speasy.core.cdf.inventory_extractor import extract_parameter, extract_parameters, make_dataset_index, \
+    extract_from_master
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
@@ -332,6 +335,25 @@ class TestExtractParameterFailureReporting(unittest.TestCase):
             with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING'):
                 extract_parameter(self._UnreadableLoader(), "B_field", provider="archive")
         self.assertEqual(printed.getvalue(), "")
+
+    def test_logs_the_reason_a_whole_file_could_not_be_read(self):
+        class _UnlistableLoader:
+            def data_variables(self):
+                raise RuntimeError("broken file")
+
+        with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING') as captured:
+            self.assertListEqual(extract_parameters(_UnlistableLoader(), provider="archive"), [])
+        self.assertIn("broken file", captured.output[0])
+
+    def test_logs_the_reason_a_master_could_not_be_read(self):
+        with tempfile.NamedTemporaryFile(suffix='.cdf', delete=False) as f:
+            f.write(b"not a master at all")
+        self.addCleanup(os.unlink, f.name)
+        with unittest.mock.patch.object(inventory_extractor.pyistp, 'load',
+                                        side_effect=RuntimeError("broken master")):
+            with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING') as captured:
+                self.assertIsNone(extract_from_master(f.name, provider="archive", disable_cache=True))
+        self.assertIn("broken master", captured.output[0])
 
 
 class TestLoadInventoryFile(unittest.TestCase):
