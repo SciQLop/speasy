@@ -1,3 +1,5 @@
+import contextlib
+import io
 import os
 import tempfile
 import unittest
@@ -7,7 +9,7 @@ import yaml
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
-from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
+from speasy.core.cdf.inventory_extractor import extract_parameter, make_dataset_index, extract_from_master
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
@@ -306,6 +308,30 @@ class TestMakeDatasetIndex(unittest.TestCase):
         built_parameters = [v for v in dataset.__dict__.values() if hasattr(v, 'spz_name')]
         self.assertGreater(len(built_parameters), 0)
 
+
+
+class TestExtractParameterFailureReporting(unittest.TestCase):
+    """A variable an inventory build cannot read is reported to the logs, with what went wrong.
+
+    It used to be printed to stdout instead, which a library cannot filter, silence or route,
+    and the exception was dropped on the way, leaving only the name behind.
+    """
+
+    class _UnreadableLoader:
+        def data_variable(self, var_name):
+            raise RuntimeError("broken variable")
+
+    def test_logs_the_reason_a_variable_could_not_be_read(self):
+        with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING') as captured:
+            self.assertIsNone(extract_parameter(self._UnreadableLoader(), "B_field", provider="archive"))
+        self.assertIn("B_field", captured.output[0])
+        self.assertIn("broken variable", captured.output[0])
+
+    def test_does_not_print_the_failure(self):
+        with contextlib.redirect_stdout(io.StringIO()) as printed:
+            with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING'):
+                extract_parameter(self._UnreadableLoader(), "B_field", provider="archive")
+        self.assertEqual(printed.getvalue(), "")
 
 
 class TestLoadInventoryFile(unittest.TestCase):
