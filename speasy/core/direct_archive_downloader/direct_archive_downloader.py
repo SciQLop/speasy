@@ -231,7 +231,12 @@ class RandomSplitDirectDownload:
         for start in spilt_range(split_frequency, start_time, stop_time):
 
             base_ulr = apply_date_format(url_pattern, start)
-            folder_url = base_ulr.rsplit('/', 1)[0]
+            folder_url, folder_regex = base_ulr.rsplit('/', 1)
+
+            if force_refresh:
+                # map_ranges cannot pass it on: CacheCall owns the force_refresh keyword and keeps
+                # it for itself, so the listing map_ranges reads is refreshed from here instead.
+                list_files(folder_url, re.compile(folder_regex), force_refresh=True)
 
             files = filter_ranges(
                 map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format, force_refresh=force_refresh),
@@ -246,7 +251,8 @@ class RandomSplitDirectDownload:
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
                     file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> Optional[SpeasyVariable]:
 
-        force_refresh = kwargs.pop('force_refresh', False)
+        # kept in kwargs on purpose: it must also reach the file reader's own cache
+        force_refresh = kwargs.get('force_refresh', False)
         downloader = lambda force_refresh: merge(
             randomized_map(
                 partial(file_reader, variable=variable, **kwargs),

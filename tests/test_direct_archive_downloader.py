@@ -159,6 +159,57 @@ class DirectArchiveDownloader(unittest.TestCase):
                                         'data_20180101_v01.cdf',   # v02 exists but listing is cached
                                         'data_20180101_v02.cdf'])  # force_refresh re-lists
 
+    def _randomly_split_request(self, server, file_reader):
+        return dict(url_pattern=server.url + r"/{Y}/data_\d+_v\d+\.cdf",
+                    split_rule='random', split_frequency='yearly', variable='B',
+                    start_time='2018-01-01', stop_time='2018-01-02',
+                    fname_regex=r"data_(?P<start>\d+)_v(?P<version>\d+)\.cdf",
+                    date_format="%Y%m%d", file_reader=file_reader)
+
+    def test_force_refresh_refreshes_the_file_listing_of_a_randomly_split_dataset(self):
+        # force_refresh re-ran map_ranges but not the file listing it is built from, so the retry
+        # a 404 triggers -- there to pick up files renamed by a fresh release -- kept resolving
+        # the names listed up to 12h earlier.
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018'))
+            open(os.path.join(archive, '2018', 'data_20180101_v01.cdf'), 'w').close()
+            server = _LocalHttpArchive(archive)
+            self.addCleanup(server.close)
+
+            resolved = []
+
+            def record_url(url, variable, **kwargs):
+                resolved.append(url.rsplit('/', 1)[-1])
+                return None
+
+            request = self._randomly_split_request(server, record_url)
+            get_product(**request)
+            open(os.path.join(archive, '2018', 'data_20180101_v02.cdf'), 'w').close()
+            get_product(**request)
+            get_product(**request, force_refresh=True)
+
+        self.assertListEqual(resolved, ['data_20180101_v01.cdf',   # only version published yet
+                                        'data_20180101_v01.cdf',   # v02 exists but listing is cached
+                                        'data_20180101_v02.cdf'])  # force_refresh re-lists
+
+    def test_force_refresh_reaches_the_file_reader_of_a_randomly_split_dataset(self):
+        # the file reader caches what it decodes too, so it has to be told to refresh as well.
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018'))
+            open(os.path.join(archive, '2018', 'data_20180101_v01.cdf'), 'w').close()
+            server = _LocalHttpArchive(archive)
+            self.addCleanup(server.close)
+
+            seen = []
+
+            def record_kwargs(url, variable, **kwargs):
+                seen.append(kwargs.get('force_refresh', False))
+                return None
+
+            get_product(**self._randomly_split_request(server, record_kwargs), force_refresh=True)
+
+        self.assertListEqual(seen, [True])
+
     def _burst_folder_values(self, file_names, fname_regex, values_per_file):
         """Serves a burst folder and returns the values get_product() settled on."""
 
