@@ -104,6 +104,15 @@ class CoordinateGridsSurviveANetCdfRoundTrip(unittest.TestCase):
         self.assertListEqual([ax.shape for ax in back.axes], [ax.shape for ax in var.axes])
 
     @data(coordinate_grids, record_varying_grid, plain_spectrogram)
+    def test_time_dependence_is_preserved(self, ctor):
+        # same trap as the CDF round trip above, and the likelier of the two to fall into it:
+        # NetCDF has no record-variance flag of its own, so DEPEND_0 is all that carries it
+        var = ctor()
+        back = _round_trip('nc', var)
+        self.assertListEqual([ax.is_time_dependent for ax in back.axes],
+                             [ax.is_time_dependent for ax in var.axes])
+
+    @data(coordinate_grids, record_varying_grid, plain_spectrogram)
     def test_values_are_preserved(self, ctor):
         var = ctor()
         back = _round_trip('nc', var)

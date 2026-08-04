@@ -19,7 +19,7 @@ from unittest.mock import patch
 from ddt import data, ddt
 
 from speasy.core.codecs import get_codec
-from speasy.data_providers.cda import _archive_params_for
+from speasy.data_providers.cda import _archive_params_for, _codec_can_read
 from speasy.data_providers.cda._direct_archive import to_direct_archive_params
 
 try:
@@ -153,6 +153,49 @@ class TestNetCDFDatasetsAreProbedBeforeServingFiles(unittest.TestCase):
     def test_single_file_dataset_whose_file_is_missing_falls_back_to_the_web_service(self):
         self.assertIsNone(self._params_for('something_else.nc', '2018-10-05', '2018-10-06',
                                            file_naming='the_whole_mission.nc'))
+
+
+@unittest.skipIf(netCDF4 is None, "netCDF4 not installed")
+class TestProbeVerdictsAreRemembered(unittest.TestCase):
+    """Probing downloads and decodes a real file, so the answer is kept for a week -- but only
+    when it is an answer about the dataset. A file that could not be reached says nothing about
+    it, and remembering that for a week would keep a perfectly readable dataset on the REST API
+    long after the outage ended.
+    """
+
+    def setUp(self):
+        _codec_can_read.drop_entries()
+
+    def tearDown(self):
+        _codec_can_read.drop_entries()
+
+    def test_a_readable_file_is_not_decoded_twice(self):
+        with patch.object(get_codec('nc'), 'load_variable', return_value=object()) as load_variable:
+            self.assertTrue(_codec_can_read('file:///probe_readable.nc', 'nc', 'DENSITY'))
+            self.assertTrue(_codec_can_read('file:///probe_readable.nc', 'nc', 'DENSITY'))
+        self.assertEqual(load_variable.call_count, 1)
+
+    def test_a_file_the_codec_chokes_on_is_not_decoded_twice(self):
+        with patch.object(get_codec('nc'), 'load_variable',
+                          side_effect=AttributeError("NetCDF: Attribute not found")):
+            self.assertFalse(_codec_can_read('file:///probe_broken.nc', 'nc', 'DENSITY'))
+        with patch.object(get_codec('nc'), 'load_variable', return_value=object()) as load_variable:
+            self.assertFalse(_codec_can_read('file:///probe_broken.nc', 'nc', 'DENSITY'))
+            load_variable.assert_not_called()
+
+    def test_an_unreachable_file_is_not_remembered_as_a_verdict(self):
+        with patch.object(get_codec('nc'), 'load_variable', side_effect=IOError("connection reset")):
+            with self.assertRaises(IOError):
+                _codec_can_read('file:///probe_unreachable.nc', 'nc', 'DENSITY')
+        with patch.object(get_codec('nc'), 'load_variable', return_value=object()) as load_variable:
+            self.assertTrue(_codec_can_read('file:///probe_unreachable.nc', 'nc', 'DENSITY'))
+            load_variable.assert_called_once()
+
+    def test_each_variable_of_a_file_gets_its_own_verdict(self):
+        with patch.object(get_codec('nc'), 'load_variable', return_value=object()) as load_variable:
+            _codec_can_read('file:///probe_per_variable.nc', 'nc', 'DENSITY')
+            _codec_can_read('file:///probe_per_variable.nc', 'nc', 'TEMPERATURE')
+        self.assertEqual(load_variable.call_count, 2)
 
 
 if __name__ == '__main__':
