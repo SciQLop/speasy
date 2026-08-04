@@ -188,6 +188,10 @@ This is useful to avoid creating a new pool for each request.""",
                      user_codecs_extra_dirs={"default": "",
                                              "description": """A comma separated list of directories to scan for extra codecs.""",
                                              "type_ctor": _parse_dir_set},
+                     disabled_plugins={"default": "",
+                                       "description": """A comma separated list of plugin entry-point names to skip
+(any group, e.g. speasy.codecs).""",
+                                       "type_ctor": _parse_dir_set},
                      )
 
 proxy = ConfigSection("PROXY",
