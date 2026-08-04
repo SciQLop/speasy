@@ -404,6 +404,22 @@ class DirectArchiveConverter(unittest.TestCase):
             datetime(1969, 12, 23, tzinfo=timezone.utc)
         ),
         (
+            # DE_VS_EICS names its files with a two-digit year, inside four-digit year folders.
+            "%y%j_eics_de_96s_%Q.cdf",
+            "%Y",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/de/de1/particles_eics/vs_eics_cdaweb",
+            {
+                'date_format': '%y%j',
+                'fname_regex': '(?P<start>\\d+t?T?\\d+)_eics_de_96s_(?P<version>.*).cdf',
+                'split_frequency': 'yearly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/de/de1/particles_eics/vs_eics_cdaweb/{Y}/{y:02d}[0-3]\\d\\d_eics_de_96s_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/de/de1/particles_eics/vs_eics_cdaweb/1986/86003_eics_de_96s_v01.cdf",
+            datetime(1986, 1, 3, tzinfo=timezone.utc)
+        ),
+        (
             "bar_1b_l2_fspc_%Y%m%d_%Q.cdf",
             "None",
             "https://cdaweb.gsfc.nasa.gov/pub/data/barrel/l2/1b/fspc",
