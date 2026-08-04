@@ -214,14 +214,51 @@ class EntryPointCodecs(unittest.TestCase):
 
 class UserDirectoryCodecFailuresAreContained(unittest.TestCase):
 
+    _VALID_CODEC_FILE = '''\
+from speasy.core.codecs.codec_interface import CodecInterface
+from speasy.core.codecs.codecs_registry import register_codec
+
+
+@register_codec
+class _UserDirValidCodec(CodecInterface):
+
+    def load_variables(self, variables, file, cache_remote_files=True, **kwargs):
+        raise NotImplementedError
+
+    def load_variable(self, variable, file, cache_remote_files=True, **kwargs):
+        raise NotImplementedError
+
+    def save_variables(self, variables, file=None, **kwargs):
+        raise NotImplementedError
+
+    @property
+    def supported_extensions(self):
+        return ['udv']
+
+    @property
+    def supported_mimetypes(self):
+        return []
+
+    @property
+    def name(self):
+        return 'codec/user-dir-valid'
+'''
+
     def test_a_broken_codec_file_is_skipped_and_the_valid_one_still_loads(self):
         with tempfile.TemporaryDirectory() as codec_dir:
             with open(os.path.join(codec_dir, 'broken.py'), 'w') as f:
                 f.write("raise RuntimeError('this codec file is broken')\n")
             with open(os.path.join(codec_dir, 'valid.py'), 'w') as f:
-                f.write("VALID_CODEC_FILE_RAN = True\n")
-            with mock.patch.object(codecs_registry.cfg.user_codecs_extra_dirs, 'get',
-                                   return_value={codec_dir}):
-                with self.assertLogs('speasy.core.codecs.codecs_registry', level='WARNING') as captured:
-                    codecs_registry.load_extra_codecs()
-        self.assertIn('broken.py', captured.output[0])
+                f.write(self._VALID_CODEC_FILE)
+            try:
+                with mock.patch.object(codecs_registry, 'user_codecs_dir',
+                                       return_value='/nonexistent-speasy-user-codecs-dir'):
+                    with mock.patch.object(codecs_registry.cfg.user_codecs_extra_dirs, 'get',
+                                           return_value={codec_dir}):
+                        with self.assertLogs('speasy.core.codecs.codecs_registry', level='WARNING') as captured:
+                            codecs_registry.load_extra_codecs()
+                self.assertTrue(any('broken.py' in line for line in captured.output))
+                self.assertIsNotNone(get_codec('codec/user-dir-valid'))
+            finally:
+                codecs_registry.__CODECS__.pop('codec/user-dir-valid', None)
+                codecs_registry.__CODECS__.pop('udv', None)
