@@ -14,7 +14,7 @@ from dateutil.relativedelta import relativedelta
 
 from speasy.core import make_utc_datetime, AnyDateTimeType
 from speasy.core.cache import CacheCall
-from speasy.core.any_files import list_files
+from speasy.core.any_files import list_files as list_remote_files
 from speasy.core.codecs import get_codec
 from speasy.core.span_utils import intersects
 from speasy.products import SpeasyVariable
@@ -67,7 +67,7 @@ def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refr
     if not use_file_list:
         return base_ulr
     folder_url, rx = base_ulr.rsplit('/', 1)
-    files = list_files(folder_url, re.compile(rx), force_refresh=force_refresh)
+    files = list_remote_files(folder_url, re.compile(rx), force_refresh=force_refresh)
     if len(files):
         return '/'.join((folder_url, max(files, key=_natural_order)))
     return None
@@ -162,7 +162,7 @@ def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[s
         fname_regex = re.compile(fname_regex)
     files: List[re.Match] = _drop_superseded_versions(list(
         filter(lambda m: m is not None, map(fname_regex.match,
-                                            list_files(url.rsplit('/', 1)[0],
+                                            list_remote_files(url.rsplit('/', 1)[0],
                                                        re.compile(url.rsplit('/', 1)[1]))))))
     ranges = []
     if len(files):
@@ -236,7 +236,7 @@ class RandomSplitDirectDownload:
             if force_refresh:
                 # map_ranges cannot pass it on: CacheCall owns the force_refresh keyword and keeps
                 # it for itself, so the listing map_ranges reads is refreshed from here instead.
-                list_files(folder_url, re.compile(folder_regex), force_refresh=True)
+                list_remote_files(folder_url, re.compile(folder_regex), force_refresh=True)
 
             files = filter_ranges(
                 map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format, force_refresh=force_refresh),
