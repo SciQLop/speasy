@@ -637,10 +637,12 @@ is loaded automatically the next time Speasy starts.
     placing a file you didn't write yourself in a codecs directory. Three consequences worth knowing
     before you write one:
 
-    1. **A broken codec file breaks** ``import speasy`` **for everyone**, not just archive datasets — a
-       syntax error, or a ``name``/extension/mimetype collision with another registered codec, crashes
-       at import time with an uncaught exception. Unlike a malformed YAML entry (which only costs that
-       one dataset), there's no per-codec error containment.
+    1. **A codec file that raises is logged as a warning and skipped**, not an error that breaks ``import speasy``.
+       When a codec file throws an exception (syntax error, name collision, etc.), Speasy logs a warning with the
+       file path and traceback, then continues loading other codecs. This means the error is contained — broken code
+       can never break ``import speasy``. Packaged entry-point codecs gain the same robustness (see
+       :ref:`shipping_a_codec_as_a_package` below) plus avoid gotchas 2 and 3 below, which are specific to the
+       ``exec()`` semantics of directory-based codec files.
     2. **Import codec/registry helpers from their submodules**, not the ``speasy.core.codecs`` package
        itself: ``from speasy.core.codecs.codec_interface import CodecInterface`` and
        ``from speasy.core.codecs.codecs_registry import register_codec``. Codec files load while that
@@ -712,6 +714,43 @@ inline ``variables:`` and ``master_file:`` discovery:
 Used from a YAML inventory entry as ``codec: mycsv`` (or ``codec: my_csv_codec``), either with a
 ``master_file:`` (thanks to ``list_variables``) or an inline ``variables:`` block, exactly like a
 built-in format.
+
+.. _shipping_a_codec_as_a_package:
+
+Shipping a codec as a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A codec can be distributed as a normal Python package: declare a ``speasy.codecs``
+entry point, and every environment that installs the package gets the codec
+registered automatically, with none of the import caveats that apply to codec
+files placed in the user directories.
+
+.. code-block:: toml
+
+   [project.entry-points."speasy.codecs"]
+   my_format = "my_pkg.speasy_codec:register"
+
+``register`` is a zero-argument callable that performs the registration; it may
+register as many codecs as it wants:
+
+.. code-block:: python
+
+   from speasy.core.codecs.codec_interface import CodecInterface
+   from speasy.core.codecs.codecs_registry import register_codec
+
+   def register():
+       register_codec(MyFormatCodec)
+       register_codec(MyOtherFormatCodec)
+
+The same package may also declare entry points for other Speasy plugin groups
+(for instance ``speasy.virtual_products``, once virtual products land) next to
+its codecs.
+
+A plugin that raises, at import or during registration, is reported as a warning
+and skipped: it can never break ``import speasy``. Individual plugins can be
+turned off by listing their entry-point names in the ``SPEASY_CORE_DISABLED_PLUGINS``
+environment variable (or the ``disabled_plugins`` entry of the ``CORE`` config
+section).
 
 .. _ad_hoc_custom_reader:
 
