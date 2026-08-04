@@ -20,9 +20,28 @@ def _time_dependent_axis_name(ax: VariableAxis) -> str:
 def _get_variable_axes(variable: SpeasyVariable, is_time_dependent: bool) -> List[VariableAxis]:
     return [ax for ax in variable.axes[1:] if ax.is_time_dependent == is_time_dependent]
 
+# HAPI always spells fill as a string, whatever the parameter's type, while masking compares it
+# against the data, so it has to be read back in the data's own type.
+_fill_value_parsers = {"double": float, "integer": int}
+
+
+def _decode_fill_value(fill: Any, hapi_type: str) -> Any:
+    parser = _fill_value_parsers.get(hapi_type)
+    if parser is None or not isinstance(fill, str):
+        return fill
+    try:
+        return parser(fill)
+    except ValueError:
+        log.warning(f"Ignoring fill value {fill!r}, which is not a valid {hapi_type}")
+        return None
+
+
 def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     if "units" in meta:
         meta["UNITS"] = meta.pop("units")
+    fill = _decode_fill_value(meta.pop("fill", None), meta.get("type", ""))
+    if fill is not None:
+        meta["FILLVAL"] = fill
     return meta
 
 def _make_hapi_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
@@ -35,7 +54,7 @@ def _make_hapi_parameter(variable: SpeasyVariable) -> HapiParameter:
 
 def _numpy_dtype_to_hapi_type(dtype: np.dtype) -> str:
     if  np.issubdtype(dtype, np.integer):
-        return "int"
+        return "integer"
     elif np.issubdtype(dtype, np.floating):
         return "double"
     else:
@@ -46,7 +65,7 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     meta = {
         "name": variable.name,
         "units": variable.unit,
-        "fill": variable.fill_value,
+        "fill": None if variable.fill_value is None else str(variable.fill_value),
         "description": variable.meta.get("description", "")
     }
     meta["type"] = _numpy_dtype_to_hapi_type(variable.values.dtype)
