@@ -7,6 +7,9 @@ import unittest
 from ddt import ddt, data, unpack
 
 import os
+import tempfile
+from unittest import mock
+import numpy as np
 from speasy.core.codecs import get_codec
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
@@ -130,3 +133,95 @@ class TestListVariables(unittest.TestCase):
         self.assertIsNotNone(codec)
         with self.assertRaises(NotImplementedError):
             codec.list_variables(f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf")
+
+
+from speasy.core.codecs import get_codec, CodecInterface
+from speasy.core.codecs import codecs_registry
+from speasy.core import plugins
+from speasy.products import DataContainer, SpeasyVariable, VariableTimeAxis
+
+
+class _TinyCodec(CodecInterface):
+    """Minimal codec used to prove registration paths; mirrors the test codec in
+    test_direct_archive_inventory.py."""
+
+    def list_variables(self, file):
+        return ['foo']
+
+    def load_variables(self, variables, file, cache_remote_files=True, **kwargs):
+        time = np.array(['2020-01-01'], dtype='datetime64[ns]')
+        var = SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                             values=DataContainer(values=np.array([1.0])))
+        return {v: var for v in variables}
+
+    def load_variable(self, variable, file, cache_remote_files=True, **kwargs):
+        return self.load_variables([variable], file, cache_remote_files, **kwargs).get(variable)
+
+    def save_variables(self, variables, file=None, **kwargs):
+        raise NotImplementedError
+
+    @property
+    def supported_extensions(self):
+        return ['tiny']
+
+    @property
+    def supported_mimetypes(self):
+        return []
+
+    @property
+    def name(self):
+        return 'codec/tiny-entry-point'
+
+
+class EntryPointCodecs(unittest.TestCase):
+
+    def _load_through_entry_point(self, register):
+        ep = mock.MagicMock()
+        ep.name = 'tiny'
+        ep.value = 'tiny_pkg:register'
+        ep.load.return_value = register
+        with mock.patch.object(plugins, 'entry_points', return_value=[ep]):
+            plugins.load_plugins('speasy.codecs')
+
+    def test_a_codec_shipped_through_an_entry_point_is_registered(self):
+        from speasy.core.codecs import register_codec
+        self._load_through_entry_point(lambda: register_codec(_TinyCodec))
+        try:
+            self.assertIsNotNone(get_codec('codec/tiny-entry-point'))
+            self.assertIsNotNone(get_codec('tiny'))
+        finally:
+            codecs_registry.__CODECS__.pop('codec/tiny-entry-point', None)
+            codecs_registry.__CODECS__.pop('tiny', None)
+
+    def test_a_codec_colliding_with_a_bundled_one_is_refused_and_reported(self):
+        from speasy.core.codecs import register_codec
+
+        class _Impostor(_TinyCodec):
+            @property
+            def supported_extensions(self):
+                return ['cdf']   # bundled ISTP codec already owns cdf
+
+            @property
+            def name(self):
+                return 'codec/impostor'
+
+        bundled = get_codec('cdf')
+        with self.assertLogs('speasy.core.plugins', level='WARNING'):
+            self._load_through_entry_point(lambda: register_codec(_Impostor))
+        codecs_registry.__CODECS__.pop('codec/impostor', None)  # name lands before the ext collision
+        self.assertIs(get_codec('cdf'), bundled)
+
+
+class UserDirectoryCodecFailuresAreContained(unittest.TestCase):
+
+    def test_a_broken_codec_file_is_skipped_and_the_valid_one_still_loads(self):
+        with tempfile.TemporaryDirectory() as codec_dir:
+            with open(os.path.join(codec_dir, 'broken.py'), 'w') as f:
+                f.write("raise RuntimeError('this codec file is broken')\n")
+            with open(os.path.join(codec_dir, 'valid.py'), 'w') as f:
+                f.write("VALID_CODEC_FILE_RAN = True\n")
+            with mock.patch.object(codecs_registry.cfg.user_codecs_extra_dirs, 'get',
+                                   return_value={codec_dir}):
+                with self.assertLogs('speasy.core.codecs.codecs_registry', level='WARNING') as captured:
+                    codecs_registry.load_extra_codecs()
+        self.assertIn('broken.py', captured.output[0])

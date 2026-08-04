@@ -1,8 +1,11 @@
 from typing import Optional
 from .codec_interface import CodecInterface
 from speasy.config import core as cfg
+import logging
 import os
 import appdirs
+
+log = logging.getLogger(__name__)
 
 __USER_CODECS_DIR__ = f'{appdirs.user_data_dir("speasy", "LPP")}/codecs'
 
@@ -62,7 +65,10 @@ def _list_dir_abs(path: str):
 
 def _load_codec(path: str):
     if path.endswith('.py'):
-        exec(open(os.path.join(path, path)).read())
+        try:
+            exec(open(path).read())
+        except Exception:
+            log.warning(f"Failed to load codec file {path}", exc_info=True)
 
 
 def load_extra_codecs():
@@ -71,9 +77,6 @@ def load_extra_codecs():
     for path in cfg.user_codecs_extra_dirs.get():
         if os.path.exists(path):
             list(map(_load_codec, _list_dir_abs(path)))
-
-
-load_extra_codecs()
 
 
 def get_codec(codec: str) -> Optional[CodecInterface]:
