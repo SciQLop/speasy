@@ -15,11 +15,12 @@ def load_plugins(group: str) -> None:
     Each entry point must resolve to a zero-argument callable that performs its own
     registration. A plugin that fails, to import or when called, is reported and skipped:
     third-party code must never break `import speasy`. Entry points named in the
-    `core.disabled_plugins` config entry are not loaded at all.
+    `core.disabled_plugins` config entry are not loaded at all, either by bare name
+    (every group) or by group-qualified name (that group only).
     """
     disabled = core_cfg.disabled_plugins.get()
     for ep in entry_points(group=group):
-        if ep.name in disabled:
+        if ep.name in disabled or f"{group}.{ep.name}" in disabled:
             log.info(f"Skipping disabled plugin {ep.name} ({ep.value})")
             continue
         try:

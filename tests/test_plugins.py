@@ -58,6 +58,23 @@ class LoadPlugins(unittest.TestCase):
         with mock.patch.object(plugins, "entry_points", return_value=[]):
             plugins.load_plugins("speasy.virtual_products")
 
+    def test_a_group_qualified_name_disables_the_plugin_in_that_group(self):
+        disabled = _entry_point("my_format")
+        with mock.patch.object(plugins, "entry_points", return_value=[disabled]):
+            with mock.patch.object(plugins.core_cfg.disabled_plugins, "get",
+                                   return_value={"speasy.codecs.my_format"}):
+                plugins.load_plugins("speasy.codecs")
+        disabled.load.assert_not_called()
+
+    def test_a_name_qualified_with_another_group_does_not_disable_it_here(self):
+        target = mock.MagicMock()
+        homonym = _entry_point("my_format", target)
+        with mock.patch.object(plugins, "entry_points", return_value=[homonym]):
+            with mock.patch.object(plugins.core_cfg.disabled_plugins, "get",
+                                   return_value={"speasy.virtual_products.my_format"}):
+                plugins.load_plugins("speasy.codecs")
+        target.assert_called_once_with()
+
 
 if __name__ == '__main__':
     unittest.main()

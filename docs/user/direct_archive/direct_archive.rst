@@ -751,7 +751,9 @@ and skipped: it can never break ``import speasy``. Individual plugins can be
 turned off by listing their entry-point names in the ``SPEASY_CORE_DISABLED_PLUGINS``
 environment variable (or the ``disabled_plugins`` entry of the ``CORE`` config
 section) — with the example above, ``SPEASY_CORE_DISABLED_PLUGINS=my_format``
-disables that one plugin and nothing else. This is also the reason to split
+disables that one plugin and nothing else. A bare name is matched in every
+plugin group; to disable a plugin in one group only, qualify the name with its
+group, e.g. ``speasy.codecs.my_format``. This is also the reason to split
 unrelated codecs across several named entry points rather than one ``register``
 that does everything: each name can then be disabled on its own.
 
