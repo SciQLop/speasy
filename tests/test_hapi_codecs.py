@@ -1,5 +1,6 @@
 import contextlib
 from datetime import datetime
+import json
 import os
 import tempfile
 import unittest
@@ -15,7 +16,7 @@ import speasy.core.codecs.bundled_codecs.hapi.csv as hapi_csv
 import speasy.core.codecs.bundled_codecs.hapi.binary as hapi_binary
 from speasy.core.codecs.bundled_codecs.hapi.codec import _bin_to_axis
 from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers
-from speasy.core.data_containers import VariableAxis
+from speasy.core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
 from speasy.products import SpeasyVariable
 
 __HERE__ = os.path.dirname(__file__)
@@ -31,6 +32,33 @@ def _temp_output(suffix):
     """
     with tempfile.TemporaryDirectory() as d:
         yield os.path.join(d, "output" + suffix)
+
+
+_HAPI_CSV_WITH_FILL_VALUES = """#{
+#"HAPI": "2.0",
+#"status": {"code": 1200, "message": "OK"},
+#"format": "csv",
+#"parameters": [
+#{
+#"name": "Time",
+#"type": "isotime",
+#"units": "UTC",
+#"length":24,
+#"fill": null
+#},
+#{
+#"name": "Magnitude",
+#"type": "double",
+#"units": "nT",
+#"fill": "-1.0E31",
+#"description": "B-field magnitude"
+#}
+#]
+#}
+1997-09-02T00:00:00.000Z,2.658
+1997-09-02T01:00:00.000Z,-1.0E31
+1997-09-02T02:00:00.000Z,3.935
+"""
 
 
 @ddt
@@ -149,6 +177,35 @@ class TestHapiCsvCodec(unittest.TestCase):
         self.assertFalse(v_axis.is_time_dependent)
         self.assertEqual(v_axis.shape, (4,))
         self.assertEqual(v_axis.unit, "MeV")
+
+    def test_reads_the_fill_value_from_the_headers(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv')
+        v: SpeasyVariable = hapi_csv_codec.load_variable(file=filepath, variable='Magnitude', disable_cache=True)
+        self.assertEqual(v.fill_value, -1.0e31)
+
+    def test_masks_the_values_equal_to_the_fill_value(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        with _temp_output('.csv') as filepath:
+            with open(filepath, 'w') as f:
+                f.write(_HAPI_CSV_WITH_FILL_VALUES)
+            v: SpeasyVariable = hapi_csv_codec.load_variable(file=filepath, variable='Magnitude',
+                                                             disable_cache=True)
+            self.assertTrue(np.isnan(v.replace_fillval_by_nan().values[1, 0]))
+            self.assertEqual(v.replace_fillval_by_nan().values[0, 0], 2.658)
+
+    def test_writes_the_fill_value_as_the_string_hapi_asks_for(self):
+        hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
+        filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv')
+        v = hapi_csv_codec.load_variable(file=filepath, variable='Magnitude', disable_cache=True)
+        with _temp_output('.csv') as output_csv_file:
+            hapi_csv_codec.save_variables(variables=[v], file=output_csv_file)
+            with open(output_csv_file, 'rb') as f:
+                written = _extract_headers(f)['parameters'][1]['fill']
+            self.assertIsInstance(written, str)
+            reloaded = hapi_csv_codec.load_variable(file=output_csv_file, variable='Magnitude',
+                                                    disable_cache=True)
+        self.assertEqual(reloaded.fill_value, -1.0e31)
 
     def test_spz_getdata_to_csv(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
@@ -314,6 +371,36 @@ class TestHapiBinaryCodec(unittest.TestCase):
             hapi_binary_file = hapi_binary_codec.save_variables(variables=[spz_var], file=output_binary_file)
             self.assertTrue(hapi_binary_file)
             self.assertTrue(os.path.exists(output_binary_file))
+
+    def test_reads_timestamps_longer_than_milliseconds(self):
+        # HAPI lets a server declare any ISO-8601 time length; microseconds make it 27 characters.
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        headers = {
+            "HAPI": "2.0", "status": {"code": 1200, "message": "OK"}, "format": "binary",
+            "parameters": [{"name": "Time", "type": "isotime", "units": "UTC", "length": 27, "fill": None},
+                           {"name": "Magnitude", "type": "double", "units": "nT", "fill": None}]
+        }
+        payload = b''.join(b'#' + line for line in json.dumps(headers).encode().splitlines(keepends=True))
+        payload += b'\n' + b"2020-01-01T00:00:00.123456Z" + np.float64(2.5).tobytes()
+        with _temp_output('.binary') as filepath:
+            with open(filepath, 'wb') as f:
+                f.write(payload)
+            v = hapi_binary_codec.load_variable(file=filepath, variable="Magnitude", disable_cache=True)
+        self.assertEqual(v.time[0], np.datetime64("2020-01-01T00:00:00.123456", 'ns'))
+
+    def test_integer_values_survive_a_round_trip(self):
+        hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
+        counts = SpeasyVariable(
+            axes=[VariableTimeAxis(values=np.arange(np.datetime64("2020-01-01T00:00:00", 'ns'),
+                                                    np.datetime64("2020-01-01T00:00:05", 'ns'),
+                                                    np.timedelta64(1, 's')))],
+            values=DataContainer(np.arange(5, dtype=np.int32).reshape(-1, 1), name="counts"),
+            columns=["counts"])
+        with _temp_output('.binary') as output_binary_file:
+            hapi_binary_codec.save_variables(variables=[counts], file=output_binary_file)
+            reloaded = hapi_binary_codec.load_variables(file=output_binary_file, variables=["counts"],
+                                                        disable_cache=True)["counts"]
+        self.assertListEqual(reloaded.values.ravel().tolist(), list(range(5)))
 
     def test_save_time_varying_axis(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
