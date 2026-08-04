@@ -189,8 +189,9 @@ This is useful to avoid creating a new pool for each request.""",
                                              "description": """A comma separated list of directories to scan for extra codecs.""",
                                              "type_ctor": _parse_dir_set},
                      disabled_plugins={"default": "",
-                                       "description": """A comma separated list of plugin entry-point names to skip
-(any group, e.g. speasy.codecs).""",
+                                       "description": """A comma separated list of plugin entry-point names to skip, e.g. the
+'my_format' of [project.entry-points."speasy.codecs"] my_format = "my_pkg:register".
+Each name disables that single plugin; names are matched in every plugin group.""",
                                        "type_ctor": _parse_dir_set},
                      )
 

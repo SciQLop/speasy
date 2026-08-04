@@ -750,7 +750,10 @@ A plugin that raises, at import or during registration, is reported as a warning
 and skipped: it can never break ``import speasy``. Individual plugins can be
 turned off by listing their entry-point names in the ``SPEASY_CORE_DISABLED_PLUGINS``
 environment variable (or the ``disabled_plugins`` entry of the ``CORE`` config
-section).
+section) — with the example above, ``SPEASY_CORE_DISABLED_PLUGINS=my_format``
+disables that one plugin and nothing else. This is also the reason to split
+unrelated codecs across several named entry points rather than one ``register``
+that does everything: each name can then be disabled on its own.
 
 .. _ad_hoc_custom_reader:
 
