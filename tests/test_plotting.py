@@ -74,6 +74,24 @@ class MplBackendColormap(unittest.TestCase):
         mesh = ax.collections[0]
         self.assertEqual(mesh.norm.vmax, 0)
 
+    def test_a_linear_scale_scales_from_its_zeros(self):
+        """Zeros are dropped before computing vmin because a log scale cannot place them, but a
+        linear scale can: dropping them there clips every zero-valued cell to the bottom colour.
+        """
+        x, y, z = self._xyz()
+        z[0, 0] = 0.
+        ax = Plot().colormap(x, y, z, logz=False)
+        self.assertEqual(ax.collections[0].norm.vmin, 0.)
+
+    def test_a_slice_of_zeros_gets_usable_bounds(self):
+        x, y, _ = self._xyz()
+        z = np.zeros((4, 5))
+        for logz in (True, False):
+            with self.subTest(logz=logz):
+                ax = Plot().colormap(x, y, z, logz=logz)
+                norm = ax.collections[0].norm
+                self.assertLessEqual(norm.vmin, norm.vmax)
+
 
 class FigureIsolationBetweenTests(unittest.TestCase):
     """No setUp/cleanup here on purpose: this documents the isolation the test suite as a
