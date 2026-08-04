@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from multiprocessing import Pool
 from ddt import ddt, data, unpack
 import numpy as np
@@ -46,6 +47,12 @@ def _custom_cdf_loader(url, variable, *args, **kwargs):
 class DirectArchiveDownloader(unittest.TestCase):
     def setUp(self):
         pass
+
+    def test_fills_the_two_digit_year_placeholder(self):
+        # CDAWeb spells two-digit years as %y, which becomes a {y:02d} field in the URL pattern.
+        self.assertEqual(dad.apply_date_format('{y:02d}{j:03d}', datetime(1986, 1, 3, tzinfo=timezone.utc)),
+                         '86003')
+        self.assertEqual(dad.apply_date_format('{y:02d}', datetime(2009, 1, 1, tzinfo=timezone.utc)), '09')
 
     def test_split_rules(self):
         self.assertListEqual(dad.spilt_range(split_frequency='daily', start_time='2010-01-01', stop_time='2010-01-01'),

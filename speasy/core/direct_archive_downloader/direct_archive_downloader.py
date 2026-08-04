@@ -33,7 +33,7 @@ def apply_date_format(txt: str, date: datetime) -> str:
         p = 'PM'
     else:
         p = 'AM'
-    return txt.format(Y=date.year, y=str(date.year)[-2:], M=date.month, D=date.day, H=date.hour,
+    return txt.format(Y=date.year, y=date.year % 100, M=date.month, D=date.day, H=date.hour,
                       j=date.timetuple().tm_yday, I=date.hour % 12,
                       p=p)
 
