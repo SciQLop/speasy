@@ -73,7 +73,7 @@ def extract_parameter(cdf: ISTPLoader, var_name: str, provider: str, uid_fmt: st
             return ParameterIndex(name=var_name, provider=provider, uid=uid_fmt.format(var_name=var_name),
                                   meta={**filter_variable_meta(datavar), **meta})
     except (IndexError, RuntimeError) as e:
-        print(f"Issue loading {var_name} from {cdf}")
+        log.warning(f"Issue loading {var_name} from {cdf}: {e}")
 
     return None
 
@@ -99,8 +99,8 @@ def extract_parameters(url_or_istp_loader: Union[str,ISTPLoader], provider: str,
         else:
             return _extract_parameters_impl(url_or_istp_loader, provider=provider, uid_fmt=uid_fmt, meta=meta, enable_cda_trick=enable_cda_trick)
 
-    except RuntimeError:
-        print(f"Issue loading {url_or_istp_loader}")
+    except RuntimeError as e:
+        log.warning(f"Issue loading {url_or_istp_loader}: {e}")
     return indexes
 
 
@@ -115,8 +115,8 @@ def extract_from_master(url: str, provider: str, params_uid_format: str = "{var_
             parameters = _extract_parameters_impl(istp, provider=provider, uid_fmt=params_uid_format, meta=params_meta)
             dataset_meta = filter_dataset_meta(istp)
             return parameters, dataset_meta
-    except RuntimeError:
-        print(f"Issue loading {url}")
+    except RuntimeError as e:
+        log.warning(f"Issue loading {url}: {e}")
     return None
 
 
