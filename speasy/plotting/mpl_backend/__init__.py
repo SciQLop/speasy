@@ -42,13 +42,18 @@ class Plot:
         return ax.pcolor(np.ma.masked_invalid(x), np.ma.masked_invalid(y), z, *args, **kwargs)
 
     def _norm(self, z, logz, vmin, vmax):
-        # A slice that's entirely masked/FILLVAL has no finite value to scale from; fall back to
-        # an arbitrary positive bound rather than feeding LogNorm/Normalize a NaN vmin/vmax.
-        nonzero = z[np.nonzero(z)]
+        # A log scale cannot place zero or negative values, so it scales from the smallest
+        # positive one, while a linear scale uses them all. A slice left with nothing to scale
+        # from -- entirely masked/FILLVAL, or all zeros on a log scale -- falls back to bounds
+        # matplotlib accepts rather than NaN or inverted ones.
+        finite = z[np.isfinite(z)]
+        scalable = finite[finite > 0] if logz else finite
+        if not len(scalable):
+            scalable = np.array([1., 10.])
         if vmin is None:
-            vmin = np.nanmin(nonzero) if np.isfinite(nonzero).any() else 1.0
+            vmin = scalable.min()
         if vmax is None:
-            vmax = np.nanmax(z) if np.isfinite(z).any() else 1.0
+            vmax = scalable.max()
         if logz:
             return colors.LogNorm(vmin=vmin, vmax=vmax)
         return colors.Normalize(vmin=vmin, vmax=vmax)
