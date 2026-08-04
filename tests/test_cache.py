@@ -655,6 +655,57 @@ class CacheCallRequestsDeduplication(unittest.TestCase):
 
         self.assertLessEqual(run_count["n"], 1)
 
+    def test_loser_reuses_a_cached_falsy_value_instead_of_recomputing_it(self):
+        """A cached value that happens to be falsy -- False, 0, an empty string
+        or an empty variable -- is still a cached value. The fallback a losing
+        thread takes once the owner released picked it up with ``or``, so it
+        recomputed exactly the answers deduplication is worth the most on: the
+        expensive ones that come back empty, like a server reported down.
+
+        Drives the wait-loop path (the loser never owns the lock) rather than
+        the TOCTOU path above, and hooks the loop's own sleep so the owner only
+        releases once the loser is provably waiting.
+        """
+        from unittest import mock
+        from threading import Thread, Event
+        import speasy.core.cache._request_locker as rl
+
+        owner_holds_lock = Event()
+        owner_may_release = Event()
+        loser_is_waiting = Event()
+        run_count = {"n": 0}
+
+        @CacheCall(cache_retention=timedelta(minutes=10), is_pure=True, cache_instance=_cache_call_dedup_fn.cache,
+                   deduplication_timeout=5)
+        def falsy_fn(key):
+            run_count["n"] += 1
+            owner_holds_lock.set()
+            owner_may_release.wait(timeout=2)
+            return ""
+
+        key = f"falsy_cached_value_{id(self)}"
+        real_sleep = rl.sleep
+
+        def signalling_sleep(duration):
+            loser_is_waiting.set()  # only the wait loop of a thread that lost the lock sleeps
+            real_sleep(duration)
+
+        def loser():
+            owner_holds_lock.wait(timeout=2)  # ensure real contention first
+            falsy_fn(key)
+
+        with mock.patch.object(rl, "sleep", side_effect=signalling_sleep):
+            t_owner = Thread(target=falsy_fn, args=(key,))
+            t_loser = Thread(target=loser)
+            t_owner.start()
+            t_loser.start()
+            loser_is_waiting.wait(timeout=2)
+            owner_may_release.set()
+            t_owner.join(timeout=5)
+            t_loser.join(timeout=5)
+
+        self.assertEqual(run_count["n"], 1)
+
 
 if __name__ == '__main__':
     unittest.main()

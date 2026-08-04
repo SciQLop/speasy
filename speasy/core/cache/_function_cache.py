@@ -86,8 +86,11 @@ class CacheCall(object):
                     if result is not None:
                         return result
                     return self.add_to_cache(cache_entry, function(*args, **kwargs))
-            return self.get_from_cache(cache_entry, prefer_cache=prefer_cache) or self.add_to_cache(
-                cache_entry, function(*args, **kwargs))
+            # Whoever we waited for may have cached a falsy value, which is still a cached value.
+            result = self.get_from_cache(cache_entry, prefer_cache=prefer_cache)
+            if result is not None:
+                return result
+            return self.add_to_cache(cache_entry, function(*args, **kwargs))
 
         setattr(wrapped, "drop_entries", self.drop_entries)
         if self._leak_cache:
