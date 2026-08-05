@@ -57,6 +57,45 @@ class SscWeb(unittest.TestCase):
             self.assertEqual(trajectory.time[0], np.datetime64('2006-01-08T01:00:00.000000000', 'ns'))
             self.assertIsInstance(trajectory.values[0][0], np.float64)
 
+    def test_sub_day_request_is_not_extended_to_a_full_day(self):
+        from unittest.mock import patch, Mock
+        with open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')) as f:
+            sample = f.read()
+        fake_response = Mock(ok=True, text=sample)
+        with patch.object(ssc.http, 'get', return_value=fake_response) as mock_get:
+            traj = self.ssc.get_data("moon", "2006-01-08T01:00:00", "2006-01-08T01:30:00",
+                                     disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(traj)
+        # the request sent to the server must span at least one day
+        self.assertIn("20060109T013000Z", mock_get.call_args.args[0])
+        # but the returned data must be sliced to the user requested range
+        self.assertEqual(traj.time[0], np.datetime64('2006-01-08T01:00:00.000000000', 'ns'))
+        self.assertLessEqual(traj.time[-1], np.datetime64('2006-01-08T01:30:00.000000000', 'ns'))
+
+    def test_request_between_two_samples_returns_empty(self):
+        from unittest.mock import patch, Mock
+        with open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')) as f:
+            sample = f.read()
+        fake_response = Mock(ok=True, text=sample)
+        with patch.object(ssc.http, 'get', return_value=fake_response):
+            traj = self.ssc.get_data("moon", "2006-01-08T01:00:10", "2006-01-08T01:00:50",
+                                     disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(traj)
+        # ranges are strict [start, stop): no sample falls inside this one, empty is empty
+        self.assertEqual(len(traj), 0)
+
+    def test_window_around_a_sample_returns_it(self):
+        from unittest.mock import patch, Mock
+        with open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')) as f:
+            sample = f.read()
+        fake_response = Mock(ok=True, text=sample)
+        with patch.object(ssc.http, 'get', return_value=fake_response):
+            traj = self.ssc.get_data("moon", "2006-01-08T01:29:59", "2006-01-08T01:30:01",
+                                     disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(traj)
+        # the sample sitting inside the window must be returned, however small the window is
+        self.assertEqual(list(traj.time), [np.datetime64('2006-01-08T01:30:00.000000000', 'ns')])
+
     @data(
         {
             "product": "moon",
@@ -76,35 +115,47 @@ class SscWeb(unittest.TestCase):
         {
             "product": "mms1",
             "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
-        },
-        {
-            "product": "mms1",
-            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc)
-        },
-        {
-            "product": "mms1",
-            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
-            "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc),
-            "coordinate_system": "GSE"
+            "stop_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "expected_empty": True
         },
         {
             "product": "mms1",
             "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
             "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc),
-            "coordinate_system": "gse"
+            "expected_empty": True
+        },
+        {
+            "product": "mms1",
+            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc),
+            "coordinate_system": "GSE",
+            "expected_empty": True
+        },
+        {
+            "product": "mms1",
+            "start_time": datetime(2021, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
+            "stop_time": datetime(2021, 1, 8, 1, 0, 1, tzinfo=timezone.utc),
+            "coordinate_system": "gse",
+            "expected_empty": True
         }
     )
     def test_get_orbit(self, kw):
+        expected_empty = kw.pop("expected_empty", False)
         result = self.ssc.get_data(**kw,
                                    debug=True,
                                    disable_cache=True,
                                    disable_proxy=True)
         self.assertIsNotNone(result)
+        if expected_empty:
+            # ranges are strict [start, stop): these tiny windows contain no sample
+            # (mms1 is sampled at 60 s cadence on :30 offsets), empty is empty
+            self.assertEqual(len(result), 0)
+            return
         self.assertGreater(len(result), 0)
-        self.assertGreater(np.timedelta64(60, 's'), np.datetime64(kw["start_time"], 'ns') - result.time[0])
-        self.assertGreater(np.timedelta64(60, 's'), np.datetime64(kw["stop_time"], 'ns') - result.time[-1])
+        # ranges are [start, stop): with data sampled exactly on the boundaries the first
+        # sample can be up to one cadence (60 s here) from each end of the range
+        self.assertGreaterEqual(np.timedelta64(60, 's'), np.datetime64(kw["start_time"], 'ns') - result.time[0])
+        self.assertGreaterEqual(np.timedelta64(60, 's'), np.datetime64(kw["stop_time"], 'ns') - result.time[-1])
 
     def test_returns_none_for_a_request_outside_of_range(self):
         with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:

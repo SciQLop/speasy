@@ -28,8 +28,9 @@ from speasy.core.inventory.indexes import (
     make_inventory_node,
 )
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable, Version
-from speasy.core.time import EnsureUTCDateTime
+from speasy.core.time import EnsureUTCDateTime, make_utc_datetime
 from speasy.core.typing import AnyDateTimeType
+from email.utils import format_datetime
 
 log = logging.getLogger(__name__)
 
@@ -204,7 +205,9 @@ class Cdpp3dViewWebservice(DataProvider):
         )
         headers = {}
         if if_newer_than is not None:
-            headers["If-Modified-Since"] = if_newer_than.ctime()
+            # If-Modified-Since must be a valid HTTP-date (RFC 7231), datetime.ctime()
+            # is not one and makes the server answer 400
+            headers["If-Modified-Since"] = format_datetime(make_utc_datetime(if_newer_than), usegmt=True)
         resp = http.get(URL, headers=headers, timeout=5*60)
         if resp.status_code == 200:
             return self._cdf_codec.load_variable(file=resp.bytes,

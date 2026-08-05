@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from dateutil import parser
+from email.utils import format_datetime
 from packaging.version import Version
 
 from speasy.config import inventories as inventories_cfg
@@ -121,7 +122,9 @@ class GetInventory:
         kwargs['version'] = 2
         headers = {}
         if saved_inventory is not None:
-            headers["If-Modified-Since"] = parser.parse(saved_inventory.build_date).ctime()
+            # If-Modified-Since must be a valid HTTP-date (RFC 7231), datetime.ctime() is not one
+            headers["If-Modified-Since"] = format_datetime(
+                make_utc_datetime(parser.parse(saved_inventory.build_date)), usegmt=True)
         resp = http.get(f"{url}/get_inventory", params=kwargs, headers=headers)
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:

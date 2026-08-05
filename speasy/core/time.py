@@ -17,8 +17,10 @@ def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
 
     Parameters
     ----------
-    input_dt: str or datetime or np.float64 or float
-        Datetime to convert, can be either en Epoch, a datetime or a string
+    input_dt: str or datetime or np.datetime64 or np.float64 or float
+        Datetime to convert, can be either an Epoch, a datetime, a numpy datetime64 (any unit)
+        or a string. Naive datetimes and strings without timezone information are assumed to be UTC,
+        timezone aware ones are converted to UTC.
 
     Returns
     -------
@@ -36,6 +38,12 @@ def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     >>> from datetime import datetime
     >>> make_utc_datetime(datetime(2020,1,1))
     datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    >>> make_utc_datetime(np.datetime64('2016-06-02'))
+    datetime.datetime(2016, 6, 2, 0, 0, tzinfo=datetime.timezone.utc)
+
+    >>> make_utc_datetime('2018-01-01T01:00:00+02:00')
+    datetime.datetime(2017, 12, 31, 23, 0, tzinfo=datetime.timezone.utc)
     """
     if type(input_dt) in (np.float64, float):
         return datetime.fromtimestamp(input_dt, tz=timezone.utc)
@@ -44,9 +52,14 @@ def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     if type(input_dt) is np.datetime64:
         if input_dt.dtype == np.dtype('datetime64[ns]'):
             return datetime.fromtimestamp(input_dt.astype(np.int64) * 1e-9, tz=timezone.utc)
-
-    return datetime(input_dt.year, input_dt.month, input_dt.day, input_dt.hour, input_dt.minute, input_dt.second,
-                    input_dt.microsecond, tzinfo=timezone.utc)
+        # going through datetime64[us] first allows any input unit without
+        # overflowing int64 for realistic dates
+        input_dt = input_dt.astype('datetime64[us]').astype(datetime)
+    if isinstance(input_dt, datetime):
+        if input_dt.tzinfo is not None:
+            return input_dt.astimezone(timezone.utc)
+        return input_dt.replace(tzinfo=timezone.utc)
+    raise TypeError(f"Unsupported datetime type: {type(input_dt)}, expected str, datetime, np.datetime64 or float")
 
 
 def make_utc_datetime64(input_dt: AnyDateTimeType) -> np.datetime64:
@@ -54,8 +67,10 @@ def make_utc_datetime64(input_dt: AnyDateTimeType) -> np.datetime64:
 
     Parameters
     ----------
-    input_dt: str or datetime or np.float64 or float
-        Datetime to convert, can be either en Epoch, a datetime or a string
+    input_dt: str or datetime or np.datetime64 or np.float64 or float
+        Datetime to convert, can be either an Epoch, a datetime, a numpy datetime64 (any unit)
+        or a string. Naive datetimes and strings without timezone information are assumed to be UTC,
+        timezone aware ones are converted to UTC.
 
     Returns
     -------
@@ -73,6 +88,12 @@ def make_utc_datetime64(input_dt: AnyDateTimeType) -> np.datetime64:
     >>> from datetime import datetime
     >>> make_utc_datetime64(datetime(2020,1,1))
     np.datetime64('2020-01-01T00:00:00.000000000')
+
+    >>> make_utc_datetime64(np.datetime64('2016-06-02'))
+    np.datetime64('2016-06-02T00:00:00.000000000')
+
+    >>> make_utc_datetime64('2018-01-01T01:00:00+02:00')
+    np.datetime64('2017-12-31T23:00:00.000000000')
     """
     if type(input_dt) in (np.float64, float):
         return np.datetime64(datetime.fromtimestamp(input_dt, tz=timezone.utc))
@@ -81,10 +102,14 @@ def make_utc_datetime64(input_dt: AnyDateTimeType) -> np.datetime64:
     if type(input_dt) is np.datetime64:
         if input_dt.dtype == np.dtype('datetime64[ns]'):
             return input_dt
-
-    return np.datetime64(
-        datetime(input_dt.year, input_dt.month, input_dt.day, input_dt.hour, input_dt.minute, input_dt.second,
-                 input_dt.microsecond, tzinfo=timezone.utc), 'ns')
+        # going through datetime64[us] first allows any input unit without
+        # overflowing int64 for realistic dates
+        input_dt = input_dt.astype('datetime64[us]').astype(datetime)
+    if isinstance(input_dt, datetime):
+        if input_dt.tzinfo is not None:
+            input_dt = input_dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return np.datetime64(input_dt, 'ns')
+    raise TypeError(f"Unsupported datetime type: {type(input_dt)}, expected str, datetime, np.datetime64 or float")
 
 
 def epoch_to_datetime64(epoch_array: np.ndarray) -> np.ndarray:

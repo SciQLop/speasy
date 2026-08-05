@@ -57,3 +57,45 @@ class SscUiowaEphTool(unittest.TestCase):
         self.assertIsInstance(eph, SpeasyVariable)
         self.assertIn('COORDINATE_SYSTEM', eph.meta)
 
+    def test_sub_day_request_is_not_extended_to_a_full_day(self):
+        from unittest.mock import patch, Mock
+        product = spz.inventories.tree.uiowaephtool.Trajectories.Callisto.Co_rotational.Cassini
+        with open(_CSV_SAMPLE_PATH1, 'r') as f:
+            sample = f.read()
+        fake_response = Mock(ok=True, text=sample)
+        with patch.object(uiowa_eph_tool.http, 'post', return_value=fake_response) as mock_post:
+            eph = self.uiowa.get_data(product, "2004-07-01T02:00:00", "2004-07-01T02:30:00",
+                                      disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(eph)
+        # the request sent to the server must span at least one day
+        self.assertIn("SpTime=2004%2F%2F184+02%3A30%3A00", mock_post.call_args.kwargs['body'])
+        # but the returned data must be sliced to the user requested range
+        self.assertEqual(eph.time[0], np.datetime64('2004-07-01T02:00:00.000000000', 'ns'))
+        self.assertLessEqual(eph.time[-1], np.datetime64('2004-07-01T02:30:00.000000000', 'ns'))
+
+    def test_request_between_two_samples_returns_empty(self):
+        from unittest.mock import patch, Mock
+        product = spz.inventories.tree.uiowaephtool.Trajectories.Callisto.Co_rotational.Cassini
+        with open(_CSV_SAMPLE_PATH1, 'r') as f:
+            sample = f.read()
+        fake_response = Mock(ok=True, text=sample)
+        with patch.object(uiowa_eph_tool.http, 'post', return_value=fake_response):
+            eph = self.uiowa.get_data(product, "2004-07-01T02:00:10", "2004-07-01T02:00:50",
+                                      disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(eph)
+        # ranges are strict [start, stop): no sample falls inside this one, empty is empty
+        self.assertEqual(len(eph), 0)
+
+    def test_window_around_a_sample_returns_it(self):
+        from unittest.mock import patch, Mock
+        product = spz.inventories.tree.uiowaephtool.Trajectories.Callisto.Co_rotational.Cassini
+        with open(_CSV_SAMPLE_PATH1, 'r') as f:
+            sample = f.read()
+        fake_response = Mock(ok=True, text=sample)
+        with patch.object(uiowa_eph_tool.http, 'post', return_value=fake_response):
+            eph = self.uiowa.get_data(product, "2004-07-01T02:04:59", "2004-07-01T02:05:01",
+                                      disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(eph)
+        # the sample sitting inside the window must be returned, however small the window is
+        self.assertEqual(list(eph.time), [np.datetime64('2004-07-01T02:05:00.000000000', 'ns')])
+
