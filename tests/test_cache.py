@@ -666,7 +666,6 @@ class CacheCallRequestsDeduplication(unittest.TestCase):
         the TOCTOU path above, and hooks the loop's own sleep so the owner only
         releases once the loser is provably waiting.
         """
-        from unittest import mock
         from threading import Thread, Event
         import speasy.core.cache._request_locker as rl
 

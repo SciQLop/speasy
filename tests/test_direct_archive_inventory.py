@@ -11,8 +11,6 @@ import yaml
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 import speasy.core.cdf.inventory_extractor as inventory_extractor
-from speasy.core.cdf.inventory_extractor import extract_parameter, extract_parameters, make_dataset_index, \
-    extract_from_master
 from speasy.core.codecs.codec_interface import CodecInterface
 from speasy.core.codecs.codecs_registry import register_codec
 from speasy.core.inventory.indexes import SpeasyIndex, DatasetIndex
@@ -291,7 +289,7 @@ def _inventory_to_inline_yaml(name, inventory_path, dataset, **archive_keys):
 class TestMakeDatasetIndex(unittest.TestCase):
 
     def test_returns_dataset_index_from_cdf_url(self):
-        result = extract_from_master(
+        result = inventory_extractor.extract_from_master(
             _REACHABLE_MASTER_CDF,
             provider="archive",
             disable_cache=True,
@@ -299,7 +297,7 @@ class TestMakeDatasetIndex(unittest.TestCase):
         self.assertIsNotNone(result)
         parameters, dataset_meta = result
         self.assertGreater(len(parameters), 0)
-        dataset = make_dataset_index(
+        dataset = inventory_extractor.make_dataset_index(
             name="erg_pwe_hfa_l3_1min",
             provider="archive",
             uid="archive/cda/test/erg_pwe_hfa_l3_1min",
@@ -326,14 +324,14 @@ class TestExtractParameterFailureReporting(unittest.TestCase):
 
     def test_logs_the_reason_a_variable_could_not_be_read(self):
         with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING') as captured:
-            self.assertIsNone(extract_parameter(self._UnreadableLoader(), "B_field", provider="archive"))
+            self.assertIsNone(inventory_extractor.extract_parameter(self._UnreadableLoader(), "B_field", provider="archive"))
         self.assertIn("B_field", captured.output[0])
         self.assertIn("broken variable", captured.output[0])
 
     def test_does_not_print_the_failure(self):
         with contextlib.redirect_stdout(io.StringIO()) as printed:
             with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING'):
-                extract_parameter(self._UnreadableLoader(), "B_field", provider="archive")
+                inventory_extractor.extract_parameter(self._UnreadableLoader(), "B_field", provider="archive")
         self.assertEqual(printed.getvalue(), "")
 
     def test_logs_the_reason_a_whole_file_could_not_be_read(self):
@@ -342,7 +340,7 @@ class TestExtractParameterFailureReporting(unittest.TestCase):
                 raise RuntimeError("broken file")
 
         with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING') as captured:
-            self.assertListEqual(extract_parameters(_UnlistableLoader(), provider="archive"), [])
+            self.assertListEqual(inventory_extractor.extract_parameters(_UnlistableLoader(), provider="archive"), [])
         self.assertIn("broken file", captured.output[0])
 
     def test_logs_the_reason_a_master_could_not_be_read(self):
@@ -352,7 +350,7 @@ class TestExtractParameterFailureReporting(unittest.TestCase):
         with unittest.mock.patch.object(inventory_extractor.pyistp, 'load',
                                         side_effect=RuntimeError("broken master")):
             with self.assertLogs('speasy.core.cdf.inventory_extractor', level='WARNING') as captured:
-                self.assertIsNone(extract_from_master(f.name, provider="archive", disable_cache=True))
+                self.assertIsNone(inventory_extractor.extract_from_master(f.name, provider="archive", disable_cache=True))
         self.assertIn("broken master", captured.output[0])
 
 
@@ -636,9 +634,9 @@ class TestCdfYamlSameInventory(unittest.TestCase):
 
     def test_cdf_and_yaml_describe_same_inventory(self):
         # inventory A: local master CDF -> speasy inventory (filtered, scalar meta)
-        parameters, dataset_meta = extract_from_master(
+        parameters, dataset_meta = inventory_extractor.extract_from_master(
             _LOCAL_ERG_CDF, provider='archive', disable_cache=True)
-        ds_a = make_dataset_index(name='erg_pwe_hfa_l3_1min', provider='archive',
+        ds_a = inventory_extractor.make_dataset_index(name='erg_pwe_hfa_l3_1min', provider='archive',
                                   uid='archive/cda/test/erg_pwe_hfa_l3_1min',
                                   parameters=parameters, meta=dataset_meta)
 
