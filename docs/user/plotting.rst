@@ -30,6 +30,10 @@ CSA spectral products typically do.
     b.plot()
     plt.show()
 
+.. note::
+    The snippets further down this page assume these same imports (``speasy as spz`` and
+    ``matplotlib.pyplot as plt``).
+
 .. image:: images/plotting_line.png
     :width: 700
     :align: center
@@ -113,5 +117,6 @@ The line counterpart, ``.plot.line()``, forces a line plot in the same way.
 Choosing a backend
 -------------------
 
-Matplotlib is the only bundled backend today, and is used unless you ask for another one. Both
-``variable.plot(backend="matplotlib")`` and ``variable.plot["matplotlib"]()`` select it explicitly.
+Matplotlib is currently the only plotting backend, so ``variable.plot()`` always uses it; asking for
+any other name raises ``KeyError``. Both ``variable.plot(backend="matplotlib")`` and
+``variable.plot["matplotlib"]()`` select it explicitly.

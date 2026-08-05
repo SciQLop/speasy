@@ -64,7 +64,7 @@ Space Physics made EASY
 
 Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
 data sources, whether online and public such as `CDAWEB <https://cdaweb.gsfc.nasa.gov/index.html/>`__ and `AMDA <http://amda.irap.omp.eu/>`__,
-or any local or remote archive.
+or any local or remote archive — see :doc:`data providers <user/data_providers>` for the full list of supported services.
 Finding and loading data is where any science project starts. It would seem easy a priori but, considering the
 diverse array of missions and instruments available nowadays, it proves to be one of the major bottlenecks,
 especially for students and newcomers.
@@ -142,7 +142,10 @@ Features
 - Local cache to avoid redundant downloads
 - Can take advantage of SciQLop dedicated proxy as a community backed ultra fast cache
 - Full support of `AMDA <http://amda.irap.omp.eu/>`__ API
-- Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__, `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__, `CSA <https://csa.esac.esa.int/csa-web/>`__, `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__
+- Can retrieve time-series from `AMDA <http://amda.irap.omp.eu/>`__ (CDPP parameters, catalogs, and timetables),
+  `CDAWeb <https://cdaweb.gsfc.nasa.gov/>`__ (NASA's public heliophysics archive), `CSA <https://csa.esac.esa.int/csa-web/>`__
+  (Cluster and Double Star mission data), and `SSCWeb <https://sscweb.gsfc.nasa.gov/>`__ (spacecraft trajectories) —
+  see :doc:`data providers <user/data_providers>` for what each provider offers
 - Can retrieve data from any local or remote archive with a :doc:`simple configuration file <user/direct_archive/direct_archive>`
 - Also available as `Speasy.jl <https://github.com/SciQLop/Speasy.jl>`__ for Julia users
 
@@ -150,5 +153,12 @@ Examples
 ========
 See :doc:`here <examples/index>` for a complete list of examples.
 
+
+Next steps
+----------
+
+- New to Speasy? Start with :doc:`user/concepts` to understand products, providers, and inventories.
+- Browse the :doc:`example gallery <examples/index>` for ready-to-run notebooks.
+- Tune caching, proxies, and provider settings in :doc:`user/configuration`.
 
 :doc:`Go to developers doc <dev/index>`

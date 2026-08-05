@@ -31,7 +31,9 @@ def generate():
     for attr in body_attrs:
         node = getattr(trajectories, attr)
         systems = _coordinate_systems(node)
-        rows.append([node.spz_name(), ", ".join(f"``{s}``" for s in systems)])
+        # the attribute name (fix_name'd, e.g. "Saturn_baricentric") is what tab-completion
+        # and attribute access need, not the display name ("Saturn baricentric")
+        rows.append([f"``{attr}``", ", ".join(f"``{s}``" for s in systems)])
 
     table = render_list_table(
         headers=["Body", "Coordinate systems"],

@@ -15,6 +15,17 @@ Every provider builds a searchable **inventory** of the products it offers, expo
 - ``spz.inventories.flat_inventories.<provider>`` — the same products as a flat, dict-like mapping keyed
   by product id, handy for programmatic lookup (``"ace" in spz.inventories.flat_inventories.ssc.parameters``).
 
+Finding products is easiest interactively — browse the tree with tab-completion until you reach the
+product you want — while scripts usually look ids up in the flat inventories:
+
+.. code-block:: python
+
+    import speasy as spz
+    # interactive browsing: spz.inventories.tree.amda.Parameters.ACE.<TAB>
+    mfi = spz.inventories.tree.amda.Parameters.ACE.MFI
+    # programmatic lookup by id:
+    "amda/imf" in spz.inventories.flat_inventories.amda.parameters
+
 Leaf index objects (e.g. a :class:`~speasy.core.inventory.indexes.ParameterIndex`) can be passed directly
 to :func:`speasy.get_data` instead of a string id. They expose their identity through accessors
 (``idx.spz_uid()``, ``idx.spz_name()``, ``idx.spz_provider()``) and the provider's own metadata as plain
@@ -48,9 +59,12 @@ Time ranges
 -----------
 
 ``get_data()`` and similar calls accept ``start``/``stop`` as plain strings (e.g. ``"2016-6-2"`` or
-``"2018-01-01T01:00:00"``), :class:`~datetime.datetime` objects, or :class:`numpy.datetime64` values.
-String times are parsed as **UTC**; Speasy does not apply any local timezone conversion. Any precision
-from whole days down to sub-second (e.g. ``"2018-01-01T01:00:00.123456"``) is accepted.
+``"2018-01-01T01:00:00"``), :class:`~datetime.datetime` objects, :class:`numpy.datetime64` values of
+any unit (``np.datetime64('2016-06-02')`` works), or float Unix-epoch times (seconds since 1970).
+Naive datetimes and strings without timezone information are assumed to be **UTC**, while
+timezone-aware datetimes and strings with an offset (e.g. ``"2018-01-01T01:00:00+02:00"``) are
+converted to UTC. Any precision from whole days down to sub-second
+(e.g. ``"2018-01-01T01:00:00.123456"``) is accepted.
 
 .. _coordinate_systems:
 
@@ -103,3 +117,35 @@ exception for certain invalid arguments (e.g. CDPP 3DView raises ``Cdpp3dViewWeb
 
 Network failures raise as well, so a robust caller wants a ``try``/``except`` around the call and a
 ``None`` check on the result.
+
+.. note::
+    **Boundary samples.** Ranges are half-open: ``[start, stop)`` — the sample at ``start`` is
+    included, the one at ``stop`` is not, so adjacent requests tile without duplicating the
+    boundary sample. If no sample falls inside the requested range (e.g. a very short request
+    between two samples), the result is simply empty.
+
+Fill values and data gaps
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Providers mark missing samples with a **fill sentinel** (e.g. ``-1e31``) stored right inside
+``.values``, together with a ``FILLVAL`` metadata entry. Plain NumPy statistics know nothing about
+it, so ``np.mean(var)`` silently averages the sentinel in and returns nonsense. Replace fill values
+by NaN first — :meth:`~speasy.products.variable.SpeasyVariable.replace_fillval_by_nan` returns a new
+variable (pass ``inplace=True`` to modify it in place) — then use NaN-aware NumPy functions.
+:meth:`~speasy.products.variable.SpeasyVariable.sanitized` goes further and returns a copy with the
+fill/NaN/out-of-range rows dropped entirely, and ``.plot()`` already masks fill values by default:
+
+    >>> import numpy as np
+    >>> from speasy.products.variable import SpeasyVariable
+    >>> from speasy.core.data_containers import VariableTimeAxis, DataContainer
+    >>> # a small variable built locally so this example runs offline
+    >>> time = np.arange("2018-01-01", "2018-01-05", dtype="datetime64[D]").astype("datetime64[ns]")
+    >>> var = SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+    ...                      values=DataContainer(values=np.array([1., 2., -1e31, 4.]),
+    ...                                           meta={"FILLVAL": -1e31}),
+    ...                      columns=["Bz"])
+    >>> np.mean(var) < 0  # the -1e31 sentinel poisons the statistics
+    np.True_
+    >>> clean = var.replace_fillval_by_nan()
+    >>> np.nanmean(clean)  # NaN-aware mean of the three valid samples
+    np.float64(2.3333333333333335)

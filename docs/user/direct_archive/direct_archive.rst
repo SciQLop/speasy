@@ -51,7 +51,8 @@ Supported file formats
      - Built in, no extra dependency. Default when ``codec`` is omitted.
    * - NetCDF (ISTP)
      - ``nc`` or ``nc4`` (or ``application/x-netcdf``, ``application/netcdf``)
-     - Requires the optional `netCDF4 <https://pypi.org/project/netCDF4/>`_ package. Without it,
+     - Requires the optional `netCDF4 <https://pypi.org/project/netCDF4/>`_ package
+       (``pip install netCDF4``). Without it,
        any dataset declaring ``codec: nc`` is silently skipped with a warning at import time.
    * - HAPI CSV
      - ``hapi/csv`` (exact name, no extension/mimetype alias)
@@ -87,14 +88,14 @@ loaded. You can confirm the exact path:
 
 .. tip::
     **Want a working file to start from?** Speasy ships one, ``themis_cdpp.yaml.example``,
-    describing 60 THEMIS L2 datasets hosted at CDPP. Copy it into the directory above, drop the
+    describing 55 THEMIS L2 datasets hosted at CDPP. Copy it into the directory above, drop the
     ``.example`` suffix so it gets loaded, and restart Python. Its location:
 
         >>> import os, speasy # doctest: +SKIP
         >>> print(os.path.join(os.path.dirname(speasy.__file__), 'data', 'archive')) # doctest: +SKIP
 
     The same folder holds ``cda.yaml``, the inventory Speasy loads out of the box — which is why
-    ``spz.inventories.data_tree.archive.cda`` already contains MMS, Arase and ACE datasets before
+    ``spz.inventories.data_tree.archive.cda`` already contains MMS and Arase (ERG) datasets before
     you add anything. Both files are also worth reading as real-world examples.
 
 **Step 2: Describe your dataset in YAML**
@@ -502,6 +503,14 @@ A few things about metadata and caching are easy to miss:
 
 Troubleshooting
 ------------------
+
+Most of the diagnostics below are emitted as log *warnings*, not exceptions. If you don't
+see them, make sure logging is configured in your Python session:
+
+.. code-block:: python
+
+    import logging
+    logging.basicConfig(level=logging.WARNING)
 
 - **A dataset builds fine but** ``get_data()`` **raises** ``TypeError: get_product() missing 1
   required positional argument: 'split_rule'``: your YAML entry is missing ``split_rule`` (or,

@@ -71,8 +71,21 @@ The naming follows a consistent pattern across bodies, so you can usually guess 
 
 - ``IAU_<body>`` — body-fixed frame (rotates with the body), as defined by the IAU.
 - ``<X>SO`` — "X Solar Orbital": a GSE-style, Sun-body-line frame generalized to body X.
+
+  .. warning::
+      Guessing ``<X>SO`` frames has a collision: Mars is ``MSO`` but Mercury is ``MESO``
+      (and the Moon has no ``SO`` frame at all). A wrong guess that happens to be a real
+      frame yields perfectly valid data for the *wrong* planet, with no error — when in
+      doubt, check the table above.
 - ``<X>SM`` — "X Solar Magnetic": like ``SM``/``GSM``, referenced to body X's magnetic dipole
-  (only defined for the magnetized planets: Earth, Jupiter, Saturn).
+  (only defined for the magnetized planets: Earth, Jupiter, Saturn). Note that the
+  ``SM``/``GSM``/``MAG``-style frames are not valid after 31/12/2014, as the generated
+  table above mentions.
 - ``<X>ECLIP`` / ``<X>EME`` — inertial frames centred on body X, referenced to the ecliptic or to
   Earth's mean equator/equinox (the same convention as ``ECLIPJ2000``/``J2000``) respectively.
-- ``<X>CSO`` — the comet/asteroid equivalent of the ``SO`` frames.
+- ``<BODY>_CSO`` / ``<BODY>_EME`` — the comet/asteroid equivalents of the ``SO`` and
+  ``EME`` frames, spelled with the full body name as a suffix: ``67PCG_CSO``,
+  ``LUTETIA_CSO``, ``HALLEY_CSO``, ``67PCG_EME``, ...
+
+``get_data()`` also accepts ``if_newer_than=...`` to only fetch data newer than a given
+timestamp (it sends an ``If-Modified-Since`` header to the server).

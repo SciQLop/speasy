@@ -4,7 +4,7 @@ Automated Multi-Dataset Analysis (AMDA)
 .. toctree::
    :maxdepth: 1
 
-`AMDA <http://amda.irap.omp.eu/>`__ is one of the main data providers handled by Speasy. All products are available either
+`AMDA <https://amda.irap.omp.eu/>`__ is one of the main data providers handled by Speasy. All products are available either
 through the AMDA module directly or through :meth:`speasy.get_data()`.
 Using :meth:`speasy.get_data()` should be preferred over AMDA module methods since it is more flexible and its interface is guaranteed to be more stable.
 The following documentation focuses on AMDA module specific usage.
@@ -13,10 +13,10 @@ The following documentation focuses on AMDA module specific usage.
 Basics: Getting data from AMDA
 ------------------------------
 
-`AMDA <http://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs.
+`AMDA <https://amda.irap.omp.eu/>`_ distributes several public or private products such as Parameters, Datasets, Timetables and Catalogs.
 Speasy makes them accessible thanks to this module with :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_data()`
 or their dedicated methods such as :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_parameter()`, :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_user_parameter()`,...
-Note that you can browse the list of all available products from `AMDA <http://amda.irap.omp.eu/>`__ Workspace:
+Note that you can browse the list of all available products from `AMDA <https://amda.irap.omp.eu/>`__ Workspace:
 
 .. image:: images/AMDA_workspace_collapsed.png
    :width: 32%
@@ -30,7 +30,7 @@ Note that you can browse the list of all available products from `AMDA <http://a
 
 This module provides two kinds of operations, **list** or **get** and so user methods are prefixed with one of them.
 
-    - **get** methods retrieve the given product from AMDA server, they takes at least the product identifier and time range for time series
+    - **get** methods retrieve the given product from AMDA server, they take at least the product identifier and time range for time series
     - **list** methods list available products of a given type on AMDA, they return a list of indexes that can be passed to a **get** method
 
 Parameters
@@ -51,7 +51,7 @@ Let's start with a simple example, we want to download the first parameter avail
 
 Usually you already know which product you want to download, two scenarios are available:
 
-1. You are an `AMDA <http://amda.irap.omp.eu/>`_ web interface user, so you want some specific product from AMDA Workspace. You need first to get your product id,
+1. You are an `AMDA <https://amda.irap.omp.eu/>`_ web interface user, so you want some specific product from AMDA Workspace. You need first to get your product id,
 you will find the id from the tooltip while hovering any product (Dataset, Parameter, Timetable or Catalog):
 
 .. image:: images/AMDA_param_id.png
@@ -88,7 +88,7 @@ See :meth:`~speasy.data_providers.amda.ws.AmdaWebservice.get_parameter()` or :me
 Catalogs and TimeTables
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Downloading Catalogs and TimeTables from `AMDA <http://amda.irap.omp.eu/>`_ is similar to Parameters. For example let's
+Downloading Catalogs and TimeTables from `AMDA <https://amda.irap.omp.eu/>`_ is similar to Parameters. For example let's
 assume you want to download the first available catalog:
 
     >>> from speasy import amda
@@ -118,7 +118,7 @@ Exactly the same with a TimeTable:
     <DateTimeRange: 2001-02-02T17:29:29+00:00 -> 2001-02-02T17:29:30+00:00>
 
 
-As with Parameters you can also use the ID found on `AMDA <http://amda.irap.omp.eu/>`_ web user interface:
+As with Parameters you can also use the ID found on `AMDA <https://amda.irap.omp.eu/>`_ web user interface:
 
 .. image:: images/AMDA_catalog_id.png
    :height: 400px
@@ -171,6 +171,31 @@ into a single object, so you don't have to fetch and align each parameter separa
     >>> # Iterating yields variable names, like a dict
     >>> sorted(list(dataset))
     ['b_gse', 'b_gsm', '|b|']
+
+.. _amda_derived_parameters:
+
+Derived (templated) parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some AMDA parameters are *derived*: they are templates with arguments (for example a
+spacecraft or a model choice) that you fill in at request time. Pass the argument values
+with the ``product_inputs`` keyword:
+
+.. code-block:: python
+
+    import speasy as spz
+    data = spz.get_data("amda/some_templated_parameter", "2018-01-01", "2018-01-02",
+                        product_inputs={'argument_name': 'value'})
+
+Any argument you omit falls back to its default value, and Speasy emits a warning telling
+you which default was used and how to set it explicitly. Arguments declared as a list on
+AMDA only accept one of their allowed values; anything else raises an error naming the
+allowed choices.
+
+.. note::
+    AMDA can serve data in several formats server-side, but Speasy currently only supports
+    ``cdf_istp`` — leave the ``output_format`` keyword argument (and the
+    ``config.amda.output_format`` setting) at its default value.
 
 Some examples using AMDA products
 ---------------------------------

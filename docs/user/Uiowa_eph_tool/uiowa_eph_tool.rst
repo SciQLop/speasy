@@ -5,8 +5,9 @@ University of Iowa Cassini Ephemeris Tool
    :maxdepth: 1
 
 
-`UiowaEphTool <https://space.physics.uiowa.edu/~jbg/cas.html>`_ provides trajectories for Cassini, Ulysses, Voyager 1, and Voyager 2
-in different coordinate systems. Its integration into Speasy makes it easy to get any available trajectory for any time range.
+`UiowaEphTool <https://space.physics.uiowa.edu/~jbg/cas.html>`_ provides trajectories for the Cassini, Galileo, Ulysses,
+Voyager 1 and Voyager 2 spacecraft — as well as planets and moons seen as observers of each other — in different
+coordinate systems. Its integration into Speasy makes it easy to get any available trajectory for any time range.
 
 Basics: Getting data from UiowaEphTool module
 ---------------------------------------------
@@ -38,3 +39,23 @@ in ``speasy.data_providers.uiowa_eph_tool``), so it always matches what the inst
 offers:
 
 .. include:: _generated_bodies_table.rst
+
+What you get back
+-----------------
+
+Every request returns a :class:`~speasy.products.variable.SpeasyVariable` with three columns
+(``X``, ``Y``, ``Z``) at a fixed one-minute cadence — the tool's only time resolution.
+
+.. warning::
+    Positions are **not always in km**: depending on the origin body they may be expressed in
+    origin-body radii (e.g. ``Rs`` for Saturn, where 1 Rs = 60268 km). Always check
+    ``var.meta['UNITS']``; when the unit is a body radius, the conversion factor is in
+    ``var.meta['ORIGIN_RADIUS']`` (the origin body's radius in km).
+
+Other useful metadata keys on the returned variable: ``COORDINATE_SYSTEM``, ``ORIGIN``,
+``OBSERVER``, and ``FILE_HEADER`` (the raw header of the file returned by the server).
+
+.. note::
+    Requests shorter than one day are rounded up to one day on the server side (its minimum
+    request length), but Speasy trims the returned data back to exactly the range you asked
+    for.
