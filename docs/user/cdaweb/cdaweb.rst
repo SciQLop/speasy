@@ -11,7 +11,7 @@ data from current and past heliophysics missions and projects. Many datasets fro
 Basics: Getting data from CDA module
 ------------------------------------
 
-The easiest solution is to use your python terminal completion and browse `spz.inventories.data_tree.cda` to find
+The easiest solution is to use your python terminal completion and browse ``spz.inventories.tree.cda`` to find
 your product.
 Once you have found your product, then simply ask CDA module to get data for the provided time range:
 
@@ -23,22 +23,47 @@ Once you have found your product, then simply ask CDA module to get data for the
     >>> solo_mag_rtn.values.shape
     (1438, 3)
 
+A product can also be named by its ``"DATASET/VARIABLE"`` string id, and ``get_variable()``
+takes the dataset and variable as separate arguments:
+
+.. code-block:: python
+
+    import speasy as spz
+    b = spz.get_data("cda/AC_H0_MFI/BGSEc", "2018-01-01", "2018-01-02")
+    b = spz.cda.get_variable(dataset="AC_H0_MFI", variable="BGSEc",
+                             start_time="2018-01-01", stop_time="2018-01-02")
+
+Each dataset only covers a finite time range; ``parameter_range()`` and ``dataset_range()``
+tell you what it is before you ask:
+
+.. code-block:: python
+
+    spz.cda.dataset_range("AC_H0_MFI")
+    spz.cda.parameter_range("AC_H0_MFI/BGSEc")
+
 Specific CDAWeb options
 -----------------------
 
 The CDAWeb module lets you choose the access method among ``BEST``, ``FILE``, and ``API``. The default is ``BEST``.
 
 * ``BEST`` — automatically selects between ``FILE`` and ``API`` for each dataset.
-* ``FILE`` — downloads data files directly from the CDAWeb archive.
+* ``FILE`` — downloads data files directly from the CDAWeb archive. In this mode, a CDF
+  dataset's metadata (variable names, units, labels) comes from the dataset's *master CDF*
+  published by CDAWeb.
 * ``API`` — retrieves data through the CDAWeb REST API.
 
+.. warning::
+    An unrecognized ``method=`` value silently falls back to the web service (``API``)
+    instead of raising an error — a typo like ``method='FIL'`` therefore goes unnoticed.
+    Double-check the spelling if a request doesn't behave as expected.
+
 .. note::
-    Most CDAWeb datasets are CDF, but 70 are NetCDF. Those can go through ``FILE`` too, on two
+    Most CDAWeb datasets are CDF, but about 70 are NetCDF. Those can go through ``FILE`` too, on two
     conditions the container format does not tell: their files must carry the ISTP attributes the
     NetCDF codec needs (``DEPEND_0``, ``VAR_TYPE``), and CDAWeb's file naming must really describe
     the archive. Speasy settles it by loading the requested variable from the first file it would
     download, and remembers the answer for a week. Whatever fails — plain NetCDF, the datasets
-    CDAWeb describes with one sample file name instead of a pattern, the seven published as GIF or
+    CDAWeb describes with one sample file name instead of a pattern, the handful published as GIF or
     MPEG, and every parameter CDAWeb computes itself — keeps going through the REST API. None of
     the current NetCDF datasets passes, so this mostly opens the door for the ones to come.
 

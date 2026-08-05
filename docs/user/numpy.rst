@@ -108,3 +108,8 @@ You can convert a ``SpeasyVariable`` to a Pandas ``DataFrame`` and back:
     'DataFrame'
     >>> df.shape
     (16200, 3)
+    >>> back = spz.SpeasyVariable.from_dataframe(df)
+    >>> back.__class__.__name__
+    'SpeasyVariable'
+    >>> back.shape
+    (16200, 3)

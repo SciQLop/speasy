@@ -22,14 +22,18 @@ Speasy's dynamic inventory, which is always up to date:
     >>> len(ssc_trajectories) > 100
     True
 
-Note that you can also use your python terminal completion and browse `spz.inventories.data_tree.ssc.Trajectories` to find
+``spz.ssc.get_observatories()`` returns the same listing programmatically. Time resolution
+varies from satellite to satellite: each inventory entry exposes a ``Resolution`` field
+telling you the cadence of that trajectory.
+
+Note that you can also use your python terminal completion and browse ``spz.inventories.data_tree.ssc.Trajectories`` to find
 your trajectory.
 Once you have found your trajectory, you can choose the coordinate system for the download.
 The default is **gse**.
 
     >>> import speasy as spz
     >>> # Let's assume you wanted to get MMS1 trajectory
-    >>> mms1_traj = spz.ssc.get_data(spz.inventories.data_tree.ssc.Trajectories.mms1, "2018-01-01", "2018-02-01", 'gsm')
+    >>> mms1_traj = spz.ssc.get_data(spz.inventories.data_tree.ssc.Trajectories.mms1, "2018-01-01", "2018-02-01", coordinate_system='gsm')
     >>> mms1_traj.columns
     ['X', 'Y', 'Z']
     >>> mms1_traj.values
@@ -40,6 +44,13 @@ The default is **gse**.
            [74135.0437,   741.7233, 27240.7339],
            [74007.2467,   795.057 , 27220.3705],
            [73879.1839,   848.3518, 27199.876 ]], shape=(44640, 3))
+
+The returned positions are always in **km**, whatever the coordinate system (also stated in
+``mms1_traj.meta['UNITS']``).
+
+.. note::
+    Speasy only exposes SSCWeb's trajectory (location) data — the graphs and other plot
+    products the SSCWeb web interface can generate are not available through Speasy.
 
 Coordinate systems
 ------------------

@@ -2,7 +2,7 @@
 History
 =======
 
-1.8.0 (2026-07-23)
+1.8.0 (unreleased)
 ------------------
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
 * Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269

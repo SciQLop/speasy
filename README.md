@@ -5,7 +5,7 @@
 # Space Physics made EASY
 
 [![Chat on Matrix](https://img.shields.io/matrix/speasy:matrix.org)](https://matrix.to/#/#speasy:matrix.org)
-[![image](https://img.shields.io/pypi/v/speasy.svg)](https://pypi.python.org/pypi/speasy)
+[![image](https://img.shields.io/pypi/v/speasy.svg)](https://pypi.org/project/speasy)
 [![image](https://github.com/SciQLop/speasy/workflows/Tests/badge.svg)](https://github.com/SciQLop/speasy/actions?query=workflow%3A%22Tests%22)
 [![Documentation Status](https://readthedocs.org/projects/speasy/badge/?version=latest)](https://speasy.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://codecov.io/gh/SciQLop/speasy/coverage.svg?branch=main)](https://codecov.io/gh/SciQLop/speasy/branch/main)
@@ -16,7 +16,7 @@
 [![Speasy proxy uptime (30 days)](https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70)](http://sciqlop.lpp.polytechnique.fr/cache)
 
 Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
-data sources, whether it is online and public such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](http://amda.irap.omp.eu/),
+data sources, whether it is online and public such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](https://amda.cdpp.eu/),
 or any described archive, local or remote.
 Finding and loading data is where any science project starts. It would seem easy a priori but, considering the
 diverse array of missions and instruments available nowadays, it proves to be one of the major bottlenecks,
@@ -34,11 +34,12 @@ Don't want to write code? See our graphical interface [SciQLop](https://github.c
 -   Also supports Catalogs, TimeTables, Events, and multi-variable Datasets
 -   Local cache to avoid redundant downloads, backed by [pysciqlop-cache](https://pypi.org/project/pysciqlop-cache/) (see [notes for users upgrading from an older Speasy](https://speasy.readthedocs.io/en/latest/user/configuration.html#migrating-an-older-cache))
 -   Uses the SciQLOP ultra fast community cache server (see [configuration](https://speasy.readthedocs.io/en/latest/user/configuration.html#proxy-section) to tune or disable it)
--   Full support of [AMDA](http://amda.irap.omp.eu/) API
--   Can retrieve time-series from [AMDA](http://amda.irap.omp.eu/),
-    [CDAWeb](https://cdaweb.gsfc.nasa.gov/),
-    [CSA](https://csa.esac.esa.int/csa-web/),
-    [SSCWeb](https://sscweb.gsfc.nasa.gov/)
+-   Full support of [AMDA](https://amda.cdpp.eu/) API
+-   Can retrieve time-series from [AMDA](https://amda.cdpp.eu/) (analysis server at IRAP/CDPP),
+    [CDAWeb](https://cdaweb.gsfc.nasa.gov/) (NASA/GSFC archive),
+    [CSA](https://csa.esac.esa.int/csa-web/) (ESA Cluster archive) and
+    [SSCWeb](https://sscweb.gsfc.nasa.gov/) (NASA orbit/trajectory service);
+    see the [data providers documentation](https://speasy.readthedocs.io/en/stable/user/data_providers.html) for more.
 -   Support data access from any local or remote archives described by YAML file.
 -   Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
 
@@ -55,18 +56,25 @@ Your feedback is essential to making Speasy a better tool for everyone.
 ## Quickstart
 ### Installation
 
-Installing Speasy with pip ([more details here](https://speasy.readthedocs.io/en/stable/installation.html)):
+Speasy requires **Python 3.10 or newer**. We recommend installing it with pip inside a virtual environment
+([more details here](https://speasy.readthedocs.io/en/stable/installation.html), conda works too):
 
 ``` console
+$ python3 -m venv .venv
+$ source .venv/bin/activate
 $ python -m pip install speasy
-# or
+# or, without a virtual environment:
 $ python -m pip install --user speasy
 ```
+
+Troubleshooting: your first `get_data` calls need internet access (data is then cached locally);
+if you are behind a proxy or firewall, see the [configuration page](https://speasy.readthedocs.io/en/stable/user/configuration.html).
+
 
 ### Examples
 #### Simple request
 
-This simple code example shows how easy it is to get data using Speasy. The code imports the Speasy package and defines a variable named ace_mag. This variable stores the data for the ACE IMF product, for the time period from June 2, 2016 to June 5, 2016. The code then uses the Speasy plot() function to plot the data.
+This simple code example shows how easy it is to get data using Speasy. The code imports the Speasy package and defines a variable named ace_mag. This variable stores the data for the ACE IMF (interplanetary magnetic field) product, for the time period from June 2, 2016 to June 5, 2016. The code then uses the Speasy plot() function to plot the data.
 
 
 ```python
@@ -77,7 +85,7 @@ ace_mag.plot();
 
 
     
-![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_2_0.png)
+![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_2_2.png)
     
 
 
@@ -87,6 +95,11 @@ Where `amda` is the data provider and `imf` is the product ID.
 
 Using the dynamic inventory produces the same result as the previous example, but lets you discover available data
 through tab-completion in IPython, Jupyter notebooks, or any Python environment that supports it.
+
+You can discover product ids by browsing `spz.inventories.tree.<provider>` (e.g. `spz.inventories.tree.amda`)
+with tab-completion, or programmatically via `spz.inventories.flat_inventories.<provider>`.
+See the [concepts page](https://speasy.readthedocs.io/en/stable/user/concepts.html) for more details.
+
 
 
 ```python
@@ -104,7 +117,13 @@ ace_mag.plot();
 
 #### Plotting multiple time series on a single figure
 
-This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values with NaNs.
+This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values (placeholders for missing data) with NaNs.
+The products plotted here include magnetic field measurements from the FGM (fluxgate magnetometer)
+instrument, expressed in GSE (a geocentric coordinate frame).
+
+Note: Speasy may transparently fall back between access methods (direct archive, web service, community cache);
+messages such as "switching to web service" are informational, not errors.
+
 
 
 ```python
@@ -135,18 +154,18 @@ for p in plots:
 plt.show()
 ```
 
-    Can't get MMS1_FGM_SRVY_L2/mms1_fgm_b_gse_srvy_l2_clean without web service, switching to web service
-
-
 
     
-![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_6_1.png)
+![png](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/README_6_0.png)
     
 
 
 #### Requesting multiple products and intervals at once
 
 More complex requests like this one are supported:
+
+The result is a list of Speasy variables, one for each requested product and interval.
+
 
 
 ```python
@@ -160,242 +179,7 @@ products = [
 ]
 intervals = [["2010-01-02", "2010-01-02T10"], ["2009-08-02", "2009-08-02T10"]]
 data = spz.get_data(products, intervals)
-data
 ```
-
-
-
-
-    [[SpeasyVariable(
-          Name: 'wnd_swe_vth', 
-          Time Range: 2010-01-02T00:00:34.450000000 - 2010-01-02T09:59:39.371000000
-          Shape: (368, 1), 
-          Unit: 'km/s', 
-          Columns: ['v_thermal'], 
-          Meta: {
-              CATDESC: 'wnd_swe_vth', 
-              FIELDNAM: 'v_thermal', 
-              FORMAT: 'F11.4', 
-              VAR_TYPE: 'data', 
-              FILLVAL: [nan], 
-              SI_CONVERSION: '\x00', 
-              VALIDMIN: [-3.4028234663852886e+38], 
-              VALIDMAX: [3.4028234663852886e+38], 
-              DATA: 'N/A', 
-              DISPLAY_TYPE: 'time_series', 
-              LABLAXIS: 'v_thermal', 
-              TENSOR_FRAME: '\x00', 
-              TENSOR_ORDER: '0', 
-              UNITS: 'km/s', 
-              VAR_NOTES: '\x00', 
-              DEPEND_0: 'AMDA_TIME', 
-              }, 
-          Size: '5.2 kB', 
-          ),
-      SpeasyVariable(
-          Name: 'wnd_swe_vth', 
-          Time Range: 2009-08-02T00:02:32.599000000 - 2009-08-02T09:59:25.303000000
-          Shape: (366, 1), 
-          Unit: 'km/s', 
-          Columns: ['v_thermal'], 
-          Meta: {
-              CATDESC: 'wnd_swe_vth', 
-              FIELDNAM: 'v_thermal', 
-              FORMAT: 'F11.4', 
-              VAR_TYPE: 'data', 
-              FILLVAL: [nan], 
-              SI_CONVERSION: '\x00', 
-              VALIDMIN: [-3.4028234663852886e+38], 
-              VALIDMAX: [3.4028234663852886e+38], 
-              DATA: 'N/A', 
-              DISPLAY_TYPE: 'time_series', 
-              LABLAXIS: 'v_thermal', 
-              TENSOR_FRAME: '\x00', 
-              TENSOR_ORDER: '0', 
-              UNITS: 'km/s', 
-              VAR_NOTES: '\x00', 
-              DEPEND_0: 'AMDA_TIME', 
-              }, 
-          Size: '5.2 kB', 
-          )],
-     [SpeasyVariable(
-          Name: 'wnd_swe_pdyn', 
-          Time Range: 2010-01-02T00:00:34.450000000 - 2010-01-02T09:59:39.371000000
-          Shape: (368, 1), 
-          Unit: 'nPa', 
-          Columns: ['ram pressure'], 
-          Meta: {
-              CATDESC: 'wnd_swe_pdyn', 
-              FIELDNAM: 'ram pressure', 
-              FORMAT: 'F14.3', 
-              VAR_TYPE: 'data', 
-              FILLVAL: [nan], 
-              SI_CONVERSION: '\x00', 
-              VALIDMIN: [-1.7976931348623157e+308], 
-              VALIDMAX: [1.7976931348623157e+308], 
-              DATA: 'N/A', 
-              DISPLAY_TYPE: 'time_series', 
-              LABLAXIS: 'ram pressure', 
-              TENSOR_FRAME: '\x00', 
-              TENSOR_ORDER: '0', 
-              UNITS: 'nPa', 
-              VAR_NOTES: "Derived parameter from expression '0.000002*$wnd_swe_n*pow($wnd_swe_vmag,2)'", 
-              DEPEND_0: 'AMDA_TIME', 
-              }, 
-          Size: '6.7 kB', 
-          ),
-      SpeasyVariable(
-          Name: 'wnd_swe_pdyn', 
-          Time Range: 2009-08-02T00:02:32.599000000 - 2009-08-02T09:59:25.303000000
-          Shape: (366, 1), 
-          Unit: 'nPa', 
-          Columns: ['ram pressure'], 
-          Meta: {
-              CATDESC: 'wnd_swe_pdyn', 
-              FIELDNAM: 'ram pressure', 
-              FORMAT: 'F14.3', 
-              VAR_TYPE: 'data', 
-              FILLVAL: [nan], 
-              SI_CONVERSION: '\x00', 
-              VALIDMIN: [-1.7976931348623157e+308], 
-              VALIDMAX: [1.7976931348623157e+308], 
-              DATA: 'N/A', 
-              DISPLAY_TYPE: 'time_series', 
-              LABLAXIS: 'ram pressure', 
-              TENSOR_FRAME: '\x00', 
-              TENSOR_ORDER: '0', 
-              UNITS: 'nPa', 
-              VAR_NOTES: "Derived parameter from expression '0.000002*$wnd_swe_n*pow($wnd_swe_vmag,2)'", 
-              DEPEND_0: 'AMDA_TIME', 
-              }, 
-          Size: '6.7 kB', 
-          )],
-     [SpeasyVariable(
-          Name: 'wnd_swe_n', 
-          Time Range: 2010-01-02T00:00:34.450000000 - 2010-01-02T09:59:39.371000000
-          Shape: (368, 1), 
-          Unit: 'cm-3', 
-          Columns: ['density'], 
-          Meta: {
-              CATDESC: 'wnd_swe_n', 
-              FIELDNAM: 'density', 
-              FORMAT: 'F11.4', 
-              VAR_TYPE: 'data', 
-              FILLVAL: [nan], 
-              SI_CONVERSION: '\x00', 
-              VALIDMIN: [-3.4028234663852886e+38], 
-              VALIDMAX: [3.4028234663852886e+38], 
-              DATA: 'N/A', 
-              DISPLAY_TYPE: 'time_series', 
-              LABLAXIS: 'density', 
-              TENSOR_FRAME: '\x00', 
-              TENSOR_ORDER: '0', 
-              UNITS: 'cm-3', 
-              VAR_NOTES: '\x00', 
-              DEPEND_0: 'AMDA_TIME', 
-              }, 
-          Size: '5.2 kB', 
-          ),
-      SpeasyVariable(
-          Name: 'wnd_swe_n', 
-          Time Range: 2009-08-02T00:02:32.599000000 - 2009-08-02T09:59:25.303000000
-          Shape: (366, 1), 
-          Unit: 'cm-3', 
-          Columns: ['density'], 
-          Meta: {
-              CATDESC: 'wnd_swe_n', 
-              FIELDNAM: 'density', 
-              FORMAT: 'F11.4', 
-              VAR_TYPE: 'data', 
-              FILLVAL: [nan], 
-              SI_CONVERSION: '\x00', 
-              VALIDMIN: [-3.4028234663852886e+38], 
-              VALIDMAX: [3.4028234663852886e+38], 
-              DATA: 'N/A', 
-              DISPLAY_TYPE: 'time_series', 
-              LABLAXIS: 'density', 
-              TENSOR_FRAME: '\x00', 
-              TENSOR_ORDER: '0', 
-              UNITS: 'cm-3', 
-              VAR_NOTES: '\x00', 
-              DEPEND_0: 'AMDA_TIME', 
-              }, 
-          Size: '5.2 kB', 
-          )],
-     [SpeasyVariable(
-          Name: 'BGSE', 
-          Time Range: 2010-01-02T00:00:00.078500000 - 2010-01-02T09:59:59.950500000
-          Shape: (389013, 3), 
-          Unit: 'nT', 
-          Columns: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
-          Meta: {
-              FIELDNAM: 'Magnetic field vector in GSE cartesian coordinates', 
-              VALIDMIN: [-65534.0, -65534.0, -65534.0], 
-              VALIDMAX: [65534.0, 65534.0, 65534.0], 
-              SCALEMIN: [-5.998990058898926,
-               -3.514899969100952,
-               -4.955120086669922], 
-              SCALEMAX: [4.561240196228027, 5.447979927062988, 3.987950086593628], 
-              UNITS: 'nT', 
-              FORMAT: 'E13.6', 
-              MONOTON: 'FALSE', 
-              SCALETYP: 'LINEAR', 
-              CATDESC: 'Magnetic field vector in GSE cartesian coordinates', 
-              FILLVAL: [-9.999999848243207e+30], 
-              LABL_PTR_1: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
-              DEPEND_0: 'Epoch', 
-              VAR_TYPE: 'data', 
-              TIME_RES: 'Variable', 
-              }, 
-          Size: '7.8 MB', 
-          ),
-      SpeasyVariable(
-          Name: 'BGSE', 
-          Time Range: 2009-08-02T00:00:00.017500000 - 2009-08-02T09:59:59.982500000
-          Shape: (389069, 3), 
-          Unit: 'nT', 
-          Columns: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
-          Meta: {
-              FIELDNAM: 'Magnetic field vector in GSE cartesian coordinates', 
-              VALIDMIN: [-65534.0, -65534.0, -65534.0], 
-              VALIDMAX: [65534.0, 65534.0, 65534.0], 
-              SCALEMIN: [-5.998990058898926,
-               -3.514899969100952,
-               -4.955120086669922], 
-              SCALEMAX: [4.561240196228027, 5.447979927062988, 3.987950086593628], 
-              UNITS: 'nT', 
-              FORMAT: 'E13.6', 
-              MONOTON: 'FALSE', 
-              SCALETYP: 'LINEAR', 
-              CATDESC: 'Magnetic field vector in GSE cartesian coordinates', 
-              FILLVAL: [-9.999999848243207e+30], 
-              LABL_PTR_1: ['Bx (GSE)', 'By (GSE)', 'Bz (GSE)'], 
-              DEPEND_0: 'Epoch', 
-              VAR_TYPE: 'data', 
-              TIME_RES: 'Variable', 
-              }, 
-          Size: '7.8 MB', 
-          )],
-     [SpeasyVariable(
-          Name: '', 
-          Time Range: 2010-01-02T00:00:00.000000000 - 2010-01-02T09:48:00.000000000
-          Shape: (50, 3), 
-          Unit: 'km', 
-          Columns: ['X', 'Y', 'Z'], 
-          Meta: { CoordinateSystem: 'GSE',  UNITS: 'km',  }, 
-          Size: '1.9 kB', 
-          ),
-      SpeasyVariable(
-          Name: '', 
-          Time Range: 2009-08-02T00:00:00.000000000 - 2009-08-02T09:48:00.000000000
-          Shape: (50, 3), 
-          Unit: 'km', 
-          Columns: ['X', 'Y', 'Z'], 
-          Meta: { CoordinateSystem: 'GSE',  UNITS: 'km',  }, 
-          Size: '1.9 kB', 
-          )]]
-
-
 
 #### Numpy operations
 

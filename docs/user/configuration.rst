@@ -29,7 +29,13 @@ Disabling data providers
 
 Sometimes you may want to disable some data providers either to speed up Speasy import or because you don't need them.
 This can be done by adding the provider name to the ``disabled_providers`` list in the configuration file.
-By default, only ``cdpp3dview`` is disabled; see :doc:`cdpp3dview/cdpp3dview` for why.
+Valid names are ``amda``, ``csa``, ``cda`` (alias ``cdaweb``), ``ssc`` (alias ``sscweb``),
+``archive`` (alias ``generic_archive``), ``uiowaephtool`` (alias ``UiowaEphTool``) and
+``cdpp3dview`` (alias ``3DView``).
+
+The value you set **replaces** the default rather than adding to it. The default is ``cdpp3dview``
+(see :doc:`cdpp3dview/cdpp3dview` for why), so setting ``disabled_providers = amda`` also re-enables
+``cdpp3dview`` — include it explicitly if you want to keep it disabled.
 
 For example, to disable AMDA and CDAWeb, add the following to the configuration file:
 
@@ -125,6 +131,10 @@ Cache section
      - ``false``
      - Trades the migration rollback backup for lower peak disk usage — see
        :ref:`migrating_by_moving` below.
+
+The default cache path follows your platform's user cache directory: ``~/.cache/speasy`` on Linux,
+``~/Library/Caches/speasy`` on macOS, ``%LOCALAPPDATA%\LPP\speasy\Cache`` on Windows (the ``LPP``
+author segment only appears on Windows). Read the current value with ``spz.config.cache.path.get()``.
 
 .. code-block:: ini
 
