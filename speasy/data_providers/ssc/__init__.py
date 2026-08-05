@@ -152,9 +152,12 @@ class SscWebservice(DataProvider):
     @Proxyfiable(GetProduct, get_parameter_args)
     def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
                    debug=False, extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
-        if stop_time - start_time < timedelta(days=1):
-            stop_time += timedelta(days=1)
-        url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
+        request_stop_time = stop_time
+        if request_stop_time - start_time < timedelta(days=1):
+            # the server needs a range of at least one day, but we must slice
+            # the result with the user requested stop_time below
+            request_stop_time += timedelta(days=1)
+        url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{request_stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
         log.debug(f"Requesting {url}")
         headers = {"Accept": "application/xml"}
         if extra_http_headers is not None:

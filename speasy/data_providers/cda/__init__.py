@@ -12,8 +12,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 from packaging.version import Version
 
-from speasy.core import AllowedKwargs, EnsureUTCDateTime
+from speasy.core import AllowedKwargs, EnsureUTCDateTime, make_utc_datetime
 from speasy.core import http, url_utils
+from email.utils import format_datetime
 from speasy.config import cdaweb as cda_cfg
 from speasy.core.codecs import get_codec
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, CacheCall, UnversionedProviderCache
@@ -211,7 +212,9 @@ class CdaWebservice(DataProvider):
         url = f"{self.__url}/dataviews/sp_phys/datasets/{url_utils.quote(dataset, safe='')}/data/{start_time},{stop_time}/{url_utils.quote(variable, safe='')}?format={fmt}"
         headers = {"Accept": "application/json"}
         if if_newer_than is not None:
-            headers["If-Modified-Since"] = if_newer_than.ctime()
+            # If-Modified-Since must be a valid HTTP-date (RFC 7231), datetime.ctime()
+            # is not one and may make servers answer 400
+            headers["If-Modified-Since"] = format_datetime(make_utc_datetime(if_newer_than), usegmt=True)
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
         resp = http.get(url, headers=headers)

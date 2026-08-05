@@ -235,6 +235,22 @@ class SpecificNonRegression(unittest.TestCase):
             "2021-11-3", "2021-11-3T01", disable_proxy=True, disable_cache=True, method="FILE")
         self.assertIsNotNone(mms1_fgm_b_bcs_srvy_l2_clean)
 
+    def test_if_modified_since_header_is_a_valid_http_date(self):
+        # regression test: datetime.ctime() is not a valid HTTP-date (RFC 7231)
+        # and made some servers answer 400 on cache revalidation requests
+        # NOTE: use the shared spz.cda instance here, instantiating a new CdaWebservice
+        # would register a new flat inventory and corrupt global provider state
+        from unittest.mock import patch, Mock
+        from speasy.data_providers import cda
+        fake_response = Mock(status_code=304, ok=True)
+        with patch.object(cda.http, 'get', return_value=fake_response) as mock_get:
+            result = spz.cda._dl_variable(dataset="AC_H0_MFI", variable="BGSEc",
+                                          start_time=datetime(2018, 1, 1), stop_time=datetime(2018, 1, 2),
+                                          if_newer_than=datetime(2026, 1, 1))
+        self.assertIsNone(result)  # 304 means "not modified", keep cached data
+        self.assertEqual(mock_get.call_args.kwargs['headers']['If-Modified-Since'],
+                         'Thu, 01 Jan 2026 00:00:00 GMT')
+
     def test_wrong_time_dependency_axis(self):
         result = spz.get_data(
             "cda/MMS1_FEEPS_SRVY_L2_ELECTRON/mms1_epd_feeps_srvy_l2_electron_bottom_intensity_sensorid_2",
