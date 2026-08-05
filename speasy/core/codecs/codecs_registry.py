@@ -66,7 +66,8 @@ def _list_dir_abs(path: str):
 def _load_codec(path: str):
     if path.endswith('.py'):
         try:
-            exec(open(path).read())
+            with open(path) as codec_file:
+                exec(codec_file.read())
         except Exception:
             log.warning(f"Failed to load codec file {path}", exc_info=True)
 
