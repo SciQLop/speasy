@@ -90,7 +90,7 @@ Getting data is as simple as:
     ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
     ace_mag.plot()
 
-.. image:: ../README_files/README_2_0.png
+.. image:: ../README_files/ace_mag.png
    :width: 49%
    :alt: ACE IMF data
 

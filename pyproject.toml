@@ -67,6 +67,7 @@ dev = [
     "pyzstd",
     "watchdog",
     "IPython",
+    "cogapp",
 ]
 docs = [
     "sphinx!=5.2.0.post0",
