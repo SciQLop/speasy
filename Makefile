@@ -89,3 +89,9 @@ readme: ## regenerate README.md in place (runs its embedded examples for real, l
 
 readme-check: ## verify README.md matches what re-running its embedded examples would produce (live network calls)
 	uv run --group dev --group docs -m cogapp --check -P README.md
+
+docs-quickstart: ## regenerate docs/index.rst's quickstart examples in place (live network calls)
+	cd docs && uv run --project .. --group dev --group docs -m cogapp -r index.rst
+
+docs-quickstart-check: ## verify docs/index.rst matches what re-running its quickstart examples would produce (live network calls)
+	cd docs && uv run --project .. --group dev --group docs -m cogapp --check index.rst
