@@ -25,6 +25,7 @@ History
 * Give the rapid-loop unversioned-cache test its own retention margin by @jeandet in https://github.com/SciQLop/speasy/pull/320
 * Avoid re-HEAD-checking CDF master files on every daily file by @jeandet in https://github.com/SciQLop/speasy/pull/321
 * Foundation: Python ≥3.10 + UV + dependency-groups by @jeandet in https://github.com/SciQLop/speasy/pull/290
+* User documentation review + get_data time-range handling fixes by @jeandet in https://github.com/SciQLop/speasy/pull/341
 
 Dependency updates (dependabot):
 
