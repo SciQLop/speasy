@@ -8,8 +8,9 @@ The `Cluster Science Archive (CSA) <https://csa.esac.esa.int/csa-web/>`_ provide
 from the Cluster (2000–2024) and Double Star (2004–2008) missions. Its integration into Speasy exposes the CSA's public
 CEF datasets that follow the `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ (International Solar-Terrestrial Physics)
 conventions — the bulk of the Cluster/Double Star science data, delivered as `CDF <https://cdf.gsfc.nasa.gov/>`_
-(Common Data Format) files — plus the GRMB ground-based magnetometer dataset. Auxiliary and other non-ISTP products
-are not exposed through Speasy.
+(Common Data Format) files — plus the GRMB (Geospace Region and Magnetospheric Boundary identification) dataset, which
+classifies which magnetospheric region each Cluster spacecraft was travelling through. Other auxiliary and non-ISTP
+products are not exposed through Speasy.
 
 Basics: Getting data from CSA module
 ------------------------------------
