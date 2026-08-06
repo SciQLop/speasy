@@ -56,6 +56,6 @@ Other useful metadata keys on the returned variable: ``COORDINATE_SYSTEM``, ``OR
 ``OBSERVER``, and ``FILE_HEADER`` (the raw header of the file returned by the server).
 
 .. note::
-    Requests shorter than one day are rounded up to one day on the server side (its minimum
-    request length), but Speasy trims the returned data back to exactly the range you asked
-    for.
+    Requests shorter than one day are padded to one day before being sent (matching Speasy's own
+    one-day local cache granularity for this provider), then trimmed back to exactly the range you
+    asked for. This is not a server requirement — the tool accepts much shorter windows on its own.

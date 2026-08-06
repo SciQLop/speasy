@@ -46,9 +46,9 @@ def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs)
 
 
 def _resolve_coordinate_frame(coordinate_frame: Optional[str], coordinate_system: Optional[str]) -> str:
-    """coordinate_system is an alias for coordinate_frame (SSCWeb/UiowaEphTool call it
-    coordinate_system; 3dView's own REST API calls it frame/coordinate_frame). Accept either
-    spelling, but reject the two disagreeing rather than silently picking one."""
+    """coordinate_system is an alias for coordinate_frame (SSCWeb calls it coordinate_system;
+    3dView's own REST API calls it frame/coordinate_frame). Accept either spelling, but reject
+    the two disagreeing rather than silently picking one."""
     if coordinate_frame is not None and coordinate_system is not None and coordinate_frame != coordinate_system:
         raise Cdpp3dViewWebException(
             f"Got conflicting coordinate_frame={coordinate_frame!r} and "

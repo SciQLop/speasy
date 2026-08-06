@@ -419,10 +419,11 @@ dataset always lists its folders — but it is harmless, which is why real inven
     Files whose time ranges overlap are a dataset defect rather than something Speasy can repair:
     when one file's timestamps run into the next file's range, at most one of them can be right
     about when those samples were taken. Speasy keeps the file covering the overlap and drops the
-    other's samples inside it, so a result is always strictly increasing in time. A few legacy
-    archives do this at a handful of boundaries — the digitised Alouette/ISIS ionograms are the
-    known case — which is why they can return marginally fewer records than the same request served
-    by a web service that simply concatenates the files.
+    other's samples inside it, so a result is always strictly increasing in time. Some legacy
+    archives do this systematically — the digitised Alouette/ISIS ionograms are the known case,
+    with overlapping boundaries on roughly one file in eight for some datasets — which is why they
+    can return fewer records than the same request served by a web service that simply
+    concatenates the files.
 
 
 .. _static_datasets:

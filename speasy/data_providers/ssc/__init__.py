@@ -154,8 +154,9 @@ class SscWebservice(DataProvider):
                    debug=False, extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
         request_stop_time = stop_time
         if request_stop_time - start_time < timedelta(days=1):
-            # the server needs a range of at least one day, but we must slice
-            # the result with the user requested stop_time below
+            # pad to a full day to match this method's own cache fragment size
+            # (fragment_hours=24 above), then slice back to what was actually
+            # asked for below
             request_stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{request_stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
         log.debug(f"Requesting {url}")
