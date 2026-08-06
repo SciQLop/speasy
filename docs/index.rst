@@ -70,6 +70,11 @@ diverse array of missions and instruments available nowadays, it proves to be on
 especially for students and newcomers.
 Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
 
+.. image:: _static/architecture.png
+   :alt: Speasy architecture: many data sources, one get_data(product, start, stop) call, several SpeasyVariable shapes
+   :width: 80%
+   :align: center
+
 
 Quickstart
 ----------

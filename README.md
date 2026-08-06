@@ -23,6 +23,8 @@ diverse array of missions and instruments available nowadays, it proves to be on
 especially for students and newcomers.
 Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
 
+![Speasy architecture: many data sources, one get_data(product, start, stop) call, several SpeasyVariable shapes](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/docs/_static/architecture.png)
+
 Don't want to write code? See our graphical interface [SciQLop](https://github.com/SciQLop/SciQLop).
 
 ## Main features
