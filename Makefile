@@ -84,6 +84,8 @@ dist: clean ## builds source and wheel package
 install: clean ## install the package via uv
 	uv sync
 
-readme: ## regenerate README.md from README.ipynb
-	uv run jupyter nbconvert --execute --to markdown README.ipynb --output README.md
-	uv run python scripts/relocate_readme_images.py --readme-path=README.md --new-image-location="https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/"
+readme: ## regenerate README.md in place (runs its embedded examples for real, live network calls)
+	uv run --group dev --group docs -m cogapp -r -P README.md
+
+readme-check: ## verify README.md matches what re-running its embedded examples would produce (live network calls)
+	uv run --group dev --group docs -m cogapp --check -P README.md
