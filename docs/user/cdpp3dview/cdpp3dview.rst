@@ -56,10 +56,12 @@ Passing a frame the server doesn't know raises
 are available.
 
 .. note::
-    ``coordinate_system`` (the kwarg name used by the SSCWeb and UiowaEphTool providers) is accepted as
-    an alias for ``coordinate_frame`` here too, so switching between trajectory providers doesn't
-    require renaming a kwarg. Passing both with different values raises
+    ``coordinate_system`` (the kwarg name used by the SSCWeb provider) is accepted as an alias for
+    ``coordinate_frame`` here too, so switching between SSCWeb and 3DView doesn't require renaming
+    a kwarg. Passing both with different values raises
     :class:`~speasy.data_providers.cdpp3dview.Cdpp3dViewWebException` rather than silently picking one.
+    UiowaEphTool has no such kwarg at all — its coordinate system is chosen by browsing the
+    inventory tree instead, see :doc:`its own page <../Uiowa_eph_tool/uiowa_eph_tool>`.
 
 The table below is generated automatically from the server every time these docs are built, so it needs
 no manual updates and cannot go stale the way a hand-written list would. If the server couldn't be
@@ -78,7 +80,8 @@ The naming follows a consistent pattern across bodies, so you can usually guess 
       frame yields perfectly valid data for the *wrong* planet, with no error — when in
       doubt, check the table above.
 - ``<X>SM`` — "X Solar Magnetic": like ``SM``/``GSM``, referenced to body X's magnetic dipole
-  (only defined for the magnetized planets: Earth, Jupiter, Saturn). For Earth specifically,
+  (in 3DView's frame list, only defined for three of the solar system's magnetized planets:
+  Earth, Jupiter, Saturn). For Earth specifically,
   the ``SM``/``GSM``/``MAG`` frames are not valid after 31/12/2014, as the generated table
   above mentions; the table is the authoritative check for other bodies.
 - ``<X>ECLIP`` / ``<X>EME`` — inertial frames centred on body X, referenced to the ecliptic or to
