@@ -44,7 +44,7 @@ What you get back
 -----------------
 
 Every request returns a :class:`~speasy.products.variable.SpeasyVariable` with three columns
-(``X``, ``Y``, ``Z``) at a fixed one-minute cadence — the tool's only time resolution.
+(``X``, ``Y``, ``Z``) at a fixed one-minute cadence — the interval Speasy requests from the tool.
 
 .. warning::
     Positions are **not always in km**: depending on the origin body they may be expressed in

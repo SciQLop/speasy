@@ -10,7 +10,7 @@
 [![Documentation Status](https://readthedocs.org/projects/speasy/badge/?version=latest)](https://speasy.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://codecov.io/gh/SciQLop/speasy/coverage.svg?branch=main)](https://codecov.io/gh/SciQLop/speasy/branch/main)
 [![CodeQL](https://github.com/SciQLop/speasy/actions/workflows/codeql.yml/badge.svg)](https://github.com/SciQLop/speasy/actions/workflows/codeql.yml)
-[![Zendoo DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg)](https://doi.org/10.5281/zenodo.4118780)
+[![Zenodo DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg)](https://doi.org/10.5281/zenodo.4118780)
 [![Discover on MyBinder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples)
 [![Discover on Google Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SciQLop/speasy)
 [![Speasy proxy uptime (30 days)](https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70)](http://sciqlop.lpp.polytechnique.fr/cache)
@@ -98,7 +98,7 @@ through tab-completion in IPython, Jupyter notebooks, or any Python environment 
 
 You can discover product ids by browsing `spz.inventories.tree.<provider>` (e.g. `spz.inventories.tree.amda`)
 with tab-completion, or programmatically via `spz.inventories.flat_inventories.<provider>`.
-See the [concepts page](https://speasy.readthedocs.io/en/stable/user/concepts.html) for more details.
+See the [concepts page](https://speasy.readthedocs.io/en/latest/user/concepts.html) for more details.
 
 
 
@@ -164,7 +164,7 @@ plt.show()
 
 More complex requests like this one are supported:
 
-The result is a list of Speasy variables, one for each requested product and interval.
+The result is a list per product, each holding one variable per requested interval.
 
 
 
@@ -242,17 +242,17 @@ plt.tight_layout()
     
 
 
-### Documentation and examples
+## Documentation and examples
 
 Check out [Speasy documentation](https://speasy.readthedocs.io/en/stable/) and [examples](https://speasy.readthedocs.io/en/latest/examples/index.html).
 
-### Caveats
+## Caveats
 
 -   Speasy is not a plotting package.
     basic plotting capabilities are here for illustration purposes and making quick-and-dirty plots.
     It is not meant to produce publication ready figures, prefer using Matplotlib directly for example.
 
-### Credits
+## Credits
 
 The development of Speasy is supported by the [CDPP](http://www.cdpp.eu/).
 

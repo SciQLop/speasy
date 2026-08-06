@@ -78,9 +78,9 @@ The naming follows a consistent pattern across bodies, so you can usually guess 
       frame yields perfectly valid data for the *wrong* planet, with no error — when in
       doubt, check the table above.
 - ``<X>SM`` — "X Solar Magnetic": like ``SM``/``GSM``, referenced to body X's magnetic dipole
-  (only defined for the magnetized planets: Earth, Jupiter, Saturn). Note that the
-  ``SM``/``GSM``/``MAG``-style frames are not valid after 31/12/2014, as the generated
-  table above mentions.
+  (only defined for the magnetized planets: Earth, Jupiter, Saturn). For Earth specifically,
+  the ``SM``/``GSM``/``MAG`` frames are not valid after 31/12/2014, as the generated table
+  above mentions; the table is the authoritative check for other bodies.
 - ``<X>ECLIP`` / ``<X>EME`` — inertial frames centred on body X, referenced to the ecliptic or to
   Earth's mean equator/equinox (the same convention as ``ECLIPJ2000``/``J2000``) respectively.
 - ``<BODY>_CSO`` / ``<BODY>_EME`` — the comet/asteroid equivalents of the ``SO`` and
