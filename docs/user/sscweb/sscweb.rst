@@ -52,6 +52,11 @@ The returned positions are always in **km**, whatever the coordinate system (als
     Speasy only exposes SSCWeb's trajectory (location) data — the graphs and other plot
     products the SSCWeb web interface can generate are not available through Speasy.
 
+.. note::
+    Requests shorter than one day are rounded up to one day on the server side (its minimum
+    request length), but Speasy trims the returned data back to exactly the range you asked
+    for.
+
 Coordinate systems
 ------------------
 

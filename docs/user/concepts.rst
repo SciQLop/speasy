@@ -23,8 +23,8 @@ product you want — while scripts usually look ids up in the flat inventories:
     import speasy as spz
     # interactive browsing: spz.inventories.tree.amda.Parameters.ACE.<TAB>
     mfi = spz.inventories.tree.amda.Parameters.ACE.MFI
-    # programmatic lookup by id:
-    "amda/imf" in spz.inventories.flat_inventories.amda.parameters
+    # programmatic lookup by id (bare id, no provider prefix):
+    "imf" in spz.inventories.flat_inventories.amda.parameters
 
 Leaf index objects (e.g. a :class:`~speasy.core.inventory.indexes.ParameterIndex`) can be passed directly
 to :func:`speasy.get_data` instead of a string id. They expose their identity through accessors
