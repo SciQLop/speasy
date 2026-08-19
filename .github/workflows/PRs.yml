@@ -88,6 +88,12 @@ jobs:
         sudo apt update && sudo apt install -y texlive pandoc
         uv run --locked pytest --cov=./ -cov-config=.coveragerc --cov-report=xml
         make doctest
+    - name: Check that README.md matches its own embedded examples
+      if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
+      run: make readme-check
+    - name: Check that docs/index.rst matches its own embedded examples
+      if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
+      run: make docs-quickstart-check
     - name: Check that release process is not broken
       if: matrix.python-version == '3.10' && matrix.os == 'ubuntu-latest'
       run: |
