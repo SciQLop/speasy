@@ -73,6 +73,14 @@ jobs:
         # left chromedriver several majors ahead of the Chrome the runner image ships
         browser-version: stable
 
+    - name: Point the runner's system Chrome at the one chromedriver matches
+      # install-browser symlinks /usr/bin/google-chrome and /usr/bin/chromedriver at the
+      # Chrome it installed, but the runner image ships another Chrome at
+      # /opt/google/chrome/chrome, and that is the binary Selenium Manager resolves --
+      # leaving chromedriver refusing a browser a major or more off. Point that path at the
+      # same binary so both resolutions agree whatever the runner image happens to ship.
+      run: sudo ln -sf "$(readlink -f /usr/bin/google-chrome)" /opt/google/chrome/chrome
+
     - name: install pyodide-py
       run: |
         python -m pip install pyodide-py==0.29.0
