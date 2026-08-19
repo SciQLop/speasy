@@ -6,7 +6,7 @@ import unittest
 from datetime import datetime, timezone, timedelta
 
 import numpy as np
-from ddt import data, ddt, unpack
+from ddt import data, ddt
 
 from speasy.core.time import make_utc_datetime, make_utc_datetime64
 
@@ -86,6 +86,27 @@ class MakeUtcDateTime64(unittest.TestCase):
     def test_datetime64_ns_is_returned_unchanged(self):
         dt64 = np.datetime64('2016-06-02T01:02:03.123456789')
         self.assertIs(make_utc_datetime64(dt64), dt64)
+
+    @data(
+        np.datetime64('2500-01-01'),
+        np.datetime64('1500-01-01'),
+        datetime(2500, 1, 1),
+        datetime(1500, 1, 1),
+        '2500-01-01',
+    )
+    def test_raises_instead_of_wrapping_outside_the_ns_range(self, input_dt):
+        # regression test: numpy wraps around int64 instead of raising, so
+        # 2500-01-01 used to silently come back as 1915-06-14T00:25:26.290448384
+        with self.assertRaises(ValueError):
+            make_utc_datetime64(input_dt)
+
+    @data(
+        '1677-09-21T00:12:43.145225',
+        '2262-04-11T23:47:16.854775',
+    )
+    def test_accepts_the_ns_range_boundaries(self, boundary):
+        self.assertEqual(make_utc_datetime64(np.datetime64(boundary)),
+                         np.datetime64(boundary, 'ns'))
 
 
 if __name__ == '__main__':
