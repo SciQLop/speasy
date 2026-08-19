@@ -11,6 +11,20 @@ import numpy as np
 from dateutil.parser import parse
 from .typing import AnyDateTimeType
 
+# numpy wraps around int64 instead of raising when a date falls outside the datetime64[ns]
+# range, silently returning a wrong date, so conversions have to check for themselves.
+# Bounds are the real ones rounded inwards to the microsecond, the finest resolution any
+# input can carry once parsed.
+_NS_RANGE = (np.datetime64('1677-09-21T00:12:43.145225'), np.datetime64('2262-04-11T23:47:16.854775'))
+
+
+def _to_datetime64_ns(input_dt: datetime) -> np.datetime64:
+    value = np.datetime64(input_dt, 'us')
+    if not (_NS_RANGE[0] <= value <= _NS_RANGE[1]):
+        raise ValueError(
+            f"{input_dt} is outside the datetime64[ns] range Speasy uses ({_NS_RANGE[0]} to {_NS_RANGE[1]})")
+    return value.astype('datetime64[ns]')
+
 
 def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     """Makes UTC datetime from given input.
@@ -108,7 +122,7 @@ def make_utc_datetime64(input_dt: AnyDateTimeType) -> np.datetime64:
     if isinstance(input_dt, datetime):
         if input_dt.tzinfo is not None:
             input_dt = input_dt.astimezone(timezone.utc).replace(tzinfo=None)
-        return np.datetime64(input_dt, 'ns')
+        return _to_datetime64_ns(input_dt)
     raise TypeError(f"Unsupported datetime type: {type(input_dt)}, expected str, datetime, np.datetime64 or float")
 
 
