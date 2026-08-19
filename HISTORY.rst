@@ -4,6 +4,19 @@ History
 
 1.8.0 (unreleased)
 ------------------
+
+Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
+
+* SSCWeb and UiowaEphTool now return exactly the requested ``[start, stop)`` range. They used to
+  return up to ~24 h of extra data for requests shorter than a day, since the one-day padding they
+  send to the server was not trimmed back. A range containing no sample now returns an empty
+  variable instead of the following day's data.
+* ``get_data()`` accepts ``numpy.datetime64`` of any unit (not only ``datetime64[ns]``), and
+  timezone-aware datetimes and strings with a UTC offset are now converted to UTC instead of having
+  their offset dropped. Naive inputs are still assumed to be UTC.
+* Dates outside the ``datetime64[ns]`` range (roughly before 1678 or after 2262) now raise
+  ``ValueError`` instead of silently wrapping around to a wrong date.
+
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
 * Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269
 * Cdpp3dview provider by @RichardHitier in https://github.com/SciQLop/speasy/pull/268
