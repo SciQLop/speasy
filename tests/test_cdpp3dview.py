@@ -251,6 +251,8 @@ if __name__ == '__main__':
     unittest.main()
 
 
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}),
+                 "cdpp3dview provider not available")
 class ConditionalRequest(unittest.TestCase):
     def test_if_modified_since_header_is_a_valid_http_date(self):
         """The same RFC 7231 bug was fixed in three places; only cda had a test.
