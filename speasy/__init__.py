@@ -6,9 +6,14 @@
 
 """
 
+from importlib import metadata as _metadata
+
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
-__version__ = '1.7.1'
+try:
+    __version__ = _metadata.version("speasy")
+except _metadata.PackageNotFoundError:  # running from a source tree, never installed
+    __version__ = "0.0.0.dev0"
 __all__ = ['amda', 'cda', 'ssc', 'csa', 'cdpp3dview', 'get_data', 'archive', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 

@@ -1,10 +1,10 @@
 [build-system]
-build-backend = "flit_core.buildapi"
-requires = ["flit_core"]
+build-backend = "hatchling.build"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7"]
 
 [project]
 name = 'speasy'
-version = "1.7.1"
+dynamic = ["version"]
 description = "A simple Python package to deal with main Space Physics WebServices (CDA, CSA, AMDA and SSC)."
 keywords = ["satellite", "plasma-physics", "nasa-data", "amda", "cdpp", "CDF"]
 authors = [
@@ -86,36 +86,19 @@ docs = [
 [tool.ruff.lint]
 select = ["NPY201"]
 
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
 
-[tool.bumpversion]
-current_version = "1.7.1"
-commit = true
-tag = true
-tag_name = "v{new_version}"
+[tool.hatch.build.targets.wheel]
+packages = ["speasy"]
 
-[[tool.bumpversion.files]]
-filename = "VERSION"
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "speasy/__init__.py"
-search = "__version__ = '{current_version}'"
-replace = "__version__ = '{new_version}'"
-
-[[tool.bumpversion.files]]
-filename = "docs/conf.py"
-search = "version = '{current_version}'"
-replace = "version = '{new_version}'"
-
-[[tool.bumpversion.files]]
-filename = "CITATION.cff"
-search = 'version: {current_version}'
-replace = 'version: {new_version}'
-
-[[tool.bumpversion.files]]
-filename = "CITATION.cff"
-regex = true
-search = "date-released: \\d{{4}}-\\d{{2}}-\\d{{2}}"
-replace = "date-released: {utcnow:%Y-%m-%d}"
+[tool.uv-dynamic-versioning]
+# The version comes from `git describe`, so between releases it reports what it
+# actually is -- 1.8.0.dev7+g85c9152 -- instead of repeating the last release.
+#
+# `bump` is deliberately left off. A dev cycle is opened by tagging
+# vX.Y.0.dev0, and on a pre-release base dunamai's bump increments the dev
+# revision, so distance 2 would report .dev3. With bump off the dev number is
+# the commit distance, which is what it should be. If the release workflow ever
+# changes to tagging finals only, bump must be turned back on or commits after
+# a release read 1.8.0.post2.dev0.
