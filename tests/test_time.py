@@ -3,7 +3,7 @@
 
 """Tests for `speasy.core.time` module."""
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 
 import numpy as np
 from ddt import data, ddt
@@ -49,6 +49,13 @@ class MakeUtcDateTime(unittest.TestCase):
         dt = make_utc_datetime(0.)
         self.assertEqual(dt, datetime(1970, 1, 1, tzinfo=timezone.utc))
 
+    @data(None, object(), [2020, 1, 1], date(2020, 1, 1))
+    def test_rejects_unsupported_types(self, input_dt):
+        # date has year/month/day but no hour/minute/second, so it used to fail
+        # with a confusing AttributeError deep inside the conversion
+        with self.assertRaises(TypeError):
+            make_utc_datetime(input_dt)
+
     def test_datetime64_ns_sub_microsecond_precision_is_preserved(self):
         # regression test: converting through datetime64[us] would truncate
         # sub-microsecond digits instead of rounding, shifting interval boundaries
@@ -82,6 +89,11 @@ class MakeUtcDateTime64(unittest.TestCase):
     def test_epoch_float(self):
         dt = make_utc_datetime64(0.)
         self.assertEqual(dt, np.datetime64('1970-01-01T00:00:00'))
+
+    @data(None, object(), [2020, 1, 1], date(2020, 1, 1))
+    def test_rejects_unsupported_types(self, input_dt):
+        with self.assertRaises(TypeError):
+            make_utc_datetime64(input_dt)
 
     def test_datetime64_ns_is_returned_unchanged(self):
         dt64 = np.datetime64('2016-06-02T01:02:03.123456789')

@@ -69,3 +69,32 @@ class GetInventoryCacheDesync(unittest.TestCase):
         self.assertTrue(http_get.called,
                         "GetInventory.get returned the dropped (None) inventory "
                         "instead of re-fetching from the proxy")
+
+
+class GetInventoryConditionalRequest(unittest.TestCase):
+    def test_if_modified_since_header_is_a_valid_http_date(self):
+        """The same RFC 7231 bug was fixed in three places; only cda had a test.
+
+        ``datetime.ctime()`` produces "Thu Jan  1 00:00:00 2026", which is not a
+        valid HTTP-date, and some servers answer 400 to it.
+        """
+        from speasy.core.proxy import GetInventory
+
+        saved_inventory = SpeasyIndex(name="root", provider="mockprovider", uid="root")
+        saved_inventory.build_date = "2026-01-01T00:00:00+00:00"
+
+        def fake_index_get(module, key, default=None):
+            if module == "proxy_inventories":
+                return saved_inventory
+            if module == "proxy_inventories_save_date":
+                return datetime(2000, 1, 1, tzinfo=timezone.utc)  # stale, must revalidate
+            return default
+
+        with patch("speasy.core.proxy.index.get", side_effect=fake_index_get), \
+                patch("speasy.core.proxy.http.get",
+                      side_effect=RuntimeError("stop after headers are built")) as http_get:
+            with self.assertRaises(RuntimeError):
+                GetInventory.get("mockprovider")
+
+        self.assertEqual(http_get.call_args.kwargs["headers"]["If-Modified-Since"],
+                         "Thu, 01 Jan 2026 00:00:00 GMT")

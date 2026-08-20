@@ -249,3 +249,42 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ConditionalRequest(unittest.TestCase):
+    def test_if_modified_since_header_is_a_valid_http_date(self):
+        """The same RFC 7231 bug was fixed in three places; only cda had a test.
+
+        ``datetime.ctime()`` produces "Thu Jan  1 00:00:00 2026", which is not a
+        valid HTTP-date, and makes this server answer 400.
+        """
+        from unittest.mock import Mock, patch
+
+        not_modified = Mock(status_code=304, ok=True)
+        real_get = cdpp3dview.http.get
+
+        def only_intercept_the_trajectory(url, *args, **kwargs):
+            # the decorators around _get_trajectory do their own requests (the
+            # parameter range lookup); intercepting those too made this test pass
+            # or fail depending on whether that range happened to be cached
+            if "get_trajectory" in url:
+                return not_modified
+            return real_get(url, *args, **kwargs)
+
+        with patch.object(cdpp3dview.http, "get",
+                          side_effect=only_intercept_the_trajectory) as http_get:
+            result = spz.cdpp3dview._get_trajectory(
+                product="GEOTAIL",
+                start_time=datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc),
+                stop_time=datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc),
+                coordinate_frame="GSE",
+                if_newer_than=datetime(2026, 1, 1, tzinfo=timezone.utc),
+                disable_cache=True,
+                disable_proxy=True,
+            )
+
+        self.assertIsNone(result)  # 304 means "not modified", keep what we have
+        trajectory_calls = [c for c in http_get.call_args_list if "get_trajectory" in c.args[0]]
+        self.assertEqual(1, len(trajectory_calls))
+        self.assertEqual(trajectory_calls[0].kwargs["headers"]["If-Modified-Since"],
+                         "Thu, 01 Jan 2026 00:00:00 GMT")
