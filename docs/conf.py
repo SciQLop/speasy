@@ -21,6 +21,7 @@
 import os
 import sys
 from glob import glob
+from importlib.metadata import version as _speasy_version
 import numpy as np
 np.set_printoptions(precision=4)
 
@@ -136,7 +137,7 @@ author = u"Alexis Jeandet"
 # the built documents.
 #
 # The short X.Y version.
-version = '1.7.1'
+version = _speasy_version("speasy")
 # The full version, including alpha/beta/rc tags.
 release = version
 

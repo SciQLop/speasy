@@ -142,8 +142,19 @@ A reminder for the maintainers on how to deploy.
 Make sure all your changes are committed (including an entry in HISTORY.rst).
 Then run::
 
-$ bumpversion patch # possible: major / minor / patch
+$ git tag v1.2.3        # the release version, no suffix
 $ git push
 $ git push --tags
 
 GH Actions will then deploy to PyPI if tests pass.
+
+The version is not stored anywhere: it is derived from ``git describe``, so the
+tag *is* the version. Right after releasing, open the next cycle by tagging the
+first commit of it::
+
+$ git tag v1.3.0.dev0
+$ git push --tags
+
+Until that tag exists, commits after ``v1.2.3`` report ``1.2.3.post<n>.dev0``
+rather than ``1.3.0.dev<n>``. Both are honest about being unreleased; only the
+second names the version being worked towards.

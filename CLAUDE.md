@@ -65,6 +65,9 @@ Subclass `DataProvider` in `core/dataprovider.py`, implement `get_data()` and in
 ## Conventions
 
 - Tests use `ddt` (data-driven tests) for parameterized testing
-- Version tracked in `VERSION` file, bumped with `bumpversion` (updates VERSION, pyproject.toml, `__init__.py`, docs/conf.py, CITATION.cff)
+- Version is derived from git tags by `uv-dynamic-versioning` (hatchling backend); there is no VERSION file
+  and nothing to bump. Between releases it reports e.g. `1.8.0.dev7+g85c9152`. A dev cycle is opened by
+  tagging `vX.Y.0.dev0`; see CONTRIBUTING.rst. `CITATION.cff` stays pinned to the last *released* version.
+  Note `speasy.__version__` comes from installed metadata, so it is stamped at install time, not per-commit.
 - Flake8 rules: E9, F63, F7, F82 (strict); max-complexity=10, max-line-length=127 (warnings)
 - Ruff configured only for `NPY201` (numpy 2.0 deprecations)

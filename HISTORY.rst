@@ -39,6 +39,7 @@ Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
 * Avoid re-HEAD-checking CDF master files on every daily file by @jeandet in https://github.com/SciQLop/speasy/pull/321
 * Foundation: Python ≥3.10 + UV + dependency-groups by @jeandet in https://github.com/SciQLop/speasy/pull/290
 * User documentation review + get_data time-range handling fixes by @jeandet in https://github.com/SciQLop/speasy/pull/341
+* Derive the version from git so unreleased installs report a dev version by @jeandet
 
 Dependency updates (dependabot):
 
