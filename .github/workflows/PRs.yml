@@ -24,6 +24,33 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
+    - name: Give Windows the same TCP connect patience as Linux
+      if: runner.os == 'Windows'
+      shell: pwsh
+      # Windows abandons an unanswered TCP connect far sooner than the other
+      # platforms, whatever timeout the application asked for. Measured on these
+      # runners by timing a connect to a blackholed address:
+      #
+      #   MaxSynRetransmissions = 2   ->    7.0 s
+      #   MaxSynRetransmissions = 4   ->   21.0 s   (what the runners ship)
+      #   MaxSynRetransmissions = 6   ->  123.0 s
+      #   MaxSynRetransmissions = 8   ->  >150 s
+      #   MaxSynRetransmissions = 10  ->  rejected, "the parameter is incorrect"
+      #
+      # against macOS at 75.0 s and Linux at 135.5 s. Only Windows quits inside
+      # speasy's own 60 s timeout, which is why network tests fail there and not
+      # elsewhere. 6 puts the ceiling at 123 s -- past the 60 s budget with room,
+      # next to Linux, and clear of the values the stack refuses.
+      #
+      # Do not trust the published 3s-doubling arithmetic here: it predicts 21 s
+      # at 2 (measured 7) and 31 s at 4 (measured 21). These numbers are measured.
+      run: |
+        foreach ($s in Get-NetTCPSetting | Where-Object { $_.SettingName -ne 'Automatic' }) {
+          Set-NetTCPSetting -SettingName $s.SettingName -MaxSynRetransmissions 6
+        }
+        $applied = (Get-NetTCPSetting -SettingName InternetCustom).MaxSynRetransmissions
+        if ($applied -ne 6) { throw "MaxSynRetransmissions is $applied, expected 6" }
+        Write-Host "MaxSynRetransmissions = $applied (connect ceiling ~123s)"
     - name: add test logins
       uses: extractions/netrc@v3
       with:
