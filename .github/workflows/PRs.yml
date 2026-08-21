@@ -10,6 +10,9 @@ jobs:
       SPEASY_CORE_DISABLED_PROVIDERS: "cdpp3dview"
 
     runs-on: ${{ matrix.os }}
+    # a backstop, not a target: the slowest cell runs ~16 min. Without this a
+    # hung test burns GitHub's 6h default before anyone notices.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 2
