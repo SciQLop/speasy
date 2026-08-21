@@ -6,22 +6,33 @@ import os
 import re
 import unittest
 from datetime import datetime, timedelta
-import time
 
 from ddt import ddt, data, unpack
 
 from speasy.core.any_files import any_loc_open, list_files
 from speasy.core.cache import add_item, drop_item, get_item
-from multiprocessing import Value, Process
+from multiprocessing import get_context
 from unittest.mock import patch, MagicMock
 
 _HERE_ = os.path.dirname(os.path.abspath(__file__))
 
 
-def _open_file(url, value):
-    value.value -= 1
-    while value.value > 0:
-        time.sleep(.01)
+# multiprocessing.Barrier, not a hand-rolled counter. The previous version
+# decremented a shared Value and spun until it hit zero, but `value.value -= 1`
+# is a read-modify-write: Value's lock guards the getter and the setter
+# separately, not the pair, so concurrent decrements lose updates. The counter
+# then never reached zero, every participant spun forever, and the parent
+# blocked in join() with them -- a 96-minute macOS job on #341 whose only trace
+# was four orphan Python processes at cleanup. Measured: 8 processes x 3000
+# unlocked decrements finished at 8174 instead of 0, all exiting cleanly.
+#
+# Barrier.wait() is atomic and bounded, so a participant that never arrives
+# breaks the barrier for everyone with BrokenBarrierError instead of hanging.
+_BARRIER_TIMEOUT = 60
+
+
+def _open_file(url, barrier):
+    barrier.wait(timeout=_BARRIER_TIMEOUT)
     any_loc_open(url, mode='r', cache_remote_files=True)
 
 
@@ -97,18 +108,38 @@ class FileAccess(unittest.TestCase):
         self.assertGreater(mid - start, stop - mid)
 
     def test_remote_file_request_deduplication(self):
-        drop_item("https://hephaistos.lpp.polytechnique.fr/data/jeandet/Vbias.html")
-        sync = Value('i', 5)
+        url = "https://hephaistos.lpp.polytechnique.fr/data/jeandet/Vbias.html"
+        drop_item(url)
+        # 'spawn' explicitly, not the platform default: children re-import
+        # speasy, and request_dispatch runs a live network liveness check per
+        # provider at import unless SPEASY_SKIP_INIT_PROVIDERS is set. It has to
+        # be set before start() for children to inherit it, and is restored
+        # after so it does not leak into tests/test_zzz_disable_ws.py, which
+        # needs a fresh import to re-run init_providers().
+        ctx = get_context('spawn')
+        previous_skip_init = os.environ.get('SPEASY_SKIP_INIT_PROVIDERS')
+        os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = '1'
+        barrier = ctx.Barrier(5)  # 4 children + this process
+        processes = [ctx.Process(target=_open_file, args=(url, barrier)) for _ in range(4)]
         try:
-            processes = [Process(target=_open_file, args=(
-                "https://hephaistos.lpp.polytechnique.fr/data/jeandet/Vbias.html", sync)) for _ in range(4)]
             for p in processes:
                 p.start()
-            _open_file("https://hephaistos.lpp.polytechnique.fr/data/jeandet/Vbias.html", sync)
+            _open_file(url, barrier)
         finally:
             for p in processes:
-                p.join()
-            self.assertEqual(0, sync.value)
+                p.join(timeout=_BARRIER_TIMEOUT + 30)
+            survivors = [p for p in processes if p.is_alive()]
+            for p in survivors:
+                p.terminate()
+                p.join(timeout=5)
+            if previous_skip_init is None:
+                os.environ.pop('SPEASY_SKIP_INIT_PROVIDERS', None)
+            else:
+                os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = previous_skip_init
+
+        self.assertEqual([], survivors, f"{len(survivors)} child process(es) had to be killed")
+        self.assertEqual([0] * 4, [p.exitcode for p in processes],
+                         "a child did not reach the barrier or failed to open the file")
 
     @data(
         f"{_HERE_}/resources/obsdatatree.xml",
