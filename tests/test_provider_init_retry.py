@@ -49,5 +49,21 @@ class UpdateInventoriesRetriesFailedProvidersTest(unittest.TestCase):
         mock_init_providers.assert_called_once_with()
 
 
+class UpdateInventoriesIsolatesProviderFailuresTest(unittest.TestCase):
+    def test_one_providers_failure_does_not_block_the_others_or_raise(self):
+        import speasy
+        failing = Mock()
+        failing.provider_name = 'failing'
+        failing.update_inventory.side_effect = RuntimeError("boom")
+        healthy = Mock()
+        healthy.provider_name = 'healthy'
+        fake_providers = {'failing': failing, 'healthy': healthy}
+        with patch.object(rd, 'init_providers'), \
+             patch('speasy.core.dataprovider.PROVIDERS', fake_providers):
+            speasy.update_inventories()  # must not raise
+        failing.update_inventory.assert_called_once_with()
+        healthy.update_inventory.assert_called_once_with()
+
+
 if __name__ == '__main__':
     unittest.main()
