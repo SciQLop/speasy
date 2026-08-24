@@ -33,9 +33,8 @@ Valid names are ``amda``, ``csa``, ``cda`` (alias ``cdaweb``), ``ssc`` (alias ``
 ``archive`` (alias ``generic_archive``), ``uiowaephtool`` (alias ``UiowaEphTool``) and
 ``cdpp3dview`` (alias ``3DView``).
 
-The value you set **replaces** the default rather than adding to it. The default is ``cdpp3dview``
-(see :doc:`cdpp3dview/cdpp3dview` for why), so setting ``disabled_providers = amda`` also re-enables
-``cdpp3dview`` — include it explicitly if you want to keep it disabled.
+The value you set **replaces** the default rather than adding to it: the default is empty (every provider
+enabled), so setting ``disabled_providers = amda`` disables only AMDA.
 
 For example, to disable AMDA and CDAWeb, add the following to the configuration file:
 

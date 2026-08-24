@@ -10,8 +10,9 @@ planet, spacecraft, and comet trajectories, each available in a choice of coordi
 integration into Speasy makes it easy to get trajectory data for various missions on any time range.
 
 .. note::
-    This provider ships **disabled by default** (its web service has known issues that are still being
-    addressed). Re-enable it by removing ``cdpp3dview`` from ``disabled_providers``, see :ref:`disabling_providers`.
+    This provider is **enabled by default** as of speasy 1.8. It previously shipped disabled while its web
+    service had known issues; those are now mostly resolved, and broader use helps surface what's left. If
+    you hit problems, you can disable it again via ``disabled_providers``, see :ref:`disabling_providers`.
 
 Basics: Getting data from Cdpp3dView module
 --------------------------------------------
