@@ -157,6 +157,49 @@ class SscWeb(unittest.TestCase):
         self.assertGreaterEqual(np.timedelta64(60, 's'), np.datetime64(kw["start_time"], 'ns') - result.time[0])
         self.assertGreaterEqual(np.timedelta64(60, 's'), np.datetime64(kw["stop_time"], 'ns') - result.time[-1])
 
+    def test_parse_trajectory_returns_none_when_result_element_is_missing(self):
+        # A real-world SSCWeb response that doesn't match the expected
+        # <Result>... shape at all (e.g. a different fault format).
+        malformed = ('<?xml version="1.0" encoding="UTF-8"?>'
+                    '<Response xmlns="http://sscweb.gsfc.nasa.gov/schema">'
+                    '<Fault>rate limited</Fault></Response>')
+        self.assertIsNone(ssc.parse_trajectory(malformed))
+
+    def test_parse_trajectory_returns_none_when_data_element_is_missing(self):
+        # StatusCode/StatusSubCode report success but there's no <Data>.
+        malformed = ('<?xml version="1.0" encoding="UTF-8"?>'
+                    '<Response xmlns="http://sscweb.gsfc.nasa.gov/schema">'
+                    '<Result xsi:type="DataResult" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                    '<StatusCode>Success</StatusCode><StatusSubCode>Success</StatusSubCode>'
+                    '</Result></Response>')
+        self.assertIsNone(ssc.parse_trajectory(malformed))
+
+    def test_get_orbit_retries_and_recovers_from_a_malformed_response(self):
+        from unittest.mock import patch, Mock
+        malformed = Mock(ok=True, text=(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Response xmlns="http://sscweb.gsfc.nasa.gov/schema"><Fault>rate limited</Fault></Response>'))
+        with open(os.path.join(_HERE_, 'resources', 'sscweb_trajectory.xml')) as f:
+            good = Mock(ok=True, text=f.read())
+        with patch.object(ssc.http, 'get', side_effect=[malformed, good]) as mock_get, \
+             patch.object(ssc.time, 'sleep'):
+            traj = self.ssc.get_data("moon", "2006-01-08T01:00:00", "2006-01-08T01:30:00",
+                                     disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(traj)
+        self.assertEqual(mock_get.call_count, 2)
+
+    def test_get_orbit_gives_up_after_retries_are_exhausted(self):
+        from unittest.mock import patch, Mock
+        malformed = Mock(ok=True, text=(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Response xmlns="http://sscweb.gsfc.nasa.gov/schema"><Fault>rate limited</Fault></Response>'))
+        with patch.object(ssc.http, 'get', return_value=malformed) as mock_get, \
+             patch.object(ssc.time, 'sleep'):
+            traj = self.ssc.get_data("moon", "2006-01-08T01:00:00", "2006-01-08T01:30:00",
+                                     disable_cache=True, disable_proxy=True)
+        self.assertIsNone(traj)
+        self.assertEqual(mock_get.call_count, 1 + ssc.SSC_MALFORMED_RESPONSE_RETRY_COUNT)
+
     def test_returns_none_for_a_request_outside_of_range(self):
         with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
             result = self.ssc.get_data('solarorbiter', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
