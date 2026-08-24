@@ -16,6 +16,9 @@ Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
   their offset dropped. Naive inputs are still assumed to be UTC.
 * Dates outside the ``datetime64[ns]`` range (roughly before 1678 or after 2262) now raise
   ``ValueError`` instead of silently wrapping around to a wrong date.
+* The ``cdpp3dview`` (3DView) provider is now enabled by default. It previously shipped disabled
+  while its web service had known issues; those are now mostly resolved. Disable it again via
+  ``disabled_providers`` if you hit problems, see :ref:`disabling_providers`.
 
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
 * Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269
