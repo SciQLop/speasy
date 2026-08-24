@@ -58,6 +58,11 @@ def _is_server_up(ws_class):
 def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
     """Initialize a data provider safely, catching exceptions and disabling the provider if initialization fails.
 
+    A no-op if the provider is already initialized, which makes it safe to call again
+    later (e.g. from update_inventories()) to retry a provider whose one-shot init at
+    import time failed, without re-constructing (and re-fetching the inventory of)
+    providers that are already up.
+
     Parameters
     ----------
     ws_class : class
@@ -76,9 +81,11 @@ def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
     RuntimeError
         If the server is not running.
     """
+    main_name = names[0]
+    if globals().get(main_name) is not None:
+        return
     try:
         if ignore_disabled_status or not core_cfg.disabled_providers().intersection(set(names)):
-            main_name = names[0]
             if _is_server_up(ws_class):
                 globals()[main_name] = ws_class()
                 for name in names:
