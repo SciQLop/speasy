@@ -6,7 +6,10 @@
 
 """
 
+import logging
 from importlib import metadata as _metadata
+
+log = logging.getLogger(__name__)
 
 __author__ = """Alexis Jeandet"""
 __email__ = 'alexis.jeandet@member.fsf.org'
@@ -40,4 +43,8 @@ def update_inventories():
     # initialized, see _safe_init_provider.
     init_providers()
     for provider in PROVIDERS.values():
-        provider.update_inventory()
+        try:
+            provider.update_inventory()
+        except Exception:
+            # One provider's outage must not prevent the others from refreshing.
+            log.warning(f"Failed to refresh inventory for provider {provider.provider_name}", exc_info=True)
