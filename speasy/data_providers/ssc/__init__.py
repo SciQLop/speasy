@@ -7,6 +7,7 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import xml.etree.ElementTree as ET
@@ -49,28 +50,51 @@ log = logging.getLogger(__name__)
 
 
 def _is_valid(xml):
+    # SSCWeb occasionally returns a valid XML document that doesn't match the
+    # expected <Result><StatusCode>.../<Result> shape (e.g. some other fault
+    # format); .find() returns None rather than raising for a missing element,
+    # so every level here must be checked before descending further.
     result = xml.find('Result')
-    return result.find('StatusCode').text.lower() == 'success' and result.find(
-        'StatusSubCode').text.lower() == 'success'
+    if result is None:
+        return False
+    status_code = result.find('StatusCode')
+    status_subcode = result.find('StatusSubCode')
+    return (status_code is not None and status_code.text.lower() == 'success'
+            and status_subcode is not None and status_subcode.text.lower() == 'success')
 
 
 def parse_trajectory(trajectory: str) -> Optional[SpeasyVariable]:
     xml = drop_namespace(ET.fromstring(trajectory))
-    if _is_valid(xml):
-        data = xml.find('Result').find('Data')
-        coordinates = data.find('Coordinates')
-        values = np.array(
-            [list(map(lambda v: float(v.text), coordinates.findall(axis))) for axis in ('X', 'Y', 'Z')]).transpose()
-        time_axis = np.array([np.datetime64(v.text[:-1], 'ns') for v in data.findall('Time')])
-        return SpeasyVariable(
-            axes=[VariableTimeAxis(values=time_axis)],
-            values=DataContainer(values,
-                                 name='Position',
-                                 meta={'CoordinateSystem': coordinates.find('CoordinateSystem').text.upper(),
-                                       'UNITS': 'km'}),
-            columns=['X', 'Y', 'Z']
-        )
-    return None
+    if not _is_valid(xml):
+        return None
+    data = xml.find('Result').find('Data')
+    if data is None:
+        return None
+    coordinates = data.find('Coordinates')
+    if coordinates is None:
+        return None
+    coordinate_system = coordinates.find('CoordinateSystem')
+    if coordinate_system is None:
+        return None
+    values = np.array(
+        [list(map(lambda v: float(v.text), coordinates.findall(axis))) for axis in ('X', 'Y', 'Z')]).transpose()
+    time_axis = np.array([np.datetime64(v.text[:-1], 'ns') for v in data.findall('Time')])
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=time_axis)],
+        values=DataContainer(values,
+                             name='Position',
+                             meta={'CoordinateSystem': coordinate_system.text.upper(),
+                                   'UNITS': 'km'}),
+        columns=['X', 'Y', 'Z']
+    )
+
+
+# SSCWeb sometimes answers 200 OK with a response that doesn't parse into a
+# variable (see _is_valid/parse_trajectory) even though the transport layer
+# already retries on HTTP-level failures (speasy.core.http's Retry). This is
+# a second, small retry budget for that content-level anomaly.
+SSC_MALFORMED_RESPONSE_RETRY_COUNT = 2
+SSC_MALFORMED_RESPONSE_RETRY_DELAY_SECONDS = 1
 
 
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
@@ -159,13 +183,19 @@ class SscWebservice(DataProvider):
             # asked for below
             request_stop_time += timedelta(days=1)
         url = f"{self.__url}/locations/{product}/{start_time.strftime('%Y%m%dT%H%M%SZ')},{request_stop_time.strftime('%Y%m%dT%H%M%SZ')}/{coordinate_system.lower()}/"
-        log.debug(f"Requesting {url}")
         headers = {"Accept": "application/xml"}
         if extra_http_headers is not None:
             headers.update(extra_http_headers)
-        res = http.get(url, headers=headers)
-        if res.ok:
-            maybe_var = parse_trajectory(res.text)
-            if maybe_var is not None:
-                return maybe_var[start_time:stop_time]
+        for attempt in range(1 + SSC_MALFORMED_RESPONSE_RETRY_COUNT):
+            log.debug(f"Requesting {url} (attempt {attempt + 1})")
+            res = http.get(url, headers=headers)
+            if res.ok:
+                maybe_var = parse_trajectory(res.text)
+                if maybe_var is not None:
+                    return maybe_var[start_time:stop_time]
+            if attempt < SSC_MALFORMED_RESPONSE_RETRY_COUNT:
+                log.warning(f"Unexpected SSCWeb response for {url}, retrying")
+                time.sleep(SSC_MALFORMED_RESPONSE_RETRY_DELAY_SECONDS)
+            else:
+                log.warning(f"Giving up on {url} after {attempt + 1} attempts")
         return None
