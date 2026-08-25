@@ -1,0 +1,60 @@
+name: Upgrade path
+
+on:
+  pull_request:
+  schedule:
+    # Runs at 05:00 UTC on Mondays and Thursdays
+    - cron: "0 5 * * 1,4"
+
+jobs:
+  upgrade-path:
+    # Old-version installs and extra real network calls make this job more
+    # failure-prone than tests.yml; it must never block a merge on its own.
+    continue-on-error: true
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        scenario: [sequential, direct-jump]
+        # `scenario` must be a real matrix axis (not just introduced via
+        # `include`, below) so it cross-products against `os` into 6 jobs.
+        # An `include` entry with no `os` key merges into *every* existing
+        # os combination instead of creating its own -- with two such
+        # entries the second would silently overwrite the first's added
+        # keys on the same 3 combos, collapsing "sequential" out entirely.
+        # Matching on `scenario` (an existing axis value) avoids that.
+        include:
+          # 1.7.1 is the newest actual PyPI release; the sciqlop-cache
+          # backend migration only exists on unreleased main (1.8.0-dev) --
+          # see the design spec for why this list is exactly these three.
+          - scenario: sequential
+            versions: "1.5.2,1.7.1,main"
+          - scenario: direct-jump
+            versions: "1.5.2,main"
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        # main's version is derived from git describe, so tags must be present
+        fetch-depth: 0
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.10"
+    - name: Give Windows the same TCP connect patience as Linux
+      if: runner.os == 'Windows'
+      shell: pwsh
+      # See tests.yml for the measurements behind this -- Windows abandons an
+      # unanswered TCP connect far sooner than its own or Speasy's timeouts
+      # expect, which breaks real network calls to AMDA/CDA/SSC here too.
+      run: |
+        foreach ($s in Get-NetTCPSetting | Where-Object { $_.SettingName -ne 'Automatic' }) {
+          Set-NetTCPSetting -SettingName $s.SettingName -MaxSynRetransmissions 6
+        }
+    - name: Walk the upgrade path
+      env:
+        SPEASY_AMDA_USERNAME: ${{ secrets.SPEASY_AMDA_USERNAME }}
+        SPEASY_AMDA_PASSWORD: ${{ secrets.SPEASY_AMDA_PASSWORD }}
+      run: python .github/scripts/upgrade_path_driver.py --versions "${{ matrix.versions }}"
