@@ -95,6 +95,37 @@ class TestCDFWriter(unittest.TestCase):
         self.assertEqual(self.v.values.shape, (24, 3))
 
 
+class TestCDFWriterPreservesAxisAttributes(unittest.TestCase):
+    """`_write_axis` used to call `cdf.add_variable` with no `attributes=` at all, so an axis's
+    own metadata (SCALETYP, UNITS, ...) never made it into the file, even though the primary
+    variable's metadata did."""
+
+    @classmethod
+    def setUpClass(cls):
+        from speasy.core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
+        from speasy.products import SpeasyVariable
+
+        time = np.arange('2018-01-01', '2018-01-01T00:01', np.timedelta64(10, 's'), dtype='datetime64[ns]')
+        energy = VariableAxis(name='energy', values=np.arange(5).astype(np.float64),
+                              meta={"SCALETYP": "log", "UNITS": "eV"})
+        var = SpeasyVariable(
+            axes=[VariableTimeAxis(values=time, meta={"UNITS": "ns"}), energy],
+            values=DataContainer(np.random.random((len(time), 5)), is_time_dependent=True, name='flux',
+                                 meta={"VAR_TYPE": "data"}),
+            columns=["Values"])
+
+        codec = get_codec("application/x-cdf")
+        buffer = codec.save_variables([var])
+        cls.back = codec.load_variable('flux', file=bytes(buffer), disable_cache=True)
+
+    def test_non_time_axis_meta_survives(self):
+        self.assertEqual(self.back.axes[1].meta.get("SCALETYP"), "log")
+        self.assertEqual(self.back.axes[1].meta.get("UNITS"), "eV")
+
+    def test_time_axis_meta_survives(self):
+        self.assertEqual(self.back.axes[0].meta.get("UNITS"), "ns")
+
+
 @ddt
 class TestCDFWriterPtrAttributes(unittest.TestCase):
 

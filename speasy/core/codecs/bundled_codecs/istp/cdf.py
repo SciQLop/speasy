@@ -40,6 +40,12 @@ def _convert_attributes_to_variables(variable_name: str, attrs: Mapping, cdf: py
                 values=attr_v
             )
             clean_attrs[name] = target_name
+        elif isinstance(attr_v, list) and len(attr_v) == 1 and isinstance(attr_v[0], str):
+            # the single-entry-list form CDF attributes arrive in (see scalar_meta in
+            # data_containers.py); pycdfpp can only write a string as a scalar attribute, not as a
+            # one-item list of strings, so unwrap it back before handing it off. Numeric single-entry
+            # lists are left alone: pycdfpp needs those to stay list/array-shaped to infer a type.
+            clean_attrs[name] = attr_v[0]
         else:
             clean_attrs[name] = attr_v
     return clean_attrs
@@ -50,15 +56,16 @@ def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False,
     data_type = None
     if ax.values.dtype == np.dtype("datetime64[ns]"):
         data_type = pycdfpp.DataType.CDF_TIME_TT2000
-    # only the record varying marker, not the whole axis meta: that is how the reader tells a
-    # record varying axis from a fixed one, and without it a grid spanning every dimension comes
-    # back time independent and then matches none of them
-    attributes = {"DEPEND_0": time_axis_name} if time_axis_name is not None and ax.is_time_dependent else None
+    attributes = dict(ax.meta or {})
+    if time_axis_name is not None and ax.is_time_dependent:
+        # this is how the reader tells a record varying axis from a fixed one, and without it a
+        # grid spanning every dimension comes back time independent and then matches none of them
+        attributes["DEPEND_0"] = time_axis_name
     cdf.add_variable(
         name=ax.name,
         values=_simplify_shape(ax.values),
         data_type=data_type,
-        attributes=attributes,
+        attributes=_convert_attributes_to_variables(variable_name=ax.name, attrs=attributes, cdf=cdf) if attributes else None,
         compression=pycdfpp.CompressionType.gzip_compression if compress_variables else pycdfpp.CompressionType.no_compression
     )
     return True
