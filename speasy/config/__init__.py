@@ -211,11 +211,13 @@ cache = ConfigSection("CACHE",
                             "type_ctor": lambda x: int(float(x))},
                       path={"default": str(appdirs.user_cache_dir("speasy", "LPP")),
                             "description": """Sets Speasy cache path."""},
-                      migrate_by_moving={"default": False,
+                      migrate_by_moving={"default": True,
                                         "description": """If true, the one-time diskcache -> sciqlop-cache
 migration deletes each legacy entry as soon as it's copied, instead of preserving the whole legacy cache
 as a rollback backup. Uses much less peak disk space during migration, at the cost of not being able to
-fall back to the legacy cache if the new one turns out to have an issue. Off by default.""",
+fall back to the legacy cache if the new one turns out to have an issue. On by default, since this is
+just a cache (data is always re-fetchable) and most users would rather not silently double their disk
+usage during migration; set to false to keep the old copy-with-rollback-backup behaviour.""",
                                         "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
                       )
 
