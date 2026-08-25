@@ -19,6 +19,12 @@ Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
 * The ``cdpp3dview`` (3DView) provider is now enabled by default. It previously shipped disabled
   while its web service had known issues; those are now mostly resolved. Disable it again via
   ``disabled_providers`` if you hit problems, see :ref:`disabling_providers`.
+* The one-time diskcache -> sciqlop-cache migration now moves legacy entries by default
+  (``migrate_by_moving`` is now ``True``) instead of copying them, avoiding a silent doubling of
+  disk usage for large caches. Set ``SPEASY_CACHE_MIGRATE_BY_MOVING=false`` to restore the old
+  copy-with-rollback-backup behaviour. Separately, if the cache or inventory index database is
+  ever found corrupted on open, it is now moved aside and a fresh one is started automatically
+  instead of Speasy crashing on import.
 
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
 * Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269

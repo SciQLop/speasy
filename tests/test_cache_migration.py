@@ -21,6 +21,7 @@ from speasy.core.cache.cache import (
     migration_backups,
     delete_migration_backups,
 )
+from speasy.core.index.speasy_index import SpeasyIndex
 
 
 class LegacyDiskcacheMigration(unittest.TestCase):
@@ -93,6 +94,44 @@ class LegacyDiskcacheMigration(unittest.TestCase):
         remaining = diskcache.Cache(backup)
         self.assertEqual(list(remaining), [],
                          "legacy entries should be deleted once migrated in move mode")
+
+    def test_corrupted_cache_db_is_moved_aside_and_speasy_still_starts(self):
+        """A corrupted sciqlop-cache.db (e.g. left behind by a move-mode migration
+        interrupted mid-way, or unrelated disk corruption) makes the native backend
+        raise on open. Since Cache() is constructed at Speasy import time
+        (speasy/core/cache/_instance.py), letting that exception propagate would
+        crash every ``import speasy`` until the user manually deleted the offending
+        directory. Speasy must instead move the broken directory aside and start
+        fresh."""
+        full_path = f"{self.root}/Cache"
+        os.makedirs(full_path, exist_ok=True)
+        with open(os.path.join(full_path, "sciqlop-cache.db"), "wb") as f:
+            f.write(b"not a real sqlite database")
+
+        cache = Cache(self.root)  # must not raise
+        cache.set("k", "v")
+        self.assertEqual(cache.get("k"), "v")
+
+        broken = [p for p in os.listdir(self.root) if p.startswith("Cache.corrupted-")]
+        self.assertEqual(len(broken), 1, "the corrupted directory should be moved aside, not left in place")
+
+    def test_corrupted_index_db_is_moved_aside_and_speasy_still_starts(self):
+        """Same corruption-recovery guarantee for the inventory disk-index
+        (SpeasyIndex), which is also constructed at Speasy import time
+        (speasy/core/index/__init__.py)."""
+        os.makedirs(self.root, exist_ok=True)
+        with open(os.path.join(self.root, "sciqlop-cache.db"), "wb") as f:
+            f.write(b"not a real sqlite database")
+
+        with mock.patch.dict(os.environ, {"SPEASY_INDEX_PATH": self.root}):
+            index = SpeasyIndex()  # must not raise
+            index.set("mod", "key", "value")
+            self.assertEqual(index.get("mod", "key"), "value")
+
+        broken = [p for p in os.listdir(os.path.dirname(self.root))
+                  if p.startswith(f"{os.path.basename(self.root)}.corrupted-")]
+        self.assertEqual(len(broken), 1, "the corrupted directory should be moved aside, not left in place")
+        shutil.rmtree(os.path.join(os.path.dirname(self.root), broken[0]), ignore_errors=True)
 
     def test_falls_back_gracefully_when_diskcache_unavailable(self):
         """diskcache is a required runtime dependency, but ``migrate()`` imports it lazily

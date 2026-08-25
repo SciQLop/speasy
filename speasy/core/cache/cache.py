@@ -242,6 +242,34 @@ def _migrate_legacy_diskcache(full_path: str, move: bool = False) -> bool:
     return True
 
 
+def _open_or_recover(ctor, full_path: str, label: str):
+    """Call ``ctor()`` to open the cache/index database at ``full_path``. If it
+    raises -- the database is corrupted, which can happen after a move-mode
+    migration interrupted mid-way (see ``migrate_by_moving``) or from
+    unrelated disk corruption -- move the broken directory aside and retry
+    once with a fresh one.
+
+    Both :class:`Cache` and ``SpeasyIndex`` are constructed at Speasy import
+    time, so letting this exception propagate would crash every ``import
+    speasy`` until the user manually found and deleted the offending
+    directory. Degrading to "start over" is preferable: it's just a cache.
+    """
+    try:
+        return ctor()
+    except Exception:
+        p = Path(full_path)
+        if not p.exists():
+            raise
+        broken = Path(f"{full_path}.corrupted-{datetime.now(tz=timezone.utc):%Y%m%dT%H%M%S%f}")
+        log.exception(
+            f"Could not open the {label} at {full_path} (likely corrupted); moving it aside to "
+            f"{broken} and starting fresh so Speasy can still start. Delete {broken} once you've "
+            f"confirmed you don't need anything from it."
+        )
+        os.rename(str(p), str(broken))
+        return ctor()
+
+
 def _warn_if_backup_present(full_path: str) -> None:
     """Log a reminder if a migration backup still sits next to ``full_path``.
 
@@ -308,11 +336,13 @@ class Cache:
         _warn_if_backup_present(full_path)
 
         if cache_type == "Fanout":
-            self._data = sc.FanoutCache(
-                cache_path=full_path, shard_count=8, max_size=cache_cfg.size()
-            )
+            self._data = _open_or_recover(
+                lambda: sc.FanoutCache(cache_path=full_path, shard_count=8, max_size=cache_cfg.size()),
+                full_path, "cache")
         elif cache_type == "Cache":
-            self._data = sc.Cache(cache_path=full_path, max_size=cache_cfg.size())
+            self._data = _open_or_recover(
+                lambda: sc.Cache(cache_path=full_path, max_size=cache_cfg.size()),
+                full_path, "cache")
         else:
             raise ValueError(f"Unimplemented cache type: {cache_type}")
 
