@@ -246,13 +246,15 @@ def _open_or_recover(ctor, full_path: str, label: str):
     """Call ``ctor()`` to open the cache/index database at ``full_path``. If it
     raises -- the database is corrupted, which can happen after a move-mode
     migration interrupted mid-way (see ``migrate_by_moving``) or from
-    unrelated disk corruption -- move the broken directory aside and retry
-    once with a fresh one.
+    unrelated disk corruption -- delete the broken directory and retry once
+    with a fresh one.
 
     Both :class:`Cache` and ``SpeasyIndex`` are constructed at Speasy import
     time, so letting this exception propagate would crash every ``import
     speasy`` until the user manually found and deleted the offending
-    directory. Degrading to "start over" is preferable: it's just a cache.
+    directory. Degrading to "start over" is preferable: it's just a cache,
+    and a corrupted database has no rollback value worth keeping around --
+    unlike a legacy migration backup, there's nothing recoverable in it.
     """
     try:
         return ctor()
@@ -260,13 +262,11 @@ def _open_or_recover(ctor, full_path: str, label: str):
         p = Path(full_path)
         if not p.exists():
             raise
-        broken = Path(f"{full_path}.corrupted-{datetime.now(tz=timezone.utc):%Y%m%dT%H%M%S%f}")
         log.exception(
-            f"Could not open the {label} at {full_path} (likely corrupted); moving it aside to "
-            f"{broken} and starting fresh so Speasy can still start. Delete {broken} once you've "
-            f"confirmed you don't need anything from it."
+            f"Could not open the {label} at {full_path} (likely corrupted); deleting it and "
+            f"starting fresh so Speasy can still start."
         )
-        os.rename(str(p), str(broken))
+        shutil.rmtree(str(p))
         return ctor()
 
 
