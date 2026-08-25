@@ -23,7 +23,7 @@ Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
   (``migrate_by_moving`` is now ``True``) instead of copying them, avoiding a silent doubling of
   disk usage for large caches. Set ``SPEASY_CACHE_MIGRATE_BY_MOVING=false`` to restore the old
   copy-with-rollback-backup behaviour. Separately, if the cache or inventory index database is
-  ever found corrupted on open, it is now moved aside and a fresh one is started automatically
+  ever found corrupted on open, it is now deleted and a fresh one is started automatically
   instead of Speasy crashing on import.
 
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
