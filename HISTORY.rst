@@ -5,7 +5,7 @@ History
 1.8.0 (unreleased)
 ------------------
 
-Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
+Behavior changes:
 
 * SSCWeb and UiowaEphTool now return exactly the requested ``[start, stop)`` range. They used to
   return up to ~24 h of extra data for requests shorter than a day, since the one-day padding they
@@ -19,12 +19,13 @@ Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
 * The ``cdpp3dview`` (3DView) provider is now enabled by default. It previously shipped disabled
   while its web service had known issues; those are now mostly resolved. Disable it again via
   ``disabled_providers`` if you hit problems, see :ref:`disabling_providers`.
+  (https://github.com/SciQLop/speasy/pull/349)
 * The one-time diskcache -> sciqlop-cache migration now moves legacy entries by default
   (``migrate_by_moving`` is now ``True``) instead of copying them, avoiding a silent doubling of
   disk usage for large caches. Set ``SPEASY_CACHE_MIGRATE_BY_MOVING=false`` to restore the old
   copy-with-rollback-backup behaviour. Separately, if the cache or inventory index database is
   ever found corrupted on open, it is now deleted and a fresh one is started automatically
-  instead of Speasy crashing on import.
+  instead of Speasy crashing on import. (https://github.com/SciQLop/speasy/pull/353)
 
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
 * Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269
@@ -48,7 +49,15 @@ Behavior changes (from https://github.com/SciQLop/speasy/pull/341):
 * Avoid re-HEAD-checking CDF master files on every daily file by @jeandet in https://github.com/SciQLop/speasy/pull/321
 * Foundation: Python ≥3.10 + UV + dependency-groups by @jeandet in https://github.com/SciQLop/speasy/pull/290
 * User documentation review + get_data time-range handling fixes by @jeandet in https://github.com/SciQLop/speasy/pull/341
-* Derive the version from git so unreleased installs report a dev version by @jeandet
+* Serve CDAWeb NetCDF datasets by direct file access, behind a lazy cached probe by @jeandet in https://github.com/SciQLop/speasy/pull/333
+* Fix seven bugs found auditing the 1.8.0 release surface by @jeandet in https://github.com/SciQLop/speasy/pull/337
+* Discover codecs through PEP 621 entry points by @jeandet in https://github.com/SciQLop/speasy/pull/338
+* Derive the version from git so unreleased installs report a dev version by @jeandet in https://github.com/SciQLop/speasy/pull/345
+* Harden SSC trajectory XML parsing against malformed responses, with one retry by @jeandet in https://github.com/SciQLop/speasy/pull/348
+* Enable the cdpp3dview (3DView) provider by default by @jeandet in https://github.com/SciQLop/speasy/pull/349
+* Retry providers that failed to initialize, and isolate per-provider inventory refresh failures by @jeandet in https://github.com/SciQLop/speasy/pull/350
+* Preserve axis metadata when writing ISTP CDF files by @jeandet in https://github.com/SciQLop/speasy/pull/352
+* Default cache migration to move-mode, and recover from a corrupted cache/index by @jeandet in https://github.com/SciQLop/speasy/pull/353
 
 Dependency updates (dependabot):
 
