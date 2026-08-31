@@ -139,6 +139,53 @@ class _CacheTest(unittest.TestCase):
             var = self._make_data("test_get_newer_version_data", tstart, tend)
             self.assertEqual(self._make_data_cntr, i + 1)
 
+    @data(
+        (datetime(2021, 5, 31, tzinfo=timezone.utc), '2026-08-30T04:36:29Z'),
+        ('2021-05-31T00:00:00Z', datetime(2026, 8, 30, 4, 36, 29, tzinfo=timezone.utc)),
+    )
+    @unpack
+    def test_version_type_change_invalidates_cache_instead_of_crashing(self, cached_version, new_version):
+        # Entries written by old Speasy versions can carry a datetime version while
+        # the current code produces str (or vice versa); the comparison must mean
+        # "outdated", not raise TypeError.
+        product = f"test_version_type_change_{type(cached_version).__name__}_to_{type(new_version).__name__}"
+        tstart = datetime(2012, 2, 1, 8, 0, tzinfo=timezone.utc)
+        tend = tstart + timedelta(minutes=30)
+        self._version = cached_version
+        self._make_data(product, tstart, tend)
+        self.assertEqual(self._make_data_cntr, 1)
+        self._version = new_version
+        var = self._make_data(product, tstart, tend)
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_data_cntr, 2)
+
+    def test_unversioned_entries_from_another_era_are_refetched(self):
+        # Until v1.7.0 the unversioned cache wrote entries with version=datetime.now();
+        # the 304/bump_creation_time refresh keeps such entries alive forever with
+        # their original payload. An entry whose version differs from the current
+        # scheme must be refetched for real, not served or 304-refreshed.
+        product = "test_unversioned_fossil_entries"
+        tstart = datetime(2019, 3, 2, 6, 0, tzinfo=timezone.utc)
+        tend = tstart + timedelta(minutes=10)
+        self._make_stable_unversioned_data(product, tstart, tend)
+        self.assertEqual(self._make_unversioned_data_cntr, 1)
+        self._make_stable_unversioned_data(product, tstart, tend)
+        self.assertEqual(self._make_unversioned_data_cntr, 1)
+
+        leaked_cache = self._make_stable_unversioned_data.cache
+        fossil_keys = [key for key in leaked_cache.keys() if product in key]
+        self.assertGreater(len(fossil_keys), 0)
+        for key in fossil_keys:
+            item = leaked_cache[key]
+            item.version = datetime(2025, 12, 1, 4, 59, 59)
+            leaked_cache[key] = item
+
+        var = self._make_stable_unversioned_data(product, tstart, tend)
+        self.assertIsNotNone(var)
+        self.assertEqual(self._make_unversioned_data_cntr, 2)
+        for key in fossil_keys:
+            self.assertEqual(leaked_cache[key].version, "1.0.0")
+
     def test_get_same_version_data(self):
         tstart = datetime(2010, 6, 1, 12, 0, tzinfo=timezone.utc)
         tend = datetime(2010, 6, 1, 15, 30, tzinfo=timezone.utc)
