@@ -38,7 +38,12 @@ def round_for_cache(dt_range: DateTimeRange, fragment_hours: int):
 
 
 def is_up_to_date(item: CacheItem, version):
-    return (item.version is None) or (item.version >= version)
+    try:
+        return (item.version is None) or (item.version >= version)
+    except TypeError:
+        # Cache entries live for years and older Speasy versions stored other
+        # version types (e.g. datetime before v1.7.0); incomparable means outdated.
+        return False
 
 
 def group_fragments_if(fragments, predicate):
@@ -376,6 +381,12 @@ class UnversionedProviderCache(object):
         maybe_outdated_fragments = []
         for fragment, entry in zip(fragments, entries):
             if entry is None:
+                missing_fragments.append(fragment)
+            elif entry.version != self.version:
+                # An entry written under another version scheme (e.g. the pre-v1.7.0
+                # datetime.now() versions) may hold a payload whose shape or coverage no
+                # longer matches what the service serves today, and the if_newer_than/304
+                # refresh below would keep it alive forever. Force a real refetch.
                 missing_fragments.append(fragment)
             elif (not entry.is_expired() and entry.lifetime is not None) or prefer_cache:
                 try:
