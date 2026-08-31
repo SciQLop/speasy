@@ -290,3 +290,29 @@ class ConditionalRequest(unittest.TestCase):
         self.assertEqual(1, len(trajectory_calls))
         self.assertEqual(trajectory_calls[0].kwargs["headers"]["If-Modified-Since"],
                          "Thu, 01 Jan 2026 00:00:00 GMT")
+
+
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}), "cdpp3dview provider not available")
+class Cdpp3dViewFramesWithProxyInventory(unittest.TestCase):
+    # When the inventory is served by the speasy proxy, build_inventory() never
+    # runs locally and self._frames stays empty for the whole session. get_frames
+    # must then fetch the list itself instead of silently returning [].
+
+    def setUp(self):
+        self._saved_frames = spz.cdpp3dview._frames
+        spz.cdpp3dview._frames = []
+
+    def tearDown(self):
+        spz.cdpp3dview._frames = self._saved_frames
+
+    def test_get_frames_builds_lazily_when_inventory_came_from_proxy(self):
+        from unittest.mock import patch
+        with patch.object(spz.cdpp3dview, '_build_frames_list', return_value=['J2000', 'GSE']) as build:
+            self.assertEqual(spz.cdpp3dview.get_frames(), ['J2000', 'GSE'])
+            self.assertEqual(spz.cdpp3dview.get_frames(), ['J2000', 'GSE'])
+        self.assertEqual(build.call_count, 1)
+
+    def test_get_frames_stays_empty_when_service_unreachable(self):
+        from unittest.mock import patch
+        with patch.object(spz.cdpp3dview, '_build_frames_list', side_effect=IOError("service down")):
+            self.assertEqual(spz.cdpp3dview.get_frames(), [])
