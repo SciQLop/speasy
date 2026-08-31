@@ -2,7 +2,7 @@
 History
 =======
 
-1.8.0 (unreleased)
+1.8.0 (2026-08-31)
 ------------------
 
 Behavior changes:
@@ -26,6 +26,12 @@ Behavior changes:
   copy-with-rollback-backup behaviour. Separately, if the cache or inventory index database is
   ever found corrupted on open, it is now deleted and a fresh one is started automatically
   instead of Speasy crashing on import. (https://github.com/SciQLop/speasy/pull/353)
+* Cache entries written by pre-1.7.0 Speasy are no longer trusted. They used an incompatible
+  format, and a "bump creation time on a 304" path kept them alive forever instead of refreshing
+  them, so a single old cache directory could serve stale or empty data indefinitely. Upgrading
+  now refreshes those entries instead. (https://github.com/SciQLop/speasy/pull/356)
+* ``cdpp3dview`` (3DView) ``get_frames()`` no longer returns an empty list when its inventory came
+  from a proxy instead of being built locally. (https://github.com/SciQLop/speasy/pull/357)
 
 * Ensures SSCWeb variables have a name by @jeandet in https://github.com/SciQLop/speasy/pull/266
 * Fix CI break by @jeandet in https://github.com/SciQLop/speasy/pull/269
@@ -58,6 +64,15 @@ Behavior changes:
 * Retry providers that failed to initialize, and isolate per-provider inventory refresh failures by @jeandet in https://github.com/SciQLop/speasy/pull/350
 * Preserve axis metadata when writing ISTP CDF files by @jeandet in https://github.com/SciQLop/speasy/pull/352
 * Default cache migration to move-mode, and recover from a corrupted cache/index by @jeandet in https://github.com/SciQLop/speasy/pull/353
+* Fix documentation accuracy, config coverage, accessibility, and example gaps by @jeandet in https://github.com/SciQLop/speasy/pull/325
+* Import each module one way in the touched tests by @jeandet in https://github.com/SciQLop/speasy/pull/340
+* Fix WASM CI: install stable Chrome instead of a Chromium snapshot by @jeandet in https://github.com/SciQLop/speasy/pull/343
+* Give Windows CI the same TCP connect patience as Linux by @jeandet in https://github.com/SciQLop/speasy/pull/344
+* Stop the file-access dedup test from hanging CI forever by @jeandet in https://github.com/SciQLop/speasy/pull/346
+* Bump GitHub Actions and uv.lock dependencies to latest by @jeandet in https://github.com/SciQLop/speasy/pull/347
+* Add upgrade-path CI test (sequential + direct-jump across versions) by @jeandet in https://github.com/SciQLop/speasy/pull/354
+* Stop trusting immortal cache entries written by older speasy by @jeandet in https://github.com/SciQLop/speasy/pull/356
+* Fetch cdpp3dview frames lazily when the inventory comes from the proxy by @jeandet in https://github.com/SciQLop/speasy/pull/357
 
 Dependency updates (dependabot):
 
@@ -70,6 +85,8 @@ Dependency updates (dependabot):
 * actions/upload-artifact: 6 → 7 in https://github.com/SciQLop/speasy/pull/279
 * extractions/netrc: 2 → 3 in https://github.com/SciQLop/speasy/pull/284
 * pyodide/pyodide-actions bump in https://github.com/SciQLop/speasy/pull/267
+* github/codeql-action: 4.37.4 → 4.37.8 in https://github.com/SciQLop/speasy/pull/336, https://github.com/SciQLop/speasy/pull/351
+* astral-sh/setup-uv: 6.8.0 → 9.0.0 in https://github.com/SciQLop/speasy/pull/326
 
 New contributor: @RichardHitier (first contribution in https://github.com/SciQLop/speasy/pull/268)
 
