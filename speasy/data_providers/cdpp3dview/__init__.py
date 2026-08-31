@@ -224,6 +224,13 @@ class Cdpp3dViewWebservice(DataProvider):
             return None
 
     def get_frames(self) -> List[str]:
+        if not self._frames:
+            # build_inventory() is the only other place that fills the frames list,
+            # and it never runs locally when the inventory is served by the proxy.
+            try:
+                self._frames = self._build_frames_list()
+            except Exception as e:
+                log.warning(f"Failed to retrieve coordinate frames from 3dView: {e}")
         return self._frames
 
     def parameter_range(
