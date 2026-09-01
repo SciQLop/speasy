@@ -151,6 +151,8 @@ class ImpexClient:
     def _send_indirect_request(self, endpoint: ImpexEndpoint, params: dict = None,
                                timeout: int = http.DEFAULT_TIMEOUT) -> str or None:
         next_url = self._send_request(endpoint=endpoint, params=params, timeout=timeout)
+        if next_url is None:
+            return None
         if '<' in next_url and '>' in next_url:
             next_url = next_url.split(">")[1].split("<")[0]
         r = http.get(next_url, timeout=timeout)
