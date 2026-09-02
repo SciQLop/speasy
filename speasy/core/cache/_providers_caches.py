@@ -34,10 +34,15 @@ def _is_empty(data) -> bool:
     permanent empty/NaN-padded fragments (see DISCARD_RULES). Must never
     flag finite data (e.g. a short but real ephemeris fragment) as empty.
     """
+    if not isinstance(data, dict):
+        # A CacheCall payload, or a pre-"dict repr" entry that stored a
+        # SpeasyVariable object directly (indexing one raises ValueError).
+        # Not our dict format -> can't judge -> never discard.
+        return False
     try:
         n_rows = len(data["axes"][0]["values"])
         values = data["values"]["values"]
-    except (KeyError, IndexError, TypeError):
+    except (KeyError, IndexError, TypeError, ValueError):
         return False  # not a SpeasyVariable dict (e.g. a CacheCall payload) -> never discard
     if n_rows == 0:
         return True
