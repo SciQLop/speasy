@@ -293,3 +293,24 @@ def test_split_fragments_keeps_current_epoch_empty_entry(unversioned_provider):
     assert len(data_chunks) == 1
     assert len(data_chunks[0]) == 0
     assert missing == []
+
+
+def test_is_empty_on_speasyvariable_object_does_not_raise():
+    # Pre-"dict repr" entries stored a SpeasyVariable object directly; indexing
+    # one raises ValueError. _is_empty must treat any non-dict payload as
+    # "can't judge -> not empty", never crash the read path (regression).
+    import numpy as np
+    from speasy.products.variable import (DataContainer, SpeasyVariable,
+                                          VariableTimeAxis)
+    from speasy.core.cache._providers_caches import _is_empty, _should_discard
+    from speasy.core.cache.cache import CacheItem
+    var = SpeasyVariable(
+        axes=[VariableTimeAxis(values=np.array(['2020-01-01T00:00:00'], dtype='datetime64[ns]'))],
+        values=DataContainer(values=np.array([[1.0]], dtype='float64'), meta={}),
+        columns=['a'])
+    assert _is_empty(var) is False
+    assert _is_empty("a plain string") is False
+    assert _is_empty(12345) is False
+    item = CacheItem(var, version="1")
+    item.cache_epoch = 0
+    assert _should_discard(item) is False   # must not raise
