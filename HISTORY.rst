@@ -12,6 +12,21 @@ Behavior changes:
   afterwards. This heals fragments that older Speasy cached empty -- during upstream backfill
   latency, or from a request that ran past a product's coverage -- and then served empty
   indefinitely. Genuine empty ranges written by 1.8.1+ are kept. (https://github.com/SciQLop/speasy/pull/360)
+* AMDA/CSA requests no longer crash the whole call when the server is unreachable; the failure is
+  now reported per-request instead. (https://github.com/SciQLop/speasy/pull/359)
+* Raised the minimum ``pysciqlop-cache`` version to 0.1.11. Below that version, running under a
+  forked worker pool (e.g. gunicorn ``--preload``) could make two different cache keys collide on
+  the same file-backed blob path, since forked workers inherited the same Mersenne Twister RNG
+  state used to generate those paths -- the last writer would silently win, and a read could get
+  back another product's bytes. This only affects deployments that fork a shared cache after
+  creating it; a normal single-process Speasy install was not exposed.
+
+* Don't crash when AMDA/CSA server is unreachable by @jeandet in https://github.com/SciQLop/speasy/pull/359
+* Self-heal empty cache fossils via a per-entry epoch by @jeandet in https://github.com/SciQLop/speasy/pull/360
+
+Dependency updates (dependabot):
+
+* github/codeql-action: 4.37.8 → 4.37.9 in https://github.com/SciQLop/speasy/pull/358
 
 1.8.0 (2026-08-31)
 ------------------
