@@ -2,6 +2,17 @@
 History
 =======
 
+1.8.1 (unreleased)
+------------------
+
+Behavior changes:
+
+* Empty cache fragments (zero rows, or all-NaN/inf) written before 1.8.1 are no longer trusted:
+  they are treated as a cache miss and refetched on read, then rewritten so they are trusted
+  afterwards. This heals fragments that older Speasy cached empty -- during upstream backfill
+  latency, or from a request that ran past a product's coverage -- and then served empty
+  indefinitely. Genuine empty ranges written by 1.8.1+ are kept. (https://github.com/SciQLop/speasy/pull/360)
+
 1.8.0 (2026-08-31)
 ------------------
 
