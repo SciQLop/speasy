@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import logging
+import importlib.metadata
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -22,6 +23,30 @@ cache_version = str_to_version("3.0")
 log = logging.getLogger(__name__)
 
 
+def _leading_version_ints(v: str) -> List[int]:
+    out = []
+    for part in re.split(r"[.+-]", v)[:3]:
+        if not part.isdigit():
+            break
+        out.append(int(part))
+    return out
+
+
+def _version_to_epoch(v: str) -> int:
+    """Pack a version string's leading "major.minor.patch" into a single
+    monotonically increasing int, ignoring any dev/local suffix -- e.g.
+    ``"1.8.1.dev3+g1a2b3c4"`` and ``"1.8.1"`` both pack to 1_008_001.
+    """
+    parts = (_leading_version_ints(v) + [0, 0, 0])[:3]
+    return parts[0] * 1_000_000 + parts[1] * 1_000 + parts[2]
+
+
+try:
+    _CURRENT_CACHE_EPOCH = _version_to_epoch(importlib.metadata.version("speasy"))
+except Exception:
+    _CURRENT_CACHE_EPOCH = 0
+
+
 class CacheItem:
     def __init__(self, data, version, lifetime=None):
         self.data = data
@@ -30,6 +55,7 @@ class CacheItem:
             lifetime = timedelta(seconds=lifetime)
         self.lifetime = lifetime
         self.created = datetime.now(tz=timezone.utc)
+        self.cache_epoch = _CURRENT_CACHE_EPOCH
 
     def bump_creation_time(self) -> "CacheItem":
         self.created = datetime.now(tz=timezone.utc)
@@ -40,6 +66,7 @@ class CacheItem:
         self.version = state["version"]
         self.lifetime = state.get("lifetime", None)
         self.created = state.get("created", datetime.now(tz=timezone.utc))
+        self.cache_epoch = state.get("cache_epoch", 0)
 
     def is_expired(self) -> bool:
         if isinstance(self.lifetime, timedelta):

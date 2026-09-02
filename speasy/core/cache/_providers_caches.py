@@ -1,5 +1,6 @@
 import logging
 import math
+import numpy as np
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import List, Tuple, Optional, Union
@@ -18,6 +19,49 @@ from ..platform import is_running_on_wasm
 log = logging.getLogger(__name__)
 
 CACHE_ALLOWED_KWARGS = ['disable_cache', 'prefer_cache']
+
+# AMDA pads coverage gaps with a couple of all-NaN rows; real data has many
+# more finite rows than that. Scanning only up to this many rows keeps
+# _is_empty() cheap on the hot read path for legitimately large fragments.
+_EMPTY_SCAN_ROW_LIMIT = 64
+
+
+def _is_empty(data) -> bool:
+    """True when a cached fragment's payload holds no usable data: zero rows,
+    or (for a small fragment) every value is non-finite (NaN/inf).
+
+    Used to detect cache entries broken by a since-fixed bug that wrote
+    permanent empty/NaN-padded fragments (see DISCARD_RULES). Must never
+    flag finite data (e.g. a short but real ephemeris fragment) as empty.
+    """
+    try:
+        n_rows = len(data["axes"][0]["values"])
+        values = data["values"]["values"]
+    except (KeyError, IndexError, TypeError):
+        return False  # not a SpeasyVariable dict (e.g. a CacheCall payload) -> never discard
+    if n_rows == 0:
+        return True
+    if n_rows > _EMPTY_SCAN_ROW_LIMIT:
+        return False  # assume real data, skip the scan (hot-path perf)
+    try:
+        if not np.issubdtype(values.dtype, np.floating):
+            return False  # ints/datetimes can't be NaN-empty
+        return not np.isfinite(values).any()
+    except (TypeError, AttributeError):
+        return False
+
+
+# (min_epoch, predicate): an entry written before min_epoch for which predicate(data)
+# is True is treated as broken -> refetched. Grows when new broken-entry classes are found.
+DISCARD_RULES = (
+    (1_008_001, _is_empty),  # empties written before speasy 1.8.1 are broken (see incident history)
+)
+
+
+def _should_discard(item: CacheItem) -> bool:
+    epoch = getattr(item, "cache_epoch", 0)
+    return any(epoch < min_epoch and predicate(item.data)
+              for min_epoch, predicate in DISCARD_RULES)
 
 
 def lower_hour_bound(dt: datetime, factor: int):
@@ -201,7 +245,7 @@ class _Cacheable:
                 sleep(.001)
                 entry = self.get_cache_entry(fragment, product, **kwargs)
         if isinstance(entry, CacheItem):
-            if is_up_to_date(entry, version) or prefer_cache:
+            if (is_up_to_date(entry, version) or prefer_cache) and not _should_discard(entry):
                 try:
                     return from_dictionary(entry.data)
                 except Exception as e:
@@ -238,7 +282,7 @@ class _Cacheable:
         entry = self.get_or_lock_cache_entry(fragment, product, **kwargs)
         if isinstance(entry, PendingRequest):
             return entry
-        if is_up_to_date(entry, version) or prefer_cache:
+        if (is_up_to_date(entry, version) or prefer_cache) and not _should_discard(entry):
             try:
                 return from_dictionary(entry.data)
             except Exception as e:
@@ -387,6 +431,10 @@ class UnversionedProviderCache(object):
                 # datetime.now() versions) may hold a payload whose shape or coverage no
                 # longer matches what the service serves today, and the if_newer_than/304
                 # refresh below would keep it alive forever. Force a real refetch.
+                missing_fragments.append(fragment)
+            elif _should_discard(entry):
+                # A broken entry (e.g. permanently cached as empty by a since-fixed bug)
+                # -- force a real refetch regardless of expiry or prefer_cache.
                 missing_fragments.append(fragment)
             elif (not entry.is_expired() and entry.lifetime is not None) or prefer_cache:
                 try:
