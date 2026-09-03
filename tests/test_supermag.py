@@ -38,7 +38,7 @@ _STATIONS_FIXTURE = [
 
 def _build_provider(stations):
     """Instantiate the provider with a mocked station list."""
-    with patch.object(SuperMAGWebservice, "_get_stations", lambda self: stations):
+    with patch.object(SuperMAGWebservice, "_get_stations", return_value=stations):
         return SuperMAGWebservice()
 
 
