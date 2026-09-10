@@ -1,6 +1,19 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
+from typing import Callable, Dict
+
 from ..core.requests_scheduling.request_dispatch import PROVIDERS
+
+_callbacks: Dict[str, Callable] = {}
+
+
+def _register(product_uid: str, callback: Callable):
+    """Serve callback(start_time, stop_time) as the product 'virtual/<product_uid>'.
+
+    Internal on purpose: the public registration API, which takes a full path and
+    returns a callable handle, comes with the decorator.
+    """
+    _callbacks[product_uid] = callback
 
 
 class _VirtualProvider:
@@ -12,7 +25,10 @@ class _VirtualProvider:
     """
 
     def get_data(self, product_uid: str, start_time, stop_time, **kwargs):
-        raise ValueError(f"Unknown virtual product 'virtual/{product_uid}'")
+        callback = _callbacks.get(product_uid)
+        if callback is None:
+            raise ValueError(f"Unknown virtual product 'virtual/{product_uid}'")
+        return callback(start_time, stop_time)
 
 
 PROVIDERS['virtual'] = _VirtualProvider()
