@@ -169,7 +169,9 @@ def datetime64_to_epoch(datetime64_array: np.ndarray) -> np.ndarray:
     ...                              dtype='datetime64[ns]'))
     array([0., 1.])
     """
-    return (datetime64_array.astype("int64") * 1e-9).astype("float64")
+    # .view avoids a copy (.astype always copies); the *1e-9 multiply
+    # already upcasts to float64, so no trailing .astype("float64") either.
+    return datetime64_array.view("int64").astype("float64") * 1e-9
 
 
 
