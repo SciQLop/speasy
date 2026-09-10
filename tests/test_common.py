@@ -57,8 +57,20 @@ class Indexes(unittest.TestCase):
                          spz.inventories.tree.amda.Parameters.ACE.MFI.ace_imf_all)
 
 
+class _CountingArray(np.ndarray):
+    """Counts .astype() calls made on it, to pin down copy-pass count without timing."""
+    astype_calls = 0
+
+    def astype(self, *args, **kwargs):
+        type(self).astype_calls += 1
+        return super().astype(*args, **kwargs)
+
+
 @ddt
 class TestTimeConversions(unittest.TestCase):
+
+    def setUp(self):
+        _CountingArray.astype_calls = 0
 
     @data(
         (np.array(['1970-01-01T00:00:00.000000000', '1970-01-01T00:00:01.000000000'], dtype='datetime64[ns]'),
@@ -71,6 +83,22 @@ class TestTimeConversions(unittest.TestCase):
     @unpack
     def test_dt64_to_epoch(self, input, expected):
         self.assertTrue(np.allclose(spz.core.datetime64_to_epoch(input), expected, atol=1e-10))
+
+    def test_dt64_to_epoch_non_contiguous_input(self):
+        """A strided time axis must convert like its contiguous equivalent."""
+        strided = np.array(['1970-01-01T00:00:00.000000000',
+                            '1970-01-01T00:00:01.000000000',
+                            '1970-01-01T00:00:02.000000000',
+                            '1970-01-01T00:00:03.000000000'], dtype='datetime64[ns]')[::2]
+        self.assertFalse(strided.flags['C_CONTIGUOUS'])
+        np.testing.assert_allclose(spz.core.datetime64_to_epoch(strided), np.array([0., 2.]), atol=1e-10)
+
+    def test_dt64_to_epoch_does_not_copy_twice(self):
+        """Pins the fix to at most one .astype() call (was 2); timing is too noisy to assert on."""
+        arr = np.array(['1970-01-01T00:00:01.000000000'], dtype='datetime64[ns]').view(_CountingArray)
+        spz.core.datetime64_to_epoch(arr)
+        self.assertLessEqual(_CountingArray.astype_calls, 1,
+                             f"expected at most one .astype() call, got {_CountingArray.astype_calls}")
 
     @data(
         (np.array([0., 1.]),
