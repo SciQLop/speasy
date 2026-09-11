@@ -12,6 +12,16 @@ _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
 
 
+def _path_to_uid(path: str) -> str:
+    """Turn the public path 'virtual/plasma/beta' into the registry uid 'plasma/beta'."""
+    if not isinstance(path, str):
+        raise TypeError(f"virtual product path must be a str, got {type(path).__name__}")
+    provider, _, uid = path.partition('/')
+    if provider != 'virtual' or not uid or not all(seg.strip() for seg in uid.split('/')):
+        raise ValueError(f"virtual product path must look like 'virtual/<path>', got {path!r}")
+    return uid
+
+
 def _register(product_uid: str, callback: Callable):
     """Serve callback(start_time, stop_time) as the product 'virtual/<product_uid>'.
 
