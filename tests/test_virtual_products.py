@@ -108,5 +108,21 @@ class VirtualProductPath(unittest.TestCase):
             registry._path_to_uid(path)
 
 
+class VirtualProductObject(unittest.TestCase):
+    def setUp(self):
+        self.product = registry.VirtualProduct(name="dummy", provider="virtual",
+                                               uid="test/dummy", callback=_hourly_ramp)
+
+    def test_product_forwards_the_call(self):
+        var = self.product(_START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+        self.assertGreater(len(var), 0)
+
+    def test_product_is_an_inventory_node(self):
+        self.assertIsInstance(self.product, ParameterIndex)
+        self.assertEqual(self.product.spz_uid(), "test/dummy")
+        self.assertEqual(self.product.spz_provider(), "virtual")
+
+
 if __name__ == '__main__':
     unittest.main()
