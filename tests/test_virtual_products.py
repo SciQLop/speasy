@@ -50,6 +50,11 @@ class VirtualProductGetData(unittest.TestCase):
         self.assertGreaterEqual(var.time[0], make_utc_datetime64(_START))
         self.assertLessEqual(var.time[-1], make_utc_datetime64(_STOP))
 
+    def test_tree_node_or_path_are_equivalent(self):
+        by_path = spz.get_data("virtual/test/dummy", _START, _STOP)
+        by_node = spz.get_data(spz.inventories.tree.virtual.test.dummy, _START, _STOP)
+        self.assertEqual(len(by_path), len(by_node))
+
 
 class VirtualProductInventory(unittest.TestCase):
     def setUp(self):
