@@ -1,6 +1,6 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
@@ -20,6 +20,22 @@ def _path_to_uid(path: str) -> str:
     if provider != 'virtual' or not uid or not all(seg.strip() for seg in uid.split('/')):
         raise ValueError(f"virtual product path must look like 'virtual/<path>', got {path!r}")
     return uid
+
+
+class VirtualProduct(ParameterIndex):
+    """A locally computed product: an inventory node that is also callable.
+
+    Inheriting from ParameterIndex is what lets a single object sit in the inventory tree,
+    be passed straight to speasy.get_data() and be called like the function it wraps.
+    """
+
+    def __init__(self, name: str, provider: str, uid: str, callback: Callable,
+                 meta: Optional[dict] = None):
+        super().__init__(name=name, provider=provider, uid=uid, meta=meta)
+        self.__spz_callback__ = callback
+
+    def __call__(self, start_time, stop_time):
+        return self.__spz_callback__(start_time, stop_time)
 
 
 def _register(product_uid: str, callback: Callable):
