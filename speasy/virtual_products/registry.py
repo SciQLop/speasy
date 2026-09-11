@@ -3,7 +3,7 @@
 from typing import Callable, Dict
 
 from ..core.inventory import ProviderInventory
-from ..core.inventory.indexes import SpeasyIndex
+from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..core.requests_scheduling.request_dispatch import PROVIDERS
 from ..inventories import tree, flat_inventories
 
@@ -19,6 +19,13 @@ def _register(product_uid: str, callback: Callable):
     returns a callable handle, comes with the decorator.
     """
     _callbacks[product_uid] = callback
+
+    *folders, leaf = product_uid.split('/')
+    parent = _root
+    for name in folders:
+        parent = make_inventory_node(parent, SpeasyIndex, name, 'virtual', name)
+    node = make_inventory_node(parent, ParameterIndex, leaf, 'virtual', product_uid)
+    _flat_inventory.parameters[product_uid] = node
 
 
 class _VirtualProvider:
