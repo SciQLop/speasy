@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 import speasy as spz
-from speasy.core.inventory.indexes import SpeasyIndex
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.time import make_utc_datetime64
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableTimeAxis)
@@ -23,6 +23,13 @@ def _hourly_ramp(start_time, stop_time):
                           columns=["Values"])
 
 
+def _reset_registry():
+    """Leave no registered product behind: tests share the module level registry."""
+    registry._callbacks.clear()
+    registry._root.clear()
+    registry._flat_inventory.clear()
+
+
 class VirtualProviderRegistration(unittest.TestCase):
     def test_virtual_provider_is_registered(self):
         self.assertIn("virtual", spz.list_providers())
@@ -30,8 +37,8 @@ class VirtualProviderRegistration(unittest.TestCase):
 
 class VirtualProductGetData(unittest.TestCase):
     def setUp(self):
+        self.addCleanup(_reset_registry)
         registry._register("test/dummy", _hourly_ramp)
-        self.addCleanup(registry._callbacks.pop, "test/dummy", None)
 
     def test_get_data_returns_product(self):
         var = spz.get_data("virtual/test/dummy", _START, _STOP)
@@ -45,8 +52,28 @@ class VirtualProductGetData(unittest.TestCase):
 
 
 class VirtualProductInventory(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
     def test_virtual_branch_exists(self):
         self.assertIsInstance(spz.inventories.tree.virtual, SpeasyIndex)
+
+    def test_product_appears_in_tree(self):
+        registry._register("test/dummy", _hourly_ramp)
+        self.assertIsInstance(spz.inventories.tree.virtual.test.dummy, ParameterIndex)
+
+    def test_leaf_carries_the_full_uid(self):
+        registry._register("test/dummy", _hourly_ramp)
+        self.assertEqual(spz.inventories.tree.virtual.test.dummy.spz_uid(), "test/dummy")
+
+    def test_deep_path_digs_every_folder(self):
+        registry._register("test/deep/dummy", _hourly_ramp)
+        self.assertIsInstance(spz.inventories.tree.virtual.test.deep.dummy, ParameterIndex)
+
+    def test_product_appears_in_flat_inventory(self):
+        registry._register("test/dummy", _hourly_ramp)
+        node = spz.inventories.flat_inventories.virtual.parameters["test/dummy"]
+        self.assertIs(node, spz.inventories.tree.virtual.test.dummy)
 
 
 if __name__ == '__main__':
