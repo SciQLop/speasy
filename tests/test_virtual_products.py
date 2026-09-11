@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime, timezone
 
 import numpy as np
+from ddt import data, ddt
 
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
@@ -79,6 +80,32 @@ class VirtualProductInventory(unittest.TestCase):
         registry._register("test/dummy", _hourly_ramp)
         node = spz.inventories.flat_inventories.virtual.parameters["test/dummy"]
         self.assertIs(node, spz.inventories.tree.virtual.test.dummy)
+
+
+@ddt
+class VirtualProductPath(unittest.TestCase):
+    def test_strips_the_provider_prefix(self):
+        self.assertEqual(registry._path_to_uid("virtual/plasma/beta"), "plasma/beta")
+
+    def test_keeps_a_single_segment_uid(self):
+        self.assertEqual(registry._path_to_uid("virtual/beta"), "beta")
+
+    @data("plasma/beta",           # missing 'virtual/' prefix
+          "amda/imf_gsm",          # bad provider name
+          "virtual",               # no uid at all
+          "virtual/",              # empty uid
+          "virtual/plasma//beta",  # empty segment
+          "virtual/plasma/beta/",  # trailing slash
+          "",
+          "   ")
+    def test_rejects_malformed_path(self, path):
+        with self.assertRaises(ValueError):
+            registry._path_to_uid(path)
+
+    @data(None, 42, ["virtual", "beta"])
+    def test_rejects_non_string_path(self, path):
+        with self.assertRaises(TypeError):
+            registry._path_to_uid(path)
 
 
 if __name__ == '__main__':
