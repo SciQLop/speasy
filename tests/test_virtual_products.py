@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 import speasy as spz
+from speasy.core.inventory.indexes import SpeasyIndex
 from speasy.core.time import make_utc_datetime64
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableTimeAxis)
@@ -41,6 +42,11 @@ class VirtualProductGetData(unittest.TestCase):
         var = spz.get_data("virtual/test/dummy", _START, _STOP)
         self.assertGreaterEqual(var.time[0], make_utc_datetime64(_START))
         self.assertLessEqual(var.time[-1], make_utc_datetime64(_STOP))
+
+
+class VirtualProductInventory(unittest.TestCase):
+    def test_virtual_branch_exists(self):
+        self.assertIsInstance(spz.inventories.tree.virtual, SpeasyIndex)
 
 
 if __name__ == '__main__':

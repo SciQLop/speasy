@@ -2,9 +2,14 @@
 
 from typing import Callable, Dict
 
+from ..core.inventory import ProviderInventory
+from ..core.inventory.indexes import SpeasyIndex
 from ..core.requests_scheduling.request_dispatch import PROVIDERS
+from ..inventories import tree, flat_inventories
 
 _callbacks: Dict[str, Callable] = {}
+_root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
+_flat_inventory = ProviderInventory()
 
 
 def _register(product_uid: str, callback: Callable):
@@ -31,4 +36,10 @@ class _VirtualProvider:
         return callback(start_time, stop_time)
 
 
-PROVIDERS['virtual'] = _VirtualProvider()
+def _init_virtual_provider():
+    """Register the virtual provider in the dispatch table and its inventory."""
+    PROVIDERS['virtual'] = _VirtualProvider()
+    tree.__dict__['virtual'] = _root
+    flat_inventories.__dict__['virtual'] = _flat_inventory
+
+_init_virtual_provider()
