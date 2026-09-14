@@ -2,3 +2,4 @@
 
 # Importing the registry is what registers the 'virtual' provider.
 from . import registry  # noqa: F401
+from .registry import register_virtual_product  # noqa: F401
