@@ -7,6 +7,7 @@ from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..core.requests_scheduling.request_dispatch import PROVIDERS
 from ..inventories import tree, flat_inventories
+from ..products.variable import SpeasyVariable
 
 _callbacks: Dict[str, Callable] = {}
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
@@ -96,6 +97,10 @@ def register_virtual_product(path: str, *args: Callable):
     return decorator
 
 
+class UnknownVirtualProduct(ValueError):
+    """Raised when a virtual product is requested but was never registered."""
+
+
 class _VirtualProvider:
     """Serves virtual products through speasy's dispatch table.
 
@@ -107,8 +112,13 @@ class _VirtualProvider:
     def get_data(self, product_uid: str, start_time, stop_time, **kwargs):
         callback = _callbacks.get(product_uid)
         if callback is None:
-            raise ValueError(f"Unknown virtual product 'virtual/{product_uid}'")
-        return callback(start_time, stop_time)
+            raise UnknownVirtualProduct(f"Unknown virtual product 'virtual/{product_uid}'")
+        result = callback(start_time, stop_time)
+        if result is not None and not isinstance(result, SpeasyVariable):
+            raise TypeError(f"Virtual product 'virtual/{product_uid}': "
+                            f"{getattr(callback, '__qualname__', callback)} returned "
+                            f"{type(result).__name__}, expected SpeasyVariable or None")
+        return result
 
 
 def _init_virtual_provider():
