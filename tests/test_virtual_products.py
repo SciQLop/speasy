@@ -145,6 +145,14 @@ class VirtualProductRegistration(unittest.TestCase):
         beta = register_virtual_product("virtual/plasma/beta", _hourly_ramp)
         self.assertIs(beta, spz.inventories.tree.virtual.plasma.beta)
 
+    def test_direct_form_rejects_malformed_path(self):
+        with self.assertRaises(ValueError):
+            register_virtual_product("plasma/beta", _hourly_ramp)
+
+    def test_decorator_form_rejects_malformed_path(self):
+        with self.assertRaises(ValueError):
+            register_virtual_product("plasma/beta")
+
 
 class VirtualProductDecorator(unittest.TestCase):
     def setUp(self):
@@ -164,6 +172,47 @@ class VirtualProductDecorator(unittest.TestCase):
 
     def test_decorated_name_is_accepted_by_get_data(self):
         self.assertIsInstance(spz.get_data(self.beta, _START, _STOP), SpeasyVariable)
+
+
+class VirtualProductRobustness(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+    def test_last_registration_wins(self):
+        calls = []
+        register_virtual_product("virtual/x", lambda s, e: calls.append("first"))
+        register_virtual_product("virtual/x", lambda s, e: calls.append("second"))
+        spz.get_data("virtual/x", _START, _STOP)
+        spz.inventories.tree.virtual.x(_START, _STOP)
+        self.assertEqual(calls, ["second", "second"])
+
+    def test_re_registration_warns(self):
+        register_virtual_product("virtual/x", _hourly_ramp)
+        with self.assertWarnsRegex(UserWarning, "virtual/x"):
+            register_virtual_product("virtual/x", _hourly_ramp)
+
+    def test_wrong_return_type_raises(self):
+        def returns_array(start_time, stop_time):
+            return np.zeros(3)
+
+        register_virtual_product("virtual/bad", returns_array)
+        with self.assertRaises(TypeError) as ctx:
+            spz.get_data("virtual/bad", _START, _STOP)
+        self.assertIn("ndarray", str(ctx.exception))
+        self.assertIn("returns_array", str(ctx.exception))
+
+    def test_none_return_is_accepted(self):
+        register_virtual_product("virtual/empty", lambda s, e: None)
+        self.assertIsNone(spz.get_data("virtual/empty", _START, _STOP))
+
+    def test_unknown_path_raises_unknown_virtual_product(self):
+        with self.assertRaises(registry.UnknownVirtualProduct):
+            spz.get_data("virtual/nope", _START, _STOP)
+
+    def test_composition_without_cycle_works(self):
+        register_virtual_product("virtual/a", _hourly_ramp)
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
+        self.assertIsInstance(spz.get_data("virtual/b", _START, _STOP), SpeasyVariable)
 
 
 if __name__ == '__main__':
