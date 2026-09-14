@@ -9,7 +9,7 @@ from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.time import make_utc_datetime64
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableTimeAxis)
-from speasy.virtual_products import registry
+from speasy.virtual_products import register_virtual_product, registry
 
 _START = datetime(2016, 10, 10, tzinfo=timezone.utc)
 _STOP = datetime(2016, 10, 11, tzinfo=timezone.utc)
@@ -135,6 +135,35 @@ class VirtualProductObject(unittest.TestCase):
         self.assertIsInstance(self.product, ParameterIndex)
         self.assertEqual(self.product.spz_uid(), "test/dummy")
         self.assertEqual(self.product.spz_provider(), "virtual")
+
+
+class VirtualProductRegistration(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+    def test_returns_the_tree_leaf(self):
+        beta = register_virtual_product("virtual/plasma/beta", _hourly_ramp)
+        self.assertIs(beta, spz.inventories.tree.virtual.plasma.beta)
+
+
+class VirtualProductDecorator(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+        @register_virtual_product("virtual/plasma/beta")
+        def beta(start_time, stop_time):
+            return _hourly_ramp(start_time, stop_time)
+
+        self.beta = beta
+
+    def test_decorated_name_is_the_tree_leaf(self):
+        self.assertIs(self.beta, spz.inventories.tree.virtual.plasma.beta)
+
+    def test_decorated_name_stays_callable(self):
+        self.assertIsInstance(self.beta(_START, _STOP), SpeasyVariable)
+
+    def test_decorated_name_is_accepted_by_get_data(self):
+        self.assertIsInstance(spz.get_data(self.beta, _START, _STOP), SpeasyVariable)
 
 
 if __name__ == '__main__':
