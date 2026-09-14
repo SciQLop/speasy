@@ -81,6 +81,19 @@ class VirtualProductInventory(unittest.TestCase):
         node = spz.inventories.flat_inventories.virtual.parameters["test/dummy"]
         self.assertIs(node, spz.inventories.tree.virtual.test.dummy)
 
+    def test_register_returns_the_tree_leaf(self):
+        node = registry._register("test/dummy", _hourly_ramp)
+        self.assertIs(node, spz.inventories.tree.virtual.test.dummy)
+
+    def test_tree_leaf_is_callable(self):
+        registry._register("test/dummy", _hourly_ramp)
+        var = spz.inventories.tree.virtual.test.dummy(_START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+
+    def test_tree_leaf_is_a_virtual_product(self):
+        registry._register("test/dummy", _hourly_ramp)
+        self.assertIsInstance(spz.inventories.tree.virtual.test.dummy, registry.VirtualProduct)
+
 
 @ddt
 class VirtualProductPath(unittest.TestCase):
