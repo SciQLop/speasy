@@ -71,6 +71,24 @@ def _register(product_uid: str, callback: Callable) -> VirtualProduct:
     return node
 
 
+def register_virtual_product(path: str, *args: Callable):
+    """Serve a callback(start_time, stop_time) as the product at path, e.g. 'virtual/plasma/beta'.
+
+    Two call forms:
+    - register_virtual_product(path, callback) registers callback and returns the tree leaf;
+    - @register_virtual_product(path) does the same as a decorator.
+    The tree leaf stays callable and can be passed straight to speasy.get_data().
+    """
+    uid = _path_to_uid(path)
+    if args:
+        return _register(uid, args[0])
+
+    def decorator(callback: Callable) -> VirtualProduct:
+        return _register(uid, callback)
+
+    return decorator
+
+
 class _VirtualProvider:
     """Serves virtual products through speasy's dispatch table.
 
