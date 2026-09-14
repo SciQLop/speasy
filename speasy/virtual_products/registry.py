@@ -1,5 +1,6 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
+import warnings
 from typing import Callable, Dict, Optional
 
 from ..core.inventory import ProviderInventory
@@ -60,6 +61,12 @@ def _register(product_uid: str, callback: Callable) -> VirtualProduct:
     returns a callable handle, comes with the decorator.
     Returns the tree leaf, a VirtualProduct wrapping callback.
     """
+    if product_uid in _callbacks:
+        previous = _callbacks[product_uid]
+        warnings.warn(f"Re-registering 'virtual/{product_uid}': "
+                      f"{getattr(previous, '__qualname__', previous)} is replaced by "
+                      f"{getattr(callback, '__qualname__', callback)}",
+                      stacklevel=3)
     _callbacks[product_uid] = callback
 
     *folders, leaf = product_uid.split('/')
