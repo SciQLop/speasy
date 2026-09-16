@@ -50,6 +50,20 @@ Pass the function as second argument; the product is returned:
     >>> spz.inventories.tree.virtual.demo.slope is slope
     True
 
+Describing the product
+----------------------
+
+Both forms accept ``meta=``, a dictionary whose keys become attributes of the
+product in the inventory tree:
+
+    >>> level = register_virtual_product("virtual/demo/level", hourly_ramp, meta={"units": "nT"})
+    >>> spz.inventories.tree.virtual.demo.level.units
+    'nT'
+
+``meta=`` only describes the product in the inventory: it is not copied into the
+``SpeasyVariable`` returned by the function. To give the data a unit, set it in
+that ``SpeasyVariable``.
+
 Using a virtual product
 -----------------------
 
