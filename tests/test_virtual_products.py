@@ -153,6 +153,17 @@ class VirtualProductRegistration(unittest.TestCase):
         with self.assertRaises(ValueError):
             register_virtual_product("plasma/beta")
 
+    def test_direct_form_sets_meta_on_the_tree_leaf(self):
+        register_virtual_product("virtual/plasma/beta", _hourly_ramp, meta={"units": "nT"})
+        self.assertEqual(spz.inventories.tree.virtual.plasma.beta.units, "nT")
+
+    def test_decorator_form_sets_meta_on_the_tree_leaf(self):
+        @register_virtual_product("virtual/plasma/beta", meta={"units": "nT"})
+        def beta(start_time, stop_time):
+            return _hourly_ramp(start_time, stop_time)
+
+        self.assertEqual(beta.units, "nT")
+
 
 @ddt
 class VirtualProductPublicNames(unittest.TestCase):
