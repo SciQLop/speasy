@@ -1,6 +1,7 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
 import difflib
+import threading
 import warnings
 from typing import Callable, Dict, Optional
 
@@ -13,6 +14,17 @@ from ..products.variable import SpeasyVariable
 _callbacks: Dict[str, Callable] = {}
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
+_MAX_DEPTH = 16
+
+
+class _Resolution(threading.local):
+    """Paths of the virtual products being computed, outermost first; one list per thread."""
+
+    def __init__(self):
+        self.chain = []
+
+
+_resolution = _Resolution()
 
 
 def _path_to_uid(path: str) -> str:
@@ -29,9 +41,18 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time):
     """Call callback(start_time, stop_time) and check it returned a SpeasyVariable or None.
 
     Shared by both ways of reaching a virtual product: calling the VirtualProduct
-    directly, and speasy.get_data() through _VirtualProvider.
+    directly, and speasy.get_data() through _VirtualProvider. Also guards against
+    virtual products requesting each other endlessly.
     """
-    result = callback(start_time, stop_time)
+    chain = _resolution.chain
+    chain.append(f"virtual/{product_uid}")
+    try:
+        if len(chain) > _MAX_DEPTH:
+            raise VirtualProductCycleError(f"Virtual product chain deeper than {_MAX_DEPTH} levels, "
+                                           f"probably a cycle: {' -> '.join(chain)}")
+        result = callback(start_time, stop_time)
+    finally:
+        chain.pop()
     if result is not None and not isinstance(result, SpeasyVariable):
         raise VirtualProductTypeError(f"Virtual product 'virtual/{product_uid}': "
                                       f"{getattr(callback, '__qualname__', callback)} returned "
@@ -118,6 +139,10 @@ class UnknownVirtualProduct(ValueError):
 
 class VirtualProductTypeError(TypeError):
     """Raised when a virtual product callback returns something other than a SpeasyVariable or None."""
+
+
+class VirtualProductCycleError(RecursionError):
+    """Raised when virtual products request each other more than _MAX_DEPTH levels deep, usually a cycle."""
 
 
 class _VirtualProvider:

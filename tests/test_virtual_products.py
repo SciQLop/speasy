@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from ddt import data, ddt
@@ -167,7 +167,8 @@ class VirtualProductRegistration(unittest.TestCase):
 
 @ddt
 class VirtualProductPublicNames(unittest.TestCase):
-    @data("register_virtual_product", "UnknownVirtualProduct", "VirtualProductTypeError")
+    @data("register_virtual_product", "UnknownVirtualProduct", "VirtualProductTypeError",
+          "VirtualProductCycleError")
     def test_name_is_importable_from_the_package(self, name):
         self.assertIs(getattr(spz.virtual_products, name), getattr(registry, name))
 
@@ -247,6 +248,30 @@ class VirtualProductRobustness(unittest.TestCase):
         register_virtual_product("virtual/a", _hourly_ramp)
         register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
         self.assertIsInstance(spz.get_data("virtual/b", _START, _STOP), SpeasyVariable)
+
+    def test_cycle_raises_virtual_product_cycle_error(self):
+        register_virtual_product("virtual/a", lambda s, e: spz.get_data("virtual/b", s, e))
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
+        with self.assertRaises(registry.VirtualProductCycleError):
+            spz.get_data("virtual/a", _START, _STOP)
+
+    def test_cycle_message_names_the_chain_on_direct_call(self):
+        a = register_virtual_product("virtual/a", lambda s, e: spz.get_data("virtual/b", s, e))
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
+        with self.assertRaises(registry.VirtualProductCycleError) as ctx:
+            a(_START, _STOP)
+        self.assertIn("virtual/a -> virtual/b -> virtual/a", str(ctx.exception))
+
+    def test_finite_self_composition_works(self):
+        one_day = timedelta(days=1)
+
+        def previous_day(start_time, stop_time):
+            if start_time <= _START - 3 * one_day:
+                return _hourly_ramp(start_time, stop_time)
+            return spz.get_data("virtual/c", start_time - one_day, stop_time - one_day)
+
+        register_virtual_product("virtual/c", previous_day)
+        self.assertIsInstance(spz.get_data("virtual/c", _START, _STOP), SpeasyVariable)
 
 
 if __name__ == '__main__':
