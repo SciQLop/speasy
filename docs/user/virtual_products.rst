@@ -84,5 +84,6 @@ Good to know
 - Registering again at the same path replaces the previous product and emits a warning, which is
   convenient when iterating in a notebook.
 - Requesting a path that was never registered raises ``UnknownVirtualProduct``, a ``ValueError``.
+  Its message suggests the closest registered paths, if any.
 - If the function returns anything other than a ``SpeasyVariable`` or ``None``, calling the product
   or :func:`speasy.get_data` raises ``VirtualProductTypeError``, a ``TypeError`` naming the function.
