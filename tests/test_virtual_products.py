@@ -196,7 +196,7 @@ class VirtualProductRobustness(unittest.TestCase):
             return np.zeros(3)
 
         register_virtual_product("virtual/bad", returns_array)
-        with self.assertRaises(TypeError) as ctx:
+        with self.assertRaises(registry.VirtualProductTypeError) as ctx:
             spz.get_data("virtual/bad", _START, _STOP)
         self.assertIn("ndarray", str(ctx.exception))
         self.assertIn("returns_array", str(ctx.exception))
@@ -206,7 +206,7 @@ class VirtualProductRobustness(unittest.TestCase):
             return np.zeros(3)
 
         bad = register_virtual_product("virtual/bad", returns_array)
-        with self.assertRaises(TypeError) as ctx:
+        with self.assertRaises(registry.VirtualProductTypeError) as ctx:
             bad(_START, _STOP)
         self.assertIn("ndarray", str(ctx.exception))
         self.assertIn("returns_array", str(ctx.exception))

@@ -32,9 +32,9 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time):
     """
     result = callback(start_time, stop_time)
     if result is not None and not isinstance(result, SpeasyVariable):
-        raise TypeError(f"Virtual product 'virtual/{product_uid}': "
-                        f"{getattr(callback, '__qualname__', callback)} returned "
-                        f"{type(result).__name__}, expected SpeasyVariable or None")
+        raise VirtualProductTypeError(f"Virtual product 'virtual/{product_uid}': "
+                                      f"{getattr(callback, '__qualname__', callback)} returned "
+                                      f"{type(result).__name__}, expected SpeasyVariable or None")
     return result
 
 
@@ -112,6 +112,10 @@ def register_virtual_product(path: str, *args: Callable):
 
 class UnknownVirtualProduct(ValueError):
     """Raised when a virtual product is requested but was never registered."""
+
+
+class VirtualProductTypeError(TypeError):
+    """Raised when a virtual product callback returns something other than a SpeasyVariable or None."""
 
 
 class _VirtualProvider:
