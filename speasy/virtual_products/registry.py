@@ -1,5 +1,6 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
+import difflib
 import warnings
 from typing import Callable, Dict, Optional
 
@@ -130,7 +131,11 @@ class _VirtualProvider:
     def get_data(self, product_uid: str, start_time, stop_time, **kwargs):
         callback = _callbacks.get(product_uid)
         if callback is None:
-            raise UnknownVirtualProduct(f"Unknown virtual product 'virtual/{product_uid}'")
+            message = f"Unknown virtual product 'virtual/{product_uid}'"
+            close_uids = difflib.get_close_matches(product_uid, _callbacks.keys(), n=3)
+            if close_uids:
+                message += ". Did you mean " + ", ".join(f"'virtual/{uid}'" for uid in close_uids) + "?"
+            raise UnknownVirtualProduct(message)
         return _call_checked(product_uid, callback, start_time, stop_time)
 
 

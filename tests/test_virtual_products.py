@@ -237,6 +237,12 @@ class VirtualProductRobustness(unittest.TestCase):
         with self.assertRaises(registry.UnknownVirtualProduct):
             spz.get_data("virtual/nope", _START, _STOP)
 
+    def test_unknown_path_suggests_close_paths(self):
+        register_virtual_product("virtual/plasma/beta", _hourly_ramp)
+        with self.assertRaises(registry.UnknownVirtualProduct) as ctx:
+            spz.get_data("virtual/plasma/bet", _START, _STOP)
+        self.assertIn("'virtual/plasma/beta'", str(ctx.exception))
+
     def test_composition_without_cycle_works(self):
         register_virtual_product("virtual/a", _hourly_ramp)
         register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
