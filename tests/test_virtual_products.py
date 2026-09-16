@@ -201,6 +201,16 @@ class VirtualProductRobustness(unittest.TestCase):
         self.assertIn("ndarray", str(ctx.exception))
         self.assertIn("returns_array", str(ctx.exception))
 
+    def test_direct_call_checks_return_type(self):
+        def returns_array(start_time, stop_time):
+            return np.zeros(3)
+
+        bad = register_virtual_product("virtual/bad", returns_array)
+        with self.assertRaises(TypeError) as ctx:
+            bad(_START, _STOP)
+        self.assertIn("ndarray", str(ctx.exception))
+        self.assertIn("returns_array", str(ctx.exception))
+
     def test_none_return_is_accepted(self):
         register_virtual_product("virtual/empty", lambda s, e: None)
         self.assertIsNone(spz.get_data("virtual/empty", _START, _STOP))
