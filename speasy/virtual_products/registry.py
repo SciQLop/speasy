@@ -24,6 +24,20 @@ def _path_to_uid(path: str) -> str:
     return uid
 
 
+def _call_checked(product_uid: str, callback: Callable, start_time, stop_time):
+    """Call callback(start_time, stop_time) and check it returned a SpeasyVariable or None.
+
+    Shared by both ways of reaching a virtual product: calling the VirtualProduct
+    directly, and speasy.get_data() through _VirtualProvider.
+    """
+    result = callback(start_time, stop_time)
+    if result is not None and not isinstance(result, SpeasyVariable):
+        raise TypeError(f"Virtual product 'virtual/{product_uid}': "
+                        f"{getattr(callback, '__qualname__', callback)} returned "
+                        f"{type(result).__name__}, expected SpeasyVariable or None")
+    return result
+
+
 class VirtualProduct(ParameterIndex):
     """A locally computed product: an inventory node that is also callable.
 
@@ -37,7 +51,7 @@ class VirtualProduct(ParameterIndex):
         self.__spz_callback__ = callback
 
     def __call__(self, start_time, stop_time):
-        return self.__spz_callback__(start_time, stop_time)
+        return _call_checked(self.spz_uid(), self.__spz_callback__, start_time, stop_time)
 
 
 def _make_virtual_product_node(parent: SpeasyIndex, name: str, uid: str,
@@ -58,8 +72,7 @@ def _make_virtual_product_node(parent: SpeasyIndex, name: str, uid: str,
 def _register(product_uid: str, callback: Callable) -> VirtualProduct:
     """Serve callback(start_time, stop_time) as the product 'virtual/<product_uid>'.
 
-    Internal on purpose: the public registration API, which takes a full path and
-    returns a callable handle, comes with the decorator.
+    Internal — use register_virtual_product() for the public API.
     Returns the tree leaf, a VirtualProduct wrapping callback.
     """
     if product_uid in _callbacks:
@@ -113,12 +126,7 @@ class _VirtualProvider:
         callback = _callbacks.get(product_uid)
         if callback is None:
             raise UnknownVirtualProduct(f"Unknown virtual product 'virtual/{product_uid}'")
-        result = callback(start_time, stop_time)
-        if result is not None and not isinstance(result, SpeasyVariable):
-            raise TypeError(f"Virtual product 'virtual/{product_uid}': "
-                            f"{getattr(callback, '__qualname__', callback)} returned "
-                            f"{type(result).__name__}, expected SpeasyVariable or None")
-        return result
+        return _call_checked(product_uid, callback, start_time, stop_time)
 
 
 def _init_virtual_provider():
