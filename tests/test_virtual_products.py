@@ -154,6 +154,13 @@ class VirtualProductRegistration(unittest.TestCase):
             register_virtual_product("plasma/beta")
 
 
+@ddt
+class VirtualProductPublicNames(unittest.TestCase):
+    @data("register_virtual_product", "UnknownVirtualProduct", "VirtualProductTypeError")
+    def test_name_is_importable_from_the_package(self, name):
+        self.assertIs(getattr(spz.virtual_products, name), getattr(registry, name))
+
+
 class VirtualProductDecorator(unittest.TestCase):
     def setUp(self):
         self.addCleanup(_reset_registry)
