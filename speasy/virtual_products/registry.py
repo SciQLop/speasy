@@ -55,7 +55,7 @@ class VirtualProduct(ParameterIndex):
 
 
 def _make_virtual_product_node(parent: SpeasyIndex, name: str, uid: str,
-                               callback: Callable) -> VirtualProduct:
+                               callback: Callable, meta: Optional[dict] = None) -> VirtualProduct:
     """Attach a VirtualProduct leaf under parent, replacing any existing one, and return it.
 
     Counterpart of make_inventory_node, which can't be used here:
@@ -64,12 +64,12 @@ def _make_virtual_product_node(parent: SpeasyIndex, name: str, uid: str,
       still call the old callback while _callbacks (used by get_data) holds the new one.
       Replacing the leaf keeps both in sync.
     """
-    node = VirtualProduct(name=name, provider='virtual', uid=uid, callback=callback)
+    node = VirtualProduct(name=name, provider='virtual', uid=uid, callback=callback, meta=meta)
     parent.__dict__[name] = node
     return node
 
 
-def _register(product_uid: str, callback: Callable) -> VirtualProduct:
+def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None) -> VirtualProduct:
     """Serve callback(start_time, stop_time) as the product 'virtual/<product_uid>'.
 
     Internal — use register_virtual_product() for the public API.
@@ -87,25 +87,26 @@ def _register(product_uid: str, callback: Callable) -> VirtualProduct:
     parent = _root
     for name in folders:
         parent = make_inventory_node(parent, SpeasyIndex, name, 'virtual', name)
-    node = _make_virtual_product_node(parent, leaf, product_uid, callback)
+    node = _make_virtual_product_node(parent, leaf, product_uid, callback, meta)
     _flat_inventory.parameters[product_uid] = node
     return node
 
 
-def register_virtual_product(path: str, *args: Callable):
+def register_virtual_product(path: str, *args: Callable, meta: Optional[dict] = None):
     """Serve a callback(start_time, stop_time) as the product at path, e.g. 'virtual/plasma/beta'.
 
     Two call forms:
     - register_virtual_product(path, callback) registers callback and returns the tree leaf;
     - @register_virtual_product(path) does the same as a decorator.
     The tree leaf stays callable and can be passed straight to speasy.get_data().
+    meta, if given, becomes attributes of the tree leaf: meta={"units": "nT"} gives leaf.units.
     """
     uid = _path_to_uid(path)
     if args:
-        return _register(uid, args[0])
+        return _register(uid, args[0], meta)
 
     def decorator(callback: Callable) -> VirtualProduct:
-        return _register(uid, callback)
+        return _register(uid, callback, meta)
 
     return decorator
 
