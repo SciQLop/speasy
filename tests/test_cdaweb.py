@@ -310,6 +310,50 @@ class SpecificNonRegression(unittest.TestCase):
         self.assertIsNotNone(data)
 
 
+class VirtualDetectionForUnservableDatasets(unittest.TestCase):
+    """A CDAWeb dataset can be unservable as a direct file archive for reasons that have
+    nothing to do with CDAWeb's own VIRTUAL='TRUE' parameter flag: some datasets are pure
+    redirects to another NASA service (no <access> node at all, e.g. the "_LinkTo_...sscweb"
+    ephemeris entries) or have an <access> node that never got a filenaming pattern (e.g. some
+    "SPDF Helioweb"-sourced trajectory datasets). Both leave the DatasetIndex without a
+    `.filenaming` attribute at all -- not None, simply absent -- which used to crash
+    _archive_params_for with AttributeError instead of gracefully falling back to the web
+    service, exactly the case 'BEST' mode exists to handle.
+    """
+
+    def test_dataset_with_no_access_info_is_treated_as_virtual(self):
+        from speasy.data_providers.cda import _archive_params_for
+        from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex
+
+        dataset = DatasetIndex(name="d", provider="cda", uid="d")
+        product = ParameterIndex(name="p", provider="cda", uid="d/p")
+        params = _archive_params_for(dataset, product, "p", datetime(2020, 1, 1), datetime(2020, 1, 2))
+        self.assertIsNone(params)
+
+    def test_dataset_with_access_node_but_no_filenaming_is_treated_as_virtual(self):
+        from speasy.data_providers.cda import _archive_params_for
+        from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex
+
+        dataset = DatasetIndex(name="d", provider="cda", uid="d", meta={"subdividedby": "%Y"})
+        product = ParameterIndex(name="p", provider="cda", uid="d/p")
+        params = _archive_params_for(dataset, product, "p", datetime(2020, 1, 1), datetime(2020, 1, 2))
+        self.assertIsNone(params)
+
+    def test_dataset_with_real_archive_info_is_not_treated_as_virtual(self):
+        from speasy.data_providers.cda import _archive_params_for
+        from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex
+
+        dataset = DatasetIndex(name="d", provider="cda", uid="d", meta={
+            "filenaming": "i8_h0_gme_%Y%m%d_%Q.cdf",
+            "subdividedby": "%Y",
+            "url": "https://cdaweb.gsfc.nasa.gov/pub/data/imp/imp8/particles_gme/data/flux/gme_h0",
+            "mastercdf": "https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/imp8_h0_gme_00000000_v01.cdf",
+        })
+        product = ParameterIndex(name="p", provider="cda", uid="d/p")
+        params = _archive_params_for(dataset, product, "p", datetime(2020, 1, 1), datetime(2020, 1, 2))
+        self.assertIsNotNone(params)
+
+
 @ddt
 class DirectArchiveConverter(unittest.TestCase):
 
@@ -583,9 +627,10 @@ class DirectArchiveConverter(unittest.TestCase):
         from unittest.mock import patch
 
         undescribable_dataset = next(ds for ds in spz.inventories.flat_inventories.cda.datasets.values()
-                                     if to_direct_archive_params(file_naming=ds.filenaming,
-                                                                 subdivided_by=ds.subdividedby,
-                                                                 url=ds.url) is None)
+                                     if not hasattr(ds, 'filenaming') or
+                                     to_direct_archive_params(file_naming=ds.filenaming,
+                                                              subdivided_by=ds.subdividedby,
+                                                              url=ds.url) is None)
         variable = next(iter(v for v in undescribable_dataset.__dict__.values() if hasattr(v, 'spz_uid')))
 
         with patch.object(spz.cda, '_get_data_with_ws', return_value=None) as web_service:

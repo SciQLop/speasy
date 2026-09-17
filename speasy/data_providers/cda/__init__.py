@@ -40,8 +40,16 @@ def _is_burst_product(product: ParameterIndex or str) -> bool:
     return bool(_burst_regex.match(str(product)))
 
 
-def _is_virtual_parameter(product: ParameterIndex) -> bool:
-    return product.__dict__.get('VIRTUAL', 'FALSE').upper() == 'TRUE'
+def _is_virtual(dataset: DatasetIndex, product: ParameterIndex) -> bool:
+    """True when this product can only ever be reached through an API call, never a direct
+    file archive. Two independent reasons: CDAWeb marks the parameter itself as computed
+    (VIRTUAL='TRUE', never backed by any file), or the dataset's own CDAWeb catalog entry has
+    no filenaming pattern at all -- some datasets are pure redirects to another NASA service
+    (e.g. the "_LinkTo_...sscweb" ephemeris entries, no <access> node whatsoever) or have an
+    <access> node that never got a filenaming attribute (e.g. some "SPDF Helioweb"-sourced
+    trajectory datasets). Both leave the DatasetIndex without a `.filenaming` attribute.
+    """
+    return product.__dict__.get('VIRTUAL', 'FALSE').upper() == 'TRUE' or not hasattr(dataset, 'filenaming')
 
 
 @CacheCall(cache_retention=timedelta(days=7), is_pure=True)
@@ -85,7 +93,7 @@ def _codec_can_read_archive(archive_params: Dict, variable: str, start_time: dat
 def _archive_params_for(dataset: DatasetIndex, product_index: ParameterIndex, variable: str,
                         start_time: datetime, stop_time: datetime) -> Optional[Dict]:
     """Direct archive parameters when this product can really be served from files, None otherwise."""
-    if _is_virtual_parameter(product_index):
+    if _is_virtual(dataset, product_index):
         return None
     params = to_direct_archive_params(file_naming=dataset.filenaming, subdivided_by=dataset.subdividedby,
                                       url=dataset.url)
