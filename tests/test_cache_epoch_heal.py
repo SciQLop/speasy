@@ -158,12 +158,17 @@ def test_should_discard_empty_written_by_1_8_0_is_discarded():
     assert _should_discard(_item_with_epoch(_variable_dict(0), 1_008_000)) is True
 
 
+def test_should_discard_empty_written_by_1_8_1_is_discarded():
+    # 1.8.1 could still cache a chunked download with a silently dropped chunk as empty fragments.
+    assert _should_discard(_item_with_epoch(_variable_dict(0), 1_008_001)) is True
+
+
 def test_should_discard_non_empty_legacy_epoch_is_kept():
     assert _should_discard(_item_with_epoch(_variable_dict(12, shape_extra=(3,)), 0)) is False
 
 
-def test_discard_rules_gate_is_1_8_1():
-    assert DISCARD_RULES[0][0] == 1_008_001
+def test_discard_rules_gate_is_1_8_2():
+    assert DISCARD_RULES[0][0] == 1_008_002
 
 
 # ---------------------------------------------------------------------------

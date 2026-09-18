@@ -2,6 +2,18 @@
 History
 =======
 
+1.8.2 (unreleased)
+------------------
+
+Behavior changes:
+
+* An AMDA request longer than ``max_chunk_size_days`` is downloaded in several chunks. If one chunk
+  failed quietly, the other chunks were returned as if complete and the hole was cached as empty
+  fragments, served empty forever. Such a request now raises ``FailedChunkedRequest`` and nothing
+  is cached.
+* Empty cache fragments written before 1.8.2 (previously: before 1.8.1) are no longer trusted and
+  are refetched on read, since 1.8.1 could still write the empty fragments described above.
+
 1.8.1 (unreleased)
 ------------------
 
