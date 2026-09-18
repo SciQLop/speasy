@@ -59,7 +59,9 @@ def _is_empty(data) -> bool:
 # (min_epoch, predicate): an entry written before min_epoch for which predicate(data)
 # is True is treated as broken -> refetched. Grows when new broken-entry classes are found.
 DISCARD_RULES = (
-    (1_008_001, _is_empty),  # empties written before speasy 1.8.1 are broken (see incident history)
+    # Up to 1.8.1 a chunked AMDA download could silently drop a failed chunk and get the hole
+    # cached as empty fragments, so no empty written before 1.8.2 can be trusted.
+    (1_008_002, _is_empty),
 )
 
 
