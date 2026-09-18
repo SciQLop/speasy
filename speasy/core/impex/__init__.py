@@ -28,7 +28,7 @@ from ...inventories import flat_inventories
 from .parser import ImpexXMLParser, to_xmlid
 from .client import ImpexClient, ImpexEndpoint
 from .utils import load_catalog, load_timetable, is_private, is_public
-from .exceptions import MissingCredentials
+from .exceptions import MissingCredentials, FailedChunkedRequest
 
 log = logging.getLogger(__name__)
 
@@ -855,11 +855,18 @@ class ImpexProvider(DataProvider):
             var = None
             curr_t = start_time
             while curr_t < stop_time:
-                var = merge([var, self._dl_parameter_chunk(curr_t, min(curr_t + dt, stop_time), parameter_id,
-                                                           extra_http_headers=extra_http_headers,
-                                                           product_variables=product_variables,
-                                                           use_credentials=use_credentials,
-                                                           **kwargs)])
+                chunk_stop = min(curr_t + dt, stop_time)
+                chunk = self._dl_parameter_chunk(curr_t, chunk_stop, parameter_id,
+                                                 extra_http_headers=extra_http_headers,
+                                                 product_variables=product_variables,
+                                                 use_credentials=use_credentials,
+                                                 **kwargs)
+                # The server answers an interval without data with an empty file, never with a
+                # failure. Merging around a failed chunk would get the hole cached as "no data".
+                if chunk is None:
+                    raise FailedChunkedRequest(
+                        f"{self.provider_name}: failed to get {parameter_id} between {curr_t} and {chunk_stop}")
+                var = merge([var, chunk])
                 curr_t += dt
             return var
         else:

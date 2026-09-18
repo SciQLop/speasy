@@ -8,3 +8,7 @@ class UnavailableEndpoint(Exception):
 
 class BadTemplateArgDefinition(Exception):
     pass
+
+
+class FailedChunkedRequest(Exception):
+    pass
