@@ -46,8 +46,9 @@ class ImpexChunkedDownload(unittest.TestCase):
         # A partial result would be cached as covering the whole range,
         # leaving permanent empty fragments where the failed chunk was.
         middle_chunk = START + timedelta(days=CHUNK_DAYS)
+        provider = _provider_whose_chunks_fail_at([middle_chunk])
         with self.assertRaises(FailedChunkedRequest):
-            _download(_provider_whose_chunks_fail_at([middle_chunk]), days=3 * CHUNK_DAYS)
+            _download(provider, days=3 * CHUNK_DAYS)
 
 
 if __name__ == '__main__':
