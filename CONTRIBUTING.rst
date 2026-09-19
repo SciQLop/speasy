@@ -139,22 +139,38 @@ Deploying
 ---------
 
 A reminder for the maintainers on how to deploy.
-Make sure all your changes are committed (including an entry in HISTORY.rst).
-Then run::
-
-$ git tag v1.2.3        # the release version, no suffix
-$ git push
-$ git push --tags
-
-GH Actions will then deploy to PyPI if tests pass.
 
 The version is not stored anywhere: it is derived from ``git describe``, so the
-tag *is* the version. Right after releasing, open the next cycle by tagging the
-first commit of it::
+tag *is* the version. Publishing the GitHub release is what triggers the PyPI
+upload (``.github/workflows/pythonpublish.yml`` runs on ``release: published``)
+and the Zenodo DOI. Pushing the tag alone does neither.
 
-$ git tag v1.3.0.dev0
-$ git push --tags
+1. Finalize the release commit on ``main``: date the version's section in
+   ``HISTORY.rst`` and set ``version`` and ``date-released`` in ``CITATION.cff``.
+   Leave ``doi`` as is, the new one does not exist yet. Push and wait for CI::
 
-Until that tag exists, commits after ``v1.2.3`` report ``1.2.3.post<n>.dev0``
-rather than ``1.3.0.dev<n>``. Both are honest about being unreleased; only the
-second names the version being worked towards.
+      $ git push upstream main
+
+2. Tag and publish the release. The notes are the ``HISTORY.rst`` section in
+   Markdown::
+
+      $ git tag v1.2.3        # the release version, no suffix
+      $ git push upstream v1.2.3
+      $ gh release create v1.2.3 --verify-tag --notes-file notes.md
+
+3. Wait for the Zenodo record, usually about a minute::
+
+      $ curl -s "https://zenodo.org/api/records?q=conceptrecid:4118780&sort=mostrecent&size=1" \
+          | jq -r '.hits.hits[0] | "\(.metadata.version) \(.doi)"'
+
+   Put the new DOI in ``CITATION.cff`` and push that commit.
+
+4. Open the next cycle by tagging the DOI commit::
+
+      $ git tag v1.3.0.dev0
+      $ git push upstream v1.3.0.dev0
+
+   The dev tag must sit on a commit *after* the release tag. On the release
+   commit itself ``git describe`` keeps picking ``v1.2.3`` and the dev tag is
+   ignored (this happened for 1.8.2.dev0). Until a dev tag exists, commits
+   after ``v1.2.3`` report ``1.2.3.post<n>.dev0`` rather than ``1.3.0.dev<n>``.
