@@ -313,7 +313,7 @@ Once configured, you can list and get user products:
 You can also access the private parameters (only if you are a member of a private group in AMDA):
 
     >>> import speasy as spz
-    >>> private_data = spz.get_data(spz.inventories.tree.amda.PrivateParameters.mission.instrument.dataset.parameter, "2008-01-01", "2008-01-02", # doctest: +SKIP
+    >>> private_data = spz.get_data(spz.inventories.tree.amda.PrivateParameters.mission.instrument.dataset.parameter, "2008-01-01", "2008-01-02") # doctest: +SKIP
 
 
 AMDA cache retention
