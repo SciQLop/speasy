@@ -372,3 +372,7 @@ class AmdaWebservice(ImpexProvider):
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_derived_parameter_tree(self) -> str or None:
         return super()._get_derived_parameter_tree()
+
+    @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
+    def _get_private_parameter_tree(self) -> str or None:
+        return super()._get_private_parameter_tree()

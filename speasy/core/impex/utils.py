@@ -100,3 +100,11 @@ def is_public(node):
 
 def is_private(node):
     return not is_public(node)
+
+
+def is_user_product(node):
+    return node.__dict__.get('user_product', False)
+
+
+def is_not_user_product(node):
+    return not is_user_product(node)

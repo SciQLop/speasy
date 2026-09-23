@@ -82,6 +82,7 @@ class ImpexClient:
             params['templateInfo'] = True
         if use_credentials:
             params['userID'], params['password'] = self.get_credentials()
+            params['privateOnly'] = True
         return self._send_indirect_request(ImpexEndpoint.OBSTREE, params=params)
 
     def get_time_table_list(self, use_credentials=False):

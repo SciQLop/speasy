@@ -27,7 +27,7 @@ from ...inventories import flat_inventories
 
 from .parser import ImpexXMLParser, to_xmlid
 from .client import ImpexClient, ImpexEndpoint
-from .utils import load_catalog, load_timetable, is_private, is_public
+from .utils import load_catalog, load_timetable, is_user_product, is_not_user_product, is_private
 from .exceptions import MissingCredentials, FailedChunkedRequest
 
 log = logging.getLogger(__name__)
@@ -144,7 +144,8 @@ class ImpexProvider(DataProvider):
         if self.client.credential_are_valid():
             if self.client.is_capable(ImpexEndpoint.GETTT):
                 user_tt = ImpexXMLParser.parse(self._get_user_timetables_tree(),
-                                               self.provider_name, self.name_mapping, is_public=False)
+                                               self.provider_name, self.name_mapping,
+                                               is_public=False, user_product=True)
                 if hasattr(user_tt, 'ws'):
                     # CLWeb case
                     public_root = user_tt.ws.timetabList
@@ -156,15 +157,23 @@ class ImpexProvider(DataProvider):
 
             if self.client.is_capable(ImpexEndpoint.GETCAT):
                 user_cat = ImpexXMLParser.parse(self._get_user_catalogs_tree(), self.provider_name,
-                                                self.name_mapping, is_public=False)
+                                                self.name_mapping, is_public=False, user_product=True)
                 root.Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider=self.provider_name, uid='MyCatalogs',
                                                        meta=user_cat.catalogList.__dict__)
 
             if self.client.is_capable(ImpexEndpoint.LISTPARAM):
                 user_param = ImpexXMLParser.parse(self._get_derived_parameter_tree(),
-                                                  self.provider_name, self.name_mapping, is_public=False)
+                                                  self.provider_name, self.name_mapping, is_public=False,
+                                                  user_product=True)
                 root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider=self.provider_name,
                                                      uid='DerivedParameters', meta=user_param.ws.paramList.__dict__)
+
+                private_param = ImpexXMLParser.parse(self._get_private_parameter_tree(),
+                                                     self.provider_name, self.name_mapping, is_public=False,
+                                                     user_product=False)
+                root.PrivateParameters = SpeasyIndex(name='PrivateParameters', provider=self.provider_name,
+                                                     uid='PrivateParameters',
+                                                     meta=private_param.dataRoot.dataCenter.__dict__)
         return root
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
@@ -256,6 +265,22 @@ class ImpexProvider(DataProvider):
 
         """
         return ImpexProvider.is_user_product(parameter_id, flat_inventories.__dict__[self.provider_name].parameters)
+
+    def is_private_parameter(self, parameter_id: str or ParameterIndex):
+        """Tells if a product is a private parameter
+
+        Parameters
+        ----------
+        parameter_id: str or ParameterIndex
+            product id
+
+        Returns
+        -------
+        bool
+            True if the product is a private parameter, False otherwise.
+
+        """
+        return ImpexProvider.is_private_product(parameter_id, flat_inventories.__dict__[self.provider_name].parameters)
 
     def get_data(self, product, start_time=None, stop_time=None,
                  **kwargs) -> MaybeAnyProduct:
@@ -388,6 +413,8 @@ class ImpexProvider(DataProvider):
         if hasattr(self, 'has_time_restriction') and self.has_time_restriction(product, start_time, stop_time):
             kwargs['disable_proxy'] = True
             kwargs['restricted_period'] = True
+        if self.is_private_parameter(product):
+            kwargs['disable_proxy'] = True
 
         return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
                                    output_format=output_format or self.client.output_format, **kwargs)
@@ -614,6 +641,13 @@ class ImpexProvider(DataProvider):
     def is_user_product(product_id: str or SpeasyIndex, collection: Dict):
         xmlid = to_xmlid(product_id)
         if xmlid in collection:
+            return is_user_product(collection[xmlid])
+        return False
+
+    @staticmethod
+    def is_private_product(product_id: str or SpeasyIndex, collection: Dict):
+        xmlid = to_xmlid(product_id)
+        if xmlid in collection:
             return is_private(collection[xmlid])
         return False
 
@@ -638,7 +672,7 @@ class ImpexProvider(DataProvider):
         '...'
 
         """
-        return list(filter(is_public, flat_inventories.__dict__[self.provider_name].datasets.values()))
+        return list(filter(is_not_user_product, flat_inventories.__dict__[self.provider_name].datasets.values()))
 
     def list_parameters(self, dataset_id: Optional[str or DatasetIndex] = None) -> List[ParameterIndex]:
         """Get the list of parameter indexes available in AMDA or a given dataset
@@ -667,7 +701,7 @@ class ImpexProvider(DataProvider):
         """
         if dataset_id is not None:
             return list(flat_inventories.__dict__[self.provider_name].datasets[to_xmlid(dataset_id)])
-        return list(filter(is_public, flat_inventories.__dict__[self.provider_name].parameters.values()))
+        return list(filter(is_not_user_product, flat_inventories.__dict__[self.provider_name].parameters.values()))
 
     def list_user_parameters(self) -> List[ParameterIndex]:
         """Get the list of user parameters. User parameters are represented as dictionary objects.
@@ -692,7 +726,7 @@ class ImpexProvider(DataProvider):
 
 
         """
-        return list(filter(is_private, flat_inventories.__dict__[self.provider_name].parameters.values()))
+        return list(filter(is_user_product, flat_inventories.__dict__[self.provider_name].parameters.values()))
 
     def list_timetables(self) -> List[TimetableIndex]:
         """Get list of public timetables.
@@ -710,7 +744,7 @@ class ImpexProvider(DataProvider):
         [<TimetableIndex: ...>, <TimetableIndex: ...>, <TimetableIndex: ...>]
 
         """
-        return list(filter(is_public, flat_inventories.__dict__[self.provider_name].timetables.values()))
+        return list(filter(is_not_user_product, flat_inventories.__dict__[self.provider_name].timetables.values()))
 
     def list_user_timetables(self) -> List[TimetableIndex]:
         """Get the list of user timetables. User timetable are represented as dictionary objects.
@@ -735,7 +769,7 @@ class ImpexProvider(DataProvider):
 
 
         """
-        return list(filter(is_private, flat_inventories.__dict__[self.provider_name].timetables.values()))
+        return list(filter(is_user_product, flat_inventories.__dict__[self.provider_name].timetables.values()))
 
     def list_catalogs(self) -> List[CatalogIndex]:
         """Get the list of public catalog IDs:
@@ -756,7 +790,7 @@ class ImpexProvider(DataProvider):
         <CatalogIndex: model_regions_plasmas_mms_2019>
 
         """
-        return list(filter(is_public, flat_inventories.__dict__[self.provider_name].catalogs.values()))
+        return list(filter(is_not_user_product, flat_inventories.__dict__[self.provider_name].catalogs.values()))
 
     def list_user_catalogs(self) -> List[CatalogIndex]:
         """Get the list of user catalogs. User catalogs are represented as dictionary objects.
@@ -781,7 +815,7 @@ class ImpexProvider(DataProvider):
 
 
         """
-        return list(filter(is_private, flat_inventories.__dict__[self.provider_name].catalogs.values()))
+        return list(filter(is_user_product, flat_inventories.__dict__[self.provider_name].catalogs.values()))
 
     def _get_parameter(self, product, start_time, stop_time,
                        extra_http_headers: Dict or None = None, output_format: str or None = None,
@@ -851,6 +885,14 @@ class ImpexProvider(DataProvider):
                     "{} credentials.".format(self.provider_name))
             else:
                 use_credentials = True
+        if self.is_private_parameter(parameter_id):
+            if not self.client.credential_are_valid():
+                raise MissingCredentials(
+                    "Data from private parameter requested but no credentials provided, please add your "
+                    "{} credentials.".format(self.provider_name))
+            else:
+                use_credentials = True
+
         if stop_time - start_time > dt:
             var = None
             curr_t = start_time
@@ -947,8 +989,8 @@ class ImpexProvider(DataProvider):
             values=DataContainer(values=values, meta=meta, name=product_id, is_time_dependent=True),
             columns=columns)
 
-    def _get_obs_data_tree(self, add_template_info=False) -> str or None:
-        return self.client.get_obs_data_tree(add_template_info=add_template_info)
+    def _get_obs_data_tree(self, add_template_info=False, use_credentials=False) -> str or None:
+        return self.client.get_obs_data_tree(add_template_info=add_template_info, use_credentials=use_credentials)
 
     def _get_timetables_tree(self) -> str or None:
         return self.client.get_time_table_list()
@@ -964,3 +1006,6 @@ class ImpexProvider(DataProvider):
 
     def _get_derived_parameter_tree(self) -> str or None:
         return self.client.get_derived_parameter_list()
+
+    def _get_private_parameter_tree(self) -> str or None:
+        return self.client.get_obs_data_tree(add_template_info=True, use_credentials=True)

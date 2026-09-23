@@ -37,9 +37,10 @@ class ImpexXMLParser:
         return {clean(key): value for key, value in kwargs.items()}
 
     @staticmethod
-    def index_ctor_args(node, provider_name, is_public: bool = True):
+    def index_ctor_args(node, provider_name, is_public: bool = True, user_product: bool = False):
         meta = ImpexXMLParser.fix_names(**ImpexXMLParser.fix_xmlid(**node.attrib))
         meta['is_public'] = is_public
+        meta['user_product'] = user_product
         if 'dataStart' in meta:
             meta['start_date'] = meta.pop('dataStart')
         if 'dataStop' in meta:
@@ -48,27 +49,31 @@ class ImpexXMLParser:
         return {"name": meta.get('name', node.tag), "provider": provider_name, 'uid': uid, "meta": meta}
 
     @staticmethod
-    def make_any_node(parent, node, provider_name, ctor, name_key='xmlid', is_public: bool = True):
-        new = ctor(**ImpexXMLParser.index_ctor_args(node, provider_name, is_public=is_public))
+    def make_any_node(parent, node, provider_name, ctor, name_key='xmlid',
+                      is_public: bool = True, user_product: bool = False):
+        new = ctor(**ImpexXMLParser.index_ctor_args(node, provider_name, is_public=is_public,
+                                                    user_product=user_product))
         name = fix_name(new.__dict__.get(name_key, node.tag))
         parent.__dict__[name] = new
         return new
 
     @staticmethod
-    def make_dataset_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_dataset_node(parent, node, provider_name, name_key, is_public: bool = True,
+                          user_product: bool = False):
         ds = ImpexXMLParser.make_any_node(parent, node, provider_name, DatasetIndex, name_key=name_key,
-                                          is_public=is_public)
+                                          is_public=is_public, user_product=user_product)
         return ds
 
     @staticmethod
-    def make_parameter_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_parameter_node(parent, node, provider_name, name_key, is_public: bool = True,
+                            user_product: bool = False):
         if arguments:=node.find('.//arguments'):
             arguments.set('name', '__spz_arguments__')
             param = ImpexXMLParser.make_any_node(parent, node, provider_name, TemplatedParameterIndex, name_key=name_key,
-                                                 is_public=is_public)
+                                                 is_public=is_public, user_product=user_product)
         else:
             param = ImpexXMLParser.make_any_node(parent, node, provider_name, ParameterIndex, name_key=name_key,
-                                                 is_public=is_public)
+                                                 is_public=is_public, user_product=user_product)
         if isinstance(parent, DatasetIndex):
             param.start_date = parent.start_date
             param.stop_date = parent.stop_date
@@ -76,16 +81,18 @@ class ImpexXMLParser:
         return param
 
     @staticmethod
-    def make_user_parameter_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_user_parameter_node(parent, node, provider_name, name_key, is_public: bool = True,
+                                 user_product: bool = False):
         # It seems that AMDA prevents users from using incompatible names here
         param = ImpexXMLParser.make_any_node(parent, node, provider_name, ParameterIndex, name_key=name_key,
-                                             is_public=is_public)
+                                             is_public=is_public, user_product=user_product)
         return param
 
     @staticmethod
-    def make_component_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_component_node(parent, node, provider_name, name_key, is_public: bool = True,
+                            user_product: bool = False):
         component = ImpexXMLParser.make_any_node(parent, node, provider_name, ComponentIndex, name_key=name_key,
-                                                 is_public=is_public)
+                                                 is_public=is_public, user_product=user_product)
         if isinstance(parent, ParameterIndex):
             component.start_date = parent.start_date
             component.stop_date = parent.stop_date
@@ -94,29 +101,34 @@ class ImpexXMLParser:
         return component
 
     @staticmethod
-    def make_timetable_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_timetable_node(parent, node, provider_name, name_key, is_public: bool = True,
+                            user_product: bool = False):
         tt = ImpexXMLParser.make_any_node(parent, node, provider_name, TimetableIndex, name_key=name_key,
-                                          is_public=is_public)
+                                          is_public=is_public, user_product=user_product)
         return tt
 
     @staticmethod
-    def make_catalog_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_catalog_node(parent, node, provider_name, name_key, is_public: bool = True,
+                          user_product: bool = False):
         cat = ImpexXMLParser.make_any_node(parent, node, provider_name, CatalogIndex, name_key=name_key,
-                                           is_public=is_public)
+                                           is_public=is_public, user_product=user_product)
         return cat
 
     @staticmethod
-    def make_path_node(parent, node, provider_name, name_key, is_public: bool = True):
+    def make_path_node(parent, node, provider_name, name_key, is_public: bool = True,
+                       user_product: bool = False):
         return ImpexXMLParser.make_any_node(parent, node, provider_name, SpeasyIndex, name_key=name_key,
-                                            is_public=is_public)
+                                            is_public=is_public, user_product=user_product)
 
     @staticmethod
-    def parse_template_arguments(parent, node, provider_name, name_key, is_public: bool = True):
+    def parse_template_arguments(parent, node, provider_name, name_key, is_public: bool = True,
+                                 user_product: bool = False):
         return ImpexXMLParser.make_any_node(parent, node, provider_name, ArgumentListIndex, name_key=name_key,
-                                            is_public=is_public)
+                                            is_public=is_public, user_product=user_product)
 
     @staticmethod
-    def parse_template_argument(parent, node, provider_name, name_key, is_public: bool = True):
+    def parse_template_argument(parent, node, provider_name, name_key, is_public: bool = True,
+                                user_product: bool = False):
         if node.get('type') == 'list':
             choices = []
             for item in node.findall('.//item'):
@@ -131,11 +143,11 @@ class ImpexXMLParser:
             node.set('choices', choices)
 
         return ImpexXMLParser.make_any_node(parent, node, provider_name, ArgumentIndex, name_key=name_key,
-                                            is_public=is_public)
+                                            is_public=is_public, user_product=user_product)
 
 
     @staticmethod
-    def parse(xml, provider_name, name_mapping=None, is_public: bool = True):
+    def parse(xml, provider_name, name_mapping=None, is_public: bool = True, user_product: bool = False):
         handlers = {
             'mission': ImpexXMLParser.make_path_node,
             'observatory': ImpexXMLParser.make_path_node,
@@ -152,7 +164,7 @@ class ImpexXMLParser:
             'argument': ImpexXMLParser.parse_template_argument
         }
 
-        def _recursive_parser(parent, node, is_node_public):
+        def _recursive_parser(parent, node, is_node_public, user_product):
             if name_mapping and node.tag in name_mapping:
                 name_key = name_mapping[node.tag]
             elif node.tag not in handlers.keys():
@@ -160,13 +172,13 @@ class ImpexXMLParser:
             else:
                 name_key = 'name'
             new = handlers.get(node.tag, ImpexXMLParser.make_path_node)(parent, node, provider_name, name_key,
-                                                                        is_node_public)
+                                                                        is_node_public, user_product)
             for subnode in node:
-                _recursive_parser(new, subnode, is_node_public)
+                _recursive_parser(new, subnode, is_node_public, user_product)
 
         root = SpeasyIndex("root", provider_name, f"{provider_name}_root_node")
         if xml is not None:
             tree = Et.fromstring(xml)
-            _recursive_parser(root, tree, is_node_public=is_public)
+            _recursive_parser(root, tree, is_node_public=is_public, user_product=user_product)
 
         return root
