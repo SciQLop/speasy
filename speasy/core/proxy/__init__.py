@@ -4,6 +4,7 @@ import warnings
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
+import numpy as np
 from dateutil import parser
 from email.utils import format_datetime
 from packaging.version import Version
@@ -51,19 +52,48 @@ def query_proxy_version():
 
 try:
     import pyzstd
-
-    zstd_compression = 'true'
-
-
-    def decompress(data):
-        return pyzstd.decompress(data)
-
 except ImportError:
-    zstd_compression = 'false'
+    pyzstd = None
+
+try:
+    from numcodecs import Blosc
+except ImportError:
+    Blosc = None
+
+zstd_compression = 'true' if pyzstd is not None else 'false'
 
 
-    def decompress(data):
-        return data
+def _raw_view(array: np.ndarray) -> np.ndarray:
+    # datetime64/timedelta64 don't expose the buffer protocol, the proxy sends their bytes as int64
+    return array.view("i8") if array.dtype.kind in "mM" else array
+
+
+def _unblosc_array(marker: dict) -> np.ndarray:
+    array = np.empty(marker["shape"], dtype=marker["dtype"])
+    Blosc().decode(marker["__blosc__"], out=_raw_view(array))
+    return array
+
+
+def unblosc_arrays(obj):
+    """Replace every {"__blosc__": chunk, "dtype", "shape"} marker sent by the proxy by its numpy array."""
+    if isinstance(obj, dict):
+        return _unblosc_array(obj) if "__blosc__" in obj else {k: unblosc_arrays(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [unblosc_arrays(v) for v in obj]
+    return obj
+
+
+_DECODERS = {
+    "application/x-zstd-compressed": lambda body: pickle.loads(pyzstd.decompress(body)),
+    "application/x-speasy-blosc-pickle": lambda body: unblosc_arrays(pickle.loads(body)),
+}
+
+
+def load_response(resp):
+    """Unpickle a proxy response according to its Content-Type: the server may ignore the compression we asked for."""
+    # pickle has always been the proxy wire format; the proxy is a server the user configured and trusts
+    mime = resp.headers.get("Content-Type", "").split(";")[0].strip()
+    return _DECODERS.get(mime, pickle.loads)(resp.bytes)
 
 
 @CacheCall(cache_retention=timedelta(minutes=10), is_pure=True)
@@ -94,10 +124,12 @@ class GetProduct:
         kwargs['stop_time'] = stop_time
         kwargs['format'] = 'python_dict'
         kwargs['zstd_compression'] = zstd_compression
+        if Blosc is not None:
+            kwargs['compression'] = 'blosc'
         resp = http.get(f"{url}/get_data", params=kwargs, timeout=60 * 5)
         log.debug(f"Asking data from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
-            var = var_from_dict(pickle.loads(decompress(resp.bytes)))
+            var = var_from_dict(load_response(resp))
             return var
         return None
 
@@ -128,7 +160,7 @@ class GetInventory:
         resp = http.get(f"{url}/get_inventory", params=kwargs, headers=headers)
         log.debug(f"Asking {provider} inventory from proxy {resp.url}, {resp.headers}")
         if resp.status_code == 200:
-            inventory = inventory_from_dict(pickle.loads(decompress(resp.bytes)), version=2)
+            inventory = inventory_from_dict(load_response(resp), version=2)
             index.set("proxy_inventories", provider, inventory)
             index.set("proxy_inventories_save_date", provider, datetime.now(tz=timezone.utc))
             return inventory
