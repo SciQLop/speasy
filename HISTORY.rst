@@ -2,6 +2,14 @@
 History
 =======
 
+1.8.3 (unreleased)
+------------------
+
+Behavior changes:
+
+* Speasy now requires ``pysciqlop-cache`` 0.2. Existing caches are kept as they are; nothing is
+  migrated.
+
 1.8.2 (2026-09-18)
 ------------------
 
