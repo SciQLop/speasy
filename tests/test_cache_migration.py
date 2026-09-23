@@ -132,6 +132,16 @@ class LegacyDiskcacheMigration(unittest.TestCase):
                      if p.startswith(f"{os.path.basename(self.root)}.")]
         self.assertEqual(leftovers, [], "no corrupted-directory leftovers should remain")
 
+    def test_index_pop_of_missing_key_returns_default(self):
+        """pysciqlop-cache 0.2 made ``Index.pop(missing)`` raise KeyError; SpeasyIndex.pop
+        must keep returning a default instead."""
+        with mock.patch.dict(os.environ, {"SPEASY_INDEX_PATH": self.root}):
+            index = SpeasyIndex()
+            self.assertIsNone(index.pop("mod", "missing"))
+            self.assertEqual(index.pop("mod", "missing", "d"), "d")
+            index.set("mod", "key", "value")
+            self.assertEqual(index.pop("mod", "key"), "value")
+
     def test_falls_back_gracefully_when_diskcache_unavailable(self):
         """diskcache is a required runtime dependency, but ``migrate()`` imports it lazily
         inside its own body, so an unusual install (e.g. ``--no-deps``) missing it must not
