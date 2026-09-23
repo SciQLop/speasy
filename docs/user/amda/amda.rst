@@ -284,7 +284,7 @@ Advanced: AMDA module configuration options
 AMDA user login
 ^^^^^^^^^^^^^^^
 
-Most AMDA features are available without login, except for user-created products from the AMDA web interface. You can configure
+Most AMDA features are available without login, except for user-created products and private parameters from the AMDA web interface. You can configure
 Speasy to store your AMDA credentials:
 
     >>> from speasy import config
@@ -308,6 +308,12 @@ Once configured, you can list and get user products:
     >>> # get my first user catalog
     >>> amda.get_user_catalog(amda.list_user_catalogs()[0]) # doctest: +SKIP
     <Catalog: MyCatalog>
+
+
+You can also access the private parameters (only if you are a member of a private group in AMDA):
+
+    >>> import speasy as spz
+    >>> private_data = spz.get_data(spz.inventories.tree.amda.PrivateParameters.mission.instrument.dataset.parameter, "2008-01-01", "2008-01-02", # doctest: +SKIP
 
 
 AMDA cache retention

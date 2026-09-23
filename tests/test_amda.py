@@ -48,11 +48,15 @@ class UserProductsRequestsWithoutCreds(unittest.TestCase):
 
 
 class PublicProductsRequests(unittest.TestCase):
-    def setUp(self):
-        pass
+    @classmethod
+    def setUpClass(cls):
+        if has_amda_creds():
+            spz.amda.reset_credentials()
 
-    def tearDown(self):
-        pass
+    @classmethod
+    def tearDownClass(cls):
+        if has_amda_creds():
+            spz.amda.reset_credentials(spz.config.amda.username(), spz.config.amda.password())
 
     def test_get_variable(self):
         start_date = datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc)
@@ -165,6 +169,14 @@ class PublicProductsRequests(unittest.TestCase):
             self.assertIsNotNone(r)
             self.assertIsNotNone(r.values)
 
+    def test_get_private_parameters(self):
+        with self.assertRaises(AttributeError):
+            index = spz.inventories.tree.amda.PrivateParameters
+        with self.assertRaises(AttributeError):
+            index = spz.inventories.tree.amda.Parameters.ACE.MFI.spz_ci_private.spz_ciprivate_imf
+        with self.assertRaises(ValueError):
+            spz.amda.get_data("spz_ciprivate_imf", start_time="2008-01-01", stop_time="2008-01-01T01:00:00")
+
 
 class PrivateProductsRequests(unittest.TestCase):
     def setUp(self):
@@ -203,6 +215,16 @@ class PrivateProductsRequests(unittest.TestCase):
         result = spz.amda.get_user_catalog(spz.amda.list_user_catalogs()[0])
         self.assertIsNotNone(result)
         self.assertTrue(len(result) != 0)
+
+    def test_get_private_parameters(self):
+        with self.assertRaises(AttributeError):
+            index = spz.inventories.tree.amda.Parameters.ACE.MFI.spz_ci_private.spz_ciprivate_imf
+        self.assertIsNotNone(spz.inventories.tree.amda.PrivateParameters)
+        self.assertIsNotNone(spz.inventories.tree.amda.PrivateParameters.ACE.MFI.spz_ci_private.spz_ciprivate_imf)
+        result =  spz.amda.get_data("spz_ciprivate_imf", start_time="2008-01-01", stop_time="2008-01-01T01:00:00")
+        self.assertIsNotNone(result)
+        self.assertTrue(len(result) != 0)
+
 
 
 @ddt
