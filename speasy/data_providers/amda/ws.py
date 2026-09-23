@@ -351,7 +351,7 @@ class AmdaWebservice(ImpexProvider):
 
     @CacheCall(cache_retention=24 * 60 * 60, is_pure=True)
     def _get_obs_data_tree(self) -> str or None:
-        return super()._get_obs_data_tree(add_template_info=True)
+        return super()._get_obs_data_tree()
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_timetables_tree(self) -> str or None:

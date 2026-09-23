@@ -416,6 +416,7 @@ class ImpexProvider(DataProvider):
         if self.is_private_parameter(product):
             kwargs['disable_proxy'] = True
 
+        print(kwargs)
         return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
                                    output_format=output_format or self.client.output_format, **kwargs)
 
@@ -989,8 +990,8 @@ class ImpexProvider(DataProvider):
             values=DataContainer(values=values, meta=meta, name=product_id, is_time_dependent=True),
             columns=columns)
 
-    def _get_obs_data_tree(self, add_template_info=False, use_credentials=False) -> str or None:
-        return self.client.get_obs_data_tree(add_template_info=add_template_info, use_credentials=use_credentials)
+    def _get_obs_data_tree(self) -> str or None:
+        return self.client.get_obs_data_tree(add_template_info=True, use_credentials=False)
 
     def _get_timetables_tree(self) -> str or None:
         return self.client.get_time_table_list()
