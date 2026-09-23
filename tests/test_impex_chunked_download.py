@@ -24,12 +24,16 @@ def _one_point_per_day(start: datetime, stop: datetime) -> SpeasyVariable:
 
 
 def _provider_whose_chunks_fail_at(failing_chunk_starts):
+    def is_private_parameter(parameter_id):
+        return False
+
     def _dl_parameter_chunk(start_time, stop_time, parameter_id, **kwargs):
         if start_time in failing_chunk_starts:
             return None
         return _one_point_per_day(start_time, stop_time)
 
-    return SimpleNamespace(provider_name="test", max_chunk_size_days=CHUNK_DAYS, _dl_parameter_chunk=_dl_parameter_chunk)
+    return SimpleNamespace(provider_name="test", max_chunk_size_days=CHUNK_DAYS,
+                           _dl_parameter_chunk=_dl_parameter_chunk, is_private_parameter=is_private_parameter)
 
 
 def _download(provider, days: int):
