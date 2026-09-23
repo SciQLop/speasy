@@ -10,6 +10,14 @@ Behavior changes:
 * Speasy now requires ``pysciqlop-cache`` 0.2. Existing caches are kept as they are; nothing is
   migrated.
 
+Performance:
+
+* Data from the proxy server can now be sent with blosc (byte-shuffle + zstd per array) instead of
+  zstd over the whole response: about half the size on float time series, and faster to decode.
+  Install the new ``speasy[blosc]`` extra (numcodecs) to use it. Speasy now decodes proxy responses
+  according to their ``Content-Type``, so any client/server version combination works.
+  (https://github.com/SciQLop/speasy/issues/373)
+
 1.8.2 (2026-09-18)
 ------------------
 

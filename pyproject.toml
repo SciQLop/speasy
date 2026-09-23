@@ -58,6 +58,7 @@ homepage = "https://github.com/SciQLop/speasy"
 
 [project.optional-dependencies]
 zstd = ["pyzstd"]
+blosc = ["numcodecs"]
 
 [dependency-groups]
 dev = [
@@ -65,6 +66,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pyzstd",
+    "numcodecs",
     "watchdog",
     "IPython",
     "cogapp",
