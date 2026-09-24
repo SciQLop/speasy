@@ -7,8 +7,16 @@ History
 
 Behavior changes:
 
-* Speasy now requires ``pysciqlop-cache`` 0.2. Existing caches are kept as they are; nothing is
-  migrated.
+* Speasy now requires ``pysciqlop-cache`` 0.2.2. Existing caches are kept as they are; nothing is
+  migrated. 0.2.2 raises ``OSError`` when a cache value can't be written (full disk, quota), instead
+  of silently dropping it.
+
+New features:
+
+* AMDA private parameters: once your AMDA credentials are configured, parameters you can access
+  through an AMDA private group appear under ``spz.inventories.tree.amda.PrivateParameters``.
+  They are cached like public data but never go through the proxy server.
+  (https://github.com/SciQLop/speasy/pull/372)
 
 Performance:
 
