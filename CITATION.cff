@@ -19,7 +19,7 @@ authors:
   given-names: "Nicolas"
   orcid: "https://orcid.org/0000-0001-8017-5676"
 title: "Speasy"
-version: 1.8.2
+version: 1.8.3
 doi: 10.5281/zenodo.22833702
-date-released: 2026-09-18
+date-released: 2026-09-24
 url: "https://github.com/SciQLop/speasy"

@@ -2,7 +2,7 @@
 History
 =======
 
-1.8.3 (unreleased)
+1.8.3 (2026-09-24)
 ------------------
 
 Behavior changes:
@@ -25,6 +25,10 @@ Performance:
   Install the new ``speasy[blosc]`` extra (numcodecs) to use it. Speasy now decodes proxy responses
   according to their ``Content-Type``, so any client/server version combination works.
   (https://github.com/SciQLop/speasy/issues/373)
+
+* Amda private products by @brenard-irap in https://github.com/SciQLop/speasy/pull/372
+* Migrate to pysciqlop-cache 0.2 by @jeandet in https://github.com/SciQLop/speasy/pull/374
+* Proxy client: accept blosc-compressed responses by @jeandet in https://github.com/SciQLop/speasy/pull/375
 
 1.8.2 (2026-09-18)
 ------------------
