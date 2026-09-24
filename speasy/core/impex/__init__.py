@@ -416,7 +416,6 @@ class ImpexProvider(DataProvider):
         if self.is_private_parameter(product):
             kwargs['disable_proxy'] = True
 
-        print(kwargs)
         return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
                                    output_format=output_format or self.client.output_format, **kwargs)
 
