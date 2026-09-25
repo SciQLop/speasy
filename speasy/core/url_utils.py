@@ -70,6 +70,9 @@ def build_url(base: str, parameters: Dict) -> str:
     return base + '?' + urlencode(parameters)
 
 
+_DEFAULT_PORTS = {'http': 80, 'https': 443, 'ftp': 21}
+
+
 def host_and_port(url: str) -> Tuple[str, int]:
     """Returns the host and port of an url
 
@@ -84,14 +87,7 @@ def host_and_port(url: str) -> Tuple[str, int]:
         host and port of the url, defaults to 80 if no port or scheme is provided
     """
     parsed = urlparse(url)
-    if parsed.port is not None:
-        return parsed.hostname, parsed.port
-    elif parsed.scheme == 'http':
-        return parsed.hostname, 80
-    elif parsed.scheme == 'https':
-        return parsed.hostname, 443
-
-    return parsed.hostname, 80
+    return parsed.hostname, parsed.port or _DEFAULT_PORTS.get(parsed.scheme, 80)
 
 
 def apply_rewrite_rules(url: str) -> str:
