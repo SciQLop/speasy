@@ -17,7 +17,9 @@ def is_ftp(url: str) -> bool:
 def _session(url: str, timeout: float) -> Iterator[Tuple[ftplib.FTP, str]]:
     parts = urlparse(url)
     try:
-        with ftplib.FTP(timeout=timeout) as session:
+        # Plain FTP on purpose: it is how some public archives serve their files, and users opt in by writing an
+        # ftp:// URL. Speasy only reads public data from them, anonymously by default.
+        with ftplib.FTP(timeout=timeout) as session:  # NOSONAR python:S5332
             session.connect(parts.hostname, parts.port or ftplib.FTP_PORT)
             session.login(unquote(parts.username or 'anonymous'), unquote(parts.password or ''))
             yield session, unquote(parts.path) or '/'
