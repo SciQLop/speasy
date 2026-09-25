@@ -2,9 +2,10 @@
 import ftplib
 import io
 import posixpath
+import time
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Iterator, List, Tuple
+from typing import Any, Callable, Iterator, List, Tuple
 from urllib.parse import unquote, urlparse
 
 
@@ -22,7 +23,8 @@ def _session(url: str, timeout: float) -> Iterator[Tuple[ftplib.FTP, str]]:
             yield session, unquote(parts.path) or '/'
     except ftplib.Error as e:
         # ftplib errors are not OSErrors; re-raise them as IOError like the HTTP path does
-        raise IOError(f"FTP request failed for {parts.hostname}{parts.path}: {e}") from e
+        error = FileNotFoundError if str(e).startswith('550') else IOError
+        raise error(f"FTP request failed for {parts.hostname}{parts.path}: {e}") from e
 
 
 def _mdtm(session: ftplib.FTP, path: str) -> str:
@@ -34,12 +36,26 @@ def _mdtm(session: ftplib.FTP, path: str) -> str:
         return str(datetime.now())
 
 
+def _write_before(deadline: float, write: Callable[[bytes], Any]) -> Callable[[bytes], None]:
+    def write_chunk(chunk: bytes):
+        if time.monotonic() > deadline:
+            raise TimeoutError("FTP download exceeded its total timeout")
+        write(chunk)
+
+    return write_chunk
+
+
 def get(url: str, timeout: float) -> Tuple[bytes, str]:
-    """Downloads a file, returns its content and its last-modified version."""
+    """Downloads a file, returns its content and its last-modified version.
+
+    ``timeout`` bounds the whole call, like :func:`speasy.core.http.urlopen`: ftplib's own timeout only bounds each
+    socket operation, so a server that keeps sending slowly would otherwise never time out.
+    """
+    deadline = time.monotonic() + timeout
     buffer = io.BytesIO()
     with _session(url, timeout) as (session, path):
         version = _mdtm(session, path)
-        session.retrbinary(f'RETR {path}', buffer.write)
+        session.retrbinary(f'RETR {path}', _write_before(deadline, buffer.write))
     return buffer.getvalue(), version
 
 
@@ -56,4 +72,4 @@ def list_dir(url: str, timeout: float) -> List[str]:
         except ftplib.error_perm:
             # 550: a missing folder, or an empty one on some servers. Both mean "no files", like an HTTP 404.
             return []
-        return [posixpath.basename(name) for name in names]
+        return [entry for entry in (posixpath.basename(name.rstrip('/')) for name in names) if entry]

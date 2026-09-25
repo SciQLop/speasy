@@ -269,7 +269,7 @@ class RandomSplitDirectDownload:
         try:
             v = downloader(force_refresh=force_refresh)
         except IOError as e:
-            if '404' in str(e):
+            if isinstance(e, FileNotFoundError) or '404' in str(e):
                 # try once more forcing a refresh of the file list cache in case file names have changed recently
                 # this could happen for example when a new version of the data is released
                 v = downloader(force_refresh=True)
