@@ -127,7 +127,8 @@ def fix_name(name: str):
         ('⊙', 'o'),
         (';', '_'),
         (',', '_'),
-        ('%', '_')
+        ('%', '_'),
+        ('#', '_')
     )
     if len(name):
         if name[0].isnumeric():
