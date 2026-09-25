@@ -38,6 +38,9 @@ New features:
 
 * CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
   parameters sharing a time axis can be told apart from the inventory alone.
+* Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
+  URL in ``url_pattern`` or ``master_file``. Folder listing (``use_file_list``, ``random`` splits) and
+  the file cache work as for HTTP.
 
 1.9.1 (2026-10-06)
 ------------------
