@@ -2,6 +2,16 @@
 History
 =======
 
+1.8.4 (2026-09-25)
+------------------
+
+Bug fixes:
+
+* Inventory entries whose name contains ``#`` (e.g. AMDA's "Earth flyby #2") got an invalid attribute
+  name and could not be reached through ``spz.inventories.tree``. ``#`` is now replaced by ``_``.
+
+* Fix '#' symbol in inventory by @brenard-irap in https://github.com/SciQLop/speasy/pull/378
+
 1.8.3 (2026-09-24)
 ------------------
 
