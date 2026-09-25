@@ -3,10 +3,10 @@ import logging
 import os
 import re
 from datetime import timedelta, datetime
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 from speasy.core.cache import CacheCall
 from speasy.core.cache import get_item, add_item, CacheItem, request_locker
-from . import http
+from . import ftp, http
 from .url_utils import is_local_file, extract_path, to_local_path
 
 log = logging.getLogger(__name__)
@@ -51,41 +51,48 @@ class AnyFile(io.IOBase):
         return getattr(self._file_impl, item)
 
 
-def _remote_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
+def _download(url, timeout: int, headers: dict) -> Tuple[bytes, str]:
+    """Returns the remote file content and its last-modified version."""
+    if ftp.is_ftp(url):
+        return ftp.get(url, timeout=timeout)
     resp = http.urlopen(url=url, headers=headers, timeout=timeout)
     if resp.status != 200:
+        # Never cache error responses: a transient 502 page stored as
+        # the file content poisons the cache until manually purged.
         raise IOError(f"Could not open remote file {url}: HTTP {resp.status}")
-    if 'b' in mode:
-        return AnyFile(url, io.BytesIO(resp.bytes))
-    else:
-        return AnyFile(url, io.StringIO(resp.text))
+    return resp.bytes, resp.headers.get('last-modified', str(datetime.now()))
 
 
-def _make_file_from_cache_entry(entry: CacheItem, url: str, mode: str) -> AnyFile:
-    if 'b' in mode:
-        return AnyFile(url, io.BytesIO(entry.data))
-    else:
-        return AnyFile(url, io.StringIO(entry.data))
+def _last_modified(url) -> str:
+    if ftp.is_ftp(url):
+        return ftp.last_modified(url, timeout=http.DEFAULT_TIMEOUT)
+    return http.head(url).headers.get('last-modified', str(datetime.now()))
+
+
+def _as_file_content(data: bytes, mode: str) -> Union[bytes, str]:
+    return data if 'b' in mode else data.decode()
+
+
+def _make_file(url: str, content: Union[bytes, str], mode: str) -> AnyFile:
+    return AnyFile(url, io.BytesIO(content) if 'b' in mode else io.StringIO(content))
+
+
+def _remote_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb'):
+    data, _ = _download(url, timeout, headers)
+    return _make_file(url, _as_file_content(data, mode), mode)
 
 
 def _is_outdated(entry: CacheItem, url: str) -> bool:
     try:
-        last_modified = http.head(url).headers.get('last-modified', str(datetime.now()))
-        return last_modified != entry.version
+        return _last_modified(url) != entry.version
     except Exception as e:
         log.warning(f"Could not check if remote file {url} is outdated: {e}")
         return False
 
 def _fetch_remote_cache_item(url, timeout: int, headers: dict, mode: str,
                              max_age: Optional[timedelta]) -> CacheItem:
-    resp = http.urlopen(url=url, headers=headers, timeout=timeout)
-    if resp.status != 200:
-        # Never cache error responses: a transient 502 page stored as
-        # the file content poisons the cache until manually purged.
-        raise IOError(f"Could not open remote file {url}: HTTP {resp.status}")
-    last_modified = resp.headers.get('last-modified', str(datetime.now()))
-    data = resp.bytes if 'b' in mode else resp.text
-    return CacheItem(data=data, version=last_modified, lifetime=max_age)
+    data, last_modified = _download(url, timeout, headers)
+    return CacheItem(data=_as_file_content(data, mode), version=last_modified, lifetime=max_age)
 
 
 def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: dict = None, mode='rb',
@@ -107,7 +114,7 @@ def _cached_get_remote_file(url, timeout: int = http.DEFAULT_TIMEOUT, headers: d
         elif max_age is not None and not entry_within_ttl:
             entry.lifetime = max_age
             add_item(key=url, item=entry.bump_creation_time())
-        return _make_file_from_cache_entry(entry, url, mode)
+        return _make_file(url, entry.data, mode)
 
 
 def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dict] = None, mode='rb',
@@ -118,6 +125,7 @@ def any_loc_open(url, timeout: int = http.DEFAULT_TIMEOUT, headers: Optional[dic
     ----------
     url : str
         The file URL, formatted as either a local path or a standard URL (https://en.wikipedia.org/wiki/URL).
+        Remote files can be served over HTTP(S) or FTP.
     timeout : int
         The timeout duration in seconds for remote files (default: 60 seconds).
     headers : Optional[dict]
@@ -163,6 +171,8 @@ def _make_remote_files_relative(ref_path: str, path: str):
 
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
 def _list_remote_files(url: str) -> List[str]:
+    if ftp.is_ftp(url):
+        return ftp.list_dir(url, timeout=http.DEFAULT_TIMEOUT)
     if not url.endswith('/'):
         url += '/'
     response = http.get(url)
@@ -174,7 +184,7 @@ def _list_remote_files(url: str) -> List[str]:
 
 def list_files(url: str, file_regex: Union[re.Pattern, str], disable_cache=False, force_refresh=False) -> List[str]:
     """Lists files that match the specified regex pattern either from a web page generated by Apache mod_dir or
-    equivalent, or from a local directory.
+    equivalent, from an FTP folder, or from a local directory.
 
     Parameters
     ----------
