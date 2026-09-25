@@ -158,7 +158,9 @@ class FTPTimeout(unittest.TestCase):
 
     def tearDown(self):
         self.server.close()
-        shutil.rmtree(self.root)
+        # A paused throttled transfer is out of pyftpdlib's socket map, so close_all() never closes
+        # its file. Windows can't delete an open file; leaving a 32 KiB temp file behind is harmless.
+        shutil.rmtree(self.root, ignore_errors=True)
 
     def test_timeout_bounds_the_whole_download(self):
         # a per-socket-operation timeout never fires on a server that keeps sending slowly,
