@@ -66,7 +66,7 @@ class FromDictAndToDictPreserveInventory(unittest.TestCase):
         #
         # This goes through CDA's real update_tree(), offline, against a real master CDF checked
         # into tests/resources (no live CDAWeb catalog / no persisted inventory cache involved) --
-        # this is the same code path load_master_cdf()/build_inventory() takes on a fresh build.
+        # this is the same code path build_inventory() takes on a fresh build.
         dataset = DatasetIndex(name='ELA_L1_STATE_PRED', provider='cda', uid='ELA_L1_STATE_PRED',
                                meta={
                                    'mastercdf': 'ela_l1_state_pred_00000000_v01.cdf',
@@ -82,3 +82,35 @@ class FromDictAndToDictPreserveInventory(unittest.TestCase):
         param = dataset.__dict__.get('ela_att_solution_date')
         self.assertIsNotNone(param)
         self.assertInventoryEqual(root, from_dict(to_dict(root, version=2), version=2))
+
+
+def _master_dataset(name: str, mastercdf: str, start: str) -> DatasetIndex:
+    return DatasetIndex(name=name, provider='cda', uid=name,
+                        meta={'mastercdf': f'https://example.org/0MASTERS/{mastercdf}',
+                              'start_date': start, 'stop_date': '2030-01-01T00:00:00Z',
+                              'serviceprovider_ID': name})
+
+
+class CdaUpdateTree(unittest.TestCase):
+    def test_each_dataset_gets_parameters_from_its_own_master(self):
+        datasets = {
+            'ELA_L1_STATE_PRED': _master_dataset('ELA_L1_STATE_PRED', 'ela_l1_state_pred_00000000_v01.cdf',
+                                                 '2018-01-01T00:00:00Z'),
+            'ERG_HFA': _master_dataset('ERG_HFA', 'erg_pwe_hfa_l3_1min_00000000_v01.cdf', '2017-01-01T00:00:00Z'),
+            'GE_H0_CPI': _master_dataset('GE_H0_CPI', 'ge_h0_cpi_00000000_v01.cdf', '1995-01-01T00:00:00Z'),
+            'NO_MASTER': _master_dataset('NO_MASTER', 'does_not_exist_00000000_v01.cdf', '2000-01-01T00:00:00Z'),
+        }
+        root = SpeasyIndex(name='root', provider='cda', uid='root')
+        root.__dict__.update(datasets)
+
+        update_tree(root, master_cdf_dir=f"{__HERE__}/resources")
+
+        for name, param_name in (('ELA_L1_STATE_PRED', 'ela_att_solution_date'), ('ERG_HFA', 'Fuhr'),
+                                 ('GE_H0_CPI', 'SW_V')):
+            dataset = datasets[name]
+            param = dataset.__dict__.get(param_name)
+            self.assertIsNotNone(param, f"{param_name} missing from {name}")
+            self.assertEqual(param.spz_uid(), f"{name}/{param_name}")
+            self.assertEqual(param.dataset, name)
+            self.assertEqual(param.start_date, dataset.start_date)
+        self.assertFalse(any(isinstance(v, SpeasyIndex) for v in datasets['NO_MASTER'].__dict__.values()))
