@@ -132,6 +132,19 @@ Your files don't have to be remote. A local archive works the same way — just 
       split_rule: regular
       url_pattern: /home/me/data/{Y}/{M:02d}/mydata_{Y}{M:02d}{D:02d}.cdf
 
+FTP archives work too: use an ``ftp://`` URL. Speasy logs in anonymously, unless the URL carries
+credentials (``ftp://user:password@host/...``). ``use_file_list`` and ``random`` splits list the
+folders over FTP, and downloaded files are cached like HTTP ones:
+
+.. code-block:: YAML
+
+    my_ftp_data:
+      inventory_path: my_data/FTP
+      master_file: ftp://ftp.my_server.net/pub/masters/mydata_00000000_v01.cdf
+      split_rule: regular
+      url_pattern: ftp://ftp.my_server.net/pub/data/{Y}/mydata_{Y}{M:02d}{D:02d}_v\d+.cdf
+      use_file_list: true
+
 Alternatively, you can describe the variables inline — no master file needed, and no network access at
 inventory build time. Speasy then needs the metadata a master file would have provided, so each variable
 carries its own ``meta`` block, alongside a dataset-level one:

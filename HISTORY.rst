@@ -2,6 +2,15 @@
 History
 =======
 
+1.8.5 (unreleased)
+------------------
+
+New features:
+
+* Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
+  URL in ``url_pattern`` or ``master_file``. Folder listing (``use_file_list``, ``random`` splits) and
+  the file cache work as for HTTP.
+
 1.8.4 (2026-09-25)
 ------------------
 

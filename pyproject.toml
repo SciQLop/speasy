@@ -70,6 +70,7 @@ dev = [
     "watchdog",
     "IPython",
     "cogapp",
+    "pyftpdlib",
 ]
 docs = [
     "sphinx!=5.2.0.post0",
