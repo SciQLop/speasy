@@ -1,5 +1,6 @@
 import operator
 import os
+import pickle
 import shutil
 import sys
 import tempfile
@@ -599,6 +600,46 @@ class TestNoopCacheBackend(unittest.TestCase):
             cache.set("k", "v")
             self.assertIsNone(cache.get("k"))
             self.assertEqual(cache.stats(), {"hit": 0, "misses": 0})
+
+
+def _big_variable(n=100_000):
+    time = np.datetime64("2020-01-01", "ns") + np.arange(n) * np.timedelta64(1, "s")
+    values = np.random.default_rng(0).standard_normal((n, 3))
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time)], values=DataContainer(values=values))
+
+
+class SpeasyVariablePicklesOutOfBand(unittest.TestCase):
+    def test_arrays_are_exported_as_pickle_buffers(self):
+        buffers = []
+        pickle.dumps(_big_variable(), protocol=5, buffer_callback=buffers.append)
+        self.assertGreaterEqual(len(buffers), 1)
+
+
+@unittest.skipUnless(hasattr(cache_mod.sc, "PickleOOBSerializer"), "pysciqlop-cache without pickle-oob")
+@ddt
+class CacheUsesPickleOOB(unittest.TestCase):
+    @data("Cache", "Fanout")
+    def test_new_cache_uses_pickle_oob(self, cache_type):
+        c = Cache(tempfile.mkdtemp(), cache_type=cache_type)
+        self.assertEqual(c._data.serializer.name, "pickle-oob")
+
+    @data("Cache", "Fanout")
+    def test_big_variable_round_trips(self, cache_type):
+        c = Cache(tempfile.mkdtemp(), cache_type=cache_type)
+        var = _big_variable()
+        c["var"] = var
+        self.assertEqual(c.get("var"), var)
+
+    def test_existing_pickle_cache_keeps_its_entries(self):
+        path = tempfile.mkdtemp()
+        var = _big_variable()
+        legacy = cache_mod.sc.Cache(cache_path=f"{path}/Cache", serializer=cache_mod.sc.PickleSerializer())
+        legacy["cache/version"] = version_to_str(cache_mod.cache_version)
+        legacy["var"] = var
+        legacy.close()
+        c = Cache(path)
+        self.assertEqual(c._data.serializer.name, "pickle-oob")
+        self.assertEqual(c.get("var"), var)
 
 
 _cache_call_dedup_cntr = {"n": 0}

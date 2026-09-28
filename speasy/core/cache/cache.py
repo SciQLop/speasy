@@ -354,6 +354,14 @@ def delete_migration_backups() -> List[str]:
     return deleted
 
 
+def _data_serializer():
+    # pickle-oob keeps numpy buffers out of the pickle stream (GIL released, time
+    # axes compressed) and reads plain pickle entries, so existing caches switch in
+    # place. Older pysciqlop-cache and the no-op backend don't have it.
+    oob = getattr(sc, "PickleOOBSerializer", None)
+    return oob() if oob is not None else None
+
+
 class Cache:
     __slots__ = ["cache_file", "_data", "cache_type"]
 
@@ -364,11 +372,12 @@ class Cache:
 
         if cache_type == "Fanout":
             self._data = _open_or_recover(
-                lambda: sc.FanoutCache(cache_path=full_path, shard_count=8, max_size=cache_cfg.size()),
+                lambda: sc.FanoutCache(cache_path=full_path, shard_count=8, max_size=cache_cfg.size(),
+                                       serializer=_data_serializer()),
                 full_path, "cache")
         elif cache_type == "Cache":
             self._data = _open_or_recover(
-                lambda: sc.Cache(cache_path=full_path, max_size=cache_cfg.size()),
+                lambda: sc.Cache(cache_path=full_path, max_size=cache_cfg.size(), serializer=_data_serializer()),
                 full_path, "cache")
         else:
             raise ValueError(f"Unimplemented cache type: {cache_type}")
