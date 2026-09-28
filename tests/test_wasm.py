@@ -5,13 +5,13 @@ try:
 
     from glob import glob
 
-    _FILE_PATH = glob("pyodide-dist/speasy*.whl", recursive=True)[0]
-    _DEST_PATH = _FILE_PATH.split("/")[-1]
+    _WHEELS = [(path, path.split("/")[-1]) for path in
+               glob("pyodide-dist/pycdfpp*.whl") + glob("pyodide-dist/speasy*.whl")]
 
 
     @pytest.mark.driver_timeout(60 * 2)
-    @copy_files_to_pyodide(file_list=[(_FILE_PATH, _DEST_PATH)], install_wheels=True, recurse_directories=True)
-    @run_in_pyodide(packages=['micropip', 'pycdfpp'])
+    @copy_files_to_pyodide(file_list=_WHEELS, install_wheels=True, recurse_directories=True)
+    @run_in_pyodide(packages=['micropip'])
     async def test_import_speasy(selenium):
         import speasy as spz
         assert spz.__version__ is not None
@@ -25,8 +25,8 @@ try:
         "sscweb/moon",
     ])
     @pytest.mark.driver_timeout(60 * 2)
-    @copy_files_to_pyodide(file_list=[(_FILE_PATH, _DEST_PATH)], install_wheels=True, recurse_directories=True)
-    @run_in_pyodide(packages=['micropip', 'pycdfpp'])
+    @copy_files_to_pyodide(file_list=_WHEELS, install_wheels=True, recurse_directories=True)
+    @run_in_pyodide(packages=['micropip'])
     async def test_simple_query(selenium, product_path):
         import speasy as spz
         v = spz.get_data(product_path, "2020-01-01", "2020-01-02")
