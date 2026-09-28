@@ -1,8 +1,5 @@
 import logging
-import multiprocessing
 import os.path
-import sys
-from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from typing import List, Tuple
 import pyistp
 
@@ -45,23 +42,12 @@ def _extract_datasets(root: SpeasyIndex) -> List[DatasetIndex]:
     return datasets
 
 
-def _masters_executor() -> Executor:
-    # Parsing is pure-Python pyistp work, so threads would serialize on the GIL. Workers must be
-    # forked: a spawned/forkserver worker re-imports speasy, whose import-time init_providers()
-    # would start its own inventory build. The fork child only parses files, it never touches the
-    # HTTP or cache locks that make forking a threaded process risky.
-    # simplify: sequential on macOS/Windows where fork is unsafe/missing; only the proxy (Linux) cares.
-    if sys.platform == "linux":
-        return ProcessPoolExecutor(mp_context=multiprocessing.get_context("fork"))
-    return ThreadPoolExecutor(max_workers=1)
-
-
 def update_tree(root: SpeasyIndex, master_cdf_dir):
     datasets = [(dataset, os.path.join(master_cdf_dir, dataset.mastercdf.split('/')[-1]))
                 for dataset in _extract_datasets(root)]
     datasets = [(dataset, path) for dataset, path in datasets if os.path.exists(path)]
-    with _masters_executor() as executor:
-        parsed = executor.map(_parse_master_cdf, [path for _, path in datasets],
-                              [dataset.serviceprovider_ID for dataset, _ in datasets], chunksize=16)
-        for (dataset, _), result in zip(datasets, parsed):
-            _attach_master(dataset, result)
+    # Sequential on purpose: init_providers() builds this during `import speasy`, and any process
+    # pool pickles its work from a helper thread, which then waits forever on the `speasy` import
+    # lock (SciQLop/speasy#381).
+    for dataset, path in datasets:
+        _attach_master(dataset, _parse_master_cdf(path, dataset.serviceprovider_ID))

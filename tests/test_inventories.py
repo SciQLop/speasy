@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 import unittest
 from ddt import ddt, data, unpack
 
@@ -114,3 +116,29 @@ class CdaUpdateTree(unittest.TestCase):
             self.assertEqual(param.dataset, name)
             self.assertEqual(param.start_date, dataset.start_date)
         self.assertFalse(any(isinstance(v, SpeasyIndex) for v in datasets['NO_MASTER'].__dict__.values()))
+
+
+# Replays the state of a CDA inventory build run by init_providers() during `import speasy`: the
+# main thread holds the `speasy` import lock while update_tree() runs (SciQLop/speasy#381).
+_UPDATE_TREE_DURING_SPEASY_IMPORT = """
+import importlib._bootstrap, sys
+sys.path.insert(0, sys.argv[1])
+import speasy
+from test_inventories import _master_dataset
+from speasy.core.inventory.indexes import SpeasyIndex
+from speasy.data_providers.cda._inventory_builder._cdf_masters_parser import update_tree
+root = SpeasyIndex(name='root', provider='cda', uid='root')
+root.__dict__['GE_H0_CPI'] = _master_dataset('GE_H0_CPI', 'ge_h0_cpi_00000000_v01.cdf', '1995-01-01T00:00:00Z')
+speasy.__spec__._initializing = True
+with importlib._bootstrap._ModuleLockManager('speasy'):
+    update_tree(root, master_cdf_dir=sys.argv[1] + '/resources')
+print(len(root.GE_H0_CPI.__dict__))
+"""
+
+
+class CdaUpdateTreeDuringImport(unittest.TestCase):
+    def test_does_not_hang_while_speasy_is_importing(self):
+        result = subprocess.run([sys.executable, "-c", _UPDATE_TREE_DURING_SPEASY_IMPORT, __HERE__],
+                                env={**os.environ, "SPEASY_SKIP_INIT_PROVIDERS": "1"},
+                                capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
