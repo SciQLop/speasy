@@ -84,6 +84,10 @@ FanoutCache = _NoopStore
 Index = _NoopStore
 
 
+class PickleOOBSerializer:
+    pass
+
+
 class Lock:
     def __init__(self, cache, key, *args, **kwargs):
         pass
