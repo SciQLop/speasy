@@ -615,7 +615,6 @@ class SpeasyVariablePicklesOutOfBand(unittest.TestCase):
         self.assertGreaterEqual(len(buffers), 1)
 
 
-@unittest.skipUnless(hasattr(cache_mod.sc, "PickleOOBSerializer"), "pysciqlop-cache without pickle-oob")
 @ddt
 class CacheUsesPickleOOB(unittest.TestCase):
     @data("Cache", "Fanout")
