@@ -47,20 +47,23 @@ jobs:
       uses: actions/setup-node@v7
       with:
         node-version: '24'
-#    - name: Download pyodide wheel artifact
-#      uses: pyodide/pyodide-actions/download-pyodide@v2
-#      with:
-#        version: '0.29.0'
-#        to: pyodide-dist
+    - name: Download pyodide distribution
+      uses: pyodide/pyodide-actions/download-pyodide@v2
+      with:
+        version: '0.29.0'
+        to: pyodide-dist
 
-    # Custom built pyodide distribution with preinstalled pycdfpp until it is available in official pyodide releases
-    # https://github.com/pyodide/pyodide-recipes
-    - name: Fetch custom pyodide distribution with preinstalled pycdfpp
+    # Pyodide 0.29 has no pycdfpp, and its micropip only accepts the pre-PEP 783 platform tag
+    # (pyodide_2025_0) while PyPI's wheel is tagged pyemscripten_2025_0, the same ABI renamed.
+    # simplify: drop the rename once the Pyodide in use understands pyemscripten tags.
+    - name: Fetch pycdfpp wasm wheel from PyPI
       run: |
-          wget https://sciqlop.lpp.polytechnique.fr/data/software/pyodide-0.29.0.tar.xz
-          tar -xf pyodide-0.29.0.tar.xz
-          mv pyodide-0.29.0/pyodide pyodide-dist
-          ls pyodide-dist/
+        python -m pip download pycdfpp --no-deps --only-binary=:all: \
+          --platform pyemscripten_2025_0_wasm32 --python-version 3.13 -d wheels
+        for w in wheels/pycdfpp-*.whl; do
+          mv "$w" "pyodide-dist/$(basename "$w" | sed 's/pyemscripten_2025_0/pyodide_2025_0/')"
+        done
+        ls pyodide-dist/pycdfpp-*.whl
 
 
     - name: restore speasy wheel artifact
