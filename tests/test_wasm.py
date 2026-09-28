@@ -5,12 +5,12 @@ try:
 
     from glob import glob
 
-    _WHEELS = [(path, path.split("/")[-1]) for path in
-               glob("pyodide-dist/pycdfpp*.whl") + glob("pyodide-dist/speasy*.whl")]
+    _FILE_PATH = glob("pyodide-dist/speasy*.whl", recursive=True)[0]
+    _DEST_PATH = _FILE_PATH.split("/")[-1]
 
 
     @pytest.mark.driver_timeout(60 * 2)
-    @copy_files_to_pyodide(file_list=_WHEELS, install_wheels=True, recurse_directories=True)
+    @copy_files_to_pyodide(file_list=[(_FILE_PATH, _DEST_PATH)], install_wheels=True, recurse_directories=True)
     @run_in_pyodide(packages=['micropip'])
     async def test_import_speasy(selenium):
         import speasy as spz
@@ -25,7 +25,7 @@ try:
         "sscweb/moon",
     ])
     @pytest.mark.driver_timeout(60 * 2)
-    @copy_files_to_pyodide(file_list=_WHEELS, install_wheels=True, recurse_directories=True)
+    @copy_files_to_pyodide(file_list=[(_FILE_PATH, _DEST_PATH)], install_wheels=True, recurse_directories=True)
     @run_in_pyodide(packages=['micropip'])
     async def test_simple_query(selenium, product_path):
         import speasy as spz
