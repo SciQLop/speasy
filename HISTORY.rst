@@ -2,6 +2,28 @@
 History
 =======
 
+1.8.5 (2026-09-28)
+------------------
+
+Behavior changes:
+
+* Speasy now requires ``pysciqlop-cache`` 0.3 and ``pycdfpp`` 0.15. ``pycdfpp`` was only pulled in
+  through ``pyistp`` before, which accepted any version from 0.6.
+* The data cache now stores values with ``pysciqlop-cache``'s pickle-oob serializer. Existing caches
+  switch over in place, nothing is cleared. Going back to ``pysciqlop-cache`` 0.2 afterwards is not
+  supported: it can't open such a cache, and Speasy then starts a fresh one.
+* On WebAssembly, Speasy needs Pyodide 314 or later: micropip then installs ``pycdfpp`` 0.15's wasm
+  wheel from PyPI. Pyodide 0.29 and older can't install that wheel.
+
+Performance:
+
+* Numpy arrays in cached variables are stored outside the pickle stream, copied without holding the
+  GIL, and time axes are compressed: several threads reading or writing the cache no longer block
+  each other, and the cache takes less disk.
+
+* Store variables with pysciqlop-cache's pickle-oob serializer by @jeandet in https://github.com/SciQLop/speasy/pull/380
+* Parse CDAWeb master CDFs sequentially again by @jeandet in https://github.com/SciQLop/speasy/pull/382
+
 1.8.4 (2026-09-25)
 ------------------
 
