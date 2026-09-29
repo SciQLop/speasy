@@ -73,6 +73,8 @@ class UrlUtils(unittest.TestCase):
         ("http://129.104.27.7", ("129.104.27.7", 80)),
         ("https://129.104.27.7", ("129.104.27.7", 443)),
         ("https://129.104.27.7:8800", ("129.104.27.7", 8800)),
+        ("ftp://somewhere.com/pub/file.cdf", ("somewhere.com", 21)),
+        ("ftp://somewhere.com:2121/pub/file.cdf", ("somewhere.com", 2121)),
     )
     @unpack
     def test_host_and_port(self, url, expected):
