@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from datetime import timedelta, datetime
 from functools import partial
-from typing import Dict, Optional, List, Callable, Union, Tuple
+from typing import Dict, List, Callable, Tuple
 
 from dateutil.relativedelta import relativedelta
 
@@ -24,8 +24,8 @@ from speasy.core.algorithms import randomized_map
 log = logging.getLogger(__name__)
 
 # Change to this when we drop Python 3.8
-# FileLoaderCallable = Callable[[Optional[str], str, ...], Optional[SpeasyVariable]]
-FileLoaderCallable = Callable[..., Optional[SpeasyVariable]]
+# FileLoaderCallable = Callable[[str | None, str, ...], SpeasyVariable | None]
+FileLoaderCallable = Callable[..., SpeasyVariable | None]
 
 
 def apply_date_format(txt: str, date: datetime) -> str:
@@ -39,7 +39,7 @@ def apply_date_format(txt: str, date: datetime) -> str:
 
 
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
-def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] = None) -> Optional[SpeasyVariable]:
+def _read_cdf(url: str | None, variable: str, master_cdf_url: str | None = None) -> SpeasyVariable | None:
     if url is None:
         return None
     return get_codec('application/x-cdf').load_variable(file=url, variable=variable, master_cdf_url=master_cdf_url,
@@ -49,7 +49,7 @@ def _read_cdf(url: Optional[str], variable: str, master_cdf_url: Optional[str] =
 _DIGITS = re.compile(r'(\d+)')
 
 
-def _natural_order(file_name: str) -> List[Tuple[int, Union[int, str]]]:
+def _natural_order(file_name: str) -> List[Tuple[int, int | str]]:
     """Sort key comparing digit runs as numbers, so 'f_v10.cdf' comes after 'f_v9.cdf'.
 
     The leading rank keeps numbers and text from ever being compared to each other.
@@ -62,7 +62,7 @@ def _natural_order(file_name: str) -> List[Tuple[int, Union[int, str]]]:
     return [(1, int(chunk)) if chunk.isdigit() else (0, chunk) for chunk in _DIGITS.split(file_name)]
 
 
-def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refresh=False) -> Optional[str]:
+def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refresh=False) -> str | None:
     base_ulr = apply_date_format(url_pattern, date)
     if not use_file_list:
         return base_ulr
@@ -114,13 +114,13 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
     raise ValueError(f"Unknown/unimplemented split_frequency: {split_frequency}")
 
 
-def _parse_date(date: Union[str, datetime], date_format: Optional[str] = None) -> Optional[datetime]:
+def _parse_date(date: str | datetime, date_format: str | None = None) -> datetime | None:
     if isinstance(date, datetime) or date_format is None:
         return make_utc_datetime(date)
     return make_utc_datetime(datetime.strptime(date, date_format))
 
 
-def _group_by_time_range(files: List[re.Match]) -> Dict[Tuple[str, Optional[str]], List[re.Match]]:
+def _group_by_time_range(files: List[re.Match]) -> Dict[Tuple[str, str | None], List[re.Match]]:
     grouped = defaultdict(list)
     for file in files:
         groups = file.groupdict()
@@ -128,7 +128,7 @@ def _group_by_time_range(files: List[re.Match]) -> Dict[Tuple[str, Optional[str]
     return grouped
 
 
-def _warn_about_undecidable_duplicates(grouped: Dict[Tuple[str, Optional[str]], List[re.Match]]) -> None:
+def _warn_about_undecidable_duplicates(grouped: Dict[Tuple[str, str | None], List[re.Match]]) -> None:
     duplicated = [group for group in grouped.values() if len(group) > 1]
     if duplicated:
         example = sorted(file.string for file in duplicated[0])
@@ -156,7 +156,7 @@ def _drop_superseded_versions(files: List[re.Match]) -> List[re.Match]:
 
 
 @CacheCall(cache_retention=timedelta(hours=24), is_pure=True)
-def map_ranges(url, fname_regex: Union[str, re.Pattern], date_format: Optional[str] = None) -> List[
+def map_ranges(url, fname_regex: str | re.Pattern, date_format: str | None = None) -> List[
     Tuple[str, Tuple[datetime, datetime]]]:
     if type(fname_regex) is str:
         fname_regex = re.compile(fname_regex)
@@ -249,7 +249,7 @@ class RandomSplitDirectDownload:
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
-                    file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> Optional[SpeasyVariable]:
+                    file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> SpeasyVariable | None:
 
         # kept in kwargs on purpose: it must also reach the file reader's own cache
         force_refresh = kwargs.get('force_refresh', False)
@@ -287,7 +287,7 @@ class RegularSplitDirectDownload:
                     stop_time: AnyDateTimeType, use_file_list: bool = False, split_frequency: str = "daily",
                     file_reader: FileLoaderCallable = _read_cdf,
                     **kwargs) -> \
-        Optional[SpeasyVariable]:
+        SpeasyVariable | None:
         # kept in kwargs on purpose: it must also reach the file reader's own cache
         force_refresh = kwargs.get('force_refresh', False)
         v = merge(randomized_map(
@@ -301,8 +301,8 @@ class RegularSplitDirectDownload:
 
 
 def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-               use_file_list: bool = False, split_frequency: str = "daily", fname_regex: Optional[str] = None,
-               date_format=None, **kwargs) -> Optional[str]:
+               use_file_list: bool = False, split_frequency: str = "daily", fname_regex: str | None = None,
+               date_format=None, **kwargs) -> str | None:
     """URL of the first file this archive would read for that range, None when it resolves none.
 
     Lets a caller look at one real file -- its variable list, its metadata -- without loading data.
@@ -322,8 +322,8 @@ def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, s
 
 def get_product(url_pattern: str, split_rule: str, variable: str, start_time: AnyDateTimeType,
                 stop_time: AnyDateTimeType, use_file_list: bool = False, file_reader: FileLoaderCallable = _read_cdf,
-                codec: Optional[str] = None,
-                **kwargs) -> Optional[SpeasyVariable]:
+                codec: str | None = None,
+                **kwargs) -> SpeasyVariable | None:
     if codec is not None:
         selected_codec = get_codec(codec)
 
