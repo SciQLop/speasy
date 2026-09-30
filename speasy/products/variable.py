@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Any, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Any, Tuple, Union
 
 import astropy.table
 import astropy.units
@@ -1015,23 +1015,27 @@ def to_dataframe(var: SpeasyVariable) -> pds.DataFrame:
     return SpeasyVariable.to_dataframe(var)
 
 
-def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
+def merge(variables: Iterable[SpeasyVariable]) -> Optional[SpeasyVariable]:
     """Merge a list of :class:`~speasy.common.variable.SpeasyVariable` objects.
 
     Parameters
     ----------
-    variables: List[SpeasyVariable]
-        Variables to merge together
+    variables: Iterable[SpeasyVariable]
+        Variables to merge together. Each one is released as soon as it is copied into the result, so
+        passing an iterator that hands over the only reference keeps the memory peak near the result size.
 
     Returns
     -------
     SpeasyVariable:
         Resulting variable from merge operation
     """
+    variables = [v for v in variables if v is not None]
     if len(variables) == 0:
         return None
-    sorted_var_list = [v for v in variables if (
-        v is not None) and (len(v.time) > 0)]
+    sorted_var_list = [v for v in variables if len(v.time) > 0]
+    if len(sorted_var_list) == 0:
+        return SpeasyVariable.reserve_like(variables[0], length=0)
+    del variables
     sorted_var_list.sort(key=lambda v: v.time[0])
 
     # drop variables covered by previous ones
@@ -1043,12 +1047,6 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
     for current, nxt in zip(sorted_var_list[:-1], sorted_var_list[1:]):
         if nxt.time[0] == current.time[0] and nxt.time[-1] >= current.time[-1]:
             sorted_var_list.remove(current)
-
-    if len(sorted_var_list) == 0:
-        for v in variables:
-            if v is not None:
-                return SpeasyVariable.reserve_like(v, length=0)
-        return None
 
     overlaps = [
         np.where(current.time >= nxt.time[0])[0][0]
@@ -1071,7 +1069,8 @@ def merge(variables: List[SpeasyVariable]) -> Optional[SpeasyVariable]:
 
     pos = 0
 
-    for r, overlap in zip(sorted_var_list, overlaps + [-1]):
+    for i, overlap in enumerate(overlaps + [-1]):
+        r, sorted_var_list[i] = sorted_var_list[i], None
         frag_len = len(r.time) if overlap == -1 else overlap
         result[pos: (pos + frag_len)] = r[0:frag_len]
         pos += frag_len
