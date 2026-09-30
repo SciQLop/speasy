@@ -358,6 +358,17 @@ class SpeasyVariableMerge(unittest.TestCase):
         self.assertListEqual(
             var.time.tolist(), var1.time.tolist() + var2.time.tolist())
 
+    def test_accepts_an_iterator(self):
+        var1 = make_simple_var(1., 10., 1., 10.)
+        var2 = make_simple_var(10., 20., 1., 10.)
+        var = merge(v for v in (var2, None, var1))
+        self.assertListEqual(
+            var.time.tolist(), var1.time.tolist() + var2.time.tolist())
+
+    def test_all_empty_gives_empty_like_first(self):
+        var = merge(iter([None, make_simple_var(), make_simple_var()]))
+        self.assertEqual(len(var), 0)
+
 
 @ddt
 class ASpeasyVariable(unittest.TestCase):

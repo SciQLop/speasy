@@ -125,6 +125,23 @@ def filter_requests_locked_by_others(requests: List[Union[PendingRequest, Speasy
             isinstance(request, PendingRequest) and not request.is_from_current_thread]
 
 
+def _trim_to_range(chunk: Union[SpeasyVariable, PendingRequest], dt_range: DateTimeRange):
+    if not isinstance(chunk, SpeasyVariable):
+        return chunk
+    trimmed = chunk[dt_range.start_time:dt_range.stop_time]
+    # A view would keep the whole fragment alive, margins included; copying the kept part lets it be freed now.
+    return trimmed if len(trimmed) == len(chunk) else trimmed.copy()
+
+
+def _hand_over_trimmed(chunks: List[Optional[SpeasyVariable]], dt_range: DateTimeRange):
+    # Popping leaves merge_variables the only reference to each chunk, so it frees them one by one
+    # while filling the result instead of keeping every fragment alive until the end.
+    while chunks:
+        chunk = chunks.pop()
+        if chunk is not None:
+            yield chunk[dt_range.start_time:dt_range.stop_time]
+
+
 def default_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
     return f"{prefix}/{product}/{start_time}"
 
@@ -316,11 +333,13 @@ class _Cacheable:
                     self.get_from_cache(fragment, product, version, prefer_cache, wait_for_pending=True, **kwargs))
         return data_fragments
 
-    def get_or_lock_fragments_from_cache(self, fragments: List[datetime], product: str, version, prefer_cache=False,
+    def get_or_lock_fragments_from_cache(self, fragments: List[datetime], product: str, version,
+                                         dt_range: DateTimeRange, prefer_cache=False,
                                          **kwargs) -> List[Union[SpeasyVariable, PendingRequest]]:
         with self.cache.transact(product):
             return [
-                self.get_or_lock_from_cache(fragment, product, version, prefer_cache, **kwargs)
+                _trim_to_range(self.get_or_lock_from_cache(fragment, product, version, prefer_cache, **kwargs),
+                               dt_range)
                 for fragment in fragments
             ]
 
@@ -359,40 +378,33 @@ class Cacheable(object):
     def _retrieve_concurrently_requested_fragments(self, fragments: List[datetime], product: str, version, **kwargs):
         return [self._cache.get_from_cache(fragment, product, version, **kwargs) for fragment in fragments]
 
+    def _lookup_fragments(self, fragments, fragment_duration, dt_range, product, version, prefer_cache, **kwargs):
+        maybe_data_chunks = self._cache.get_or_lock_fragments_from_cache(fragments, product, version, dt_range,
+                                                                         prefer_cache=prefer_cache, **kwargs)
+        cached_chunks = [d for d in maybe_data_chunks if isinstance(d, SpeasyVariable)]
+        missing_fragments_for_me = group_contiguous_fragments(
+            filter_requests_for_me(maybe_data_chunks, fragments),
+            duration=fragment_duration)
+        locked_by_others = filter_requests_locked_by_others(maybe_data_chunks, fragments)
+        return cached_chunks, missing_fragments_for_me, locked_by_others
+
     def _get_data_with_cache(self, get_data, wrapped_self, product, start_time, stop_time, **kwargs):
         product = product_name(product)
         version = self._cache.version(wrapped_self, product)
         dt_range = DateTimeRange(start_time, stop_time)
         prefer_cache = kwargs.pop("prefer_cache", False)
         fragment_duration, fragments = self._cache.fragment_list(product, dt_range)
-        maybe_data_chunks = self._cache.get_or_lock_fragments_from_cache(fragments, product, version,
-                                                                         prefer_cache=prefer_cache, **kwargs)
-
-        data_chunks = [d for d in maybe_data_chunks if isinstance(d, SpeasyVariable)]
-
-        missing_fragments_for_me = group_contiguous_fragments(
-            filter_requests_for_me(maybe_data_chunks, fragments),
-            duration=fragment_duration)
+        data_chunks, missing_fragments_for_me, locked_by_others = self._lookup_fragments(
+            fragments, fragment_duration, dt_range, product, version, prefer_cache, **kwargs)
 
         if len(missing_fragments_for_me):
             data_chunks += randomized_map(self._get_and_wb_fragment_group, missing_fragments_for_me,
                                           fragment_duration, get_data, wrapped_self,
                                           product, version, **kwargs)
 
-        data_chunks += self._retrieve_concurrently_requested_fragments(
-            filter_requests_locked_by_others(maybe_data_chunks, fragments), product, version, **kwargs)
+        data_chunks += self._retrieve_concurrently_requested_fragments(locked_by_others, product, version, **kwargs)
 
-        data_chunks = list(filter(lambda d: d is not None, data_chunks))
-
-        if len(data_chunks):
-            if len(data_chunks) == 1:
-                return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
-            if data_chunks[0] is not None:
-                data_chunks[0] = data_chunks[0][dt_range.start_time:]
-            if data_chunks[-1] is not None:
-                data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
-            return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
-        return None
+        return merge_variables(_hand_over_trimmed(data_chunks, dt_range))
 
     @staticmethod
     def _get_data_without_cache(get_data, wrapped_self, product, start_time, stop_time, **kwargs):
