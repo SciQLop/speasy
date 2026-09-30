@@ -2,6 +2,15 @@
 History
 =======
 
+1.8.6 (unreleased)
+------------------
+
+Bug fixes:
+
+* 3DView's frame and body lists are now fetched with retries, like the rest of Speasy's requests. A
+  transient 502 from 3DView no longer breaks the inventory with a ``JSONDecodeError``, and a lasting
+  HTTP error is reported as ``Cdpp3dViewWebException``.
+
 1.8.5 (2026-09-28)
 ------------------
 

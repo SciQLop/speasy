@@ -316,3 +316,48 @@ class Cdpp3dViewFramesWithProxyInventory(unittest.TestCase):
         from unittest.mock import patch
         with patch.object(spz.cdpp3dview, '_build_frames_list', side_effect=IOError("service down")):
             self.assertEqual(spz.cdpp3dview.get_frames(), [])
+
+
+class _FlakyJsonServer:
+    """Answers each GET with the next (status, body) in `replies`, repeating the last one."""
+
+    def __init__(self, replies):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        pending = list(replies)
+
+        class _Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                status, body = pending.pop(0) if len(pending) > 1 else pending[0]
+                self.send_response(status)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+
+        self._server = ThreadingHTTPServer(('127.0.0.1', 0), _Handler)
+        threading.Thread(target=self._server.serve_forever, daemon=True).start()
+        self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
+
+    def close(self):
+        self._server.shutdown()
+        self._server.server_close()
+
+
+class Cdpp3dViewInventoryRequests(unittest.TestCase):
+    # 3DView's gateway sometimes answers a lone 502 with an empty body; it used to reach
+    # response.json() unretried and fail with a JSONDecodeError (flaky test_get_bodies in CI).
+
+    def test_retries_a_transient_bad_gateway(self):
+        server = _FlakyJsonServer([(502, b""), (200, b'{"bodies": []}')])
+        self.addCleanup(server.close)
+        self.assertEqual(cdpp3dview._get_json(f"{server.url}/get_bodies"), {"bodies": []})
+
+    def test_reports_http_errors_instead_of_decoding_them(self):
+        server = _FlakyJsonServer([(404, b"not found")])
+        self.addCleanup(server.close)
+        with self.assertRaises(cdpp3dview.Cdpp3dViewWebException):
+            cdpp3dview._get_json(f"{server.url}/get_bodies")

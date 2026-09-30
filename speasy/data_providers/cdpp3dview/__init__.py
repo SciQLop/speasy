@@ -57,6 +57,13 @@ def _resolve_coordinate_frame(coordinate_frame: Optional[str], coordinate_system
     return coordinate_frame or coordinate_system or "J2000"
 
 
+def _get_json(url: str):
+    response = http.get(url, headers={"Accept": "application/json"})
+    if response.status_code != 200:
+        raise Cdpp3dViewWebException(f"{url} answered HTTP {response.status_code}")
+    return response.json()
+
+
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"cdpp3dview/{product}", 'start_time': f'{start_time.isoformat()}',
             'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_frame', 'J2000'),
@@ -80,9 +87,7 @@ class Cdpp3dViewWebservice(DataProvider):
         return 1
 
     def _build_frames_list(self):
-        URL = f"{self.BASE_URL}/get_frames"
-        with http.urlopen(URL, headers={"Accept": "application/json"}) as response:
-            data = response.json()
+        data = _get_json(f"{self.BASE_URL}/get_frames")
         _frames = [f["name"] for f in data['frames']]
         return _frames
 
@@ -259,9 +264,4 @@ class Cdpp3dViewWebservice(DataProvider):
         return self._parameter_range(parameter_id)
 
     def _get_bodies(self):
-        URL = f"{self.BASE_URL}/get_bodies"
-
-        with http.urlopen(URL, headers={"Accept": "application/json"}) as response:
-            data = response.json()
-
-        return data["bodies"]
+        return _get_json(f"{self.BASE_URL}/get_bodies")["bodies"]
