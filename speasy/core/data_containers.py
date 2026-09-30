@@ -300,14 +300,14 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], dtype=np.float64) -> "DataContainer":
         try:
             return DataContainer(
-                values=np.array(dictionary["values"], dtype=dictionary.get("values_type", dtype)),
+                values=np.asarray(dictionary["values"], dtype=dictionary.get("values_type", dtype)),
                 meta=dictionary["meta"],
                 name=dictionary["name"],
                 is_time_dependent=dictionary["is_time_dependent"]
             )
         except ValueError:
             return DataContainer(
-                values=np.array(dictionary["values"]), meta=dictionary["meta"],
+                values=np.asarray(dictionary["values"]), meta=dictionary["meta"],
                 name=dictionary["name"],
                 is_time_dependent=dictionary["is_time_dependent"]
             )
