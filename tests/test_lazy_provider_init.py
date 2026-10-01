@@ -3,6 +3,10 @@ import subprocess
 import sys
 import textwrap
 import unittest
+from unittest.mock import Mock, patch
+
+import speasy as spz
+from speasy.core.requests_scheduling import request_dispatch as rd
 
 
 def _run(script, disabled=""):
@@ -34,6 +38,35 @@ class LazyProviderInit(unittest.TestCase):
             assert PROVIDERS == {}, PROVIDERS
         """, disabled="amda")
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class EnsureProvider(unittest.TestCase):
+    # In-process counterpart of the subprocess tests above, the provider init itself is mocked
+    def setUp(self):
+        self._saved_cda = rd.__dict__.pop("cda", None)
+        self._saved_tree = spz.inventories.tree.__dict__.pop("cda", None)
+
+    def tearDown(self):
+        rd.__dict__["cda"] = self._saved_cda
+        if self._saved_tree is not None:
+            spz.inventories.tree.__dict__["cda"] = self._saved_tree
+
+    def test_alias_initializes_main_provider_once(self):
+        init = Mock()
+        with patch.dict(rd._INITIALIZERS, {"cda": init}):
+            rd._ensure_provider("cdaweb")
+            self.assertIsNone(rd.cda)
+            rd._ensure_provider("cda")
+        init.assert_called_once_with()
+
+    def test_inventory_tree_initializes_provider(self):
+        inventory = object()
+        init = Mock(side_effect=lambda: spz.inventories.tree.__dict__.__setitem__("cda", inventory))
+        with patch.dict(rd._INITIALIZERS, {"cda": init}):
+            self.assertIs(spz.inventories.tree.cda, inventory)
+            with self.assertRaises(AttributeError):
+                spz.inventories.tree._private
+        init.assert_called_once_with()
 
 
 if __name__ == "__main__":
