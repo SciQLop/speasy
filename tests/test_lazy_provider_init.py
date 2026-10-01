@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import textwrap
+import threading
 import unittest
 from unittest.mock import Mock, patch
 
@@ -67,6 +68,35 @@ class EnsureProvider(unittest.TestCase):
             with self.assertRaises(AttributeError):
                 spz.inventories.tree._private
         init.assert_called_once_with()
+
+    def test_concurrent_first_use_waits_for_init(self):
+        started, release = threading.Event(), threading.Event()
+
+        class SlowProvider:
+            def __init__(self):
+                started.set()
+                release.wait(10)
+
+        results = {}
+
+        def first_use(key):
+            results[key] = rd._ensure_provider("cda")
+
+        def init():
+            rd._safe_init_provider(SlowProvider, ["cda"], ignore_disabled_status=True)
+
+        with patch.dict(rd._INITIALIZERS, {"cda": init}), patch.dict(rd.PROVIDERS, clear=True):
+            first = threading.Thread(target=first_use, args=("first",))
+            first.start()
+            started.wait(10)
+            second = threading.Thread(target=first_use, args=("second",))
+            second.start()
+            second.join(0.2)
+            release.set()
+            first.join(10)
+            second.join(10)
+        self.assertIsInstance(results["first"], SlowProvider)
+        self.assertIs(results["second"], results["first"])
 
 
 if __name__ == "__main__":
