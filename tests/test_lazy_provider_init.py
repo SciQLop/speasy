@@ -46,6 +46,9 @@ class EnsureProvider(unittest.TestCase):
     def setUp(self):
         self._saved_cda = rd.__dict__.pop("cda", None)
         self._saved_tree = spz.inventories.tree.__dict__.pop("cda", None)
+        providers = patch.dict(rd.PROVIDERS, clear=True)
+        providers.start()
+        self.addCleanup(providers.stop)
 
     def tearDown(self):
         rd.__dict__["cda"] = self._saved_cda
@@ -85,7 +88,7 @@ class EnsureProvider(unittest.TestCase):
         def init():
             rd._safe_init_provider(SlowProvider, ["cda"], ignore_disabled_status=True)
 
-        with patch.dict(rd._INITIALIZERS, {"cda": init}), patch.dict(rd.PROVIDERS, clear=True):
+        with patch.dict(rd._INITIALIZERS, {"cda": init}):
             first = threading.Thread(target=first_use, args=("first",))
             first.start()
             started.wait(10)
@@ -97,6 +100,28 @@ class EnsureProvider(unittest.TestCase):
             second.join(10)
         self.assertIsInstance(results["first"], SlowProvider)
         self.assertIs(results["second"], results["first"])
+
+    def test_initialized_provider_does_not_wait_for_another_init(self):
+        provider, lock_held, release = object(), threading.Event(), threading.Event()
+        results = {}
+
+        def slow_init_elsewhere():
+            with rd._init_lock:
+                lock_held.set()
+                release.wait(10)
+
+        with patch.dict(rd.PROVIDERS, {"cda": provider}):
+            holder = threading.Thread(target=slow_init_elsewhere)
+            holder.start()
+            lock_held.wait(10)
+            user = threading.Thread(target=lambda: results.__setitem__("cda", rd._ensure_provider("cda")))
+            user.start()
+            user.join(1)
+            returned_while_locked = results.get("cda")
+            release.set()
+            holder.join(10)
+            user.join(10)
+        self.assertIs(returned_while_locked, provider)
 
 
 if __name__ == "__main__":
