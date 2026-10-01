@@ -7,6 +7,7 @@
 """
 
 import logging
+import os as _os
 from importlib import metadata as _metadata
 
 log = logging.getLogger(__name__)
@@ -26,7 +27,17 @@ from speasy.core.inventory.indexes import SpeasyIndex
 from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeAnyProduct
 
 # keep this import last
-from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive, uiowaephtool, cdpp3dview
+from .core.requests_scheduling.request_dispatch import get_data, list_providers
+
+if 'SPEASY_SKIP_INIT_PROVIDERS' not in _os.environ:
+    from .core.requests_scheduling.request_dispatch import amda, cda, csa, ssc, archive, uiowaephtool, cdpp3dview
+
+
+def __getattr__(name):
+    from .core.requests_scheduling import request_dispatch
+    if name in request_dispatch._INITIALIZERS:
+        return getattr(request_dispatch, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # @TODO implement me, this function should be able to look inside all servers

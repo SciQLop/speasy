@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
 import traceback
@@ -26,13 +27,9 @@ TimeSerieIndexT = Union[ParameterIndex, ComponentIndex]
 TimeRangeCollectionT = Union[TimetableIndex, CatalogIndex, Iterable[Iterable[Union[TimeT]]]]
 
 PROVIDERS = {}
-amda = None
-csa = None
-cda = None
-ssc = None
-archive = None
-uiowaephtool = None
-cdpp3dview = None
+# Provider module attributes (amda, cda, ...) are only set by _safe_init_provider, so that
+# __getattr__ can initialize a provider on first access when SPEASY_SKIP_INIT_PROVIDERS is set.
+_init_lock = threading.RLock()
 
 
 def _is_server_up(ws_class):
@@ -82,19 +79,21 @@ def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
         If the server is not running.
     """
     main_name = names[0]
-    if globals().get(main_name) is not None:
-        return
-    try:
-        if ignore_disabled_status or not core_cfg.disabled_providers().intersection(set(names)):
-            if _is_server_up(ws_class):
-                globals()[main_name] = ws_class()
-                for name in names:
-                    PROVIDERS[name] = globals()[main_name]
-            else:
-                raise RuntimeError(f'{main_name} is not running')
-    except Exception:  # pylint: disable=broad-except
-        log.warning(f"Provider {names} initialization failed, disabling provider")
-        log.warning(f"Exception: {traceback.format_exc()}")
+    with _init_lock:
+        if globals().get(main_name) is not None:
+            return
+        globals()[main_name] = None
+        try:
+            if ignore_disabled_status or not core_cfg.disabled_providers().intersection(set(names)):
+                if _is_server_up(ws_class):
+                    globals()[main_name] = ws_class()
+                    for name in names:
+                        PROVIDERS[name] = globals()[main_name]
+                else:
+                    raise RuntimeError(f'{main_name} is not running')
+        except Exception:  # pylint: disable=broad-except
+            log.warning(f"Provider {names} initialization failed, disabling provider")
+            log.warning(f"Exception: {traceback.format_exc()}")
 
 
 def init_amda(ignore_disabled_status=False):
@@ -142,6 +141,29 @@ def init_providers(ignore_disabled_status=False):
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
     init_providers()
+
+_INITIALIZERS = {
+    'amda': init_amda, 'csa': init_csa, 'cda': init_cdaweb, 'ssc': init_sscweb, 'archive': init_archive,
+    'uiowaephtool': init_uiowaephtool, 'cdpp3dview': init_cdpp3dview,
+}
+_ALIASES = {'cdaweb': 'cda', 'sscweb': 'ssc', 'generic_archive': 'archive', 'UiowaEphTool': 'uiowaephtool',
+            '3DView': 'cdpp3dview'}
+
+
+def _ensure_provider(name: str):
+    """Initialize provider `name` (or an alias) on first use. Failures are not retried here, see init_*."""
+    main_name = _ALIASES.get(name, name)
+    if main_name in _INITIALIZERS and main_name not in globals():
+        _INITIALIZERS[main_name]()
+        globals().setdefault(main_name, None)
+    return PROVIDERS.get(name)
+
+
+def __getattr__(name):
+    if name in _INITIALIZERS:
+        _ensure_provider(name)
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def list_providers() -> List[str]:
@@ -242,7 +264,7 @@ def provider_and_product(path_or_product: str or SpeasyIndex) -> (str, str):
 
 def _scalar_get_data(index, *args, **kwargs):
     provider_uid, product_uid = provider_and_product(index)
-    if provider_uid in PROVIDERS:
+    if _ensure_provider(provider_uid) is not None:
         return PROVIDERS[provider_uid].get_data(product_uid, *args, **kwargs)
     raise ValueError(f"Can't find a provider for {index}")
 
