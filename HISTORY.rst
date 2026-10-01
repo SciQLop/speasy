@@ -2,7 +2,7 @@
 History
 =======
 
-1.8.6 (unreleased)
+1.8.6 (2026-10-01)
 ------------------
 
 Bug fixes:
@@ -10,6 +10,17 @@ Bug fixes:
 * 3DView's frame and body lists are now fetched with retries, like the rest of Speasy's requests. A
   transient 502 from 3DView no longer breaks the inventory with a ``JSONDecodeError``, and a lasting
   HTTP error is reported as ``Cdpp3dViewWebException``.
+
+Performance:
+
+* Reading data from the cache needs much less memory. A cached read used to peak at about 2.5x the
+  size of the returned data; it now peaks at about 1.5x. Cached reads are also faster, because each
+  fragment is copied fewer times.
+* ``speasy.products.variable.merge`` accepts any iterable of variables, and frees each one once it
+  is copied into the result.
+
+* Retry transient errors when fetching 3DView frames and bodies by @jeandet in https://github.com/SciQLop/speasy/pull/386
+* Cut the memory peak of cached reads from 2.5x to 1.5x by @jeandet in https://github.com/SciQLop/speasy/pull/387
 
 1.8.5 (2026-09-28)
 ------------------
