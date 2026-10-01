@@ -27,6 +27,7 @@ from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeA
 
 # keep this import last
 from .core.requests_scheduling.request_dispatch import get_data, list_providers, amda, cda, csa, ssc, archive, uiowaephtool, cdpp3dview
+from . import virtual_products
 
 
 # @TODO implement me, this function should be able to look inside all servers
