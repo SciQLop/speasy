@@ -152,6 +152,10 @@ _ALIASES = {'cdaweb': 'cda', 'sscweb': 'ssc', 'generic_archive': 'archive', 'Uio
 
 def _ensure_provider(name: str):
     """Initialize provider `name` (or an alias) on first use. Failures are not retried here, see init_*."""
+    # PROVIDERS is only filled once a provider is fully built, so a hit can skip the lock and
+    # get_data never waits on another provider's (slow) init.
+    if (provider := PROVIDERS.get(name)) is not None:
+        return provider
     main_name = _ALIASES.get(name, name)
     # Checked under the lock: _safe_init_provider sets its None marker before the (slow) init,
     # so an unlocked check would let a concurrent caller see "done" and get no provider.
