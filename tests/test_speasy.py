@@ -9,7 +9,11 @@ from datetime import datetime, timezone
 from ddt import data, ddt, unpack
 
 import speasy as spz
-from speasy.core.dataprovider import PROVIDERS
+from speasy.core.requests_scheduling.request_dispatch import _enabled_provider_names
+
+
+def _started_providers():
+    return [name for name in _enabled_provider_names() if getattr(spz, name) is not None]
 
 
 @ddt
@@ -168,9 +172,11 @@ class SpeasyModule(unittest.TestCase):
             expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool'])
         self.assertListEqual(sorted(l), expected_providers)
 
-    @data(*[(provider,) for provider in PROVIDERS.keys()])
+    @data(*[(provider,) for provider in _enabled_provider_names()])
     @unpack
     def test_can_update_inventories(self, provider):
+        if getattr(spz, provider) is None:
+            self.skipTest(f"{provider} failed to start")
         getattr(spz, provider).flat_inventory.clear()
         spz.inventories.tree.__dict__[provider].clear()
         self.assertEqual(
@@ -180,41 +186,43 @@ class SpeasyModule(unittest.TestCase):
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
     def test_can_update_inventories_all_at_once_from_proxy(self):
-        for provider in PROVIDERS.keys():
+        providers = _started_providers()
+        for provider in providers:
             getattr(spz, provider).flat_inventory.clear()
             spz.inventories.tree.__dict__[provider].clear()
 
-        for provider in PROVIDERS.keys():
+        for provider in providers:
             self.assertEqual(
                 len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
 
         spz.update_inventories()
 
-        for provider in PROVIDERS.keys():
+        for provider in providers:
             self.assertGreaterEqual(
                 len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
     def test_can_update_inventories_all_at_once_without_proxy(self):
         if "SPEASY_INVENTORY_TESTS" not in os.environ:
             self.skipTest("Inventory tests disabled")
-        for provider in PROVIDERS.keys():
+        providers = _started_providers()
+        for provider in providers:
             spz.inventories.flat_inventories.__dict__[
                 provider].parameters.clear()
 
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
 
-        for provider in PROVIDERS.keys():
+        for provider in providers:
             getattr(spz, provider).flat_inventory.clear()
             spz.inventories.tree.__dict__[provider].clear()
 
-        for provider in PROVIDERS.keys():
+        for provider in providers:
             self.assertEqual(
                 len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
 
         spz.update_inventories()
 
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
-        for provider in PROVIDERS.keys():
+        for provider in providers:
             self.assertGreaterEqual(
                 len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 

@@ -12,12 +12,32 @@ from speasy.core.requests_scheduling import request_dispatch as rd
 
 
 def _run(script, disabled=""):
-    env = {**os.environ, "SPEASY_SKIP_INIT_PROVIDERS": "1", "SPEASY_CORE_DISABLED_PROVIDERS": disabled}
+    env = {**os.environ, "SPEASY_CORE_DISABLED_PROVIDERS": disabled}
+    env.pop("SPEASY_SKIP_INIT_PROVIDERS", None)
     return subprocess.run([sys.executable, "-c", textwrap.dedent(script)], env=env,
                           capture_output=True, text=True, timeout=600)
 
 
 class LazyProviderInit(unittest.TestCase):
+    def test_import_starts_no_provider(self):
+        result = _run("""
+            import speasy as spz
+            from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
+            assert PROVIDERS == {}, PROVIDERS
+        """)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_list_providers_names_enabled_providers_without_starting_them(self):
+        result = _run("""
+            import speasy as spz
+            from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
+            expected = {"csa", "cda", "cdaweb", "ssc", "sscweb", "archive", "generic_archive", "file",
+                        "uiowaephtool", "UiowaEphTool", "cdpp3dview", "3DView"}
+            assert set(spz.list_providers()) == expected, spz.list_providers()
+            assert PROVIDERS == {}, PROVIDERS
+        """, disabled="amda")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_providers_initialize_on_first_use(self):
         result = _run("""
             import speasy as spz
@@ -175,6 +195,29 @@ class EnsureProvider(_IsolatedProviders):
         holder.join(10)
         user.join(10)
         self.assertIs(returned_while_locked, provider)
+
+
+class UnavailableProviderErrors(_IsolatedProviders):
+    def test_disabled_provider_error_says_how_to_enable_it(self):
+        @self._register
+        class Fake:
+            NAME, ALIASES = "cda", ("cdaweb",)
+
+        with patch.object(rd.core_cfg, "disabled_providers", return_value={"cdaweb"}), \
+                self.assertRaisesRegex(ValueError, r"'cda' is disabled.*disabled_providers"):
+            rd.get_data("cda/some_product", "2020-01-01", "2020-01-02")
+
+    def test_failed_provider_error_says_how_to_retry(self):
+        @self._register
+        class Broken:
+            NAME, ALIASES = "cda", ()
+
+            def __init__(self):
+                raise ConnectionError("server unreachable")
+
+        with self.assertLogs(rd.log, "WARNING"), \
+                self.assertRaisesRegex(ValueError, r"'cda' failed to start.*update_inventories\(\)"):
+            rd.get_data("cda/some_product", "2020-01-01", "2020-01-02")
 
 
 class ProviderAccessors(_IsolatedProviders):

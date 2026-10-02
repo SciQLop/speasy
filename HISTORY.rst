@@ -20,6 +20,14 @@ Behavior changes:
 * ``speasy.amda`` and the other provider attributes are no longer copied into the module namespace at
   import. They always reflect the current provider, including after a successful
   ``update_inventories()`` retry. ``vars(speasy)`` no longer lists them.
+* Providers start on first use. ``import speasy`` no longer contacts any web service or builds any
+  inventory. The first ``get_data()``, ``speasy.amda`` or ``speasy.inventories.tree.cda`` access
+  starts that provider, so it takes longer. ``SPEASY_SKIP_INIT_PROVIDERS`` now has no effect, and
+  ``update_inventories()`` still starts every enabled provider.
+* ``list_providers()`` lists the enabled providers, started or not. A provider whose web service is
+  down is still listed. Using it raises an error that says it failed to start and how to retry.
+* Code that walks ``speasy.inventories.tree.__dict__`` (or ``vars()``) only sees providers that have
+  started. Use attribute access or ``dir()``, which start providers as needed.
 
 * Initialize providers on first use when SPEASY_SKIP_INIT_PROVIDERS is set by @Beforerr in https://github.com/SciQLop/speasy/pull/389
 * Self-registering data providers and a speasy.providers entry point by @jeandet in https://github.com/SciQLop/speasy/pull/391

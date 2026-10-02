@@ -51,7 +51,7 @@ def find_product(name: str) -> List[str]:
 def update_inventories():
     from .core.dataprovider import PROVIDERS
     from .core.requests_scheduling.request_dispatch import init_providers
-    # Retries any provider whose one-shot init at import time failed (e.g. a
+    # Starts every enabled provider and retries any whose first init failed (e.g. a
     # transient error reaching its web service); a no-op for providers already
     # initialized, see _safe_init_provider.
     init_providers()

@@ -3,8 +3,7 @@ from speasy.core.inventory import FlatInventories
 
 
 def _provider_inventory(namespace, name):
-    # A provider fills its inventory when initialized, which may not have happened yet
-    # if SPEASY_SKIP_INIT_PROVIDERS is set.
+    # A provider fills its inventory when initialized, which only happens on first use.
     if not name.startswith('_'):
         from speasy.core.requests_scheduling.request_dispatch import _ensure_provider
         _ensure_provider(name)

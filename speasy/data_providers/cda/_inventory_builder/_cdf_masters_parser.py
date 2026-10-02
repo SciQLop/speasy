@@ -46,8 +46,8 @@ def update_tree(root: SpeasyIndex, master_cdf_dir):
     datasets = [(dataset, os.path.join(master_cdf_dir, dataset.mastercdf.split('/')[-1]))
                 for dataset in _extract_datasets(root)]
     datasets = [(dataset, path) for dataset, path in datasets if os.path.exists(path)]
-    # Sequential on purpose: init_providers() builds this during `import speasy`, and any process
-    # pool pickles its work from a helper thread, which then waits forever on the `speasy` import
-    # lock (SciQLop/speasy#381).
+    # Sequential on purpose: a process pool here deadlocked when this ran inside `import speasy`
+    # (SciQLop/speasy#381). Providers now start on first use, but that can still happen inside
+    # some other import, so re-check #381 before parallelizing again.
     for dataset, path in datasets:
         _attach_master(dataset, _parse_master_cdf(path, dataset.serviceprovider_ID))
