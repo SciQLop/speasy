@@ -23,6 +23,9 @@ def register_provider(cls):
     ``PROVIDER_ALT_NAMES`` class attributes. Atomic: on a name clash nothing is registered."""
     if not getattr(cls, "PROVIDER_NAME", None):
         raise ValueError(f"Can't register {cls.__name__}: it has no PROVIDER_NAME")
+    # get_data lowercases the provider of an index (provider_and_product), so it only finds lowercase main names
+    if cls.PROVIDER_NAME != cls.PROVIDER_NAME.lower():
+        raise ValueError(f"Can't register {cls.__name__}: PROVIDER_NAME {cls.PROVIDER_NAME!r} must be lowercase")
     names = [cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES]
     if taken := [name for name in names if name in _PROVIDER_CLASSES]:
         raise ValueError(f"Can't register {cls.__name__}: provider name(s) {taken} already taken")

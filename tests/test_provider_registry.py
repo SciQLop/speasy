@@ -41,6 +41,17 @@ class ProviderRegistry(_IsolatedRegistry):
         with self.assertRaises(ValueError):
             register_provider(_provider_class(None))
 
+    def test_a_mixed_case_main_name_is_rejected(self):
+        # get_data lowercases the provider of an index, so a mixed-case main name could never be routed
+        with self.assertRaises(ValueError):
+            register_provider(_provider_class("MyProv"))
+        self.assertEqual(dp.registered_providers(), {})
+
+    def test_mixed_case_alternative_names_are_accepted(self):
+        cls = register_provider(_provider_class("uiowaephtool", ["UiowaEphTool"]))
+        self.assertEqual(dp.main_provider_name("UiowaEphTool"), "uiowaephtool")
+        self.assertIs(dp.registered_providers()["uiowaephtool"], cls)
+
 
 class DataProviderNames(_IsolatedRegistry):
     # DataProvider.__init__ fetches the inventory; that part is not under test here
