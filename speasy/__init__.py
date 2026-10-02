@@ -35,9 +35,14 @@ if 'SPEASY_SKIP_INIT_PROVIDERS' not in _os.environ:
 
 def __getattr__(name):
     from .core.requests_scheduling import request_dispatch
-    if name in request_dispatch._INITIALIZERS:
+    if name in request_dispatch._PROVIDERS_SPEC:
         return getattr(request_dispatch, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    from .core.requests_scheduling import request_dispatch
+    return sorted(set(globals()) | set(request_dispatch._PROVIDERS_SPEC))
 
 
 # @TODO implement me, this function should be able to look inside all servers

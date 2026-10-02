@@ -20,14 +20,15 @@ class SafeInitProviderRetryTest(unittest.TestCase):
 
     def test_does_not_reconstruct_an_already_initialized_provider(self):
         rd.amda = Mock()
-        with patch.object(rd, 'AmdaWebservice') as mock_cls:
+        mock_cls = Mock()
+        with patch.dict(rd._PROVIDERS_SPEC, {'amda': (mock_cls, ())}):
             rd.init_amda()
         mock_cls.assert_not_called()
 
     def test_retries_a_provider_that_previously_failed_to_initialize(self):
         rd.amda = None
         fake_instance = Mock()
-        with patch.object(rd, 'AmdaWebservice', return_value=fake_instance), \
+        with patch.dict(rd._PROVIDERS_SPEC, {'amda': (Mock(return_value=fake_instance), ())}), \
              patch.object(rd, '_is_server_up', return_value=True):
             rd.init_amda()
         self.assertIs(rd.amda, fake_instance)

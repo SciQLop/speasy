@@ -96,58 +96,69 @@ def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
             log.warning(f"Exception: {traceback.format_exc()}")
 
 
+# main name -> (webservice class, alternative names it is also registered under), in init order
+_PROVIDERS_SPEC = {
+    'amda': (AmdaWebservice, ()),
+    'csa': (CsaWebservice, ()),
+    'cda': (CdaWebservice, ('cdaweb',)),
+    'ssc': (SscWebservice, ('sscweb',)),
+    'archive': (GenericArchive, ('generic_archive',)),
+    'uiowaephtool': (UiowaEphTool, ('UiowaEphTool',)),
+    'cdpp3dview': (Cdpp3dViewWebservice, ('3DView',)),
+}
+# GenericArchive also registers its flat inventory as 'file', a name get_data never routed
+_ALIASES = {alt: main for main, (_, alts) in _PROVIDERS_SPEC.items() for alt in alts} | {'file': 'archive'}
+
+
+def _init_provider(main_name, ignore_disabled_status=False):
+    if main_name == 'csa' and os.environ.get("HTTP_PROXY", None) is not None:
+        log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
+        log.warning("See https://github.com/astropy/astroquery/issues/3228")
+        return
+    ws_class, alt_names = _PROVIDERS_SPEC[main_name]
+    _safe_init_provider(ws_class, [main_name, *alt_names], ignore_disabled_status=ignore_disabled_status)
+
+
 def init_amda(ignore_disabled_status=False):
-    _safe_init_provider(AmdaWebservice, ['amda'], ignore_disabled_status=ignore_disabled_status)
+    _init_provider('amda', ignore_disabled_status)
 
 
 def init_csa(ignore_disabled_status=False):
-    if os.environ.get("HTTP_PROXY", None) is not None:
-        log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
-        log.warning("See https://github.com/astropy/astroquery/issues/3228")
-    else:
-        _safe_init_provider(CsaWebservice, ['csa'], ignore_disabled_status=ignore_disabled_status)
+    _init_provider('csa', ignore_disabled_status)
 
 
 def init_cdaweb(ignore_disabled_status=False):
-    _safe_init_provider(CdaWebservice, ['cda', 'cdaweb'], ignore_disabled_status=ignore_disabled_status)
+    _init_provider('cda', ignore_disabled_status)
 
 
 def init_sscweb(ignore_disabled_status=False):
-    _safe_init_provider(SscWebservice, ['ssc', 'sscweb'], ignore_disabled_status=ignore_disabled_status)
+    _init_provider('ssc', ignore_disabled_status)
 
 
 def init_archive(ignore_disabled_status=False):
-    _safe_init_provider(GenericArchive, ['archive', 'generic_archive'], ignore_disabled_status=ignore_disabled_status)
+    _init_provider('archive', ignore_disabled_status)
 
 
 def init_uiowaephtool(ignore_disabled_status=False):
-    _safe_init_provider(UiowaEphTool, ['uiowaephtool', 'UiowaEphTool'], ignore_disabled_status=ignore_disabled_status)
+    _init_provider('uiowaephtool', ignore_disabled_status)
 
 
 def init_cdpp3dview(ignore_disabled_status=False):
-    _safe_init_provider(Cdpp3dViewWebservice, ['cdpp3dview', '3DView'],
-                        ignore_disabled_status=ignore_disabled_status)
+    _init_provider('cdpp3dview', ignore_disabled_status)
 
 
 def init_providers(ignore_disabled_status=False):
-    init_amda(ignore_disabled_status=ignore_disabled_status)
-    init_csa(ignore_disabled_status=ignore_disabled_status)
-    init_cdaweb(ignore_disabled_status=ignore_disabled_status)
-    init_sscweb(ignore_disabled_status=ignore_disabled_status)
-    init_archive(ignore_disabled_status=ignore_disabled_status)
-    init_uiowaephtool(ignore_disabled_status=ignore_disabled_status)
-    init_cdpp3dview(ignore_disabled_status=ignore_disabled_status)
+    for main_name in _PROVIDERS_SPEC:
+        _init_provider(main_name, ignore_disabled_status)
 
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
     init_providers()
 
-_INITIALIZERS = {
-    'amda': init_amda, 'csa': init_csa, 'cda': init_cdaweb, 'ssc': init_sscweb, 'archive': init_archive,
-    'uiowaephtool': init_uiowaephtool, 'cdpp3dview': init_cdpp3dview,
-}
-_ALIASES = {'cdaweb': 'cda', 'sscweb': 'ssc', 'generic_archive': 'archive', 'UiowaEphTool': 'uiowaephtool',
-            '3DView': 'cdpp3dview'}
+
+def _enabled_provider_names() -> List[str]:
+    disabled = core_cfg.disabled_providers()
+    return [main for main, (_, alts) in _PROVIDERS_SPEC.items() if not disabled.intersection((main, *alts))]
 
 
 def _ensure_provider(name: str):
@@ -160,17 +171,21 @@ def _ensure_provider(name: str):
     # Checked under the lock: _safe_init_provider sets its None marker before the (slow) init,
     # so an unlocked check would let a concurrent caller see "done" and get no provider.
     with _init_lock:
-        if main_name in _INITIALIZERS and main_name not in globals():
-            _INITIALIZERS[main_name]()
+        if main_name in _PROVIDERS_SPEC and main_name not in globals():
+            _init_provider(main_name)
             globals().setdefault(main_name, None)
     return PROVIDERS.get(name)
 
 
 def __getattr__(name):
-    if name in _INITIALIZERS:
+    if name in _PROVIDERS_SPEC:
         _ensure_provider(name)
         return globals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_PROVIDERS_SPEC))
 
 
 def list_providers() -> List[str]:

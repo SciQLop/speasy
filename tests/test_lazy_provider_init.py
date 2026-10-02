@@ -40,37 +40,55 @@ class LazyProviderInit(unittest.TestCase):
         """, disabled="amda")
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_provider_names_are_listed_without_initializing(self):
+        result = _run("""
+            import speasy as spz
+            from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
+            assert {"amda", "cda", "ssc"} <= set(dir(spz)), dir(spz)
+            for namespace in (spz.inventories.tree, spz.inventories.flat_inventories):
+                assert {"cda", "ssc", "archive"} <= set(dir(namespace)), dir(namespace)
+                assert "amda" not in dir(namespace), dir(namespace)
+            assert PROVIDERS == {}, PROVIDERS
+        """, disabled="amda")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_flat_inventory_file_alias_initializes_archive(self):
+        result = _run("""
+            import speasy as spz
+            from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
+            assert spz.inventories.flat_inventories.file is spz.inventories.flat_inventories.archive
+            assert set(PROVIDERS) == {"archive", "generic_archive"}, PROVIDERS
+        """)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 class EnsureProvider(unittest.TestCase):
-    # In-process counterpart of the subprocess tests above, the provider init itself is mocked
+    # In-process counterpart of the subprocess tests above, the provider class itself is faked
     def setUp(self):
-        self._saved_cda = rd.__dict__.pop("cda", None)
-        self._saved_tree = spz.inventories.tree.__dict__.pop("cda", None)
-        providers = patch.dict(rd.PROVIDERS, clear=True)
-        providers.start()
-        self.addCleanup(providers.stop)
-
-    def tearDown(self):
-        rd.__dict__["cda"] = self._saved_cda
-        if self._saved_tree is not None:
-            spz.inventories.tree.__dict__["cda"] = self._saved_tree
+        for namespace in (rd.__dict__, rd.PROVIDERS, spz.inventories.tree.__dict__):
+            patcher = patch.dict(namespace)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        rd.__dict__.pop("cda", None)
+        rd.PROVIDERS.clear()
+        spz.inventories.tree.__dict__.pop("cda", None)
 
     def test_alias_initializes_main_provider_once(self):
-        init = Mock()
-        with patch.dict(rd._INITIALIZERS, {"cda": init}):
-            rd._ensure_provider("cdaweb")
-            self.assertIsNone(rd.cda)
-            rd._ensure_provider("cda")
-        init.assert_called_once_with()
+        provider_class = Mock(spec=[])
+        with patch.dict(rd._PROVIDERS_SPEC, {"cda": (provider_class, ("cdaweb",))}):
+            first = rd._ensure_provider("cdaweb")
+            self.assertIs(rd.cda, first)
+            self.assertIs(rd._ensure_provider("cda"), first)
+        provider_class.assert_called_once_with()
 
     def test_inventory_tree_initializes_provider(self):
         inventory = object()
-        init = Mock(side_effect=lambda: spz.inventories.tree.__dict__.__setitem__("cda", inventory))
-        with patch.dict(rd._INITIALIZERS, {"cda": init}):
+        provider_class = Mock(spec=[], side_effect=lambda: spz.inventories.tree.__dict__.__setitem__("cda", inventory))
+        with patch.dict(rd._PROVIDERS_SPEC, {"cda": (provider_class, ())}):
             self.assertIs(spz.inventories.tree.cda, inventory)
             with self.assertRaises(AttributeError):
                 spz.inventories.tree._private
-        init.assert_called_once_with()
+        provider_class.assert_called_once_with()
 
     def test_concurrent_first_use_waits_for_init(self):
         started, release = threading.Event(), threading.Event()
@@ -85,10 +103,7 @@ class EnsureProvider(unittest.TestCase):
         def first_use(key):
             results[key] = rd._ensure_provider("cda")
 
-        def init():
-            rd._safe_init_provider(SlowProvider, ["cda"], ignore_disabled_status=True)
-
-        with patch.dict(rd._INITIALIZERS, {"cda": init}):
+        with patch.dict(rd._PROVIDERS_SPEC, {"cda": (SlowProvider, ())}):
             first = threading.Thread(target=first_use, args=("first",))
             first.start()
             started.wait(10)
