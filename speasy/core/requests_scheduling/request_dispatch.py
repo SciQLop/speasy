@@ -10,7 +10,7 @@ import logging
 
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
-from ..dataprovider import main_provider_name, provider_names, registered_providers
+from ..dataprovider import main_provider_name, provider_names, registered_providers, unregistered_provider_hint
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  DatasetIndex, ParameterIndex,
                                  SpeasyIndex, TimetableIndex)
@@ -252,7 +252,7 @@ def _scalar_get_data(index, *args, **kwargs):
     provider_uid, product_uid = provider_and_product(index)
     if _ensure_provider(provider_uid) is not None:
         return PROVIDERS[provider_uid].get_data(product_uid, *args, **kwargs)
-    raise ValueError(f"Can't find a provider for {index}")
+    raise ValueError(f"Can't find a provider for {index}{unregistered_provider_hint(provider_uid)}")
 
 
 def _get_catalog_or_timetable(index, **kwargs):
