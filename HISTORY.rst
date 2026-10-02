@@ -31,6 +31,7 @@ Behavior changes:
 
 * Initialize providers on first use when SPEASY_SKIP_INIT_PROVIDERS is set by @Beforerr in https://github.com/SciQLop/speasy/pull/389
 * Self-registering data providers and a speasy.providers entry point by @jeandet in https://github.com/SciQLop/speasy/pull/391
+* Start providers on first use by default by @jeandet in https://github.com/SciQLop/speasy/pull/393
 
 1.8.6 (2026-10-01)
 ------------------
