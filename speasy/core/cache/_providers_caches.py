@@ -67,16 +67,13 @@ DISCARD_RULES = (
     # Up to 1.8.1 a chunked AMDA download could silently drop a failed chunk and get the hole
     # cached as empty fragments, so no empty written before 1.8.2 can be trusted.
     (1_008_002, _is_empty),
-    # Up to 1.8.6 a fragment past the dataset's coverage end was cached as final, so an empty one stayed
-    # empty after the provider appended data there without bumping its version (AMDA's lastModificationDate).
-    (1_008_007, _is_empty),
 )
 
 
-def _should_discard(item: CacheItem) -> bool:
+def _should_discard(item: CacheItem, extra_rules=()) -> bool:
     epoch = getattr(item, "cache_epoch", 0)
     return any(epoch < min_epoch and predicate(item.data)
-              for min_epoch, predicate in DISCARD_RULES)
+               for min_epoch, predicate in (*DISCARD_RULES, *extra_rules))
 
 
 def lower_hour_bound(dt: datetime, factor: int):
@@ -182,7 +179,7 @@ class _Cacheable:
                  stop_time_arg='stop_time',
                  version=None,
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
-                 deduplication_timeout=600
+                 deduplication_timeout=600, discard_rules=()
                  ):
         self.start_time_arg = start_time_arg
         self.stop_time_arg = stop_time_arg
@@ -194,6 +191,8 @@ class _Cacheable:
         self.leak_cache = leak_cache
         self.entry_name = entry_name
         self.deduplication_timeout = deduplication_timeout
+        # DISCARD_RULES that only apply to this cache
+        self.discard_rules = discard_rules
 
     def add_to_cache(self, variable: Optional[SpeasyVariable], fragments, product: str, fragment_duration: timedelta,
                      version,
@@ -295,7 +294,7 @@ class _Cacheable:
                 sleep(.001)
                 entry = self.get_cache_entry(fragment, product, **kwargs)
         if isinstance(entry, CacheItem):
-            if (is_up_to_date(entry, version) or prefer_cache) and not _should_discard(entry):
+            if (is_up_to_date(entry, version) or prefer_cache) and not _should_discard(entry, self.discard_rules):
                 try:
                     return from_dictionary(entry.data)
                 except Exception as e:
@@ -332,7 +331,7 @@ class _Cacheable:
         entry = self.get_or_lock_cache_entry(fragment, product, **kwargs)
         if isinstance(entry, PendingRequest):
             return entry
-        if (is_up_to_date(entry, version) or prefer_cache) and not _should_discard(entry):
+        if (is_up_to_date(entry, version) or prefer_cache) and not _should_discard(entry, self.discard_rules):
             try:
                 return from_dictionary(entry.data)
             except Exception as e:
@@ -376,14 +375,14 @@ class _Cacheable:
 class Cacheable(object):
     def __init__(self, prefix, cache_instance=None, start_time_arg='start_time', stop_time_arg='stop_time',
                  version=None, fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False,
-                 entry_name=default_cache_entry_name, deduplication_timeout=600
+                 entry_name=default_cache_entry_name, deduplication_timeout=600, discard_rules=()
                  ):
         self._cache = _Cacheable(prefix, cache_instance=cache_instance, start_time_arg=start_time_arg,
                                  stop_time_arg=stop_time_arg,
                                  version=version,
                                  fragment_hours=fragment_hours, cache_margins=cache_margins, leak_cache=leak_cache,
                                  entry_name=entry_name,
-                                 deduplication_timeout=deduplication_timeout)
+                                 deduplication_timeout=deduplication_timeout, discard_rules=discard_rules)
         self._disable_cache = is_running_on_wasm()
 
     def _get_and_wb_fragment_group(self, fragments: List[datetime], fragment_duration: timedelta, get_data,

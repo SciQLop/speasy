@@ -11,6 +11,7 @@ from ...config import amda as amda_cfg
 from ...core import AllowedKwargs, make_utc_datetime, EnsureUTCDateTime
 from ...core.http import is_server_up
 from ...core.cache import CACHE_ALLOWED_KWARGS, Cacheable, CacheCall
+from ...core.cache._providers_caches import _is_empty
 from ...core.dataprovider import (GET_DATA_ALLOWED_KWARGS, ParameterRangeCheck)
 from ...core.datetime_range import DateTimeRange
 from ...core.inventory.indexes import (CatalogIndex, ParameterIndex, TemplatedParameterIndex,
@@ -42,6 +43,9 @@ amda_name_mapping = {
 }
 
 AMDA_MIN_PROXY_VERSION = Version("0.12.0")
+# Up to 1.8.6 a fragment past a dataset's coverage end was cached as final, and AMDA appends data without
+# changing lastModificationDate (our cache version), so those empty fragments never refreshed.
+AMDA_DISCARD_RULES = ((1_008_007, _is_empty),)
 
 
 def _amda_arguments_to_dict(index):
@@ -311,7 +315,7 @@ class AmdaWebservice(ImpexProvider):
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
     @Cacheable(prefix=amda_provider_name, version=product_version, fragment_hours=lambda x: 12,
-               entry_name=_amda_cache_entry_name)
+               entry_name=_amda_cache_entry_name, discard_rules=AMDA_DISCARD_RULES)
     @Proxyfiable(GetProduct, _amda_get_proxy_parameter_args, min_version=AMDA_MIN_PROXY_VERSION)
     def _get_parameter(self, product, start_time, stop_time,
                        extra_http_headers: Dict or None = None, output_format: str or None = None,

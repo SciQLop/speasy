@@ -166,12 +166,6 @@ def test_should_discard_empty_written_by_1_8_1_is_discarded():
     assert _should_discard(_item_with_epoch(_variable_dict(0), 1_008_001)) is True
 
 
-def test_should_discard_empty_written_by_1_8_6_is_discarded():
-    # Up to 1.8.6 a fragment past the dataset's coverage end was cached empty for good, even after the
-    # provider appended data there without bumping its version (AMDA's lastModificationDate).
-    assert _should_discard(_item_with_epoch(_variable_dict(0), 1_008_006)) is True
-
-
 def test_should_discard_non_empty_legacy_epoch_is_kept():
     assert _should_discard(_item_with_epoch(_variable_dict(12, shape_extra=(3,)), 0)) is False
 
@@ -192,6 +186,36 @@ def cache_instance():
 
 def _cacheable(cache_instance, prefix):
     return _Cacheable(prefix=prefix, cache_instance=cache_instance)
+
+
+@pytest.mark.parametrize("n_rows, epoch, kept", [(0, 1_008_006, False), (0, 1_008_007, True), (12, 1_008_006, True)])
+def test_extra_discard_rules_apply_to_their_cache(cache_instance, n_rows, epoch, kept):
+    c = _Cacheable(prefix="heal-extra-rules", cache_instance=cache_instance, discard_rules=((1_008_007, _is_empty),))
+    fragment = datetime(2020, 1, 1, tzinfo=timezone.utc)
+
+    def entry():
+        return _item_with_epoch(_variable_dict(n_rows, shape_extra=(3,)), epoch)
+
+    for prefer_cache in (False, True):
+        c.set_cache_entry(fragment, "prod", entry())
+        assert (c.get_from_cache(fragment, "prod", version=None, prefer_cache=prefer_cache) is not None) is kept
+        c.set_cache_entry(fragment, "prod", entry())
+        locked_or_data = c.get_or_lock_from_cache(fragment, "prod", version=None, prefer_cache=prefer_cache)
+        assert isinstance(locked_or_data, SpeasyVariable) is kept
+
+
+def test_other_caches_keep_old_empty_entries(cache_instance):
+    c = _cacheable(cache_instance, "heal-no-extra-rules")
+    fragment = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    c.set_cache_entry(fragment, "prod", _item_with_epoch(_variable_dict(0), 1_008_006))
+    assert c.get_from_cache(fragment, "prod", version=None) is not None
+
+
+def test_amda_drops_empty_entries_written_before_1_8_7():
+    # Up to 1.8.6 a fragment past an AMDA dataset's coverage end was cached as final, and AMDA appends
+    # data without changing lastModificationDate, so those empty fragments never refreshed.
+    from speasy.data_providers.amda.ws import AMDA_DISCARD_RULES
+    assert AMDA_DISCARD_RULES == ((1_008_007, _is_empty),)
 
 
 def test_legacy_empty_entry_not_returned_even_with_prefer_cache(cache_instance):
