@@ -176,8 +176,9 @@ class RegistrationErrorMessages(_IsolatedRegistry):
         class Forgotten(DataProvider):
             NAME = "forgotten"
 
-        with self.assertRaisesRegex(ValueError, r"Forgotten declares NAME 'forgotten' but is not decorated with "
-                                                r"@register_provider"):
+        # never referenced directly: the hint finds it through DataProvider's subclasses
+        with self.assertRaisesRegex(ValueError, rf"{Forgotten.__name__} declares NAME '{Forgotten.NAME}' "
+                                                r"but is not decorated with @register_provider"):
             spz.get_data("forgotten/x", "2020-01-01", "2020-01-02")
 
     def test_an_unknown_provider_gets_no_decorator_hint(self):
