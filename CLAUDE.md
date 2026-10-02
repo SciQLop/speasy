@@ -60,7 +60,7 @@ uv run --with build python -m build --sdist --wheel
 
 ### Adding a New Data Provider
 
-Subclass `DataProvider` in `core/dataprovider.py`, implement `get_data()` and inventory methods. Register in `core/requests_scheduling/`. See `CONTRIBUTING.rst` for the full guide including codec creation.
+Subclass `DataProvider` in `core/dataprovider.py`, implement `get_data()` and inventory methods, set `PROVIDER_NAME` / `PROVIDER_ALT_NAMES` class attributes, decorate it with `@register_provider`, and import it from `speasy/data_providers/__init__.py`. Nothing in `core/` changes. Third-party packages use a `speasy.providers` entry point instead. See `CONTRIBUTING.rst` for the full guide including codec creation.
 
 ## Conventions
 
