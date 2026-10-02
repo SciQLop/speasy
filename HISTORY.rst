@@ -2,6 +2,27 @@
 History
 =======
 
+Unreleased
+----------
+
+New features:
+
+* Data providers register themselves: a provider declares ``PROVIDER_NAME`` / ``PROVIDER_ALT_NAMES`` on
+  its class and decorates it with ``@register_provider``. Adding one no longer means editing Speasy's
+  core. Packages can ship providers through a ``speasy.providers`` entry point.
+* With ``SPEASY_SKIP_INIT_PROVIDERS`` set, providers now start on first use instead of staying ``None``
+  forever, and ``dir()`` on ``speasy`` and the inventories lists them before they start.
+
+Behavior changes:
+
+* ``file`` is now a full alias of the ``archive`` provider: ``get_data("file/...")`` works,
+  ``list_providers()`` includes it, and ``disabled_providers = file`` disables the archive.
+* ``speasy.amda`` and the other provider attributes are no longer copied into the module namespace at
+  import. They always reflect the current provider, including after a successful
+  ``update_inventories()`` retry. ``vars(speasy)`` no longer lists them.
+
+* Initialize providers on first use when SPEASY_SKIP_INIT_PROVIDERS is set by @Beforerr in https://github.com/SciQLop/speasy/pull/389
+
 1.8.6 (2026-10-01)
 ------------------
 

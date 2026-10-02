@@ -120,8 +120,34 @@ Coding guidelines
 * Write tests for any new functionality you add. Look at existing tests for examples.
 * Reuse as much as possible existing functionalities from `speasy.core`. For example,
   if you need to do some web requests, use the `speasy.core.http` module.
-* If you want to add a new data provider, follow the existing structure in the `speasy.data_providers` module.
+* If you want to add a new data provider, subclass ``speasy.core.dataprovider.DataProvider`` in a new
+  module of ``speasy.data_providers``, declare its names as class attributes and register it. Import it
+  from ``speasy/data_providers/__init__.py``; nothing in ``speasy.core`` needs to change:
+
+  .. code-block:: python
+
+      from speasy.core.dataprovider import DataProvider, register_provider
+
+      @register_provider
+      class MyProvider(DataProvider):
+          PROVIDER_NAME = 'myprovider'
+          PROVIDER_ALT_NAMES = ('my',)
+
+          def __init__(self):
+              DataProvider.__init__(self)
+
   You can have a look at existing providers such as sscweb or uiowa_eph_tool for reference.
+* A provider can also ship in its own package. Declare a zero-argument function that imports the
+  module holding the decorated class, as a ``speasy.providers`` entry point:
+
+  .. code-block:: toml
+
+      [project.entry-points."speasy.providers"]
+      myprovider = "my_pkg:register"
+
+  Provider plugins are loaded while ``import speasy`` is running, so they must only import from
+  ``speasy.core`` (for example ``speasy.core.dataprovider``), not from the top-level ``speasy`` package.
+  A plugin that fails to load is logged and skipped. It can be turned off with ``core.disabled_plugins``.
 * If you want to add a new data format, create a new CODEC in the `speasy.core.codecs` module.
   See "Adding support for a new file format" in the direct archive access docs
   (`docs/user/direct_archive/direct_archive.rst`) for the full ``CodecInterface`` contract,
