@@ -28,14 +28,23 @@ def _alt_names(owner: str, alt_names) -> List[str]:
     return list(alt_names)
 
 
-def register_provider(cls):
-    """Class decorator making a data provider known to Speasy under its ``NAME`` and
-    ``ALIASES`` class attributes. Atomic: on a name clash nothing is registered."""
+def _check_declared_name(cls):
     if not getattr(cls, "NAME", None):
-        raise ValueError(f"Can't register {cls.__name__}: it has no NAME")
+        raise ValueError(f"Can't register {cls.__name__}: set a NAME class attribute, "
+                         f"e.g. NAME = '{cls.__name__.lower()}'")
+    if "NAME" not in vars(cls):
+        owner = next(base for base in cls.__mro__ if "NAME" in vars(base))
+        raise ValueError(f"Can't register {cls.__name__}: {cls.__name__} inherits NAME {cls.NAME!r} "
+                         f"from {owner.__name__}; give it its own NAME")
     # get_data lowercases the provider of an index (provider_and_product), so it only finds lowercase main names
     if cls.NAME != cls.NAME.lower():
         raise ValueError(f"Can't register {cls.__name__}: NAME {cls.NAME!r} must be lowercase")
+
+
+def register_provider(cls):
+    """Class decorator making a data provider known to Speasy under its ``NAME`` and
+    ``ALIASES`` class attributes. Atomic: on a name clash nothing is registered."""
+    _check_declared_name(cls)
     names = [cls.NAME, *_alt_names(cls.__name__, cls.ALIASES)]
     with _REGISTRY_LOCK:
         if taken := [name for name in names if name in _PROVIDER_CLASSES]:
@@ -59,6 +68,22 @@ def main_provider_name(name: str) -> Optional[str]:
 def provider_names(main_name: str) -> List[str]:
     cls = _PROVIDER_CLASSES[main_name]
     return [cls.NAME, *cls.ALIASES]
+
+
+def _subclasses(cls):
+    for subclass in cls.__subclasses__():
+        yield subclass
+        yield from _subclasses(subclass)
+
+
+def unregistered_provider_hint(name: str) -> str:
+    """For the "can't find a provider" error: names a DataProvider subclass that declares `name`
+    but was never decorated with register_provider, or returns an empty string."""
+    forgotten = next((cls for cls in _subclasses(DataProvider)
+                      if vars(cls).get("NAME") == name and _PROVIDER_CLASSES.get(name) is not cls), None)
+    if forgotten is None:
+        return ""
+    return f". {forgotten.__name__} declares NAME {name!r} but is not decorated with @register_provider"
 
 
 class ParameterRangeCheck(object):

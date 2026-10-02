@@ -3,6 +3,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
+import speasy as spz
 from speasy.core import dataprovider as dp
 from speasy.core.dataprovider import DataProvider, register_provider
 
@@ -149,6 +150,40 @@ class DataProviderNames(_IsolatedRegistry):
 
         self.assertEqual(Tweaked().provider_name, "base")
         self.assertIs(dp.registered_providers()["base"], Base)
+
+
+class RegistrationErrorMessages(_IsolatedRegistry):
+    # Plugin authors only see these messages, often as a logged warning: each must say how to fix the class
+    def test_a_missing_name_says_how_to_set_it(self):
+        class MyProvider(DataProvider):
+            pass
+
+        with self.assertRaisesRegex(ValueError, r"MyProvider.*set a NAME class attribute, e\.g\. NAME = 'myprovider'"):
+            register_provider(MyProvider)
+
+    def test_an_inherited_name_says_where_it_comes_from(self):
+        @register_provider
+        class Base(DataProvider):
+            NAME = "base"
+
+        class Tweaked(Base):
+            pass
+
+        with self.assertRaisesRegex(ValueError, r"Tweaked inherits NAME 'base' from Base.*give it its own NAME"):
+            register_provider(Tweaked)
+
+    def test_a_forgotten_decorator_is_pointed_out_when_the_provider_is_not_found(self):
+        class Forgotten(DataProvider):
+            NAME = "forgotten"
+
+        with self.assertRaisesRegex(ValueError, r"Forgotten declares NAME 'forgotten' but is not decorated with "
+                                                r"@register_provider"):
+            spz.get_data("forgotten/x", "2020-01-01", "2020-01-02")
+
+    def test_an_unknown_provider_gets_no_decorator_hint(self):
+        with self.assertRaises(ValueError) as raised:
+            spz.get_data("nosuchprovider/x", "2020-01-01", "2020-01-02")
+        self.assertNotIn("register_provider", str(raised.exception))
 
 
 class RegistryThreadSafety(_IsolatedRegistry):
