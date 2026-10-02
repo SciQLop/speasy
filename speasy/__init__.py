@@ -7,7 +7,6 @@
 """
 
 import logging
-import os as _os
 from importlib import metadata as _metadata
 
 log = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ try:
     __version__ = _metadata.version("speasy")
 except _metadata.PackageNotFoundError:  # running from a source tree, never installed
     __version__ = "0.0.0.dev0"
-__all__ = ['amda', 'cda', 'ssc', 'csa', 'cdpp3dview', 'get_data', 'archive', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable']
 __docformat__ = "numpy"
 
 from typing import List
@@ -28,16 +26,20 @@ from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeA
 
 # keep this import last
 from .core.requests_scheduling.request_dispatch import get_data, list_providers
+from .core.dataprovider import registered_providers as _registered_providers
 
-if 'SPEASY_SKIP_INIT_PROVIDERS' not in _os.environ:
-    from .core.requests_scheduling.request_dispatch import amda, cda, csa, ssc, archive, uiowaephtool, cdpp3dview
+__all__ = ['get_data', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable', *_registered_providers()]
 
 
 def __getattr__(name):
     from .core.requests_scheduling import request_dispatch
-    if name in request_dispatch._INITIALIZERS:
+    if name in _registered_providers():
         return getattr(request_dispatch, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted({*globals(), *_registered_providers()})
 
 
 # @TODO implement me, this function should be able to look inside all servers
