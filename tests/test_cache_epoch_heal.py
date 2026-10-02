@@ -135,6 +135,9 @@ def test_is_empty_malformed_payload_is_never_empty(malformed):
 # 4. _should_discard
 # ---------------------------------------------------------------------------
 
+_NEWEST_GATE = max(epoch for epoch, _ in DISCARD_RULES)
+
+
 def _item_with_epoch(data, epoch):
     item = CacheItem(data=data, version=None)
     item.cache_epoch = epoch
@@ -151,7 +154,7 @@ def test_should_discard_empty_current_epoch_is_kept():
     # version string this particular dev checkout happens to report --
     # editable-install metadata is frozen at install time and this repo may
     # not have cut the release tag the gate refers to yet.
-    assert _should_discard(_item_with_epoch(_variable_dict(0), DISCARD_RULES[0][0])) is False
+    assert _should_discard(_item_with_epoch(_variable_dict(0), _NEWEST_GATE)) is False
 
 
 def test_should_discard_empty_written_by_1_8_0_is_discarded():
@@ -161,6 +164,12 @@ def test_should_discard_empty_written_by_1_8_0_is_discarded():
 def test_should_discard_empty_written_by_1_8_1_is_discarded():
     # 1.8.1 could still cache a chunked download with a silently dropped chunk as empty fragments.
     assert _should_discard(_item_with_epoch(_variable_dict(0), 1_008_001)) is True
+
+
+def test_should_discard_empty_written_by_1_8_6_is_discarded():
+    # Up to 1.8.6 a fragment past the dataset's coverage end was cached empty for good, even after the
+    # provider appended data there without bumping its version (AMDA's lastModificationDate).
+    assert _should_discard(_item_with_epoch(_variable_dict(0), 1_008_006)) is True
 
 
 def test_should_discard_non_empty_legacy_epoch_is_kept():
@@ -202,7 +211,7 @@ def test_current_empty_entry_is_returned(cache_instance):
     # version.
     c = _cacheable(cache_instance, "heal-current-empty")
     fragment = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    item = _item_with_epoch(_variable_dict(0), DISCARD_RULES[0][0])
+    item = _item_with_epoch(_variable_dict(0), _NEWEST_GATE)
     c.set_cache_entry(fragment, "prod", item)
 
     result = c.get_from_cache(fragment, "prod", version=None, prefer_cache=True)
@@ -290,7 +299,7 @@ def test_split_fragments_keeps_legacy_non_empty_entry(unversioned_provider):
 def test_split_fragments_keeps_current_epoch_empty_entry(unversioned_provider):
     fragment = datetime(2020, 1, 1, tzinfo=timezone.utc)
     _put_unversioned_entry(unversioned_provider, fragment, "prod3", _variable_dict(0),
-                           epoch=DISCARD_RULES[0][0])
+                           epoch=_NEWEST_GATE)
 
     data_chunks, maybe_outdated, missing = unversioned_provider.split_fragments(
         [fragment], "prod3", timedelta(hours=1), prefer_cache=True)

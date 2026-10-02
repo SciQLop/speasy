@@ -5,6 +5,13 @@ History
 Unreleased
 ----------
 
+Bug fixes:
+
+* New data appended to an AMDA dataset (e.g. ACE) now shows up. Before, a request reaching past the end of
+  a dataset cached the missing part as empty, for good, because AMDA does not change a dataset's version
+  when it only appends data. Fragments past the end of a dataset's coverage are now kept for one hour only.
+  Empty fragments written by Speasy 1.8.6 or older are fetched again once.
+
 New features:
 
 * Data providers register themselves: a provider declares ``NAME`` / ``ALIASES`` on

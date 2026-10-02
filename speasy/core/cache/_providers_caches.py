@@ -20,6 +20,11 @@ log = logging.getLogger(__name__)
 
 CACHE_ALLOWED_KWARGS = ['disable_cache', 'prefer_cache']
 
+# A fragment ending after the dataset's coverage end can still receive data (AMDA appends without changing
+# lastModificationDate), so it is only kept this long.
+# simplify: fixed for every provider; make it per provider when one updates much faster or slower than hourly.
+PROVISIONAL_FRAGMENT_LIFETIME = timedelta(hours=1)
+
 # AMDA pads coverage gaps with a couple of all-NaN rows; real data has many
 # more finite rows than that. Scanning only up to this many rows keeps
 # _is_empty() cheap on the hot read path for legitimately large fragments.
@@ -62,6 +67,9 @@ DISCARD_RULES = (
     # Up to 1.8.1 a chunked AMDA download could silently drop a failed chunk and get the hole
     # cached as empty fragments, so no empty written before 1.8.2 can be trusted.
     (1_008_002, _is_empty),
+    # Up to 1.8.6 a fragment past the dataset's coverage end was cached as final, so an empty one stayed
+    # empty after the provider appended data there without bumping its version (AMDA's lastModificationDate).
+    (1_008_007, _is_empty),
 )
 
 
@@ -89,12 +97,26 @@ def round_for_cache(dt_range: DateTimeRange, fragment_hours: int):
 
 
 def is_up_to_date(item: CacheItem, version):
+    if item.is_expired():
+        return False
     try:
         return (item.version is None) or (item.version >= version)
     except TypeError:
         # Cache entries live for years and older Speasy versions stored other
         # version types (e.g. datetime before v1.7.0); incomparable means outdated.
         return False
+
+
+def _fragment_lifetime(fragment_end: datetime, coverage_end: Optional[datetime], lifetime):
+    if coverage_end is not None and fragment_end > coverage_end:
+        return PROVISIONAL_FRAGMENT_LIFETIME if lifetime is None else min(lifetime, PROVISIONAL_FRAGMENT_LIFETIME)
+    return lifetime
+
+
+def _coverage_end(provider, product) -> Optional[datetime]:
+    parameter_range = getattr(provider, "parameter_range", None)
+    coverage = parameter_range(product) if parameter_range is not None else None
+    return coverage.stop_time if coverage is not None else None
 
 
 def group_fragments_if(fragments, predicate):
@@ -176,6 +198,7 @@ class _Cacheable:
     def add_to_cache(self, variable: Optional[SpeasyVariable], fragments, product: str, fragment_duration: timedelta,
                      version,
                      lifetime=None,
+                     coverage_end: Optional[datetime] = None,
                      **kwargs) -> Optional[SpeasyVariable]:
         """Add a variable to the cache, splitting it into fragments. If the variable is None, nothing is added to the cache.
         Parameters
@@ -192,6 +215,8 @@ class _Cacheable:
             The version to store with the cache entry.
         lifetime : Optional[timedelta]
             The lifetime of the cache entry. If None, the entry does not expire.
+        coverage_end : Optional[datetime]
+            The end of the product's coverage. Fragments ending after it only live PROVISIONAL_FRAGMENT_LIFETIME.
         **kwargs : dict
             Additional keyword arguments to pass to the entry_name function.
         Returns
@@ -201,10 +226,11 @@ class _Cacheable:
         """
         if variable is not None:
             for fragment in fragments:
+                fragment_end = fragment + fragment_duration
                 self.set_cache_entry(fragment, product,
-                                     CacheItem(to_dictionary(
-                                         variable[fragment:(fragment + fragment_duration)]),
-                                         version, lifetime=lifetime), **kwargs)
+                                     CacheItem(to_dictionary(variable[fragment:fragment_end]), version,
+                                               lifetime=_fragment_lifetime(fragment_end, coverage_end, lifetime)),
+                                     **kwargs)
         return variable
 
     def set_cache_entry(self, fragment, product: str, entry, **kwargs):
@@ -368,7 +394,7 @@ class Cacheable(object):
                     wrapped_self, product=product, start_time=fragments[0],
                     stop_time=fragments[-1] + fragment_duration, **kwargs),
                 fragments=fragments, product=product, fragment_duration=fragment_duration,
-                version=version, **kwargs)
+                version=version, coverage_end=_coverage_end(wrapped_self, product), **kwargs)
         except Exception as e:
             # In case of exception, drop all cache entries for the fragments we tried to write and forward the exception
             for fragment in fragments:
