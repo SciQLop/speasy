@@ -88,9 +88,9 @@ class _IsolatedProviders(unittest.TestCase):
     def _register(cls):
         """Replaces the registered provider of the same main name, aliases included."""
         for name, registered in list(dp._PROVIDER_CLASSES.items()):
-            if registered.PROVIDER_NAME == cls.PROVIDER_NAME:
+            if registered.NAME == cls.NAME:
                 del dp._PROVIDER_CLASSES[name]
-        dp._PROVIDER_CLASSES.update(dict.fromkeys([cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES], cls))
+        dp._PROVIDER_CLASSES.update(dict.fromkeys([cls.NAME, *cls.ALIASES], cls))
         return cls
 
 
@@ -100,7 +100,7 @@ class EnsureProvider(_IsolatedProviders):
 
         @self._register
         class Fake:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ("cdaweb",)
+            NAME, ALIASES = "cda", ("cdaweb",)
 
             def __init__(self):
                 built.append(self)
@@ -115,7 +115,7 @@ class EnsureProvider(_IsolatedProviders):
 
         @self._register
         class Fake:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ()
+            NAME, ALIASES = "cda", ()
 
             def __init__(self):
                 built.append(self)
@@ -131,7 +131,7 @@ class EnsureProvider(_IsolatedProviders):
 
         @self._register
         class SlowProvider:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ()
+            NAME, ALIASES = "cda", ()
 
             def __init__(self):
                 started.set()
@@ -181,7 +181,7 @@ class ProviderAccessors(_IsolatedProviders):
     def test_init_accessor_resolves_aliases(self):
         @self._register
         class Fake:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ("cdaweb",)
+            NAME, ALIASES = "cda", ("cdaweb",)
 
         rd.init_cdaweb()
         self.assertIsInstance(rd.cda, Fake)
@@ -193,9 +193,9 @@ class ProviderAccessors(_IsolatedProviders):
     def test_dir_lists_registered_providers_and_their_init_accessors(self):
         @self._register
         class Fake:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "fakeprov", ()
+            NAME, ALIASES = "fakeprov", ()
 
-        self.assertTrue({"fakeprov", "init_fakeprov", "init_amda"} <= set(dir(rd)))
+        self.assertLessEqual({"fakeprov", "init_fakeprov", "init_amda"}, set(dir(rd)))
         self.assertIn("fakeprov", dir(spz))
 
     def test_speasy_attribute_follows_a_retry(self):
@@ -203,7 +203,7 @@ class ProviderAccessors(_IsolatedProviders):
 
         @self._register
         class FakeAmda:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "amda", ()
+            NAME, ALIASES = "amda", ()
 
         rd.init_amda()
         self.assertIsInstance(spz.amda, FakeAmda)

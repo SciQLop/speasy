@@ -134,8 +134,8 @@ def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: st
 
 @register_provider
 class CdaWebservice(DataProvider):
-    PROVIDER_NAME = 'cda'
-    PROVIDER_ALT_NAMES = ('cdaweb',)
+    NAME = 'cda'
+    ALIASES = ('cdaweb',)
     BASE_URL = "https://cdaweb.gsfc.nasa.gov"
 
     def __init__(self):

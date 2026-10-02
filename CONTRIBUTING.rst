@@ -130,8 +130,8 @@ Coding guidelines
 
       @register_provider
       class MyProvider(DataProvider):
-          PROVIDER_NAME = 'myprovider'
-          PROVIDER_ALT_NAMES = ('my',)
+          NAME = 'myprovider'
+          ALIASES = ('my',)
 
           def __init__(self):
               DataProvider.__init__(self)

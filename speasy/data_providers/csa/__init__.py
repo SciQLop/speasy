@@ -144,7 +144,7 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 @register_provider
 class CsaWebservice(DataProvider):
-    PROVIDER_NAME = 'csa'
+    NAME = 'csa'
     BASE_URL = "https://csa.esac.esa.int"
 
     def __init__(self):

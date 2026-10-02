@@ -169,8 +169,8 @@ def load_inventory_file(file: str, root: SpeasyIndex):
 
 @register_provider
 class GenericArchive(DataProvider):
-    PROVIDER_NAME = 'archive'
-    PROVIDER_ALT_NAMES = ('generic_archive', 'file')
+    NAME = 'archive'
+    ALIASES = ('generic_archive', 'file')
 
     def __init__(self):
         DataProvider.__init__(self, inventory_disable_proxy=True)

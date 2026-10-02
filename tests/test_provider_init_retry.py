@@ -24,7 +24,7 @@ class SafeInitProviderRetryTest(unittest.TestCase):
 
     def test_does_not_reconstruct_an_already_initialized_provider(self):
         rd.amda = Mock()
-        mock_cls = Mock(PROVIDER_NAME='amda', PROVIDER_ALT_NAMES=())
+        mock_cls = Mock(NAME='amda', ALIASES=())
         dp._PROVIDER_CLASSES['amda'] = mock_cls
         rd.init_amda()
         mock_cls.assert_not_called()
@@ -32,7 +32,7 @@ class SafeInitProviderRetryTest(unittest.TestCase):
     def test_retries_a_provider_that_previously_failed_to_initialize(self):
         rd.amda = None
         fake_instance = Mock()
-        dp._PROVIDER_CLASSES['amda'] = Mock(PROVIDER_NAME='amda', PROVIDER_ALT_NAMES=(), return_value=fake_instance)
+        dp._PROVIDER_CLASSES['amda'] = Mock(NAME='amda', ALIASES=(), return_value=fake_instance)
         with patch.object(rd, '_is_server_up', return_value=True):
             rd.init_amda()
         self.assertIs(rd.amda, fake_instance)

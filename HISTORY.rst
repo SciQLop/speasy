@@ -7,7 +7,7 @@ Unreleased
 
 New features:
 
-* Data providers register themselves: a provider declares ``PROVIDER_NAME`` / ``PROVIDER_ALT_NAMES`` on
+* Data providers register themselves: a provider declares ``NAME`` / ``ALIASES`` on
   its class and decorates it with ``@register_provider``. Adding one no longer means editing Speasy's
   core. Packages can ship providers through a ``speasy.providers`` entry point.
 * With ``SPEASY_SKIP_INIT_PROVIDERS`` set, providers now start on first use instead of staying ``None``

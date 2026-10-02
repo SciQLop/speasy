@@ -29,14 +29,14 @@ def _alt_names(owner: str, alt_names) -> List[str]:
 
 
 def register_provider(cls):
-    """Class decorator making a data provider known to Speasy under its ``PROVIDER_NAME`` and
-    ``PROVIDER_ALT_NAMES`` class attributes. Atomic: on a name clash nothing is registered."""
-    if not getattr(cls, "PROVIDER_NAME", None):
-        raise ValueError(f"Can't register {cls.__name__}: it has no PROVIDER_NAME")
+    """Class decorator making a data provider known to Speasy under its ``NAME`` and
+    ``ALIASES`` class attributes. Atomic: on a name clash nothing is registered."""
+    if not getattr(cls, "NAME", None):
+        raise ValueError(f"Can't register {cls.__name__}: it has no NAME")
     # get_data lowercases the provider of an index (provider_and_product), so it only finds lowercase main names
-    if cls.PROVIDER_NAME != cls.PROVIDER_NAME.lower():
-        raise ValueError(f"Can't register {cls.__name__}: PROVIDER_NAME {cls.PROVIDER_NAME!r} must be lowercase")
-    names = [cls.PROVIDER_NAME, *_alt_names(cls.__name__, cls.PROVIDER_ALT_NAMES)]
+    if cls.NAME != cls.NAME.lower():
+        raise ValueError(f"Can't register {cls.__name__}: NAME {cls.NAME!r} must be lowercase")
+    names = [cls.NAME, *_alt_names(cls.__name__, cls.ALIASES)]
     with _REGISTRY_LOCK:
         if taken := [name for name in names if name in _PROVIDER_CLASSES]:
             raise ValueError(f"Can't register {cls.__name__}: provider name(s) {taken} already taken")
@@ -48,17 +48,17 @@ def registered_providers() -> Dict[str, type]:
     """Main name -> provider class, in registration order, which is also the init order."""
     with _REGISTRY_LOCK:
         classes = list(_PROVIDER_CLASSES.values())
-    return {cls.PROVIDER_NAME: cls for cls in classes}
+    return {cls.NAME: cls for cls in classes}
 
 
 def main_provider_name(name: str) -> Optional[str]:
     cls = _PROVIDER_CLASSES.get(name)
-    return cls.PROVIDER_NAME if cls is not None else None
+    return cls.NAME if cls is not None else None
 
 
 def provider_names(main_name: str) -> List[str]:
     cls = _PROVIDER_CLASSES[main_name]
-    return [cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES]
+    return [cls.NAME, *cls.ALIASES]
 
 
 class ParameterRangeCheck(object):
@@ -90,19 +90,19 @@ class DataProvider:
     Parameters
     ----------
     provider_name: str or None
-        The name of the data provider. Defaults to the ``PROVIDER_NAME`` class attribute,
+        The name of the data provider. Defaults to the ``NAME`` class attribute,
         and must match it when both are given.
     provider_alt_names: List or None
         Alternative names for the data provider, also used to register the provider's inventory as
-        valid aliases. Defaults to the ``PROVIDER_ALT_NAMES`` class attribute, and must match it when
+        valid aliases. Defaults to the ``ALIASES`` class attribute, and must match it when
         both are given.
     inventory_disable_proxy: bool
         If True, the inventory will be fetched directly from the provider, bypassing any proxy settings.
     min_proxy_version: str
         Minimum required version of the proxy server to use for fetching the inventory.
     """
-    PROVIDER_NAME: Optional[str] = None
-    PROVIDER_ALT_NAMES: Tuple[str, ...] = ()
+    NAME: Optional[str] = None
+    ALIASES: Tuple[str, ...] = ()
 
     def __init__(self, provider_name: Optional[str] = None, provider_alt_names: Optional[List[str]] = None,
                  inventory_disable_proxy=False, min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
@@ -118,13 +118,13 @@ class DataProvider:
 
     @classmethod
     def _resolve_names(cls, provider_name, provider_alt_names) -> Tuple[str, List[str]]:
-        if cls.PROVIDER_NAME is None:
+        if cls.NAME is None:
             if provider_name is None:
-                raise TypeError(f"{cls.__name__} needs a provider_name argument or a PROVIDER_NAME class attribute")
+                raise TypeError(f"{cls.__name__} needs a provider_name argument or a NAME class attribute")
             return provider_name, _alt_names(cls.__name__, provider_alt_names or [])
-        declared = (cls.PROVIDER_NAME, _alt_names(cls.__name__, cls.PROVIDER_ALT_NAMES))
-        given = (provider_name or cls.PROVIDER_NAME,
-                 _alt_names(cls.__name__, cls.PROVIDER_ALT_NAMES if provider_alt_names is None else provider_alt_names))
+        declared = (cls.NAME, _alt_names(cls.__name__, cls.ALIASES))
+        given = (provider_name or cls.NAME,
+                 _alt_names(cls.__name__, cls.ALIASES if provider_alt_names is None else provider_alt_names))
         if given != declared:
             raise ValueError(f"{cls.__name__} declares its names as {declared}, but was given {given}")
         return declared

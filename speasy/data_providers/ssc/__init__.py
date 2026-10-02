@@ -116,8 +116,8 @@ def make_index(meta: Dict):
 
 @register_provider
 class SscWebservice(DataProvider):
-    PROVIDER_NAME = 'ssc'
-    PROVIDER_ALT_NAMES = ('sscweb',)
+    NAME = 'ssc'
+    ALIASES = ('sscweb',)
     BASE_URL = "https://sscweb.gsfc.nasa.gov"
 
     def __init__(self):
