@@ -27,8 +27,8 @@ from speasy.core.dataprovider import DataProvider, register_provider
 
 @register_provider
 class FakeProvider(DataProvider):
-    PROVIDER_NAME = "fakeprov"
-    PROVIDER_ALT_NAMES = ("fake",)
+    NAME = "fakeprov"
+    ALIASES = ("fake",)
 
     def __init__(self):
         DataProvider.__init__(self, inventory_disable_proxy=True)
@@ -93,7 +93,7 @@ class ProviderPluginEdgeCases(unittest.TestCase):
         def register():
             @register_provider
             class Clash:
-                PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ()
+                NAME, ALIASES = "cda", ()
 
         entry_point = MagicMock()
         entry_point.name, entry_point.value = "clash", "clash_pkg:register"
@@ -107,7 +107,7 @@ class ProviderPluginEdgeCases(unittest.TestCase):
     def test_a_provider_registered_after_import_starts_on_first_use(self):
         @register_provider
         class Late:
-            PROVIDER_NAME, PROVIDER_ALT_NAMES = "late", ()
+            NAME, ALIASES = "late", ()
 
         self.assertIsInstance(spz.late, Late)
         self.assertIs(rd.PROVIDERS["late"], spz.late)

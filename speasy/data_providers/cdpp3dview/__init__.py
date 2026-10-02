@@ -74,8 +74,8 @@ CDPP3DVIEW_MIN_PROXY_VERSION = Version('0.14.0')
 
 @register_provider
 class Cdpp3dViewWebservice(DataProvider):
-    PROVIDER_NAME = "cdpp3dview"
-    PROVIDER_ALT_NAMES = ("3DView",)
+    NAME = "cdpp3dview"
+    ALIASES = ("3DView",)
     BASE_URL = "https://3dview.irap.omp.eu/webresources"
 
     def __init__(self):

@@ -23,7 +23,7 @@ class BundledProviders(unittest.TestCase):
             if instance is not None:
                 with self.subTest(main_name):
                     self.assertIsInstance(instance, cls)
-                    self.assertEqual(instance.provider_name, cls.PROVIDER_NAME)
+                    self.assertEqual(instance.provider_name, cls.NAME)
 
 
 class CsaServerCheck(unittest.TestCase):

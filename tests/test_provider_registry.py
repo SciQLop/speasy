@@ -8,7 +8,7 @@ from speasy.core.dataprovider import DataProvider, register_provider
 
 
 def _provider_class(name, alt_names=()):
-    return type(f"Fake_{name}", (), {"PROVIDER_NAME": name, "PROVIDER_ALT_NAMES": tuple(alt_names)})
+    return type(f"Fake_{name}", (), {"NAME": name, "ALIASES": tuple(alt_names)})
 
 
 class _IsolatedRegistry(unittest.TestCase):
@@ -34,24 +34,27 @@ class ProviderRegistry(_IsolatedRegistry):
 
     def test_a_name_clash_raises_and_registers_nothing(self):
         existing = register_provider(_provider_class("cda", ["cdaweb"]))
+        clashing = _provider_class("other", ["cdaweb"])
         with self.assertRaises(ValueError):
-            register_provider(_provider_class("other", ["cdaweb"]))
+            register_provider(clashing)
         self.assertEqual(dp.registered_providers(), {"cda": existing})
         self.assertIsNone(dp.main_provider_name("other"))
 
     def test_a_class_without_provider_name_is_rejected(self):
+        nameless = _provider_class(None)
         with self.assertRaises(ValueError):
-            register_provider(_provider_class(None))
+            register_provider(nameless)
 
     def test_a_mixed_case_main_name_is_rejected(self):
         # get_data lowercases the provider of an index, so a mixed-case main name could never be routed
+        mixed_case = _provider_class("MyProv")
         with self.assertRaises(ValueError):
-            register_provider(_provider_class("MyProv"))
+            register_provider(mixed_case)
         self.assertEqual(dp.registered_providers(), {})
 
     def test_a_string_instead_of_a_tuple_of_alternative_names_is_rejected(self):
         # ('cdaweb') is a str, not a tuple: without the guard every letter would become an alias
-        missing_comma = type("MissingComma", (), {"PROVIDER_NAME": "cda", "PROVIDER_ALT_NAMES": ("cdaweb")})
+        missing_comma = type("MissingComma", (), {"NAME": "cda", "ALIASES": ("cdaweb")})
         with self.assertRaises(TypeError):
             register_provider(missing_comma)
         self.assertEqual(dp.registered_providers(), {})
@@ -74,8 +77,8 @@ class DataProviderNames(_IsolatedRegistry):
 
     def test_names_come_from_class_attributes(self):
         class Declared(DataProvider):
-            PROVIDER_NAME = "declared"
-            PROVIDER_ALT_NAMES = ("decl",)
+            NAME = "declared"
+            ALIASES = ("decl",)
 
         provider = Declared()
         self.assertEqual((provider.provider_name, provider.provider_alt_names), ("declared", ["decl"]))
@@ -83,22 +86,22 @@ class DataProviderNames(_IsolatedRegistry):
 
     def test_passing_the_declared_name_again_is_accepted(self):
         class Declared(DataProvider):
-            PROVIDER_NAME = "declared"
+            NAME = "declared"
 
             def __init__(self):
-                DataProvider.__init__(self, provider_name=self.PROVIDER_NAME)
+                DataProvider.__init__(self, provider_name=self.NAME)
 
         self.assertEqual(Declared().provider_name, "declared")
 
     def test_a_name_conflicting_with_the_class_attributes_raises(self):
         class OtherName(DataProvider):
-            PROVIDER_NAME = "declared"
+            NAME = "declared"
 
             def __init__(self):
                 DataProvider.__init__(self, provider_name="other")
 
         class OtherAltNames(DataProvider):
-            PROVIDER_NAME = "declared"
+            NAME = "declared"
 
             def __init__(self):
                 DataProvider.__init__(self, provider_alt_names=["other"])
@@ -109,8 +112,8 @@ class DataProviderNames(_IsolatedRegistry):
 
     def test_a_string_of_alternative_names_is_rejected(self):
         class MissingComma(DataProvider):
-            PROVIDER_NAME = "declared"
-            PROVIDER_ALT_NAMES = ("decl")
+            NAME = "declared"
+            ALIASES = ("decl")
 
         class OldStyleString(DataProvider):
             def __init__(self):
@@ -139,7 +142,7 @@ class DataProviderNames(_IsolatedRegistry):
     def test_subclassing_a_registered_provider_does_not_take_over_its_names(self):
         @register_provider
         class Base(DataProvider):
-            PROVIDER_NAME = "base"
+            NAME = "base"
 
         class Tweaked(Base):
             pass
@@ -180,14 +183,14 @@ class RegistryThreadSafety(_IsolatedRegistry):
         for round_ in range(300):
             dp._PROVIDER_CLASSES.clear()
             candidates = [_provider_class("same") for _ in range(8)]
-            start, winners = threading.Barrier(len(candidates)), []
+            start, winners, rejected = threading.Barrier(len(candidates)), [], []
 
             def register(cls):
                 start.wait()
                 try:
                     winners.append(register_provider(cls))
-                except ValueError:
-                    pass
+                except ValueError as error:
+                    rejected.append(error)
 
             threads = [threading.Thread(target=register, args=(cls,)) for cls in candidates]
             for thread in threads:
@@ -195,7 +198,7 @@ class RegistryThreadSafety(_IsolatedRegistry):
             for thread in threads:
                 thread.join(10)
             with self.subTest(round=round_):
-                self.assertEqual(len(winners), 1)
+                self.assertEqual((len(winners), len(rejected)), (1, len(candidates) - 1))
                 self.assertEqual(dp.registered_providers(), {"same": winners[0]})
 
 

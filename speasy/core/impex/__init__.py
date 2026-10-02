@@ -51,7 +51,6 @@ class ImpexProvider(DataProvider):
     def __init__(self, provider_name: str, server_url: str, max_chunk_size_days: int = 10, capabilities: List = None,
                  username: str = "", password: str = "", name_mapping: Dict = None, output_format: str = 'CDF',
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
-        self.provider_name = provider_name
         self.server_url = server_url
         self.client = ImpexClient(capabilities=capabilities, server_url=server_url,
                                   username=username, password=password, output_format=output_format)

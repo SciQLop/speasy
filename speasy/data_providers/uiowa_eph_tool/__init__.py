@@ -370,8 +370,8 @@ def make_index(meta: Dict):
 
 @register_provider
 class UiowaEphTool(DataProvider):
-    PROVIDER_NAME = 'uiowaephtool'
-    PROVIDER_ALT_NAMES = ('UiowaEphTool',)
+    NAME = 'uiowaephtool'
+    ALIASES = ('UiowaEphTool',)
     BASE_URL = "https://planet.physics.uiowa.edu/das/casephem"
 
     def __init__(self):
