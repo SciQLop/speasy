@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from functools import wraps
 from threading import Lock
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory import ProviderInventory
@@ -14,6 +14,35 @@ from speasy.inventories import flat_inventories, tree
 log = logging.getLogger(__name__)
 GET_DATA_ALLOWED_KWARGS = ['product', 'start_time', 'stop_time', 'extra_http_headers', 'progress']
 PROVIDERS = {}
+# every main and alternative provider name -> provider class, filled by register_provider
+_PROVIDER_CLASSES: Dict[str, type] = {}
+
+
+def register_provider(cls):
+    """Class decorator making a data provider known to Speasy under its ``PROVIDER_NAME`` and
+    ``PROVIDER_ALT_NAMES`` class attributes. Atomic: on a name clash nothing is registered."""
+    if not getattr(cls, "PROVIDER_NAME", None):
+        raise ValueError(f"Can't register {cls.__name__}: it has no PROVIDER_NAME")
+    names = [cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES]
+    if taken := [name for name in names if name in _PROVIDER_CLASSES]:
+        raise ValueError(f"Can't register {cls.__name__}: provider name(s) {taken} already taken")
+    _PROVIDER_CLASSES.update(dict.fromkeys(names, cls))
+    return cls
+
+
+def registered_providers() -> Dict[str, type]:
+    """Main name -> provider class, in registration order, which is also the init order."""
+    return {cls.PROVIDER_NAME: cls for cls in _PROVIDER_CLASSES.values()}
+
+
+def main_provider_name(name: str) -> Optional[str]:
+    cls = _PROVIDER_CLASSES.get(name)
+    return cls.PROVIDER_NAME if cls is not None else None
+
+
+def provider_names(main_name: str) -> List[str]:
+    cls = _PROVIDER_CLASSES[main_name]
+    return [cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES]
 
 
 class ParameterRangeCheck(object):
@@ -39,30 +68,50 @@ def _get_inventory_args(provider_name, **kwargs):
 class DataProvider:
     """Base class for all data providers.
 
+    A provider declares its names as class attributes and registers itself with
+    :func:`register_provider`, which is all Speasy needs to route requests to it.
+
     Parameters
     ----------
-    provider_name: str
-        The name of the data provider. This should be a unique identifier.
+    provider_name: str or None
+        The name of the data provider. Defaults to the ``PROVIDER_NAME`` class attribute,
+        and must match it when both are given.
     provider_alt_names: List or None
-        Alternative names for the data provider. These will also be used to register the provider's inventory as valid aliases.
+        Alternative names for the data provider, also used to register the provider's inventory as
+        valid aliases. Defaults to the ``PROVIDER_ALT_NAMES`` class attribute, and must match it when
+        both are given.
     inventory_disable_proxy: bool
         If True, the inventory will be fetched directly from the provider, bypassing any proxy settings.
     min_proxy_version: str
         Minimum required version of the proxy server to use for fetching the inventory.
     """
+    PROVIDER_NAME: Optional[str] = None
+    PROVIDER_ALT_NAMES: Tuple[str, ...] = ()
 
-    def __init__(self, provider_name: str, provider_alt_names: List or None = None, inventory_disable_proxy=False,
-                 min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
-        self.provider_name = provider_name
+    def __init__(self, provider_name: Optional[str] = None, provider_alt_names: Optional[List[str]] = None,
+                 inventory_disable_proxy=False, min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
+        self.provider_name, self.provider_alt_names = self._resolve_names(provider_name, provider_alt_names)
         self._inventory_disable_proxy = inventory_disable_proxy
-        self.provider_alt_names = provider_alt_names or []
         self.flat_inventory = ProviderInventory()
         self.min_proxy_version = min_proxy_version
-        flat_inventories.__dict__[provider_name] = self.flat_inventory
+        flat_inventories.__dict__[self.provider_name] = self.flat_inventory
         for alt_name in self.provider_alt_names:
             flat_inventories.__dict__[alt_name] = self.flat_inventory
         self.update_inventory()
-        PROVIDERS[provider_name] = self
+        PROVIDERS[self.provider_name] = self
+
+    @classmethod
+    def _resolve_names(cls, provider_name, provider_alt_names) -> Tuple[str, List[str]]:
+        if cls.PROVIDER_NAME is None:
+            if provider_name is None:
+                raise TypeError(f"{cls.__name__} needs a provider_name argument or a PROVIDER_NAME class attribute")
+            return provider_name, list(provider_alt_names or [])
+        declared = (cls.PROVIDER_NAME, list(cls.PROVIDER_ALT_NAMES))
+        given = (provider_name or cls.PROVIDER_NAME,
+                 list(cls.PROVIDER_ALT_NAMES if provider_alt_names is None else provider_alt_names))
+        if given != declared:
+            raise ValueError(f"{cls.__name__} declares its names as {declared}, but was given {given}")
+        return declared
 
     def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
         """Override this method to build the inventory tree from the public inventory source."""
