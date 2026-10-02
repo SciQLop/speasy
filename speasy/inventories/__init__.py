@@ -13,12 +13,19 @@ def _provider_inventory(namespace, name):
     raise AttributeError(name)
 
 
+def _provider_dir(namespace):
+    from speasy.core.requests_scheduling.request_dispatch import _enabled_provider_names
+    return sorted({*object.__dir__(namespace), *_enabled_provider_names()})
+
+
 class _LazyTree(SimpleNamespace):
     __getattr__ = _provider_inventory
+    __dir__ = _provider_dir
 
 
 class _LazyFlatInventories(FlatInventories):
     __getattr__ = _provider_inventory
+    __dir__ = _provider_dir
 
 
 flat_inventories = _LazyFlatInventories()

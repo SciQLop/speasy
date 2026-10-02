@@ -112,6 +112,11 @@ def init_providers(ignore_disabled_status=False):
         init_provider(main_name, ignore_disabled_status=ignore_disabled_status)
 
 
+def _enabled_provider_names() -> List[str]:
+    disabled = core_cfg.disabled_providers()
+    return [main_name for main_name in registered_providers() if not disabled.intersection(provider_names(main_name))]
+
+
 load_plugins("speasy.providers")
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
