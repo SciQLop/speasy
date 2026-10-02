@@ -16,6 +16,16 @@ GET_DATA_ALLOWED_KWARGS = ['product', 'start_time', 'stop_time', 'extra_http_hea
 PROVIDERS = {}
 # every main and alternative provider name -> provider class, filled by register_provider
 _PROVIDER_CLASSES: Dict[str, type] = {}
+# a provider may be registered from any thread (by hand, after import) while others list providers
+_REGISTRY_LOCK = Lock()
+
+
+def _alt_names(owner: str, alt_names) -> List[str]:
+    # ('cdaweb') without its trailing comma is a str, and iterating it would make every letter an alias
+    if isinstance(alt_names, str):
+        raise TypeError(f"{owner}: alternative names must be a tuple or a list, got the string {alt_names!r}"
+                        " (missing trailing comma?)")
+    return list(alt_names)
 
 
 def register_provider(cls):
@@ -26,16 +36,19 @@ def register_provider(cls):
     # get_data lowercases the provider of an index (provider_and_product), so it only finds lowercase main names
     if cls.PROVIDER_NAME != cls.PROVIDER_NAME.lower():
         raise ValueError(f"Can't register {cls.__name__}: PROVIDER_NAME {cls.PROVIDER_NAME!r} must be lowercase")
-    names = [cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES]
-    if taken := [name for name in names if name in _PROVIDER_CLASSES]:
-        raise ValueError(f"Can't register {cls.__name__}: provider name(s) {taken} already taken")
-    _PROVIDER_CLASSES.update(dict.fromkeys(names, cls))
+    names = [cls.PROVIDER_NAME, *_alt_names(cls.__name__, cls.PROVIDER_ALT_NAMES)]
+    with _REGISTRY_LOCK:
+        if taken := [name for name in names if name in _PROVIDER_CLASSES]:
+            raise ValueError(f"Can't register {cls.__name__}: provider name(s) {taken} already taken")
+        _PROVIDER_CLASSES.update(dict.fromkeys(names, cls))
     return cls
 
 
 def registered_providers() -> Dict[str, type]:
     """Main name -> provider class, in registration order, which is also the init order."""
-    return {cls.PROVIDER_NAME: cls for cls in _PROVIDER_CLASSES.values()}
+    with _REGISTRY_LOCK:
+        classes = list(_PROVIDER_CLASSES.values())
+    return {cls.PROVIDER_NAME: cls for cls in classes}
 
 
 def main_provider_name(name: str) -> Optional[str]:
@@ -108,10 +121,10 @@ class DataProvider:
         if cls.PROVIDER_NAME is None:
             if provider_name is None:
                 raise TypeError(f"{cls.__name__} needs a provider_name argument or a PROVIDER_NAME class attribute")
-            return provider_name, list(provider_alt_names or [])
-        declared = (cls.PROVIDER_NAME, list(cls.PROVIDER_ALT_NAMES))
+            return provider_name, _alt_names(cls.__name__, provider_alt_names or [])
+        declared = (cls.PROVIDER_NAME, _alt_names(cls.__name__, cls.PROVIDER_ALT_NAMES))
         given = (provider_name or cls.PROVIDER_NAME,
-                 list(cls.PROVIDER_ALT_NAMES if provider_alt_names is None else provider_alt_names))
+                 _alt_names(cls.__name__, cls.PROVIDER_ALT_NAMES if provider_alt_names is None else provider_alt_names))
         if given != declared:
             raise ValueError(f"{cls.__name__} declares its names as {declared}, but was given {given}")
         return declared

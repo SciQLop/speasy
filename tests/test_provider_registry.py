@@ -1,3 +1,5 @@
+import sys
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -45,6 +47,13 @@ class ProviderRegistry(_IsolatedRegistry):
         # get_data lowercases the provider of an index, so a mixed-case main name could never be routed
         with self.assertRaises(ValueError):
             register_provider(_provider_class("MyProv"))
+        self.assertEqual(dp.registered_providers(), {})
+
+    def test_a_string_instead_of_a_tuple_of_alternative_names_is_rejected(self):
+        # ('cdaweb') is a str, not a tuple: without the guard every letter would become an alias
+        missing_comma = type("MissingComma", (), {"PROVIDER_NAME": "cda", "PROVIDER_ALT_NAMES": ("cdaweb")})
+        with self.assertRaises(TypeError):
+            register_provider(missing_comma)
         self.assertEqual(dp.registered_providers(), {})
 
     def test_mixed_case_alternative_names_are_accepted(self):
@@ -98,6 +107,19 @@ class DataProviderNames(_IsolatedRegistry):
             with self.subTest(cls.__name__), self.assertRaises(ValueError):
                 cls()
 
+    def test_a_string_of_alternative_names_is_rejected(self):
+        class MissingComma(DataProvider):
+            PROVIDER_NAME = "declared"
+            PROVIDER_ALT_NAMES = ("decl")
+
+        class OldStyleString(DataProvider):
+            def __init__(self):
+                DataProvider.__init__(self, "oldstyle", "old")
+
+        for cls in (MissingComma, OldStyleString):
+            with self.subTest(cls.__name__), self.assertRaises(TypeError):
+                cls()
+
     def test_old_style_subclass_still_takes_names_as_arguments(self):
         class OldStyle(DataProvider):
             def __init__(self):
@@ -124,6 +146,57 @@ class DataProviderNames(_IsolatedRegistry):
 
         self.assertEqual(Tweaked().provider_name, "base")
         self.assertIs(dp.registered_providers()["base"], Base)
+
+
+class RegistryThreadSafety(_IsolatedRegistry):
+    # A tiny switch interval makes the interpreter interleave threads between almost every bytecode,
+    # so a race in the registry shows up in a few thousand iterations instead of once in a blue moon.
+    def setUp(self):
+        super().setUp()
+        previous = sys.getswitchinterval()
+        sys.setswitchinterval(1e-6)
+        self.addCleanup(sys.setswitchinterval, previous)
+
+    def test_listing_providers_while_another_thread_registers_never_fails(self):
+        stop, errors = threading.Event(), []
+
+        def list_continuously():
+            while not stop.is_set():
+                try:
+                    dp.registered_providers()
+                except RuntimeError as error:
+                    errors.append(error)
+                    return
+
+        reader = threading.Thread(target=list_continuously)
+        reader.start()
+        for i in range(3000):
+            register_provider(_provider_class(f"p{i}"))
+        stop.set()
+        reader.join(10)
+        self.assertEqual(errors, [])
+
+    def test_concurrent_registrations_of_one_name_let_exactly_one_win(self):
+        for round_ in range(300):
+            dp._PROVIDER_CLASSES.clear()
+            candidates = [_provider_class("same") for _ in range(8)]
+            start, winners = threading.Barrier(len(candidates)), []
+
+            def register(cls):
+                start.wait()
+                try:
+                    winners.append(register_provider(cls))
+                except ValueError:
+                    pass
+
+            threads = [threading.Thread(target=register, args=(cls,)) for cls in candidates]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(10)
+            with self.subTest(round=round_):
+                self.assertEqual(len(winners), 1)
+                self.assertEqual(dp.registered_providers(), {"same": winners[0]})
 
 
 if __name__ == "__main__":
