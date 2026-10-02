@@ -41,6 +41,37 @@ class LazyProviderInit(unittest.TestCase):
         """, disabled="amda")
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_provider_names_are_listed_without_initializing(self):
+        result = _run("""
+            import speasy as spz
+            from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
+            assert {"amda", "cda", "ssc"} <= set(dir(spz)), dir(spz)
+            for namespace in (spz.inventories.tree, spz.inventories.flat_inventories):
+                assert {"cda", "ssc", "archive"} <= set(dir(namespace)), dir(namespace)
+                assert "amda" not in dir(namespace), dir(namespace)
+            assert PROVIDERS == {}, PROVIDERS
+        """, disabled="amda")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_flat_inventory_file_alias_initializes_archive(self):
+        result = _run("""
+            import speasy as spz
+            from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
+            assert spz.inventories.flat_inventories.file is spz.inventories.flat_inventories.archive
+            assert set(PROVIDERS) == {"archive", "generic_archive", "file"}, PROVIDERS
+        """)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_disabling_a_provider_by_alias(self):
+        for alias, main_name in (("cdaweb", "cda"), ("file", "archive")):
+            with self.subTest(alias):
+                result = _run(f"""
+                    import speasy as spz
+                    assert spz.{main_name} is None
+                    assert not hasattr(spz.inventories.tree, "{main_name}")
+                """, disabled=alias)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
 
 class _IsolatedProviders(unittest.TestCase):
     # In-process counterpart of the subprocess tests above, provider classes are faked in the registry
