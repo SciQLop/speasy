@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import speasy as spz
+from speasy.core import dataprovider as dp
 from speasy.core.requests_scheduling import request_dispatch as rd
 
 
@@ -41,41 +42,66 @@ class LazyProviderInit(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
-class EnsureProvider(unittest.TestCase):
-    # In-process counterpart of the subprocess tests above, the provider init itself is mocked
+class _IsolatedProviders(unittest.TestCase):
+    # In-process counterpart of the subprocess tests above, provider classes are faked in the registry
     def setUp(self):
-        self._saved_cda = rd.__dict__.pop("cda", None)
-        self._saved_tree = spz.inventories.tree.__dict__.pop("cda", None)
-        providers = patch.dict(rd.PROVIDERS, clear=True)
-        providers.start()
-        self.addCleanup(providers.stop)
+        for namespace in (rd.__dict__, rd.PROVIDERS, spz.inventories.tree.__dict__, dp._PROVIDER_CLASSES):
+            patcher = patch.dict(namespace)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        rd.__dict__.pop("cda", None)
+        rd.PROVIDERS.clear()
+        spz.inventories.tree.__dict__.pop("cda", None)
 
-    def tearDown(self):
-        rd.__dict__["cda"] = self._saved_cda
-        if self._saved_tree is not None:
-            spz.inventories.tree.__dict__["cda"] = self._saved_tree
+    @staticmethod
+    def _register(cls):
+        """Replaces the registered provider of the same main name, aliases included."""
+        for name, registered in list(dp._PROVIDER_CLASSES.items()):
+            if registered.PROVIDER_NAME == cls.PROVIDER_NAME:
+                del dp._PROVIDER_CLASSES[name]
+        dp._PROVIDER_CLASSES.update(dict.fromkeys([cls.PROVIDER_NAME, *cls.PROVIDER_ALT_NAMES], cls))
+        return cls
 
+
+class EnsureProvider(_IsolatedProviders):
     def test_alias_initializes_main_provider_once(self):
-        init = Mock()
-        with patch.dict(rd._INITIALIZERS, {"cda": init}):
-            rd._ensure_provider("cdaweb")
-            self.assertIsNone(rd.cda)
-            rd._ensure_provider("cda")
-        init.assert_called_once_with()
+        built = []
+
+        @self._register
+        class Fake:
+            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ("cdaweb",)
+
+            def __init__(self):
+                built.append(self)
+
+        first = rd._ensure_provider("cdaweb")
+        self.assertIs(rd.cda, first)
+        self.assertIs(rd._ensure_provider("cda"), first)
+        self.assertEqual(len(built), 1)
 
     def test_inventory_tree_initializes_provider(self):
-        inventory = object()
-        init = Mock(side_effect=lambda: spz.inventories.tree.__dict__.__setitem__("cda", inventory))
-        with patch.dict(rd._INITIALIZERS, {"cda": init}):
-            self.assertIs(spz.inventories.tree.cda, inventory)
-            with self.assertRaises(AttributeError):
-                spz.inventories.tree._private
-        init.assert_called_once_with()
+        inventory, built = object(), []
+
+        @self._register
+        class Fake:
+            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ()
+
+            def __init__(self):
+                built.append(self)
+                spz.inventories.tree.__dict__["cda"] = inventory
+
+        self.assertIs(spz.inventories.tree.cda, inventory)
+        with self.assertRaises(AttributeError):
+            spz.inventories.tree._private
+        self.assertEqual(len(built), 1)
 
     def test_concurrent_first_use_waits_for_init(self):
         started, release = threading.Event(), threading.Event()
 
+        @self._register
         class SlowProvider:
+            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ()
+
             def __init__(self):
                 started.set()
                 release.wait(10)
@@ -85,19 +111,15 @@ class EnsureProvider(unittest.TestCase):
         def first_use(key):
             results[key] = rd._ensure_provider("cda")
 
-        def init():
-            rd._safe_init_provider(SlowProvider, ["cda"], ignore_disabled_status=True)
-
-        with patch.dict(rd._INITIALIZERS, {"cda": init}):
-            first = threading.Thread(target=first_use, args=("first",))
-            first.start()
-            started.wait(10)
-            second = threading.Thread(target=first_use, args=("second",))
-            second.start()
-            second.join(0.2)
-            release.set()
-            first.join(10)
-            second.join(10)
+        first = threading.Thread(target=first_use, args=("first",))
+        first.start()
+        started.wait(10)
+        second = threading.Thread(target=first_use, args=("second",))
+        second.start()
+        second.join(0.2)
+        release.set()
+        first.join(10)
+        second.join(10)
         self.assertIsInstance(results["first"], SlowProvider)
         self.assertIs(results["second"], results["first"])
 
@@ -110,18 +132,50 @@ class EnsureProvider(unittest.TestCase):
                 lock_held.set()
                 release.wait(10)
 
-        with patch.dict(rd.PROVIDERS, {"cda": provider}):
-            holder = threading.Thread(target=slow_init_elsewhere)
-            holder.start()
-            lock_held.wait(10)
-            user = threading.Thread(target=lambda: results.__setitem__("cda", rd._ensure_provider("cda")))
-            user.start()
-            user.join(1)
-            returned_while_locked = results.get("cda")
-            release.set()
-            holder.join(10)
-            user.join(10)
+        rd.PROVIDERS["cda"] = provider
+        holder = threading.Thread(target=slow_init_elsewhere)
+        holder.start()
+        lock_held.wait(10)
+        user = threading.Thread(target=lambda: results.__setitem__("cda", rd._ensure_provider("cda")))
+        user.start()
+        user.join(1)
+        returned_while_locked = results.get("cda")
+        release.set()
+        holder.join(10)
+        user.join(10)
         self.assertIs(returned_while_locked, provider)
+
+
+class ProviderAccessors(_IsolatedProviders):
+    def test_init_accessor_resolves_aliases(self):
+        @self._register
+        class Fake:
+            PROVIDER_NAME, PROVIDER_ALT_NAMES = "cda", ("cdaweb",)
+
+        rd.init_cdaweb()
+        self.assertIsInstance(rd.cda, Fake)
+
+    def test_unknown_init_accessor_raises(self):
+        with self.assertRaises(AttributeError):
+            rd.init_nope
+
+    def test_dir_lists_registered_providers_and_their_init_accessors(self):
+        @self._register
+        class Fake:
+            PROVIDER_NAME, PROVIDER_ALT_NAMES = "fakeprov", ()
+
+        self.assertTrue({"fakeprov", "init_fakeprov", "init_amda"} <= set(dir(rd)))
+        self.assertIn("fakeprov", dir(spz))
+
+    def test_speasy_attribute_follows_a_retry(self):
+        rd.__dict__["amda"] = None
+
+        @self._register
+        class FakeAmda:
+            PROVIDER_NAME, PROVIDER_ALT_NAMES = "amda", ()
+
+        rd.init_amda()
+        self.assertIsInstance(spz.amda, FakeAmda)
 
 
 if __name__ == "__main__":

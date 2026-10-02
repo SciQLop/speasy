@@ -1,3 +1,4 @@
+import functools
 import os
 import threading
 from datetime import datetime
@@ -9,14 +10,13 @@ import logging
 
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
+from ..dataprovider import main_provider_name, provider_names, registered_providers
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  DatasetIndex, ParameterIndex,
                                  SpeasyIndex, TimetableIndex)
 from ...config import core as core_cfg
 from ...products import *
-from ...data_providers import (AmdaWebservice, CdaWebservice, CsaWebservice,
-                               SscWebservice, GenericArchive, UiowaEphTool,
-                               Cdpp3dViewWebservice)
+from ... import data_providers  # noqa: F401  (importing it registers the bundled providers)
 from ..http import is_server_up
 
 log = logging.getLogger(__name__)
@@ -96,81 +96,52 @@ def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
             log.warning(f"Exception: {traceback.format_exc()}")
 
 
-def init_amda(ignore_disabled_status=False):
-    _safe_init_provider(AmdaWebservice, ['amda'], ignore_disabled_status=ignore_disabled_status)
-
-
-def init_csa(ignore_disabled_status=False):
-    if os.environ.get("HTTP_PROXY", None) is not None:
-        log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
-        log.warning("See https://github.com/astropy/astroquery/issues/3228")
-    else:
-        _safe_init_provider(CsaWebservice, ['csa'], ignore_disabled_status=ignore_disabled_status)
-
-
-def init_cdaweb(ignore_disabled_status=False):
-    _safe_init_provider(CdaWebservice, ['cda', 'cdaweb'], ignore_disabled_status=ignore_disabled_status)
-
-
-def init_sscweb(ignore_disabled_status=False):
-    _safe_init_provider(SscWebservice, ['ssc', 'sscweb'], ignore_disabled_status=ignore_disabled_status)
-
-
-def init_archive(ignore_disabled_status=False):
-    _safe_init_provider(GenericArchive, ['archive', 'generic_archive'], ignore_disabled_status=ignore_disabled_status)
-
-
-def init_uiowaephtool(ignore_disabled_status=False):
-    _safe_init_provider(UiowaEphTool, ['uiowaephtool', 'UiowaEphTool'], ignore_disabled_status=ignore_disabled_status)
-
-
-def init_cdpp3dview(ignore_disabled_status=False):
-    _safe_init_provider(Cdpp3dViewWebservice, ['cdpp3dview', '3DView'],
+def init_provider(name: str, ignore_disabled_status=False):
+    """Initialize the registered provider `name` (main or alternative name). A no-op if it is already up,
+    a retry if its previous init failed, see _safe_init_provider."""
+    main_name = main_provider_name(name)
+    if main_name is None:
+        raise ValueError(f"Unknown provider {name!r}")
+    _safe_init_provider(registered_providers()[main_name], provider_names(main_name),
                         ignore_disabled_status=ignore_disabled_status)
 
 
 def init_providers(ignore_disabled_status=False):
-    init_amda(ignore_disabled_status=ignore_disabled_status)
-    init_csa(ignore_disabled_status=ignore_disabled_status)
-    init_cdaweb(ignore_disabled_status=ignore_disabled_status)
-    init_sscweb(ignore_disabled_status=ignore_disabled_status)
-    init_archive(ignore_disabled_status=ignore_disabled_status)
-    init_uiowaephtool(ignore_disabled_status=ignore_disabled_status)
-    init_cdpp3dview(ignore_disabled_status=ignore_disabled_status)
+    for main_name in registered_providers():
+        init_provider(main_name, ignore_disabled_status=ignore_disabled_status)
 
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
     init_providers()
 
-_INITIALIZERS = {
-    'amda': init_amda, 'csa': init_csa, 'cda': init_cdaweb, 'ssc': init_sscweb, 'archive': init_archive,
-    'uiowaephtool': init_uiowaephtool, 'cdpp3dview': init_cdpp3dview,
-}
-_ALIASES = {'cdaweb': 'cda', 'sscweb': 'ssc', 'generic_archive': 'archive', 'UiowaEphTool': 'uiowaephtool',
-            '3DView': 'cdpp3dview'}
-
 
 def _ensure_provider(name: str):
-    """Initialize provider `name` (or an alias) on first use. Failures are not retried here, see init_*."""
+    """Initialize provider `name` (or an alias) on first use. Failures are not retried here, see init_provider."""
     # PROVIDERS is only filled once a provider is fully built, so a hit can skip the lock and
     # get_data never waits on another provider's (slow) init.
     if (provider := PROVIDERS.get(name)) is not None:
         return provider
-    main_name = _ALIASES.get(name, name)
+    main_name = main_provider_name(name)
     # Checked under the lock: _safe_init_provider sets its None marker before the (slow) init,
     # so an unlocked check would let a concurrent caller see "done" and get no provider.
     with _init_lock:
-        if main_name in _INITIALIZERS and main_name not in globals():
-            _INITIALIZERS[main_name]()
-            globals().setdefault(main_name, None)
+        if main_name is not None and main_name not in globals():
+            init_provider(main_name)
     return PROVIDERS.get(name)
 
 
 def __getattr__(name):
-    if name in _INITIALIZERS:
+    if name in registered_providers():
         _ensure_provider(name)
         return globals()[name]
+    if name.startswith('init_') and main_provider_name(name[len('init_'):]) is not None:
+        return functools.partial(init_provider, name[len('init_'):])
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    main_names = registered_providers()
+    return sorted({*globals(), *main_names, *(f"init_{main_name}" for main_name in main_names)})
 
 
 def list_providers() -> List[str]:

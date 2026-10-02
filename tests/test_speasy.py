@@ -163,25 +163,25 @@ class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
         if spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}):
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'uiowaephtool', 'UiowaEphTool'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool'])
         else:
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'uiowaephtool', 'UiowaEphTool'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool'])
         self.assertListEqual(sorted(l), expected_providers)
 
     @data(*[(provider,) for provider in PROVIDERS.keys()])
     @unpack
     def test_can_update_inventories(self, provider):
-        spz.__dict__[provider].flat_inventory.clear()
+        getattr(spz, provider).flat_inventory.clear()
         spz.inventories.tree.__dict__[provider].clear()
         self.assertEqual(
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
-        spz.__dict__[provider].update_inventory()
+        getattr(spz, provider).update_inventory()
         self.assertGreaterEqual(
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
 
     def test_can_update_inventories_all_at_once_from_proxy(self):
         for provider in PROVIDERS.keys():
-            spz.__dict__[provider].flat_inventory.clear()
+            getattr(spz, provider).flat_inventory.clear()
             spz.inventories.tree.__dict__[provider].clear()
 
         for provider in PROVIDERS.keys():
@@ -204,7 +204,7 @@ class SpeasyModule(unittest.TestCase):
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
 
         for provider in PROVIDERS.keys():
-            spz.__dict__[provider].flat_inventory.clear()
+            getattr(spz, provider).flat_inventory.clear()
             spz.inventories.tree.__dict__[provider].clear()
 
         for provider in PROVIDERS.keys():

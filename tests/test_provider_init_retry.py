@@ -5,6 +5,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from speasy.core import dataprovider as dp
 from speasy.core.requests_scheduling import request_dispatch as rd
 
 
@@ -12,6 +13,9 @@ class SafeInitProviderRetryTest(unittest.TestCase):
     def setUp(self):
         self._saved_amda = rd.amda
         self._saved_providers_entries = {name: rd.PROVIDERS[name] for name in ('amda',) if name in rd.PROVIDERS}
+        registry = patch.dict(dp._PROVIDER_CLASSES)
+        registry.start()
+        self.addCleanup(registry.stop)
 
     def tearDown(self):
         rd.amda = self._saved_amda
@@ -20,15 +24,16 @@ class SafeInitProviderRetryTest(unittest.TestCase):
 
     def test_does_not_reconstruct_an_already_initialized_provider(self):
         rd.amda = Mock()
-        with patch.object(rd, 'AmdaWebservice') as mock_cls:
-            rd.init_amda()
+        mock_cls = Mock(PROVIDER_NAME='amda', PROVIDER_ALT_NAMES=())
+        dp._PROVIDER_CLASSES['amda'] = mock_cls
+        rd.init_amda()
         mock_cls.assert_not_called()
 
     def test_retries_a_provider_that_previously_failed_to_initialize(self):
         rd.amda = None
         fake_instance = Mock()
-        with patch.object(rd, 'AmdaWebservice', return_value=fake_instance), \
-             patch.object(rd, '_is_server_up', return_value=True):
+        dp._PROVIDER_CLASSES['amda'] = Mock(PROVIDER_NAME='amda', PROVIDER_ALT_NAMES=(), return_value=fake_instance)
+        with patch.object(rd, '_is_server_up', return_value=True):
             rd.init_amda()
         self.assertIs(rd.amda, fake_instance)
         self.assertIs(rd.PROVIDERS['amda'], fake_instance)
