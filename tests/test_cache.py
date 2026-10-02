@@ -385,33 +385,11 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
     # Per-step (not per-class) drop_matching_entries() is also intentional
     # here, unlike the thread-based dedup classes above.
     #
-    # The pool's 4 workers each do a fresh `import speasy` once, at pool
-    # creation. request_dispatch.py runs init_providers() at import time
-    # unless SPEASY_SKIP_INIT_PROVIDERS is set, which does a live network
-    # liveness check for every non-disabled provider - cheap here (4 imports
-    # total) but was a 2+ hour Windows CI stall back when this test spawned a
-    # fresh process (and fresh import) per step instead of reusing a pool.
-    # Skip provider init for just this class - not the whole file - so it
-    # doesn't leak into tests/test_zzz_disable_ws.py, which relies on a fresh
-    # `import speasy` re-running init_providers() with different
-    # SPEASY_CORE_DISABLED_PROVIDERS values.
-    #
-    # Explicitly force the 'spawn' start method (not the platform/version
-    # default). Python 3.14 defaults Linux multiprocessing to 'forkserver',
-    # which lazily starts a persistent server process on the *first* ever
-    # Process()/Pool() in the whole test run and snapshots os.environ at that
-    # moment - if anything (e.g. coverage instrumentation) starts it before
-    # this class's setUpClass runs, every later child keeps seeing the
-    # stale (pre-fix) environment no matter how much later os.environ is
-    # mutated, since the server never re-reads it. Confirmed empirically:
-    # a child spawned via the ambient forkserver context after setting the
-    # env var still saw None, while the same spawn via an explicit
-    # get_context('spawn') context saw the fix correctly - 'spawn' has no
-    # persistent server, so it always re-inherits the current os.environ.
+    # Explicitly 'spawn', not the platform default: Python 3.14's Linux default,
+    # 'forkserver', snapshots os.environ once per test run, so children could miss
+    # speasy settings changed by earlier tests. 'spawn' always inherits the current one.
     @classmethod
     def setUpClass(cls):
-        cls._prev_skip_init_providers = os.environ.get('SPEASY_SKIP_INIT_PROVIDERS')
-        os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = '1'
         from multiprocessing import get_context
         cls._pool = get_context('spawn').Pool(processes=4)
 
@@ -419,10 +397,6 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
     def tearDownClass(cls):
         cls._pool.close()
         cls._pool.join()
-        if cls._prev_skip_init_providers is None:
-            os.environ.pop('SPEASY_SKIP_INIT_PROVIDERS', None)
-        else:
-            os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = cls._prev_skip_init_providers
 
     def setUp(self):
         drop_matching_entries(r".*CacheRequestsDeduplicationMultiProcess.*")

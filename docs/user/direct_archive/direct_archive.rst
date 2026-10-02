@@ -53,7 +53,7 @@ Supported file formats
      - ``nc`` or ``nc4`` (or ``application/x-netcdf``, ``application/netcdf``)
      - Requires the optional `netCDF4 <https://pypi.org/project/netCDF4/>`_ package
        (``pip install netCDF4``). Without it,
-       any dataset declaring ``codec: nc`` is silently skipped with a warning at import time.
+       any dataset declaring ``codec: nc`` is silently skipped with a warning when the archive starts.
    * - HAPI CSV
      - ``hapi/csv`` (exact name, no extension/mimetype alias)
      - Works with inline ``variables:`` datasets only — see the caveat in
@@ -165,7 +165,7 @@ carries its own ``meta`` block, alongside a dataset-level one:
     ``codec`` here has nothing to do with discovering variables (they're already given) — it only
     tells Speasy how to decode the actual data files at fetch time. It defaults to ``cdf`` if omitted,
     so set it explicitly whenever ``url_pattern`` doesn't point to CDF files, as above. An unrecognized
-    codec skips the whole dataset with a warning at import time, rather than failing inside every
+    codec skips the whole dataset with a warning when the archive starts, rather than failing inside every
     subsequent ``get_data()`` call.
 
 .. important::
@@ -219,7 +219,7 @@ just like the inline format, controlled by the same ``meta_priority``:
 
 **Step 3: Restart Python and use it**
 
-After saving the YAML file, restart your Python session (the inventory is built at import time):
+After saving the YAML file, restart your Python session (the inventory is built once, when the archive is first used):
 
     >>> import speasy as spz # doctest: +SKIP
     >>> # Your dataset now appears in the inventory
@@ -284,7 +284,7 @@ YAML field reference
        (``master_file`` or ``variables``), to decode the actual data files at fetch time. Accepts a
        file extension (``cdf``, ``nc``), a MIME type (``application/x-cdf``), a codec name
        (``hapi/csv``) or a class name. Optional, defaults to ``cdf``; an unrecognized value skips the
-       whole dataset with a warning at import time. A codec that can't enumerate a master file's
+       whole dataset with a warning when the archive starts. A codec that can't enumerate a master file's
        variables (like the built-in HAPI codecs) also skips the dataset the same way — use
        **variables** with those instead.
    * - **master_cdf** *(deprecated)*

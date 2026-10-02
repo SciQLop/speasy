@@ -165,7 +165,7 @@ def remove_entry(entry: ConfigEntry):
 core = ConfigSection("CORE",
                      disabled_providers={"default": "",
                                          "description": """A comma separated list of providers you want to disable.
-The main benefit of disabling providers is to speedup speasy loading.""",
+A disabled provider never starts, even when you use it.""",
                                          "type_ctor": _parse_dir_set},
                      http_rewrite_rules={"default": {
                          "https://cdaweb.gsfc.nasa.gov/pub/": "https://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/"},

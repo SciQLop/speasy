@@ -27,20 +27,20 @@ class DisableWS(unittest.TestCase):
         os.environ["SPEASY_CORE_DISABLED_PROVIDERS"] = "amda"
         _drop_all_speasy_mods()
         import speasy as spz
-        self.assertNotIn("amda", spz.inventories.tree.__dict__)
+        self.assertFalse(hasattr(spz.inventories.tree, "amda"))
         self.assertIsNone(spz.amda)
-        self.assertIn("cda", spz.inventories.tree.__dict__)
+        self.assertTrue(hasattr(spz.inventories.tree, "cda"))
         self.assertIsNotNone(spz.cda)
 
     def test_disable_ssc_and_cda(self):
         os.environ["SPEASY_CORE_DISABLED_PROVIDERS"] = "ssc,cda"
         _drop_all_speasy_mods()
         import speasy as spz
-        self.assertNotIn("ssc", spz.inventories.tree.__dict__)
+        self.assertFalse(hasattr(spz.inventories.tree, "ssc"))
         self.assertIsNone(spz.ssc)
-        self.assertNotIn("cda", spz.inventories.tree.__dict__)
+        self.assertFalse(hasattr(spz.inventories.tree, "cda"))
         self.assertIsNone(spz.cda)
-        self.assertIn("amda", spz.inventories.tree.__dict__)
+        self.assertTrue(hasattr(spz.inventories.tree, "amda"))
         self.assertIsNotNone(spz.amda)
 
 

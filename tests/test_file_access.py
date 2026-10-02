@@ -110,15 +110,7 @@ class FileAccess(unittest.TestCase):
     def test_remote_file_request_deduplication(self):
         url = "https://hephaistos.lpp.polytechnique.fr/data/jeandet/Vbias.html"
         drop_item(url)
-        # 'spawn' explicitly, not the platform default: children re-import
-        # speasy, and request_dispatch runs a live network liveness check per
-        # provider at import unless SPEASY_SKIP_INIT_PROVIDERS is set. It has to
-        # be set before start() for children to inherit it, and is restored
-        # after so it does not leak into tests/test_zzz_disable_ws.py, which
-        # needs a fresh import to re-run init_providers().
         ctx = get_context('spawn')
-        previous_skip_init = os.environ.get('SPEASY_SKIP_INIT_PROVIDERS')
-        os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = '1'
         barrier = ctx.Barrier(5)  # 4 children + this process
         processes = [ctx.Process(target=_open_file, args=(url, barrier)) for _ in range(4)]
         try:
@@ -132,10 +124,6 @@ class FileAccess(unittest.TestCase):
             for p in survivors:
                 p.terminate()
                 p.join(timeout=5)
-            if previous_skip_init is None:
-                os.environ.pop('SPEASY_SKIP_INIT_PROVIDERS', None)
-            else:
-                os.environ['SPEASY_SKIP_INIT_PROVIDERS'] = previous_skip_init
 
         self.assertEqual([], survivors, f"{len(survivors)} child process(es) had to be killed")
         self.assertEqual([0] * 4, [p.exitcode for p in processes],

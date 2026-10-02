@@ -8,9 +8,10 @@ so a later step necessarily reuses at least one cache fragment written by an
 older Speasy version and merges it with a freshly-fetched one written by the
 current version -- the actual thing this CI job exists to catch.
 
-Long-stable API only (spz.get_data / spz.list_providers, both present back to
-speasy 1.5.2) so this one script runs unmodified across the whole version
-range under test.
+Long-stable API only (spz.get_data, present back to speasy 1.5.2) so this one
+script runs unmodified across the whole version range under test. A provider
+missing from an old version, or whose server is down, just fails its fetch:
+that is logged and skipped, only AMDA is mandatory.
 """
 import argparse
 import json
@@ -68,20 +69,14 @@ def fetch_single_shot(get_data, product: str, start: str, stop: str) -> None:
     print(f"{product}: {len(var)} samples")
 
 
-def run(get_data, list_providers, step: int, state_file: Path) -> None:
-    available = set(list_providers())
-    print(f"available providers: {sorted(available)}")
-
+def run(get_data, step: int, state_file: Path) -> None:
     fetch_amda(get_data, step, state_file)
 
-    for provider, (product, start, stop) in SINGLE_SHOT_PRODUCTS.items():
-        if provider not in available:
-            print(f"skip {product}: {provider!r} not available in this speasy version")
-            continue
+    for product, start, stop in SINGLE_SHOT_PRODUCTS.values():
         try:
             fetch_single_shot(get_data, product, start, stop)
-        except AssertionError as exc:
-            print(f"WARNING: {product} failed: {exc}")
+        except Exception as exc:  # noqa: BLE001 -- any single-shot failure is a warning, see module docstring
+            print(f"WARNING: {product} failed: {exc!r}")
 
 
 def main(argv=None) -> int:
@@ -93,7 +88,7 @@ def main(argv=None) -> int:
     import speasy as spz
 
     print(f"speasy {spz.__version__}, step {args.step}")
-    run(spz.get_data, spz.list_providers, args.step, args.state_file)
+    run(spz.get_data, args.step, args.state_file)
     return 0
 
 

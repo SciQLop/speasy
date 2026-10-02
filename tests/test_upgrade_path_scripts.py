@@ -102,23 +102,28 @@ class Run(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmpdir, ignore_errors=True)
         self.state_file = Path(self.tmpdir) / "state.json"
 
-    def test_skips_providers_not_reported_by_list_providers(self):
-        get_data = mock.Mock(return_value=FakeVar(10))
-        list_providers = mock.Mock(return_value={"amda", "cda"})  # no ssc, no cdpp3dview
+    def test_unavailable_provider_is_logged_and_does_not_stop_the_loop(self):
+        """An old speasy version may not know a provider, or its server may be
+        down: get_data raises, and the remaining providers must still be tried."""
+        missing_product = upgrade_path_fetch.SINGLE_SHOT_PRODUCTS["ssc"][0]
 
-        upgrade_path_fetch.run(get_data, list_providers, step=0, state_file=self.state_file)
+        def side_effect(product, start, stop):
+            if product == missing_product:
+                raise ValueError(f"Can't find a provider for {product}")
+            return FakeVar(10)
+
+        get_data = mock.Mock(side_effect=side_effect)
+
+        upgrade_path_fetch.run(get_data, step=0, state_file=self.state_file)
 
         called_products = {call.args[0] for call in get_data.call_args_list}
-        self.assertIn("amda/imf", called_products)
-        self.assertIn(upgrade_path_fetch.SINGLE_SHOT_PRODUCTS["cda"][0], called_products)
-        self.assertNotIn(upgrade_path_fetch.SINGLE_SHOT_PRODUCTS["ssc"][0], called_products)
-        self.assertNotIn(upgrade_path_fetch.SINGLE_SHOT_PRODUCTS["cdpp3dview"][0], called_products)
+        expected = {"amda/imf"} | {p for p, _, _ in upgrade_path_fetch.SINGLE_SHOT_PRODUCTS.values()}
+        self.assertEqual(called_products, expected)
 
-    def test_calls_every_configured_product_when_all_providers_available(self):
+    def test_calls_every_configured_product(self):
         get_data = mock.Mock(return_value=FakeVar(10))
-        list_providers = mock.Mock(return_value={"amda", "cda", "ssc", "cdpp3dview"})
 
-        upgrade_path_fetch.run(get_data, list_providers, step=0, state_file=self.state_file)
+        upgrade_path_fetch.run(get_data, step=0, state_file=self.state_file)
 
         called_products = {call.args[0] for call in get_data.call_args_list}
         expected = {"amda/imf"} | {p for p, _, _ in upgrade_path_fetch.SINGLE_SHOT_PRODUCTS.values()}
@@ -136,9 +141,8 @@ class Run(unittest.TestCase):
             return FakeVar(10)
 
         get_data = mock.Mock(side_effect=side_effect)
-        list_providers = mock.Mock(return_value={"amda", "cda", "ssc", "cdpp3dview"})
 
-        upgrade_path_fetch.run(get_data, list_providers, step=0, state_file=self.state_file)
+        upgrade_path_fetch.run(get_data, step=0, state_file=self.state_file)
 
         called_products = {call.args[0] for call in get_data.call_args_list}
         expected = {"amda/imf"} | {p for p, _, _ in upgrade_path_fetch.SINGLE_SHOT_PRODUCTS.values()}
@@ -153,10 +157,9 @@ class Run(unittest.TestCase):
             return FakeVar(10)
 
         get_data = mock.Mock(side_effect=side_effect)
-        list_providers = mock.Mock(return_value={"amda", "cda", "ssc", "cdpp3dview"})
 
         with self.assertRaises(AssertionError):
-            upgrade_path_fetch.run(get_data, list_providers, step=0, state_file=self.state_file)
+            upgrade_path_fetch.run(get_data, step=0, state_file=self.state_file)
 
 
 upgrade_path_driver = _load("upgrade_path_driver", "upgrade_path_driver.py")

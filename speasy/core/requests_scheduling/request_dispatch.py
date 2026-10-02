@@ -1,5 +1,4 @@
 import functools
-import os
 import threading
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
@@ -29,7 +28,7 @@ TimeRangeCollectionT = Union[TimetableIndex, CatalogIndex, Iterable[Iterable[Uni
 
 PROVIDERS = {}
 # Provider module attributes (amda, cda, ...) are only set by _safe_init_provider, so that
-# __getattr__ can initialize a provider on first access when SPEASY_SKIP_INIT_PROVIDERS is set.
+# __getattr__ can initialize a provider on first access.
 _init_lock = threading.RLock()
 
 
@@ -57,8 +56,8 @@ def _safe_init_provider(ws_class, names, ignore_disabled_status=False):
     """Initialize a data provider safely, catching exceptions and disabling the provider if initialization fails.
 
     A no-op if the provider is already initialized, which makes it safe to call again
-    later (e.g. from update_inventories()) to retry a provider whose one-shot init at
-    import time failed, without re-constructing (and re-fetching the inventory of)
+    later (e.g. from update_inventories()) to retry a provider whose one-shot init on
+    first use failed, without re-constructing (and re-fetching the inventory of)
     providers that are already up.
 
     Parameters
@@ -119,9 +118,6 @@ def _enabled_provider_names() -> List[str]:
 
 load_plugins("speasy.providers")
 
-if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
-    init_providers()
-
 
 def _ensure_provider(name: str):
     """Initialize provider `name` (or an alias) on first use. Failures are not retried here, see init_provider."""
@@ -153,7 +149,9 @@ def __dir__():
 
 
 def list_providers() -> List[str]:
-    return list(PROVIDERS.keys())
+    """Names and aliases of the enabled providers, started or not. A provider whose web service is down
+    is still listed: it starts, or fails to, on first use."""
+    return [name for main_name in _enabled_provider_names() for name in provider_names(main_name)]
 
 
 @overload
@@ -252,7 +250,18 @@ def _scalar_get_data(index, *args, **kwargs):
     provider_uid, product_uid = provider_and_product(index)
     if _ensure_provider(provider_uid) is not None:
         return PROVIDERS[provider_uid].get_data(product_uid, *args, **kwargs)
-    raise ValueError(f"Can't find a provider for {index}{unregistered_provider_hint(provider_uid)}")
+    raise ValueError(f"Can't find a provider for {index}{_unavailable_provider_hint(provider_uid)}")
+
+
+def _unavailable_provider_hint(name: str) -> str:
+    main_name = main_provider_name(name)
+    if main_name is None:
+        return unregistered_provider_hint(name)
+    if core_cfg.disabled_providers().intersection(provider_names(main_name)):
+        return (f". Provider {main_name!r} is disabled, remove it and its aliases from the [core] disabled_providers"
+                " setting or the SPEASY_CORE_DISABLED_PROVIDERS environment variable to enable it")
+    return (f". Provider {main_name!r} failed to start, see the warning logged when it was first used;"
+            " once its web service is reachable, call speasy.update_inventories() to retry")
 
 
 def _get_catalog_or_timetable(index, **kwargs):
