@@ -18,6 +18,7 @@ from ...config import core as core_cfg
 from ...products import *
 from ... import data_providers  # noqa: F401  (importing it registers the bundled providers)
 from ..http import is_server_up
+from ..plugins import load_plugins
 
 log = logging.getLogger(__name__)
 
@@ -110,6 +111,8 @@ def init_providers(ignore_disabled_status=False):
     for main_name in registered_providers():
         init_provider(main_name, ignore_disabled_status=ignore_disabled_status)
 
+
+load_plugins("speasy.providers")
 
 if 'SPEASY_SKIP_INIT_PROVIDERS' not in os.environ:
     init_providers()
