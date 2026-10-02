@@ -216,6 +216,9 @@ class PrivateProductsRequests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(len(result) != 0)
 
+    # Private parameters are only visible to members of AMDA's spz_ci_private group: the CI account is one,
+    # a developer's own account usually is not.
+    @unittest.skipUnless(os.environ.get("GITHUB_ACTIONS") == "true", "needs the CI AMDA account (spz_ci_private group)")
     def test_get_private_parameters(self):
         with self.assertRaises(AttributeError):
             index = spz.inventories.tree.amda.Parameters.ACE.MFI.spz_ci_private.spz_ciprivate_imf
