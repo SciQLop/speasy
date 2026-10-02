@@ -16,7 +16,7 @@ import numpy as np
 
 from speasy.core import EnsureUTCDateTime
 from speasy.core.cache import Cacheable, CacheCall, CACHE_ALLOWED_KWARGS
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS, register_provider
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
@@ -114,12 +114,15 @@ def make_index(meta: Dict):
     return node
 
 
+@register_provider
 class SscWebservice(DataProvider):
+    PROVIDER_NAME = 'ssc'
+    PROVIDER_ALT_NAMES = ('sscweb',)
     BASE_URL = "https://sscweb.gsfc.nasa.gov"
 
     def __init__(self):
         self.__url = f"{self.BASE_URL}/WS/sscr/2"
-        DataProvider.__init__(self, provider_name='ssc', provider_alt_names=['sscweb'])
+        DataProvider.__init__(self)
 
     def build_inventory(self, root: SpeasyIndex):
         inv = list(map(make_index, self.get_observatories()))
