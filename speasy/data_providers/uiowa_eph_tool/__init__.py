@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 
 from speasy.core import EnsureUTCDateTime, fix_name
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS, register_provider
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
@@ -368,12 +368,14 @@ def make_index(meta: Dict):
     return node
 
 
+@register_provider
 class UiowaEphTool(DataProvider):
+    PROVIDER_NAME = 'uiowaephtool'
+    PROVIDER_ALT_NAMES = ('UiowaEphTool',)
     BASE_URL = "https://planet.physics.uiowa.edu/das/casephem"
 
     def __init__(self):
-        DataProvider.__init__(self, provider_name='uiowaephtool', provider_alt_names=['UiowaEphTool'],
-                              min_proxy_version=Version("0.13.0"))
+        DataProvider.__init__(self, min_proxy_version=Version("0.13.0"))
 
     def build_inventory(self, root: SpeasyIndex):
         root.Trajectories = build_inventory()

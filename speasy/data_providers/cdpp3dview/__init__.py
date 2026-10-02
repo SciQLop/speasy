@@ -20,6 +20,7 @@ from speasy.core.dataprovider import (
     GET_DATA_ALLOWED_KWARGS,
     DataProvider,
     ParameterRangeCheck,
+    register_provider,
 )
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import (
@@ -71,16 +72,15 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 CDPP3DVIEW_MIN_PROXY_VERSION = Version('0.14.0')
 
+@register_provider
 class Cdpp3dViewWebservice(DataProvider):
-
+    PROVIDER_NAME = "cdpp3dview"
+    PROVIDER_ALT_NAMES = ("3DView",)
     BASE_URL = "https://3dview.irap.omp.eu/webresources"
 
     def __init__(self):
         self._frames: List[str] = []
-        DataProvider.__init__(
-            self, provider_name="cdpp3dview", provider_alt_names=["3DView"],
-            min_proxy_version=CDPP3DVIEW_MIN_PROXY_VERSION
-        )
+        DataProvider.__init__(self, min_proxy_version=CDPP3DVIEW_MIN_PROXY_VERSION)
         self._cdf_codec = get_codec('application/x-cdf')
 
     def version(self, product):  # NOSONAR (S1172)

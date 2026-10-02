@@ -14,7 +14,7 @@ from speasy.config import SPEASY_CONFIG_DIR
 from speasy.config import archive as cfg
 from speasy.core import AnyDateTimeType, AllowedKwargs
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
-from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS
+from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS, register_provider
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.codecs import get_codec
 from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
@@ -167,10 +167,13 @@ def load_inventory_file(file: str, root: SpeasyIndex):
                             exc_info=True)
 
 
+@register_provider
 class GenericArchive(DataProvider):
+    PROVIDER_NAME = 'archive'
+    PROVIDER_ALT_NAMES = ('generic_archive', 'file')
+
     def __init__(self):
-        DataProvider.__init__(self, provider_name='archive', provider_alt_names=['generic_archive', 'file'],
-                              inventory_disable_proxy=True)
+        DataProvider.__init__(self, inventory_disable_proxy=True)
 
     def build_inventory(self, root: SpeasyIndex):
         from glob import glob

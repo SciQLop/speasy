@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 import tarfile
 from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
@@ -11,7 +12,8 @@ from astroquery.utils.tap.core import TapPlus
 from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime
 from speasy.core.codecs import get_codec, CodecInterface
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
-from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS
+from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS, register_provider
+from speasy.core.http import is_server_up
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
@@ -140,13 +142,23 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'stop_time': f'{stop_time.isoformat()}'}
 
 
+@register_provider
 class CsaWebservice(DataProvider):
+    PROVIDER_NAME = 'csa'
     BASE_URL = "https://csa.esac.esa.int"
 
     def __init__(self):
-        DataProvider.__init__(self, provider_name='csa')
+        DataProvider.__init__(self)
         self.__url = f"{self.BASE_URL}/csa-sl-tap/data"
         self._cdf_codec = get_codec("application/x-cdf")
+
+    @staticmethod
+    def is_server_up():
+        if os.environ.get("HTTP_PROXY", None) is not None:
+            log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
+            log.warning("See https://github.com/astropy/astroquery/issues/3228")
+            return False
+        return is_server_up(url=CsaWebservice.BASE_URL)
 
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
         if type(dataset) is str:

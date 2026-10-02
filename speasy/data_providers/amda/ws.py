@@ -21,6 +21,7 @@ from ...products.catalog import Catalog
 from ...products.timetable import TimeTable
 from ...products.variable import SpeasyVariable
 
+from ...core.dataprovider import register_provider
 from ...core.impex import ImpexProvider, ImpexEndpoint, to_xmlid
 from ...core.impex.exceptions import BadTemplateArgDefinition
 
@@ -119,9 +120,12 @@ def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, pr
     return proxy_args
 
 
+@register_provider
 class AmdaWebservice(ImpexProvider):
+    PROVIDER_NAME = amda_provider_name
+
     def __init__(self):
-        ImpexProvider.__init__(self, provider_name=amda_provider_name, server_url=amda_cfg.entry_point() + "/php/rest",
+        ImpexProvider.__init__(self, provider_name=self.PROVIDER_NAME, server_url=amda_cfg.entry_point() + "/php/rest",
                                max_chunk_size_days=amda_cfg.max_chunk_size_days(),
                                capabilities=amda_capabilities, name_mapping=amda_name_mapping,
                                username=amda_cfg.username(), password=amda_cfg.password(),

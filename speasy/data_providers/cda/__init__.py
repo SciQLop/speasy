@@ -19,7 +19,7 @@ from speasy.config import cdaweb as cda_cfg
 from speasy.core.codecs import get_codec
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, CacheCall, UnversionedProviderCache
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
-                                      ParameterRangeCheck)
+                                      ParameterRangeCheck, register_provider)
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex)
@@ -132,12 +132,15 @@ def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: st
     }
 
 
+@register_provider
 class CdaWebservice(DataProvider):
+    PROVIDER_NAME = 'cda'
+    PROVIDER_ALT_NAMES = ('cdaweb',)
     BASE_URL = "https://cdaweb.gsfc.nasa.gov"
 
     def __init__(self):
         self.__url = f"{self.BASE_URL}/WS/cdasr/1"
-        DataProvider.__init__(self, provider_name='cda', provider_alt_names=['cdaweb'], min_proxy_version=Version("0.13.0"))
+        DataProvider.__init__(self, min_proxy_version=Version("0.13.0"))
         self._cdf_codec = get_codec('application/x-cdf')
 
     def build_inventory(self, root: SpeasyIndex):
