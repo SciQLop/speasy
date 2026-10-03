@@ -290,9 +290,10 @@ class AMDAModule(unittest.TestCase):
         os.environ[amda_cfg.output_format.env_var_name] = 'CDF_ISTP'
         var = spz.get_data(spz.inventories.tree.amda.Parameters.MMS.MMS1.FPI.fast_mode.mms1_fpi_dismoms.mms1_dis_omni,
                            "2021-06-01", "2021-06-08T02")
-        self.assertTrue(len(ref.axes), 2)
-        self.assertTrue(len(var.axes), 2)
-        self.assertTrue(np.all(var.axes[1].values == ref.axes[1].values))
+        self.assertEqual(len(ref.axes), 2)
+        self.assertEqual(len(var.axes), 2)
+        # AMDA pads the gap before the first sample with an all-NaN row
+        self.assertTrue(np.array_equal(var.axes[1].values, ref.axes[1].values, equal_nan=True))
 
 
 if __name__ == '__main__':
