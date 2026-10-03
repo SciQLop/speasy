@@ -2,8 +2,8 @@
 History
 =======
 
-Unreleased
-----------
+1.9.0 (2026-10-03)
+------------------
 
 Bug fixes:
 
@@ -17,8 +17,7 @@ New features:
 * Data providers register themselves: a provider declares ``NAME`` / ``ALIASES`` on
   its class and decorates it with ``@register_provider``. Adding one no longer means editing Speasy's
   core. Packages can ship providers through a ``speasy.providers`` entry point.
-* With ``SPEASY_SKIP_INIT_PROVIDERS`` set, providers now start on first use instead of staying ``None``
-  forever, and ``dir()`` on ``speasy`` and the inventories lists them before they start.
+* ``dir()`` on ``speasy`` and on the inventories lists every enabled provider, started or not.
 
 Behavior changes:
 
