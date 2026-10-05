@@ -805,9 +805,17 @@ class SpeasyVariable(SpeasyProduct):
                 res = self.astype(float)
             else:
                 res = deepcopy(self)
-        valid_min = valid_min or self.valid_range[0]
-        valid_max = valid_max or self.valid_range[1]
-        res[np.logical_or(res > valid_max, res < valid_min)] = np.nan
+        if valid_min is None:
+            valid_min = self.valid_range[0]
+        if valid_max is None:
+            valid_max = self.valid_range[1]
+        # Compare raw values: comparisons on a SpeasyVariable reduce to one bool per row,
+        # which would clamp a whole multi-component row only when every component is out of range.
+        values = res.values
+        if valid_min is not None:
+            values[values < np.asarray(valid_min)] = np.nan
+        if valid_max is not None:
+            values[values > np.asarray(valid_max)] = np.nan
         return res
 
     def sanitized(self, drop_fill_values=True, drop_out_of_range_values=True, drop_nan_and_inf=True, valid_min=None,

@@ -594,6 +594,25 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertTrue(np.all(np.isnan(var.values[8:10, 0])))
         self.assertFalse(np.any(np.isnan(var.values[1:8, 0])))
 
+    def _assert_clamped(self, values, clamped, valid_min, valid_max):
+        out_of_range = (values < valid_min) | (values > valid_max)
+        self.assertTrue(np.any(out_of_range) and not np.all(out_of_range))
+        self.assertTrue(np.all(np.isnan(clamped[out_of_range])))
+        np.testing.assert_array_equal(clamped[~out_of_range], values[~out_of_range])
+
+    def test_clamps_multi_component(self):
+        var = make_simple_var_3cols(0., 100., 1., meta={"VALIDMIN": [0.25], "VALIDMAX": [0.75]})
+        self._assert_clamped(var.values.copy(), var.clamp_with_nan().values, 0.25, 0.75)
+
+    def test_clamps_per_component_range(self):
+        valid_min, valid_max = np.array([0., 0., 0.5]), np.array([1., 0.5, 1.])
+        var = make_simple_var_3cols(0., 100., 1., meta={"VALIDMIN": list(valid_min), "VALIDMAX": list(valid_max)})
+        self._assert_clamped(var.values.copy(), var.clamp_with_nan().values, valid_min, valid_max)
+
+    def test_clamps_with_zero_valid_min(self):
+        var = make_simple_var_3cols(0., 100., 1., meta={"VALIDMIN": 0.5, "VALIDMAX": 1.})
+        self._assert_clamped(var.values.copy(), var.clamp_with_nan(valid_min=0., valid_max=0.5).values, 0., 0.5)
+
     def test_clamps_non_float(self):
         var = make_simple_var(1., 10., 1., 10., meta={"VALIDMIN": 20., "VALIDMAX": 80.}).astype(np.int32)
         with self.assertRaises(ValueError):

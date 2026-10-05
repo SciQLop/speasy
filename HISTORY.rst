@@ -2,6 +2,15 @@
 History
 =======
 
+Unreleased
+----------
+
+Bug fixes:
+
+* ``SpeasyVariable.clamp_with_nan()`` works on multi-component variables (e.g. ``amda/imf``) instead of
+  raising ``IndexError``, and clamps each value on its own. A per-component ``VALIDMIN``/``VALIDMAX`` is
+  applied per column, and an explicit ``valid_min=0`` or ``valid_max=0`` is no longer ignored.
+
 1.9.0 (2026-10-03)
 ------------------
 
