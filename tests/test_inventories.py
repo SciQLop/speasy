@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 import unittest
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 import speasy as spz
 from speasy.core.inventory.indexes import from_dict, to_dict, SpeasyIndex, DatasetIndex
@@ -47,14 +47,10 @@ class FromDictAndToDictPreserveInventory(unittest.TestCase):
             elif value1 != value2:
                 self.fail(f"Value mismatch: {value1}({type(value1)}) != {value2}({type(value2)}) for key {key}")
 
-    @data(
-        (spz.amda,),
-        (spz.cda,),
-        (spz.ssc,),
-        (spz.csa,),
-    )
-    @unpack
-    def test_from_dict_and_to_dict_preserve_inventory(self, provider: DataProvider):
+    # Names, not spz.<provider>: providers start on first access, and this list is evaluated at import.
+    @data("amda", "cda", "ssc", "csa")
+    def test_from_dict_and_to_dict_preserve_inventory(self, provider_name: str):
+        provider: DataProvider = getattr(spz, provider_name)
         inventory = provider._inventory(provider_name=provider.provider_name, disable_proxy=True)
         self.assertInventoryEqual(inventory, from_dict(to_dict(inventory, version=2), version=2))
 
