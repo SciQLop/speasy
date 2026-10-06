@@ -113,3 +113,25 @@ You can convert a ``SpeasyVariable`` to a Pandas ``DataFrame`` and back:
     'SpeasyVariable'
     >>> back.shape
     (16200, 3)
+
+
+xarray conversion
+-----------------
+
+With the optional ``xarray`` package (``pip install speasy[xarray]``), a ``SpeasyVariable`` converts to an
+``xarray.DataArray`` and back. Dimensions and coordinates take the names of the variable axes, and ISTP
+metadata becomes CF attributes (``UNITS`` becomes ``units``, ``FILLVAL`` becomes ``_FillValue``):
+
+    >>> import speasy as spz
+    >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+    >>> da = ace_mag.to_dataarray()
+    >>> da.dims
+    ('time', 'columns')
+    >>> da.attrs["units"]
+    'nT'
+    >>> spz.SpeasyVariable.from_dataarray(da) == ace_mag
+    True
+
+``from_dataarray`` accepts dimensions in any order: the time dimension is the one indexed by datetimes,
+or the one you name with ``time_dim=``. Naive times are taken as UTC. A whole ``xarray.Dataset`` converts
+with ``speasy.products.Dataset.from_xarray(ds)``, which keeps the variables that have a time dimension.

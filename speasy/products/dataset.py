@@ -1,10 +1,13 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from speasy.core import all_of_type
 from speasy.core.datetime_range import DateTimeRange
 from speasy.products.variable import SpeasyVariable
 
 from .base_product import SpeasyProduct
+
+if TYPE_CHECKING:
+    import xarray
 
 
 class Dataset(SpeasyProduct):
@@ -38,6 +41,17 @@ class Dataset(SpeasyProduct):
         return f"""<Dataset: {self.name}
         variables: {list(self.variables.keys())}
         time range: {self.time_range()}"""
+
+    @staticmethod
+    def from_xarray(ds: "xarray.Dataset", name: str = "", time_dim: Optional[str] = None) -> "Dataset":
+        """Build a Dataset from an xarray.Dataset, keeping only the variables that have a time dimension.
+
+        See Also
+        --------
+        speasy.products.SpeasyVariable.from_dataarray: the per variable conversion rules
+        """
+        from .xarray_conversion import dataset_from_xarray
+        return dataset_from_xarray(ds, name=name, time_dim=time_dim)
 
     def __iter__(self):
         return self.variables.__iter__()
