@@ -53,14 +53,14 @@ def _is_sweep(var: SpeasyVariable) -> bool:
     return var.values.shape[1:] == (1,) and all(ax.values.shape == (len(var),) for ax in var.axes[1:])
 
 
-def _has_columns(var: SpeasyVariable) -> bool:
-    return var.values.ndim == 2 and len(var.columns) == var.values.shape[1]
+def _columns_label_dim_1(var: SpeasyVariable) -> bool:
+    return var.values.ndim >= 2 and len(var.columns) == var.values.shape[1]
 
 
 def _dim_name(var: SpeasyVariable, index: int) -> str:
     if index < len(var.axes) and var.axes[index].name:
         return var.axes[index].name
-    if index == 1 and _has_columns(var):
+    if index == 1 and _columns_label_dim_1(var):
         return COLUMNS
     return f"dim_{index}"
 
@@ -78,11 +78,12 @@ def _axis_dims(axis, index: int, dims: List[str], shape) -> tuple:
 
 
 def _columns_coord(var: SpeasyVariable, dims: List[str]) -> Dict[str, Any]:
-    if not _has_columns(var):
-        return {}
-    if len(dims) == 1:
+    """Columns label dim 1 when they match it, a single label (MMS HPCA's 'H+ Flux') is kept as a scalar."""
+    if len(dims) > 1 and _columns_label_dim_1(var):
+        return {COLUMNS: (dims[1], var.columns)}
+    if len(var.columns) == 1:
         return {COLUMNS: ((), var.columns[0])}
-    return {COLUMNS: (dims[1], var.columns)}
+    return {}
 
 
 def to_dataarray(var: SpeasyVariable):
@@ -125,12 +126,12 @@ def _time_axis(da, time_dim: str) -> VariableTimeAxis:
 
 
 def _is_labels_dim(da, dim: str) -> bool:
-    """The second dim of a 2D array indexed by strings, like vector components."""
-    return da.ndim == 2 and dim in da.indexes and da.indexes[dim].dtype.kind in "OUS"
+    """The second dim of a 2D array indexed by strings, like vector components, when no columns coordinate exists."""
+    return COLUMNS not in da.coords and da.ndim == 2 and dim in da.indexes and da.indexes[dim].dtype.kind in "OUS"
 
 
 def _columns(da) -> Optional[List[str]]:
-    if COLUMNS in da.coords and da[COLUMNS].dims in ((), da.dims[1:]):
+    if COLUMNS in da.coords and da[COLUMNS].dims in ((), da.dims[1:2]):
         return [str(label) for label in np.atleast_1d(da[COLUMNS].values)]
     if _is_labels_dim(da, da.dims[-1]):
         return [str(label) for label in da.indexes[da.dims[-1]]]
@@ -143,11 +144,17 @@ def _make_axis(coord, is_time_dependent: bool) -> VariableAxis:
 
 
 def _axis(da, dim: str) -> Optional[VariableAxis]:
+    """The coordinate describing dim: one following time and dim, or named after dim and spanning
+    every dim (PSP EPI-Lo energies), the spatial dims (GOLD latitude/longitude grids) or dim alone."""
+    # da.coords.get would invent an index coordinate for dims without one
+    named = da.coords[dim] if dim in da.coords and dim != COLUMNS else None
     time_varying = [c for c in da.coords if c != COLUMNS and da[c].dims == (da.dims[0], dim)]
+    if named is not None and named.dims == da.dims:
+        return _make_axis(named, is_time_dependent=True)
     if time_varying:
         return _make_axis(da[time_varying[0]], is_time_dependent=True)
-    if dim in da.indexes and not _is_labels_dim(da, dim):
-        return _make_axis(da[dim], is_time_dependent=False)
+    if named is not None and named.dims in ((dim,), da.dims[1:]) and not _is_labels_dim(da, dim):
+        return _make_axis(named, is_time_dependent=False)
     return None
 
 
