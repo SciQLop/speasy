@@ -805,18 +805,19 @@ class SpeasyVariable(SpeasyProduct):
                 res = self.astype(float)
             else:
                 res = deepcopy(self)
-        if valid_min is None:
-            valid_min = self.valid_range[0]
-        if valid_max is None:
-            valid_max = self.valid_range[1]
-        # Compare raw values: comparisons on a SpeasyVariable reduce to one bool per row,
-        # which would clamp a whole multi-component row only when every component is out of range.
-        values = res.values
-        if valid_min is not None:
-            values[values < np.asarray(valid_min)] = np.nan
-        if valid_max is not None:
-            values[values > np.asarray(valid_max)] = np.nan
+        res.values[self._out_of_range_mask(valid_min, valid_max)] = np.nan
         return res
+
+    def _out_of_range_mask(self, valid_min=None, valid_max=None) -> np.ndarray:
+        # Compares raw values because comparisons on a SpeasyVariable reduce to one bool per row.
+        valid_min = self.valid_range[0] if valid_min is None else valid_min
+        valid_max = self.valid_range[1] if valid_max is None else valid_max
+        mask = np.zeros(self.values.shape, dtype=bool)
+        if valid_min is not None:
+            mask |= self.values < np.asarray(valid_min)
+        if valid_max is not None:
+            mask |= self.values > np.asarray(valid_max)
+        return mask
 
     def sanitized(self, drop_fill_values=True, drop_out_of_range_values=True, drop_nan_and_inf=True, valid_min=None,
                   valid_max=None) -> "SpeasyVariable":
@@ -851,12 +852,8 @@ class SpeasyVariable(SpeasyProduct):
         if drop_fill_values and self.fill_value is not None:
             indexes.append(np.all(self != self.fill_value, axis=tuple(range(1, self.ndim))))
         if drop_out_of_range_values:
-            valid_min = valid_min or self.valid_range[0]
-            valid_max = valid_max or self.valid_range[1]
-            if valid_min is not None and valid_max is not None:
-                indexes.append(np.logical_and(
-                    self >= valid_min, self <= valid_max
-                ).reshape(-1))
+            out_of_range = self._out_of_range_mask(valid_min, valid_max)
+            indexes.append(~np.any(out_of_range, axis=tuple(range(1, out_of_range.ndim))))
         if len(indexes) == 0:
             raise ValueError(
                 "No filtering applied, please set at least one of drop_fill_values, drop_out_of_range_values or drop_nan_and_inf to True")

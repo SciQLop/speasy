@@ -634,6 +634,25 @@ class ASpeasyVariable(unittest.TestCase):
         with self.assertRaises(ValueError):
             var.sanitized(drop_fill_values=False, drop_out_of_range_values=False, drop_nan_and_inf=False)
 
+    def _assert_rows_kept_in_range(self, var, cleaned, valid_min, valid_max):
+        in_range = np.all((var.values >= valid_min) & (var.values <= valid_max), axis=1)
+        self.assertTrue(np.any(in_range) and not np.all(in_range))
+        np.testing.assert_array_equal(cleaned.values, var.values[in_range])
+
+    def test_cleans_with_zero_valid_min(self):
+        var = make_simple_var_3cols(0., 100., 1., meta={"VALIDMIN": 0.5, "VALIDMAX": 1.})
+        self._assert_rows_kept_in_range(var, var.sanitized(valid_min=0., valid_max=0.5), 0., 0.5)
+
+    def test_cleans_with_per_component_bounds(self):
+        valid_min, valid_max = np.array([0., 0., 0.5]), np.array([1., 0.5, 1.])
+        var = make_simple_var_3cols(0., 100., 1.)
+        self._assert_rows_kept_in_range(var, var.sanitized(valid_min=valid_min, valid_max=valid_max),
+                                        valid_min, valid_max)
+
+    def test_cleans_with_a_single_bound(self):
+        var = make_simple_var_3cols(0., 100., 1., meta={"VALIDMAX": 0.5})
+        self._assert_rows_kept_in_range(var, var.sanitized(), -np.inf, 0.5)
+
     def test_non_regression_214(self):
         # see https://github.com/SciQLop/speasy/issues/214
         import speasy as spz
