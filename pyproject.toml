@@ -66,6 +66,7 @@ homepage = "https://github.com/SciQLop/speasy"
 zstd = ["pyzstd"]
 # kept so that "speasy[blosc]" still installs: numcodecs is now a dependency
 blosc = []
+xarray = ["xarray"]
 
 [dependency-groups]
 dev = [
@@ -77,6 +78,7 @@ dev = [
     "IPython",
     "cogapp",
     "pyftpdlib",
+    "xarray",
 ]
 wasm = [
     "pytest-pyodide; python_version >= '3.14'",
