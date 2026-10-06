@@ -518,6 +518,19 @@ class CacheResilientToUnreadableEntries(unittest.TestCase):
         self.assertIsInstance(entry, PendingRequest)
 
 
+class _FrozenClock(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2026, 1, 1, tzinfo=tz)
+
+
+class CacheItemExpiry(unittest.TestCase):
+    def test_zero_lifetime_is_expired_without_the_clock_ticking(self):
+        """Windows' clock can return the same time for the write and the read."""
+        with mock.patch.object(cache_mod, "datetime", _FrozenClock):
+            self.assertTrue(cache_mod.CacheItem(None, 1, lifetime=timedelta(0)).is_expired())
+
+
 class TestNoopCacheBackend(unittest.TestCase):
     """The fallback backend used when pysciqlop_cache is unavailable (e.g. WASM)
     must never store anything and always report a miss."""

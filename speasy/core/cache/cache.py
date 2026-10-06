@@ -70,7 +70,7 @@ class CacheItem:
 
     def is_expired(self) -> bool:
         if isinstance(self.lifetime, timedelta):
-            return datetime.now(tz=timezone.utc) > (self.created + self.lifetime)
+            return datetime.now(tz=timezone.utc) >= (self.created + self.lifetime)
         else:
             return False
 
