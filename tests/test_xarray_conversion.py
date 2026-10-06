@@ -60,6 +60,42 @@ def three_d():
                                           VariableAxis(values=np.arange(3.), name="b")])
 
 
+def distribution():
+    """MMS FPI / MAVEN SWIA like: fixed angles, time-dependent energy, labels on the first angle."""
+    return _var(np.ones((N, 4, 2, 3)),
+                axes=[VariableAxis(values=np.arange(4.), name="phi"),
+                      VariableAxis(values=np.arange(2.), name="theta"),
+                      VariableAxis(values=np.ones((N, 3)), name="energy", is_time_dependent=True)],
+                columns=[f"sector{i}" for i in range(4)])
+
+
+def single_label_3d():
+    """MMS HPCA like: one label for a 3D flux."""
+    return _var(np.ones((N, 2, 3)), axes=[VariableAxis(values=np.arange(2), name="anode"),
+                                          VariableAxis(values=np.arange(3.), name="energy")],
+                columns=["H+ Flux"])
+
+
+def labels_axis():
+    """Cluster CIS Status like: an axis of byte string labels next to the columns."""
+    labels = [f"Status[{i}]" for i in range(4)]
+    return _var(np.ones((N, 4)), axes=[VariableAxis(values=np.array([s.encode() for s in labels]), name="L_Status")],
+                columns=labels)
+
+
+def full_shape_time_dependent_axis():
+    """PSP EPI-Lo like: the energy axis has the full data shape."""
+    return _var(np.ones((N, 2, 3)), axes=[VariableAxis(values=np.arange(2.), name="look"),
+                                          VariableAxis(values=np.ones((N, 2, 3)), name="energy",
+                                                       is_time_dependent=True)])
+
+
+def coordinate_grid():
+    """GOLD like: latitude and longitude grids over both spatial dims."""
+    return _var(np.ones((N, 2, 3)), axes=[VariableAxis(values=np.ones((2, 3)), name="latitude"),
+                                          VariableAxis(values=np.zeros((2, 3)), name="longitude")])
+
+
 def _spectro_da(dims=("frequency", "time"), time=TIME):
     shape = tuple(N if d == "time" else 4 for d in dims)
     return xr.DataArray(np.ones(shape), dims=dims, name="PSD",
@@ -104,7 +140,8 @@ class SpeasyVariableToDataArray(unittest.TestCase):
         self.assertEqual(da.dims, ("time",))
         self.assertEqual(da["frequency"].dims, ("time",))
 
-    @data(scalar, vector, spectrogram, labelled_spectrogram, time_dependent_spectrogram, sweep, three_d)
+    @data(scalar, vector, spectrogram, labelled_spectrogram, time_dependent_spectrogram, sweep, three_d,
+          distribution, single_label_3d, labels_axis, full_shape_time_dependent_axis, coordinate_grid)
     def test_round_trip(self, make):
         var = make()
         back = SpeasyVariable.from_dataarray(var.to_dataarray())
