@@ -2,8 +2,8 @@
 History
 =======
 
-Unreleased
-----------
+1.9.1 (2026-10-06)
+------------------
 
 Bug fixes:
 
@@ -12,6 +12,9 @@ Bug fixes:
   applied per column, and an explicit ``valid_min=0`` or ``valid_max=0`` is no longer ignored.
 * ``SpeasyVariable.sanitized()`` no longer ignores an explicit ``valid_min=0`` or ``valid_max=0``, accepts
   per-component bounds as arrays, and filters with a single bound when only ``VALIDMIN`` or ``VALIDMAX`` is set.
+
+* A zero-lifetime cache entry is expired immediately by @jeandet in https://github.com/SciQLop/speasy/pull/397
+* Fix clamp_with_nan on multi-component variables by @Beforerr in https://github.com/SciQLop/speasy/pull/396
 
 1.9.0 (2026-10-03)
 ------------------
