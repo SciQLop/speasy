@@ -50,8 +50,10 @@ class Dataset(SpeasyProduct):
         --------
         speasy.products.SpeasyVariable.from_dataarray: the per variable conversion rules
         """
-        from .xarray_conversion import dataset_from_xarray
-        return dataset_from_xarray(ds, name=name, time_dim=time_dim)
+        from .xarray_conversion import has_time_dim
+        variables = {str(k): SpeasyVariable.from_dataarray(ds[k], time_dim=time_dim)
+                     for k in ds.data_vars if has_time_dim(ds[k], time_dim)}
+        return Dataset(name=name, variables=variables, meta=dict(ds.attrs))
 
     def __iter__(self):
         return self.variables.__iter__()
