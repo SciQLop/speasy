@@ -1,8 +1,7 @@
 """Tests for xarray <-> SpeasyVariable conversion."""
 
 import sys
-import unittest
-from unittest import mock
+import unittest.mock
 
 import astropy.units
 import numpy as np
@@ -149,9 +148,10 @@ class SpeasyVariableToDataArray(unittest.TestCase):
         self.assertEqual(back.columns, var.columns)
 
     def test_missing_xarray_says_how_to_install_it(self):
-        with mock.patch.dict(sys.modules, {"xarray": None}):
+        var = vector()
+        with unittest.mock.patch.dict(sys.modules, {"xarray": None}):
             with self.assertRaisesRegex(ImportError, r"speasy\[xarray\]"):
-                vector().to_dataarray()
+                var.to_dataarray()
 
 
 @ddt
