@@ -717,8 +717,9 @@ class SpeasyVariable(SpeasyProduct):
         to_dataarray: exports a SpeasyVariable to an xarray.DataArray
         speasy.products.Dataset.from_xarray: converts a whole xarray.Dataset
         """
-        from .xarray_conversion import from_dataarray
-        return from_dataarray(da, time_dim=time_dim)
+        from .xarray_conversion import variable_parts
+        axes, values, columns = variable_parts(da, time_dim=time_dim)
+        return SpeasyVariable(axes=axes, values=values, columns=columns)
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         """Converts SpeasyVariable to dictionary

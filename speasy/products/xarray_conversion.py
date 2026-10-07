@@ -2,14 +2,15 @@
 
 xarray is an optional dependency. Importing from xarray objects never imports it; exporting does.
 """
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pds
 
 from speasy.core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
-from .dataset import Dataset
-from .variable import SpeasyVariable
+
+if TYPE_CHECKING:
+    from .variable import SpeasyVariable
 
 ISTP_TO_CF = {
     "UNITS": "units",
@@ -48,16 +49,16 @@ def _to_meta(attrs: Dict) -> Dict:
     return meta
 
 
-def _is_sweep(var: SpeasyVariable) -> bool:
+def _is_sweep(var: "SpeasyVariable") -> bool:
     """1D data whose extra axes only follow time, like a radio receiver sweeping frequencies."""
     return var.values.shape[1:] == (1,) and all(ax.values.shape == (len(var),) for ax in var.axes[1:])
 
 
-def _columns_label_dim_1(var: SpeasyVariable) -> bool:
+def _columns_label_dim_1(var: "SpeasyVariable") -> bool:
     return var.values.ndim >= 2 and len(var.columns) == var.values.shape[1]
 
 
-def _dim_name(var: SpeasyVariable, index: int) -> str:
+def _dim_name(var: "SpeasyVariable", index: int) -> str:
     if index < len(var.axes) and var.axes[index].name:
         return var.axes[index].name
     if index == 1 and _columns_label_dim_1(var):
@@ -77,7 +78,7 @@ def _axis_dims(axis, index: int, dims: List[str], shape) -> tuple:
     return (dims[index],)
 
 
-def _columns_coord(var: SpeasyVariable, dims: List[str]) -> Dict[str, Any]:
+def _columns_coord(var: "SpeasyVariable", dims: List[str]) -> Dict[str, Any]:
     """Columns label dim 1 when they match it, a single label (MMS HPCA's 'H+ Flux') is kept as a scalar."""
     if len(dims) > 1 and _columns_label_dim_1(var):
         return {COLUMNS: (dims[1], var.columns)}
@@ -86,7 +87,7 @@ def _columns_coord(var: SpeasyVariable, dims: List[str]) -> Dict[str, Any]:
     return {}
 
 
-def to_dataarray(var: SpeasyVariable):
+def to_dataarray(var: "SpeasyVariable"):
     xr = _xarray()
     values = var.values[:, 0] if _is_sweep(var) else var.values
     dims = [var.axes[0].name or "time"] + [_dim_name(var, i) for i in range(1, values.ndim)]
@@ -179,21 +180,20 @@ def _extra_axes(da) -> List[VariableAxis]:
             for axis, dim in zip(axes, da.dims[1:])]
 
 
-def from_dataarray(da, time_dim: Optional[str] = None) -> SpeasyVariable:
+def has_time_dim(da, time_dim: Optional[str] = None) -> bool:
+    return _find_time_dim(da, time_dim) is not None
+
+
+def variable_parts(da, time_dim: Optional[str] = None) -> Tuple[List, DataContainer, Optional[List[str]]]:
+    """The axes, values and columns of the SpeasyVariable matching da.
+
+    Returned as parts rather than a SpeasyVariable so this module does not import products, which import it.
+    """
     found = _find_time_dim(da, time_dim)
     if found is None:
         raise ValueError(f"No datetime dimension found in {da.name} (dims: {list(da.dims)}), "
                          f"give its name with time_dim=")
     da = da.transpose(found, ...)
-    return SpeasyVariable(
-        axes=[_time_axis(da, found), *_extra_axes(da)],
-        values=DataContainer(values=da.values, meta=_to_meta(da.attrs),
-                             name=str(da.name) if da.name is not None else "Unknown"),
-        columns=_columns(da))
-
-
-def dataset_from_xarray(ds, name: str = "", time_dim: Optional[str] = None) -> Dataset:
-    with_time = {str(k): ds[k] for k in ds.data_vars if _find_time_dim(ds[k], time_dim) is not None}
-    return Dataset(name=name,
-                   variables={k: from_dataarray(da, time_dim) for k, da in with_time.items()},
-                   meta=dict(ds.attrs))
+    values = DataContainer(values=da.values, meta=_to_meta(da.attrs),
+                           name=str(da.name) if da.name is not None else "Unknown")
+    return [_time_axis(da, found), *_extra_axes(da)], values, _columns(da)
