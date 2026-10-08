@@ -61,7 +61,7 @@ def _columns_label_dim_1(var: "SpeasyVariable") -> bool:
 def _dim_name(var: "SpeasyVariable", index: int) -> str:
     if index < len(var.axes) and var.axes[index].name:
         return var.axes[index].name
-    if index == 1 and _columns_label_dim_1(var):
+    if index == 1 and index >= len(var.axes) and _columns_label_dim_1(var):
         return COLUMNS
     return f"dim_{index}"
 
@@ -87,10 +87,21 @@ def _columns_coord(var: "SpeasyVariable", dims: List[str]) -> Dict[str, Any]:
     return {}
 
 
+def _check_dim_names(var: "SpeasyVariable", dims: List[str]) -> None:
+    duplicates = sorted({d for d in dims if dims.count(d) > 1})
+    if duplicates:
+        raise ValueError(f"Several axes of {var.name} are named {duplicates}, xarray needs distinct dimension names: "
+                         f"rename the axes so each one has its own name")
+    if any(axis.name == COLUMNS for axis in var.axes):
+        raise ValueError(f"An axis of {var.name} is named '{COLUMNS}', which xarray conversion reserves for the "
+                         f"column labels: rename that axis")
+
+
 def to_dataarray(var: "SpeasyVariable"):
     xr = _xarray()
     values = var.values[:, 0] if _is_sweep(var) else var.values
     dims = [var.axes[0].name or "time"] + [_dim_name(var, i) for i in range(1, values.ndim)]
+    _check_dim_names(var, dims)
     coords = {dims[0]: (dims[0], var.time, _to_attrs(var.axes[0].meta))}
     coords.update({
         axis.name or dims[index]: (_axis_dims(axis, index, dims, values.shape), axis.values, _to_attrs(axis.meta))
@@ -105,8 +116,11 @@ def _time_dims(da) -> List[str]:
 
 
 def _find_time_dim(da, time_dim: Optional[str]) -> Optional[str]:
+    if time_dim is not None and time_dim not in _time_dims(da):
+        raise ValueError(f"'{time_dim}' is not a datetime dimension of {da.name}, its datetime dimensions are "
+                         f"{_time_dims(da)}")
     if time_dim is not None:
-        return time_dim if time_dim in _time_dims(da) else None
+        return time_dim
     candidates = _time_dims(da)
     preferred = [d for d in candidates if str(d).lower() in PREFERRED_TIME_NAMES]
     if len(candidates) == 1:
@@ -181,7 +195,11 @@ def _extra_axes(da) -> List[VariableAxis]:
 
 
 def has_time_dim(da, time_dim: Optional[str] = None) -> bool:
-    return _find_time_dim(da, time_dim) is not None
+    """Whether da has one time dimension to convert along, so ambiguous variables count as having none."""
+    try:
+        return _find_time_dim(da, time_dim) is not None
+    except ValueError:
+        return False
 
 
 def variable_parts(da, time_dim: Optional[str] = None) -> Tuple[List, DataContainer, Optional[List[str]]]:

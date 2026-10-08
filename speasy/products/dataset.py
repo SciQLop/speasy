@@ -44,7 +44,10 @@ class Dataset(SpeasyProduct):
 
     @staticmethod
     def from_xarray(ds: "xarray.Dataset", name: str = "", time_dim: Optional[str] = None) -> "Dataset":
-        """Build a Dataset from an xarray.Dataset, keeping only the variables that have a time dimension.
+        """Build a Dataset from an xarray.Dataset, keeping only the variables with a single time dimension.
+
+        Variables with several datetime dimensions are skipped too, unless time_dim names the one to use;
+        convert them one by one with SpeasyVariable.from_dataarray otherwise.
 
         See Also
         --------

@@ -134,6 +134,25 @@ class SpeasyVariableToDataArray(unittest.TestCase):
         da = _var(np.ones((N, 2)), axes=[VariableAxis(values=np.arange(2.))]).to_dataarray()
         self.assertEqual(da.dims, ("time", "dim_1"))
 
+    def test_unnamed_axis_keeps_its_values_next_to_matching_columns(self):
+        var = _var(np.ones((N, 3)), axes=[VariableAxis(values=np.arange(3.) + 10)], columns=["a", "b", "c"])
+        back = SpeasyVariable.from_dataarray(var.to_dataarray())
+        self.assertEqual(len(back.axes), 2)
+        np.testing.assert_array_equal(back.axes[1].values, np.arange(3.) + 10)
+        self.assertEqual(back.columns, ["a", "b", "c"])
+
+    @data(("time", "x"), ("x", "x"))
+    def test_duplicate_axis_names_say_how_to_fix_it(self, names):
+        var = _var(np.ones((N, 2, 3)), axes=[VariableAxis(values=np.arange(2.), name=names[0]),
+                                             VariableAxis(values=np.arange(3.), name=names[1])])
+        with self.assertRaisesRegex(ValueError, "rename"):
+            var.to_dataarray()
+
+    def test_axis_named_columns_says_how_to_fix_it(self):
+        var = _var(np.ones((N, 3)), axes=[VariableAxis(values=np.arange(3.), name="columns")])
+        with self.assertRaisesRegex(ValueError, "rename"):
+            var.to_dataarray()
+
     def test_sweep_frequency_follows_time(self):
         da = sweep().to_dataarray()
         self.assertEqual(da.dims, ("time",))
@@ -187,6 +206,10 @@ class SpeasyVariableFromDataArray(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "time_dim"):
             SpeasyVariable.from_dataarray(da)
         self.assertEqual(SpeasyVariable.from_dataarray(da, time_dim="stop").axes[0].name, "stop")
+
+    def test_wrong_time_dim_names_it(self):
+        with self.assertRaisesRegex(ValueError, "'frequency' is not a datetime dimension"):
+            SpeasyVariable.from_dataarray(_spectro_da(), time_dim="frequency")
 
     def test_astropy_units_become_strings(self):
         da = _spectro_da()
@@ -250,6 +273,12 @@ class DatasetFromXarray(unittest.TestCase):
         self.assertEqual(dataset.name, "rpw")
         self.assertEqual(dataset.meta, {"title": "maser like"})
         self.assertEqual(dataset["PSD_V2"].values.shape, (N, 4))
+
+    def test_variables_with_ambiguous_time_dims_are_skipped(self):
+        ds = xr.Dataset({"good": (("time", "c"), np.ones((N, 2))),
+                         "ambiguous": (("start", "stop"), np.ones((N, N)))},
+                        coords={"time": TIME, "c": [0, 1], "start": TIME, "stop": TIME})
+        self.assertEqual(list(Dataset.from_xarray(ds).variables), ["good"])
 
 
 if __name__ == "__main__":
