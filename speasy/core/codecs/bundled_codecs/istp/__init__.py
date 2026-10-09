@@ -31,12 +31,16 @@ def _fix_attributes_types(attributes: dict):
     return cleaned
 
 
-def _is_time_dependent(axis, time_axis_name):
+def _is_time_dependent(axis, time_axis_name, n_records):
     if axis.attributes.get('DEPEND_TIME', '') == time_axis_name:
         return not axis.is_nrv
     if axis.attributes.get('DEPEND_0', '') == time_axis_name:
         return not axis.is_nrv
-    return False
+    if 'DEPEND_TIME' in axis.attributes or 'DEPEND_0' in axis.attributes:
+        return False
+    # some master CDFs drop DEPEND_0 on record varying support data (SOLO_L2_SWA-EAS-PAD-DEF, see
+    # https://github.com/SciQLop/speasy/issues/399), so fall back on the record count
+    return not axis.is_nrv and axis.values.shape[0] == n_records
 
 
 def _display_type(variable: pyistp.loader.DataVariable) -> str:
@@ -47,9 +51,9 @@ def _display_type(variable: pyistp.loader.DataVariable) -> str:
     return ''
 
 
-def _make_axis(axis, time_axis_name):
+def _make_axis(axis, time_axis_name, n_records):
     return VariableAxis(values=axis.values.copy(), meta=_fix_attributes_types(axis.attributes), name=axis.name,
-                        is_time_dependent=_is_time_dependent(axis, time_axis_name))
+                        is_time_dependent=_is_time_dependent(axis, time_axis_name, n_records))
 
 
 def _build_labels(variable: pyistp.loader.DataVariable):
@@ -88,7 +92,7 @@ def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVar
         return _valid_variable_or_none(SpeasyVariable(
             axes=[VariableTimeAxis(values=var.axes[0].values.copy(),
                                    meta=_fix_attributes_types(var.axes[0].attributes))] + [
-                     _make_axis(axis, time_axis_name) for axis in _filter_extra_axes(var)],
+                     _make_axis(axis, time_axis_name, len(var.axes[0].values)) for axis in _filter_extra_axes(var)],
             values=DataContainer(values=var.values.copy(), meta=_fix_attributes_types(var.attributes),
                                  name=var.name,
                                  is_time_dependent=True),
