@@ -496,8 +496,9 @@ class TestHapiWriters(unittest.TestCase):
 
     @data("hapi/csv", "hapi/binary")
     def test_empty_variable_needs_a_dataset_range_for_its_header(self, codec_name):
+        codec, variables = get_codec(codec_name), [_variable(np.empty((0,)))]
         with self.assertRaises(ValueError):
-            get_codec(codec_name).save_variables([_variable(np.empty((0,)))])
+            codec.save_variables(variables)
 
     @data("hapi/csv", "hapi/binary")
     def test_empty_variable_without_header_is_an_empty_body(self, codec_name):
@@ -525,9 +526,11 @@ class TestHapiWriters(unittest.TestCase):
     )
     @unpack
     def test_rejects_an_invalid_dataset_range(self, kwargs):
+        variables = [_variable([1., 2.])]
         for codec_name in ("hapi/csv", "hapi/binary"):
+            codec = get_codec(codec_name)
             with self.assertRaises(ValueError):
-                get_codec(codec_name).save_variables([_variable([1., 2.])], **kwargs)
+                codec.save_variables(variables, **kwargs)
 
     @data("hapi/csv", "hapi/binary")
     def test_empty_variable_reloads_as_an_empty_variable(self, codec_name):
@@ -648,8 +651,9 @@ class TestHapiWriters(unittest.TestCase):
         v = _variable([1., 2.], time=np.array(["2020-01-01T00:00:01", "2020-01-01T00:00:00"], dtype="datetime64[ns]"))
         _, headers = _save_and_read_headers("hapi/csv", v)
         self.assertEqual(headers["startDate"], "2020-01-01T00:00:00.000Z")
+        codec = get_codec("hapi/csv")
         with self.assertRaises(ValueError):
-            get_codec("hapi/csv").save_variables([v], start_date="2020-01-01T00:00:00.5", stop_date="2021-01-01")
+            codec.save_variables([v], start_date="2020-01-01T00:00:00.5", stop_date="2021-01-01")
 
     def test_time_varying_bins_parameter_declares_its_fill(self):
         time = _variable([1., 2.]).time

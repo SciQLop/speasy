@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.codecs.codec_interface import CodecInterface
@@ -55,7 +55,7 @@ def _is_blank(text: Any) -> bool:
     return not isinstance(text, str) or not text.strip()
 
 
-def _parameter_units(unit: Any, size: List[int]) -> Union[None, str, List[Optional[str]]]:
+def _parameter_units(unit: Any, size: List[int]) -> str | List[Optional[str]] | None:
     # HAPI spells "no units" as null and never as an empty string; ISTP UNITS can also be one per element,
     # which HAPI only allows as an array matching a 1-D size.
     if isinstance(unit, (list, tuple, np.ndarray)):
@@ -73,7 +73,7 @@ def _bin_units(unit: Any) -> str:
     return _parameter_units(unit, []) or "dimensionless"
 
 
-def _vector_components(components: Any, size: List[int]) -> Union[None, str, List[str]]:
+def _vector_components(components: Any, size: List[int]) -> str | List[str] | None:
     # A scalar takes one string, a 1-D array one per element; HAPI has none for other shapes.
     if components is None:
         return None
