@@ -431,8 +431,8 @@ def _variable(values, time=None, fill=None, name="v"):
                           values=DataContainer(values if values.ndim > 1 else values[:, np.newaxis], name=name, meta=meta))
 
 
-def _save_and_read_headers(codec_name, variable):
-    payload = bytes(get_codec(codec_name).save_variables([variable]))
+def _save_and_read_headers(codec_name, variable, **kwargs):
+    payload = bytes(get_codec(codec_name).save_variables([variable], **kwargs))
     return payload, _extract_headers(io.BytesIO(payload))
 
 
@@ -454,6 +454,11 @@ class TestHapiWriters(unittest.TestCase):
             _, headers = _save_and_read_headers(codec_name, _variable([1., 2.], fill=fill))
             self.assertEqual(headers["parameters"][1]["fill"], expected)
 
+    def test_fill_value_too_large_for_a_double_is_dropped(self):
+        for codec_name in ("hapi/csv", "hapi/binary"):
+            _, headers = _save_and_read_headers(codec_name, _variable([1., 2.], fill=2 ** 1100))
+            self.assertIsNone(headers["parameters"][1]["fill"])
+
     def test_integer_fill_value_is_written_as_an_integer(self):
         _, headers = _save_and_read_headers("hapi/csv", _variable(np.array([1, 2], dtype=np.int16),
                                                                   fill=np.array([-32768], dtype=np.int16)))
@@ -467,10 +472,157 @@ class TestHapiWriters(unittest.TestCase):
 
     @data("hapi/csv", "hapi/binary")
     def test_writes_an_empty_variable_as_no_data(self, codec_name):
-        payload, headers = _save_and_read_headers(codec_name, _variable(np.empty((0,))))
+        payload, headers = _save_and_read_headers(codec_name, _variable(np.empty((0,))),
+                                                  start_date="2019-01-01", stop_date="2021-01-01")
         self.assertEqual(headers["status"]["code"], 1201)
-        self.assertNotIn("startDate", headers)
+        self.assertEqual(headers["startDate"], "2019-01-01T00:00:00.000Z")
+        self.assertEqual(headers["stopDate"], "2021-01-01T00:00:00.000Z")
         self.assertEqual(payload.splitlines()[-1][:1], b"#")
+
+    @data("hapi/csv", "hapi/binary")
+    def test_empty_variable_needs_a_dataset_range_for_its_header(self, codec_name):
+        with self.assertRaises(ValueError):
+            get_codec(codec_name).save_variables([_variable(np.empty((0,)))])
+
+    @data("hapi/csv", "hapi/binary")
+    def test_empty_variable_without_header_is_an_empty_body(self, codec_name):
+        payload = get_codec(codec_name).save_variables([_variable(np.empty((0,)))], with_headers=False)
+        self.assertEqual(payload, b"")
+
+    @data("hapi/csv", "hapi/binary")
+    def test_dataset_range_defaults_to_the_records_span(self, codec_name):
+        _, headers = _save_and_read_headers(codec_name, _variable([1., 2.]))
+        self.assertEqual(headers["startDate"], "2020-01-01T00:00:00.000Z")
+        self.assertEqual(headers["stopDate"], "2020-01-01T00:00:01.000Z")
+
+    @data("hapi/csv", "hapi/binary")
+    def test_dataset_range_can_be_wider_than_the_records(self, codec_name):
+        _, headers = _save_and_read_headers(codec_name, _variable([1., 2.]),
+                                            start_date=datetime(2019, 1, 1), stop_date=np.datetime64("2021-01-01"))
+        self.assertEqual(headers["startDate"], "2019-01-01T00:00:00.000Z")
+        self.assertEqual(headers["stopDate"], "2021-01-01T00:00:00.000Z")
+
+    @data(
+        ({"start_date": "2019-01-01"}, ),  # one bound only
+        ({"start_date": "2021-01-01", "stop_date": "2019-01-01"}, ),  # reversed
+        ({"start_date": "2020-01-01T00:00:00.5", "stop_date": "2021-01-01"}, ),  # records start before it
+        ({"start_date": "2019-01-01", "stop_date": "2020-01-01T00:00:00.5"}, ),  # records end after it
+    )
+    @unpack
+    def test_rejects_an_invalid_dataset_range(self, kwargs):
+        for codec_name in ("hapi/csv", "hapi/binary"):
+            with self.assertRaises(ValueError):
+                get_codec(codec_name).save_variables([_variable([1., 2.])], **kwargs)
+
+    @data("hapi/csv", "hapi/binary")
+    def test_empty_variable_reloads_as_an_empty_variable(self, codec_name):
+        payload, _ = _save_and_read_headers(codec_name, _variable(np.empty((0,))),
+                                            start_date="2019-01-01", stop_date="2021-01-01")
+        v = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertEqual(v.values.shape, (0, 1))
+        self.assertEqual(len(v.time), 0)
+
+    def test_single_column_is_written_as_a_scalar(self):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1.]).time)],
+                           values=DataContainer(np.ones((1, 1)), name="v"), columns=["|B|"])
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertNotIn("size", headers["parameters"][1])
+        self.assertEqual(headers["parameters"][1]["label"], "|B|")
+
+    def test_blank_units_and_labels_are_left_out(self):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1.]).time)],
+                           values=DataContainer(np.ones((1, 2)), name="v", meta={"UNITS": ""}), columns=["a", ""])
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertIsNone(headers["parameters"][1]["units"])
+        self.assertNotIn("label", headers["parameters"][1])
+
+    @data("hapi/csv", "hapi/binary")
+    def test_bins_follow_hapi_rules_and_reload(self, codec_name):
+        time = _variable([1., 2.]).time
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                 VariableAxis(values=np.array([10., 20.]), name="energy"),
+                                 VariableAxis(values=np.array([b"x", b"y", b"z"]), name="component")],
+                           values=DataContainer(np.ones((2, 2, 3)), name="v"))
+        payload, headers = _save_and_read_headers(codec_name, v)
+        energy, component = headers["parameters"][1]["bins"]
+        self.assertEqual(energy, {"name": "energy", "units": "dimensionless", "centers": [10., 20.]})
+        self.assertEqual(component, {"name": "component", "units": "dimensionless", "centers": None})
+        reloaded = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertEqual(reloaded.values.shape, (2, 2, 3))
+        self.assertListEqual(reloaded.axes[1].values.tolist(), [10., 20.])
+        self.assertListEqual(reloaded.axes[2].values.tolist(), [0., 1., 2.])  # the unbinned one keeps its place
+
+    @data("hapi/csv", "hapi/binary")
+    def test_arrays_are_unwound_with_the_last_index_fastest(self, codec_name):
+        values = np.arange(12.).reshape(2, 2, 3)
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1., 2.]).time)],
+                           values=DataContainer(values, name="v"))
+        payload = get_codec(codec_name).save_variables([v])
+        reloaded = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        np.testing.assert_array_equal(reloaded.values, values)
+
+    def test_coordinate_grids_get_null_centers(self):
+        # GOLD_L2_ON2's shape: latitude and longitude grids spanning both non-time dimensions
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1., 2.]).time),
+                                 VariableAxis(values=np.ones((5, 3)), name="latitude"),
+                                 VariableAxis(values=np.ones((5, 3)), name="longitude")],
+                           values=DataContainer(np.ones((2, 5, 3)), name="v"))
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertEqual([b["centers"] for b in headers["parameters"][1]["bins"]], [None, None])
+
+    @data("hapi/csv", "hapi/binary")
+    def test_time_varying_axis_spanning_several_dimensions_is_written_whole(self, codec_name):
+        time = _variable([1., 2.]).time
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                 VariableAxis(values=np.ones((2, 4, 3)), name="energy", is_time_dependent=True),
+                                 VariableAxis(values=np.arange(3.), name="look")],
+                           values=DataContainer(np.ones((2, 4, 3)), name="v"))
+        payload, headers = _save_and_read_headers(codec_name, v)
+        self.assertIsNone(headers["parameters"][1]["bins"][0]["centers"])
+        self.assertEqual(headers["parameters"][2]["size"], [4, 3])
+        reloaded = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertEqual(reloaded.values.shape, (2, 4, 3))
+
+    @data(
+        (["nT", "nT", "nT"], "nT"),
+        (["nT", "", "km"], ["nT", None, "km"]),
+        (["nT", "km"], None),  # doesn't match size
+    )
+    @unpack
+    def test_per_element_units(self, units, expected):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1.]).time)],
+                           values=DataContainer(np.ones((1, 3)), name="v", meta={"UNITS": units}))
+        for codec_name in ("hapi/csv", "hapi/binary"):
+            _, headers = _save_and_read_headers(codec_name, v)
+            self.assertEqual(headers["parameters"][1]["units"], expected)
+
+    @data(
+        ((1, 1), ["x"], "x"),
+        ((1, 3), ["x", "y", "z"], ["x", "y", "z"]),
+        ((1, 3), ["x", "y"], None),
+        ((1, 2, 3), "x", None),
+    )
+    @unpack
+    def test_vector_components_follow_the_parameter_shape(self, shape, components, expected):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1.]).time)],
+                           values=DataContainer(np.ones(shape), name="v", meta={"vectorComponents": components}))
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertEqual(headers["parameters"][1].get("vectorComponents"), expected)
+
+    def test_dataset_range_covers_unsorted_records(self):
+        v = _variable([1., 2.], time=np.array(["2020-01-01T00:00:01", "2020-01-01T00:00:00"], dtype="datetime64[ns]"))
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertEqual(headers["startDate"], "2020-01-01T00:00:00.000Z")
+        with self.assertRaises(ValueError):
+            get_codec("hapi/csv").save_variables([v], start_date="2020-01-01T00:00:00.5", stop_date="2021-01-01")
+
+    def test_time_varying_bins_parameter_declares_its_fill(self):
+        time = _variable([1., 2.]).time
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                 VariableAxis(values=np.ones((2, 2)), name="energy", is_time_dependent=True)],
+                           values=DataContainer(np.ones((2, 2)), name="v"))
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertIn("fill", headers["parameters"][2])
 
     @data("hapi/csv", "hapi/binary")
     def test_int64_values_beyond_32_bits_are_written_as_doubles(self, codec_name):
