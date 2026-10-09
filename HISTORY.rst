@@ -2,6 +2,24 @@
 History
 =======
 
+Unreleased
+----------
+
+Bug fixes:
+
+* The HAPI writers (``hapi/csv``, ``hapi/binary``) produce files HAPI clients can read:
+
+  * a fill value is written as one number (``"-1e+31"``, ``"NaN"``), not as an array (``"[-1e+31]"``);
+  * an empty variable is written as a "no data" (1201) response instead of raising ``IndexError``;
+  * timestamps keep their microseconds or nanoseconds instead of being cut to milliseconds;
+  * 64-bit integers too large for HAPI's 32-bit integers are written as doubles instead of wrapping around;
+  * ``hapi/csv`` writes missing values as ``NaN`` instead of an empty field.
+
+New features:
+
+* CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
+  parameters sharing a time axis can be told apart from the inventory alone.
+
 1.9.1 (2026-10-06)
 ------------------
 

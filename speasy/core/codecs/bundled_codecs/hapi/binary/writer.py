@@ -5,21 +5,22 @@ from typing import IO, Optional, Union
 import numpy as np
 
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
-from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi
+from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi, make_headers
+from speasy.core.codecs.bundled_codecs.hapi.isotime import format_isotime
 from speasy.core.codecs.codec_interface import Buffer
 
 def _base_np_type(p):
     """
     Returns the base NumPy type string for a HAPI parameter, ignoring shape.
-    For isotime, computes byte length from actual values (datetime64[ms] + "Z").
+    For isotime, the byte length is the one declared in the parameter's metadata.
     """
     if p.meta["type"] == "isotime":
-        length = len(p.values[0].astype("datetime64[ms]").astype(str)) + 1
-        return f"S{length}"
+        return f"S{p.meta['length']}"
     elif p.meta["type"] == "double":
         return "<f8"
     else:
         return "<i4"
+
 
 def _get_np_type(p):
     """
@@ -38,16 +39,7 @@ def _get_np_type(p):
 def _to_binary(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
 
     if with_headers:
-        np_start_date = hapi_file.time_axis[0].astype("datetime64[us]").astype("O")
-        np_stop_date = hapi_file.time_axis[-1].astype("datetime64[us]").astype("O")
-        headers = {
-            "HAPI": "3.2",
-            "startDate": np_start_date.isoformat() + "Z",
-            "stopDate": np_stop_date.isoformat() + "Z",
-            "format": "binary",
-            "status": {"code": 1200, "message": "OK request successful"},
-            "parameters": [column.meta for column in hapi_file.parameters],
-        }
+        headers = make_headers(hapi_file, "binary")
         dest.write(("#" + json.dumps(headers) + "\n").encode("utf-8"))
 
     # build the dtype structure: set np type by parameter name
@@ -61,7 +53,7 @@ def _to_binary(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
     for p in hapi_file.parameters:
         np_type = _base_np_type(p)
         if p.meta["type"] == "isotime":
-            out[p.name] = (p.values.astype("datetime64[ms]").astype(str) + "Z").astype(np_type)
+            out[p.name] = format_isotime(p.values, p.meta["length"]).astype(np_type)
         else:
             out[p.name] = p.values.astype(np_type)
 

@@ -1,4 +1,5 @@
 import contextlib
+import io
 from datetime import datetime
 import json
 import os
@@ -419,3 +420,90 @@ class TestHapiBinaryCodec(unittest.TestCase):
                 variables = hapi_binary_codec.load_variables(file=output_binary_file, variables=[var_name], disable_cache=True)
                 spz_var = variables[var_name]
                 self.assertTrue(spz_var.axes[1].is_time_dependent)
+
+
+def _variable(values, time=None, fill=None, name="v"):
+    values = np.asarray(values)
+    if time is None:
+        time = np.datetime64("2020-01-01T00:00:00", 'ns') + np.arange(len(values)) * np.timedelta64(1, 's')
+    meta = {} if fill is None else {"FILLVAL": fill}
+    return SpeasyVariable(axes=[VariableTimeAxis(values=np.asarray(time, dtype='datetime64[ns]'))],
+                          values=DataContainer(values if values.ndim > 1 else values[:, np.newaxis], name=name, meta=meta))
+
+
+def _save_and_read_headers(codec_name, variable):
+    payload = bytes(get_codec(codec_name).save_variables([variable]))
+    return payload, _extract_headers(io.BytesIO(payload))
+
+
+@ddt
+class TestHapiWriters(unittest.TestCase):
+
+    @data(
+        (np.array([-1e31]), "-1e+31"),  # ISTP FILLVAL as stored by CDAWeb/AMDA
+        ([-1e31], "-1e+31"),
+        (-1e31, "-1e+31"),
+        (np.nan, "NaN"),
+        (np.array([np.nan]), "NaN"),
+        ("-1e31", "-1e+31"),
+        ("9999-12-31T23:59:59.999999999", None),  # a mis-typed TT2000 fill, not a number
+    )
+    @unpack
+    def test_writes_the_fill_value_as_a_single_number(self, fill, expected):
+        for codec_name in ("hapi/csv", "hapi/binary"):
+            _, headers = _save_and_read_headers(codec_name, _variable([1., 2.], fill=fill))
+            self.assertEqual(headers["parameters"][1]["fill"], expected)
+
+    def test_integer_fill_value_is_written_as_an_integer(self):
+        _, headers = _save_and_read_headers("hapi/csv", _variable(np.array([1, 2], dtype=np.int16),
+                                                                  fill=np.array([-32768], dtype=np.int16)))
+        self.assertEqual(headers["parameters"][1]["fill"], "-32768")
+
+    def test_written_fill_value_masks_the_data_once_reloaded(self):
+        for codec_name in ("hapi/csv", "hapi/binary"):
+            payload, _ = _save_and_read_headers(codec_name, _variable([1., -1e31], fill=np.array([-1e31])))
+            v = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+            self.assertTrue(np.isnan(v.replace_fillval_by_nan().values[1, 0]))
+
+    @data("hapi/csv", "hapi/binary")
+    def test_writes_an_empty_variable_as_no_data(self, codec_name):
+        payload, headers = _save_and_read_headers(codec_name, _variable(np.empty((0,))))
+        self.assertEqual(headers["status"]["code"], 1201)
+        self.assertNotIn("startDate", headers)
+        self.assertEqual(payload.splitlines()[-1][:1], b"#")
+
+    @data("hapi/csv", "hapi/binary")
+    def test_int64_values_beyond_32_bits_are_written_as_doubles(self, codec_name):
+        values = np.array([0, 2 ** 40], dtype=np.int64)
+        payload, headers = _save_and_read_headers(codec_name, _variable(values))
+        self.assertEqual(headers["parameters"][1]["type"], "double")
+        v = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertListEqual(v.values.ravel().tolist(), [0., 2. ** 40])
+
+    @data("hapi/csv", "hapi/binary")
+    def test_int64_values_that_fit_stay_integers(self, codec_name):
+        _, headers = _save_and_read_headers(codec_name, _variable(np.array([0, 5], dtype=np.int64)))
+        self.assertEqual(headers["parameters"][1]["type"], "integer")
+
+    @data(
+        ("hapi/csv", "2020-01-01T00:00:00.123", 24),
+        ("hapi/csv", "2020-01-01T00:00:00.123456", 27),
+        ("hapi/csv", "2020-01-01T00:00:00.123456789", 30),
+        ("hapi/binary", "2020-01-01T00:00:00.123", 24),
+        ("hapi/binary", "2020-01-01T00:00:00.123456", 27),
+        ("hapi/binary", "2020-01-01T00:00:00.123456789", 30),
+    )
+    @unpack
+    def test_timestamps_keep_their_precision(self, codec_name, timestamp, length):
+        t = np.datetime64(timestamp, 'ns')
+        payload, headers = _save_and_read_headers(codec_name, _variable([1.], time=[t]))
+        self.assertEqual(headers["parameters"][0]["length"], length)
+        self.assertEqual(headers["startDate"], timestamp + "Z")
+        v = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertEqual(v.time[0], t)
+
+    def test_csv_writes_nan_values_as_nan(self):
+        payload, _ = _save_and_read_headers("hapi/csv", _variable([1., np.nan]))
+        self.assertTrue(payload.splitlines()[-1].endswith(b",NaN"))
+        v = get_codec("hapi/csv").load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertTrue(np.isnan(v.values[1, 0]))

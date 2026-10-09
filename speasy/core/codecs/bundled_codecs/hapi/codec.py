@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from typing import Any, AnyStr, Dict, List, Mapping
+from typing import Any, AnyStr, Dict, List, Mapping, Optional
 
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.codecs.codec_interface import CodecInterface
@@ -10,6 +10,7 @@ from speasy.core.data_containers import DataContainer, VariableAxis, VariableTim
 from speasy.products.variable import SpeasyVariable, same_time_axis
 
 from .hapi_file import HapiFile, HapiParameter
+from .isotime import isotime_length, isotime_unit
 
 import logging
 log = logging.getLogger(__name__)
@@ -45,30 +46,62 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     return meta
 
 def _make_hapi_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
+    length = isotime_length(isotime_unit(time_axis.values))
     return HapiParameter(values=time_axis.values,
-                            meta={"name": "Time", "type": "isotime", "units": "UTC", "length": 24, "fill": None})
+                            meta={"name": "Time", "type": "isotime", "units": "UTC", "length": length, "fill": None})
 
 def _make_hapi_parameter(variable: SpeasyVariable) -> HapiParameter:
     return HapiParameter(values=variable.values,
                             meta=_create_meta(variable))
 
-def _numpy_dtype_to_hapi_type(dtype: np.dtype) -> str:
-    if  np.issubdtype(dtype, np.integer):
-        return "integer"
-    elif np.issubdtype(dtype, np.floating):
+_INT32 = np.iinfo(np.int32)
+
+
+def _hapi_type(values: np.ndarray) -> str:
+    # HAPI integers are 32-bit: wider integers that don't fit go out as doubles rather than wrap around.
+    if np.issubdtype(values.dtype, np.integer):
+        if np.can_cast(values.dtype, np.int32) or values.size == 0 or (
+                _INT32.min <= values.min() and values.max() <= _INT32.max):
+            return "integer"
+        return "double"
+    elif np.issubdtype(values.dtype, np.floating):
         return "double"
     else:
-        raise ValueError(f"Unsupported data type {dtype}")
+        raise ValueError(f"Unsupported data type {values.dtype}")
+
+
+def _encode_fill_value(fill: Any, hapi_type: str) -> Optional[str]:
+    # HAPI wants a single value spelled as a string; ISTP FILLVALs often come as a one-element array.
+    if isinstance(fill, (list, tuple, np.ndarray)):
+        fill = np.ravel(fill)
+        if len(fill) != 1:
+            return None
+        fill = fill[0]
+    if fill is None:
+        return None
+    try:
+        fill = float(fill)
+    except (TypeError, ValueError):
+        log.warning(f"Ignoring fill value {fill!r}, which is not a number")
+        return None
+    if np.isnan(fill):
+        return "NaN" if hapi_type == "double" else None
+    if hapi_type == "integer":
+        if fill.is_integer() and _INT32.min <= fill <= _INT32.max:
+            return str(int(fill))
+        return None
+    return repr(fill)
 
 
 def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
+    hapi_type = _hapi_type(variable.values)
     meta = {
         "name": variable.name,
         "units": variable.unit,
-        "fill": None if variable.fill_value is None else str(variable.fill_value),
+        "fill": _encode_fill_value(variable.fill_value, hapi_type),
         "description": variable.meta.get("description", "")
     }
-    meta["type"] = _numpy_dtype_to_hapi_type(variable.values.dtype)
+    meta["type"] = hapi_type
 
     labels  =  variable.columns
     if labels is not None and len(labels) > 0:
@@ -112,7 +145,7 @@ def _get_hapi_varying_axes(variable: SpeasyVariable) -> List[HapiParameter]:
             "units": ax.unit,
             "size": [ax.values.shape[1]]
         }
-        meta["type"] = _numpy_dtype_to_hapi_type(ax.values.dtype)
+        meta["type"] = _hapi_type(ax.values)
         result.append(HapiParameter(values=ax.values, meta=meta))
     return result
 
