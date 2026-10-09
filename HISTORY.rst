@@ -30,7 +30,9 @@ Bug fixes:
   * bins follow the order of the array's dimensions, and the reader keeps a dimension without
     centers as an index axis so the following axes stay on their own dimension;
   * ``hapi/csv`` can write arrays with more than one dimension besides time;
-  * ``hapi/csv`` can read back a header-only "no data" file.
+  * ``hapi/csv`` can read back a header-only "no data" file;
+  * bin centers containing NaN or infinity are written as ``null`` instead of invalid JSON;
+  * the HAPI readers accept bins given only by their ``ranges``, centered on each range.
 
 New features:
 

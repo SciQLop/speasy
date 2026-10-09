@@ -74,10 +74,12 @@ def _bin_units(unit: Any) -> str:
 
 
 def _vector_components(components: Any, size: List[int]) -> Union[None, str, List[str]]:
-    # A scalar takes one string, a 1-D array one string or one per element; HAPI has none for other shapes.
-    if isinstance(components, str):
-        return components if len(size) <= 1 else None
-    components = [str(c) for c in np.ravel(components).tolist()]
+    # A scalar takes one string, a 1-D array one per element; HAPI has none for other shapes.
+    if components is None:
+        return None
+    components = [components] if isinstance(components, str) else np.ravel(components).tolist()
+    if any(_is_blank(c) for c in components):
+        return None
     if not size and len(components) == 1:
         return components[0]
     if len(size) == 1 and len(components) == size[0]:
@@ -170,13 +172,13 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     return meta
 
 def _make_bin(ax: VariableAxis, n: int) -> Dict[str, Any]:
-    # HAPI centers give one number per element of this dimension only, constant or per record. Anything
-    # else, such as ISTP vector components labelled "x_component" or a latitude grid spanning several
-    # dimensions, can't be written as bins and marks the dimension as not binned with null centers.
+    # HAPI centers give one number per element of this dimension only, constant or per record, and
+    # constant ones can't be missing. Anything else, such as ISTP vector components labelled "x_component"
+    # or a latitude grid spanning several dimensions, marks the dimension as not binned with null centers.
     numeric = np.issubdtype(ax.values.dtype, np.number)
     if ax.is_time_dependent and numeric and ax.values.shape[1:] == (n,):
         centers = _time_dependent_axis_name(ax)
-    elif not ax.is_time_dependent and numeric and ax.values.shape == (n,):
+    elif not ax.is_time_dependent and numeric and ax.values.shape == (n,) and np.all(np.isfinite(ax.values)):
         centers = ax.values.tolist()
     else:
         centers = None
@@ -194,9 +196,11 @@ def _get_hapi_varying_axes(variable: SpeasyVariable) -> List[HapiParameter]:
             "units": _parameter_units(ax.unit, size),
             "fill": None,
         }
+        meta["type"] = _hapi_type(ax.values)
+        if meta["type"] == "double" and np.isnan(ax.values).any():
+            meta["fill"] = "NaN"
         if size:
             meta["size"] = size
-        meta["type"] = _hapi_type(ax.values)
         result.append(HapiParameter(values=ax.values, meta=meta))
     return result
 
@@ -216,9 +220,29 @@ def _speasy_variables_to_hapi(variables: List[SpeasyVariable]) -> HapiFile:
             hapi_file.add_parameter(hapi_axis_parameter) 
     return hapi_file
 
+def _ranges_to_axis(ranges: Any, name: str, units: Any, hap_file: HapiFile) -> VariableAxis:
+    # Bins given only by their [min, max] ranges are centered on the middle of each range.
+    if isinstance(ranges, str):
+        hapi_parameter = hap_file.get_parameter(ranges)
+        if hapi_parameter is None:
+            raise ValueError(f"Unknown parameter referenced in bins: {ranges}")
+        return VariableAxis(values=hapi_parameter.values.mean(axis=-1), meta=_decode_meta(dict(hapi_parameter.meta)),
+                            is_time_dependent=True, name=name)
+    try:
+        bounds = np.array(ranges, dtype=float)
+    except ValueError:
+        raise ValueError("Invalid bin specification: 'ranges' must contain numeric [min, max] pairs")
+    if bounds.ndim != 2 or bounds.shape[1] != 2:
+        raise ValueError("Invalid bin specification: 'ranges' must contain numeric [min, max] pairs")
+    return VariableAxis(values=bounds.mean(axis=1), meta={"name": "centers", "UNITS": units},
+                        is_time_dependent=False, name=name)
+
+
 def _bin_to_axis(json_bin: Dict[str, Any], hap_file: HapiFile) -> VariableAxis:
     centers = json_bin.get("centers")
     name = json_bin.get("name", "bin_axis")
+    if centers is None and json_bin.get("ranges") is not None:
+        return _ranges_to_axis(json_bin["ranges"], name, json_bin.get("units"), hap_file)
     if centers is None:
         raise ValueError("Invalid bin specification: missing 'centers' field")
     if isinstance(centers, str):

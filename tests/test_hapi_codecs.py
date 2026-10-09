@@ -156,6 +156,21 @@ class TestHapiCsvCodec(unittest.TestCase):
         for axis in axes:
             self.assertIsInstance(axis, VariableAxis)
 
+    def test_bins_given_by_ranges_are_centered(self):
+        header = {"HAPI": "3.2", "startDate": "2020-01-01T00:00:00Z", "stopDate": "2020-01-01T00:00:01Z",
+                  "format": "csv", "status": {"code": 1200, "message": "OK"},
+                  "parameters": [
+                      {"name": "Time", "type": "isotime", "units": "UTC", "fill": None, "length": 24},
+                      {"name": "v", "type": "double", "units": None, "fill": None, "size": [2, 2],
+                       "bins": [{"name": "angle", "units": "deg", "ranges": [[0., 90.], [90., 180.]]},
+                                {"name": "energy", "units": "keV", "ranges": "energy_ranges"}]},
+                      {"name": "energy_ranges", "type": "double", "units": "keV", "fill": None, "size": [2, 2]}]}
+        payload = ("#" + json.dumps(header) + "\n"
+                   "2020-01-01T00:00:00.000Z,1,2,3,4,0,10,10,20\n").encode()
+        v = get_codec("hapi/csv").load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertListEqual(v.axes[1].values.tolist(), [45., 135.])
+        self.assertListEqual(v.axes[2].values.tolist(), [[5., 15.]])
+
     def test_load_variable_name(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv')
@@ -561,6 +576,22 @@ class TestHapiWriters(unittest.TestCase):
         reloaded = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
         np.testing.assert_array_equal(reloaded.values, values)
 
+    def test_non_finite_static_centers_are_left_out(self):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1., 2.]).time),
+                                 VariableAxis(values=np.array([1., np.nan, np.inf]), name="energy")],
+                           values=DataContainer(np.ones((2, 3)), name="v"))
+        payload, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertIsNone(headers["parameters"][1]["bins"][0]["centers"])
+        self.assertNotIn(b"NaN", payload.split(b"\n")[0])
+
+    def test_time_varying_centers_with_gaps_declare_nan_fill(self):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1., 2.]).time),
+                                 VariableAxis(values=np.array([[1., np.nan], [1., 2.]]), name="energy",
+                                              is_time_dependent=True)],
+                           values=DataContainer(np.ones((2, 2)), name="v"))
+        _, headers = _save_and_read_headers("hapi/csv", v)
+        self.assertEqual(headers["parameters"][2]["fill"], "NaN")
+
     def test_coordinate_grids_get_null_centers(self):
         # GOLD_L2_ON2's shape: latitude and longitude grids spanning both non-time dimensions
         v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1., 2.]).time),
@@ -601,6 +632,10 @@ class TestHapiWriters(unittest.TestCase):
         ((1, 3), ["x", "y", "z"], ["x", "y", "z"]),
         ((1, 3), ["x", "y"], None),
         ((1, 2, 3), "x", None),
+        ((1, 3), "x", None),  # an array takes one name per element
+        ((1, 1), None, None),
+        ((1, 1), "", None),
+        ((1, 2), np.array(["x", "y"]), ["x", "y"]),
     )
     @unpack
     def test_vector_components_follow_the_parameter_shape(self, shape, components, expected):
