@@ -30,8 +30,10 @@ def _fix_value_type(value):
 
 
 def filter_variable_meta(datavar: DataVariable) -> dict:
+    # DEPEND_0 names the variable's time axis: variables sharing it can be served together on one
+    # time column (e.g. HAPI datasets, which CDAWeb splits per time variable as <DATASET>@<i>).
     keep_list = ['CATDESC', 'FIELDNAM', 'UNITS', 'UNIT_PTR', 'DISPLAY_TYPE', 'LABLAXIS', 'LABL_PTR_1', 'LABL_PTR_2',
-                 'LABL_PTR_3', 'VIRTUAL', 'FUNCT', 'FILLVAL']
+                 'LABL_PTR_3', 'VIRTUAL', 'FUNCT', 'FILLVAL', 'DEPEND_0']
     base = {key: _fix_value_type(value) for key, value in datavar.attributes.items() if key in keep_list}
     base['cdf_type'] = datavar.cdf_type
     if len(datavar.values.shape) == 1:
