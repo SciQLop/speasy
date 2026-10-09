@@ -113,6 +113,16 @@ class CdaUpdateTree(unittest.TestCase):
             self.assertEqual(param.start_date, dataset.start_date)
         self.assertFalse(any(isinstance(v, SpeasyIndex) for v in datasets['NO_MASTER'].__dict__.values()))
 
+    def test_parameters_record_their_time_axis(self):
+        # Variables sharing a DEPEND_0 can be served on a single time column (HAPI datasets).
+        dataset = _master_dataset('GE_H0_CPI', 'ge_h0_cpi_00000000_v01.cdf', '1995-01-01T00:00:00Z')
+        root = SpeasyIndex(name='root', provider='cda', uid='root')
+        root.__dict__['GE_H0_CPI'] = dataset
+
+        update_tree(root, master_cdf_dir=f"{__HERE__}/resources")
+
+        self.assertEqual(dataset.SW_V.DEPEND_0, 'Epoch')
+
 
 # Replays the state of a CDA inventory build run by init_providers() during `import speasy`: the
 # main thread holds the `speasy` import lock while update_tree() runs (SciQLop/speasy#381).
