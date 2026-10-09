@@ -1,3 +1,4 @@
+import atexit
 import os
 import re
 import shutil
@@ -15,12 +16,25 @@ except ImportError:  # pragma: no cover - platform-specific (WASM has no wheel)
     # importing Speasy still works; caching is simply disabled.
     from . import _noop_cache as sc
 
+from . import _noop_cache
 from .version import str_to_version, version_to_str, Version
 from speasy.config import cache as cache_cfg
 
 cache_version = str_to_version("3.0")
 
 log = logging.getLogger(__name__)
+
+
+def _release_at_exit(owner, attr: str) -> None:
+    """Swap ``owner.<attr>`` (a native store) for a no-op one when the interpreter exits.
+
+    Module-level singletons are not guaranteed to be destroyed before the
+    extension module is torn down (e.g. when Python is embedded and the host
+    still holds references at ``Py_Finalize``), which leaves the SQLite database
+    open and makes nanobind report leaked instances. A no-op stand-in keeps late
+    callers (other ``atexit`` hooks) working.
+    """
+    atexit.register(setattr, owner, attr, _noop_cache.Cache())
 
 
 def _leading_version_ints(v: str) -> List[int]:
