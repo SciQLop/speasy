@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from typing import Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.codecs.codec_interface import CodecInterface
