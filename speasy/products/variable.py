@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, Iterable, List, Optional, Any, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Any, Tuple, Union
 
 import astropy.table
 import astropy.units
@@ -16,6 +16,9 @@ from speasy.core.data_containers import (
 )
 from speasy.plotting import Plot
 from .base_product import SpeasyProduct
+
+if TYPE_CHECKING:
+    import xarray
 
 
 def _values(input: Any) -> Any:
@@ -673,6 +676,50 @@ class SpeasyVariable(SpeasyProduct):
             values=DataContainer(values=df.values, meta=meta or {}, name=name),
             columns=list(df.columns),
         )
+
+    def to_dataarray(self) -> "xarray.DataArray":
+        """Convert the variable to an xarray.DataArray, needs the optional xarray package.
+
+        Dimensions and coordinates are named after the axes, ISTP metadata (UNITS, FILLVAL, VALIDMIN/MAX)
+        becomes the CF attributes (units, _FillValue, valid_min/max). Values are left untouched, fill
+        values included. A single column variable becomes a 1D DataArray.
+
+        Returns
+        -------
+        xarray.DataArray
+
+        See Also
+        --------
+        from_dataarray: builds a SpeasyVariable from an xarray.DataArray
+        """
+        from .xarray_conversion import to_dataarray
+        return to_dataarray(self)
+
+    @staticmethod
+    def from_dataarray(da: "xarray.DataArray", time_dim: Optional[str] = None) -> "SpeasyVariable":
+        """Build a SpeasyVariable from an xarray.DataArray.
+
+        Parameters
+        ----------
+        da: xarray.DataArray
+            Input DataArray, its dimensions can be in any order
+        time_dim: str, optional
+            Name of the time dimension, by default the only dimension indexed by datetimes
+            (or the one named time/epoch when there are several)
+
+        Returns
+        -------
+        SpeasyVariable
+            Time first, then one axis per dimension from its coordinate. Naive times are taken as UTC.
+
+        See Also
+        --------
+        to_dataarray: exports a SpeasyVariable to an xarray.DataArray
+        speasy.products.Dataset.from_xarray: converts a whole xarray.Dataset
+        """
+        from .xarray_conversion import variable_parts
+        axes, values, columns = variable_parts(da, time_dim=time_dim)
+        return SpeasyVariable(axes=axes, values=values, columns=columns)
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         """Converts SpeasyVariable to dictionary
