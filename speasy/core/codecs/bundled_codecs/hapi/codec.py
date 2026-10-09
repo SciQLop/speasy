@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from typing import Any, AnyStr, Dict, List, Mapping, Optional
+from typing import Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
 
 from speasy.core.cache._function_cache import CacheCall
 from speasy.core.codecs.codec_interface import CodecInterface
@@ -45,6 +45,46 @@ def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
         meta["FILLVAL"] = fill
     return meta
 
+def _hapi_size(shape: Tuple[int, ...]) -> List[int]:
+    # A single column is a HAPI scalar: "size": [1] is discouraged as ambiguous.
+    size = list(shape)
+    return [] if size == [1] else size
+
+
+def _is_blank(text: Any) -> bool:
+    return not isinstance(text, str) or not text.strip()
+
+
+def _parameter_units(unit: Any, size: List[int]) -> Union[None, str, List[Optional[str]]]:
+    # HAPI spells "no units" as null and never as an empty string; ISTP UNITS can also be one per element,
+    # which HAPI only allows as an array matching a 1-D size.
+    if isinstance(unit, (list, tuple, np.ndarray)):
+        units = [None if _is_blank(u) else u for u in np.ravel(unit).tolist()]
+        if len(set(units)) == 1:
+            return units[0]
+        if len(size) == 1 and len(units) == size[0]:
+            return units
+        return None
+    return None if _is_blank(unit) else unit
+
+
+def _bin_units(unit: Any) -> str:
+    # Unlike parameters, bins must name a single unit, null isn't allowed.
+    return _parameter_units(unit, []) or "dimensionless"
+
+
+def _vector_components(components: Any, size: List[int]) -> Union[None, str, List[str]]:
+    # A scalar takes one string, a 1-D array one string or one per element; HAPI has none for other shapes.
+    if isinstance(components, str):
+        return components if len(size) <= 1 else None
+    components = [str(c) for c in np.ravel(components).tolist()]
+    if not size and len(components) == 1:
+        return components[0]
+    if len(size) == 1 and len(components) == size[0]:
+        return components
+    return None
+
+
 def _make_hapi_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
     length = isotime_length(isotime_unit(time_axis.values))
     return HapiParameter(values=time_axis.values,
@@ -81,8 +121,8 @@ def _encode_fill_value(fill: Any, hapi_type: str) -> Optional[str]:
         return None
     try:
         fill = float(fill)
-    except (TypeError, ValueError):
-        log.warning(f"Ignoring fill value {fill!r}, which is not a number")
+    except (TypeError, ValueError, OverflowError):
+        log.warning(f"Ignoring fill value {fill!r}, which is not a number a double can hold")
         return None
     if np.isnan(fill):
         return "NaN" if hapi_type == "double" else None
@@ -95,56 +135,67 @@ def _encode_fill_value(fill: Any, hapi_type: str) -> Optional[str]:
 
 def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     hapi_type = _hapi_type(variable.values)
+    size = _hapi_size(variable.values.shape[1:])
     meta = {
         "name": variable.name,
-        "units": variable.unit,
+        "units": _parameter_units(variable.unit, size),
         "fill": _encode_fill_value(variable.fill_value, hapi_type),
         "description": variable.meta.get("description", "")
     }
     meta["type"] = hapi_type
 
-    labels  =  variable.columns
-    if labels is not None and len(labels) > 0:
-        meta["label"] = labels
+    if size:
+        meta["size"] = size
 
-    if "coordinateSystemName" in variable.meta:
+    labels = variable.columns
+    # HAPI labels are non-empty strings, one per element of a 1-D array or a single one for a scalar.
+    if labels and all(isinstance(lbl, str) and lbl.strip() for lbl in labels):
+        if not size and len(labels) == 1:
+            meta["label"] = labels[0]
+        elif size == [len(labels)]:
+            meta["label"] = labels
+
+    if not _is_blank(variable.meta.get("coordinateSystemName")):
         meta["coordinateSystemName"] = variable.meta["coordinateSystemName"]
     if "vectorComponents" in variable.meta:
-        meta["vectorComponents"] = variable.meta["vectorComponents"]
+        components = _vector_components(variable.meta["vectorComponents"], size)
+        if components is not None:
+            meta["vectorComponents"] = components
 
-    if  len(variable.values.shape) > 1:
-        meta["size"] = variable.values.shape[1:]
-
-    bins = []
-    time_independent_axes = _get_variable_axes(variable, is_time_dependent=False)
-    if time_independent_axes:
-        bins.extend([
-            {"name": ax.name, "units": ax.unit, "centers": ax.values.tolist()}
-            for ax in time_independent_axes
-        ])
-
-    time_dependent_axes = _get_variable_axes(variable, is_time_dependent=True)
-    if time_dependent_axes:
-        bins.extend([
-            {"name": ax.name, "units": ax.unit, "centers": _time_dependent_axis_name(ax)}
-            for ax in time_dependent_axes
-        ])
-
-    if bins:
-        meta["bins"] = bins
+    # bins describe the array's dimensions in order, so they only go out when there is one axis per dimension.
+    axes = variable.axes[1:]
+    if size and len(axes) == len(size):
+        meta["bins"] = [_make_bin(ax, n) for ax, n in zip(axes, size)]
 
     return meta
+
+def _make_bin(ax: VariableAxis, n: int) -> Dict[str, Any]:
+    # HAPI centers give one number per element of this dimension only, constant or per record. Anything
+    # else, such as ISTP vector components labelled "x_component" or a latitude grid spanning several
+    # dimensions, can't be written as bins and marks the dimension as not binned with null centers.
+    numeric = np.issubdtype(ax.values.dtype, np.number)
+    if ax.is_time_dependent and numeric and ax.values.shape[1:] == (n,):
+        centers = _time_dependent_axis_name(ax)
+    elif not ax.is_time_dependent and numeric and ax.values.shape == (n,):
+        centers = ax.values.tolist()
+    else:
+        centers = None
+    return {"name": ax.name, "units": _bin_units(ax.unit), "centers": centers}
+
 
 def _get_hapi_varying_axes(variable: SpeasyVariable) -> List[HapiParameter]:
     result = []
     for ax in _get_variable_axes(variable, is_time_dependent=True):
         # VariableTimeAxis has member 'unit' not 'units'
         # but HapiParameter expects 'units' in meta
+        size = _hapi_size(ax.values.shape[1:])
         meta = {
             "name": _time_dependent_axis_name(ax),
-            "units": ax.unit,
-            "size": [ax.values.shape[1]]
+            "units": _parameter_units(ax.unit, size),
+            "fill": None,
         }
+        if size:
+            meta["size"] = size
         meta["type"] = _hapi_type(ax.values)
         result.append(HapiParameter(values=ax.values, meta=meta))
     return result
@@ -193,14 +244,29 @@ def _bin_to_axis(json_bin: Dict[str, Any], hap_file: HapiFile) -> VariableAxis:
     return variable_axis
 
 
-def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_file: HapiFile) -> List[VariableAxis]:
+def _index_axis(json_bin: Dict[str, Any], n: int) -> VariableAxis:
+    # keeps the following axes on their own dimension when this one has no usable centers
+    return VariableAxis(values=np.arange(n, dtype=float), meta={"name": "index", "UNITS": None},
+                        is_time_dependent=False, name=json_bin.get("name", "bin_axis"))
+
+
+def _bins_to_axes(json_bins: List[Dict[str, Any]], hap_file: HapiFile,
+                  size: Optional[List[int]] = None) -> List[VariableAxis]:
+    # With one bin per dimension of size, a bin without usable centers becomes an index axis so the
+    # following ones stay on their own dimension; otherwise such bins can only be skipped.
+    sizes = size if size is not None and len(size) == len(json_bins) else [None] * len(json_bins)
     axes = []
-    for json_bin in json_bins:
+    for json_bin, n in zip(json_bins, sizes):
         try:
-            axis = _bin_to_axis(json_bin, hap_file)
-            axes.append(axis)
+            if "centers" in json_bin and json_bin["centers"] is None and "ranges" not in json_bin:
+                if n is not None:
+                    axes.append(_index_axis(json_bin, n))  # a dimension that isn't binned
+                continue
+            axes.append(_bin_to_axis(json_bin, hap_file))
         except ValueError as e:
             log.warning(f"Skipping invalid bin specification: {e}")
+            if n is not None:
+                axes.append(_index_axis(json_bin, n))
     return axes
 
 def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[str]) -> Mapping[str, SpeasyVariable]:
@@ -212,7 +278,7 @@ def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[str]) -> 
             continue
         _axes: List[VariableAxis] = [time_axis]
         if 'bins' in parameter.meta.keys():
-            _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_file))
+            _axes.extend(_bins_to_axes(parameter.meta.get("bins", []), hapi_file, parameter.meta.get("size", [])))
         loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
                                                                                 name=parameter.name,
                                                                                 meta=_decode_meta(

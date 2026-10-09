@@ -1,6 +1,6 @@
 import io
 import json
-from typing import IO, Optional, Union
+from typing import IO, Any, Dict, Optional, Union
 
 import numpy as np
 
@@ -8,6 +8,7 @@ from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
 from speasy.core.codecs.bundled_codecs.hapi.writer import save_hapi, make_headers
 from speasy.core.codecs.bundled_codecs.hapi.isotime import format_isotime
 from speasy.core.codecs.codec_interface import Buffer
+from speasy.core.typing import AnyDateTimeType
 
 def _base_np_type(p):
     """
@@ -36,10 +37,9 @@ def _get_np_type(p):
     return (base, shape) if shape else base
 
 
-def _to_binary(hapi_file: HapiFile, dest:IO[bytes], with_headers=True) -> bool:
+def _to_binary(hapi_file: HapiFile, dest: IO[bytes], headers: Optional[Dict[str, Any]]) -> bool:
 
-    if with_headers:
-        headers = make_headers(hapi_file, "binary")
+    if headers is not None:
         dest.write(("#" + json.dumps(headers) + "\n").encode("utf-8"))
 
     # build the dtype structure: set np type by parameter name
@@ -65,5 +65,10 @@ def save_hapi_binary(
     hapi_file: HapiFile,
     file: Optional[Union[str, io.IOBase]] = None,
     with_headers: bool = True,
+    start_date: Optional[AnyDateTimeType] = None,
+    stop_date: Optional[AnyDateTimeType] = None,
 ) -> Union[bool, Buffer]:
-    return save_hapi(hapi_file, file, _to_binary, with_headers=with_headers)
+    """start_date and stop_date are the dataset's time range for the header (HAPI's startDate/stopDate),
+    the span of the records written by default; an empty file with a header needs them."""
+    headers = make_headers(hapi_file, "binary", start_date, stop_date) if with_headers else None
+    return save_hapi(hapi_file, file, _to_binary, headers=headers)

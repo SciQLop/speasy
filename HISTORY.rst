@@ -7,13 +7,30 @@ Unreleased
 
 Bug fixes:
 
-* The HAPI writers (``hapi/csv``, ``hapi/binary``) produce files HAPI clients can read:
+* The HAPI writers (``hapi/csv``, ``hapi/binary``) write headers that validate against the HAPI 3.2 schema:
 
   * a fill value is written as one number (``"-1e+31"``, ``"NaN"``), not as an array (``"[-1e+31]"``);
-  * an empty variable is written as a "no data" (1201) response instead of raising ``IndexError``;
+    a fill value no double can hold is dropped instead of aborting the write;
+  * ``startDate``/``stopDate`` are always written. They default to the span of the records, and new
+    ``start_date``/``stop_date`` arguments to ``save_variables`` set the dataset's full range;
+  * an empty variable is written as a "no data" (1201) response, which needs ``start_date``/``stop_date``
+    (or ``with_headers=False``), instead of raising ``IndexError``;
   * timestamps keep their microseconds or nanoseconds instead of being cut to milliseconds;
   * 64-bit integers too large for HAPI's 32-bit integers are written as doubles instead of wrapping around;
-  * ``hapi/csv`` writes missing values as ``NaN`` instead of an empty field.
+  * ``hapi/csv`` writes missing values as ``NaN`` instead of an empty field;
+  * single-column variables are written as scalars, without the ambiguous ``"size": [1]``;
+  * empty units become ``null``, bin units default to ``"dimensionless"``, and blank labels are left out;
+    per-element units are written as one string when they all agree, as an array when they match a
+    1-D size, and are dropped otherwise, instead of crashing;
+  * ``vectorComponents`` are only written in a shape HAPI accepts for the parameter;
+  * dimensions bins can't describe get ``"centers": null``: ISTP vector components (text labels), so
+    CDAWeb vectors can be written at all, and coordinate grids spanning several dimensions;
+  * a time-varying axis spanning several dimensions is written with its full ``size`` instead of a
+    header that disagrees with its data;
+  * bins follow the order of the array's dimensions, and the reader keeps a dimension without
+    centers as an index axis so the following axes stay on their own dimension;
+  * ``hapi/csv`` can write arrays with more than one dimension besides time;
+  * ``hapi/csv`` can read back a header-only "no data" file.
 
 New features:
 
