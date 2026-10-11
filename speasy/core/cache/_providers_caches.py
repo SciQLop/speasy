@@ -3,7 +3,7 @@ import math
 import numpy as np
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List, Tuple, Optional, Union
+from typing import List, NamedTuple, Tuple, Optional, Union
 from time import sleep
 
 from speasy import SpeasyVariable
@@ -449,6 +449,17 @@ class Cacheable(object):
         return wrapped
 
 
+class _Fetch(NamedTuple):
+    """A fragment this thread locked: missing when stale_entry is None, else to revalidate."""
+    fragment: datetime
+    stale_entry: Optional[CacheItem]
+
+
+class _Wait(NamedTuple):
+    """A fragment another thread or process is fetching."""
+    fragment: datetime
+
+
 class UnversionedProviderCache(object):
     def __init__(self, prefix, cache_instance=_cache, start_time_arg='start_time', stop_time_arg='stop_time',
                  fragment_hours=lambda x: 1, cache_margins=1.2, leak_cache=False, entry_name=default_cache_entry_name,
@@ -462,44 +473,91 @@ class UnversionedProviderCache(object):
         self.version = "1.0.0"
         self._disable_cache = is_running_on_wasm()
 
-    def split_fragments(self, fragments, product, fragment_duration, prefer_cache=False, **kwargs):
-        entries: List[CacheItem] = self._cache.get_cache_entries(fragments=fragments, product=product, **kwargs)
-        missing_fragments = []
-        data_chunks = []
-        maybe_outdated_fragments = []
-        for fragment, entry in zip(fragments, entries):
-            if entry is None:
-                missing_fragments.append(fragment)
-            elif entry.version != self.version:
-                # An entry written under another version scheme (e.g. the pre-v1.7.0
-                # datetime.now() versions) may hold a payload whose shape or coverage no
-                # longer matches what the service serves today, and the if_newer_than/304
-                # refresh below would keep it alive forever. Force a real refetch.
-                missing_fragments.append(fragment)
-            elif _should_discard(entry):
-                # A broken entry (e.g. permanently cached as empty by a since-fixed bug)
-                # -- force a real refetch regardless of expiry or prefer_cache.
-                missing_fragments.append(fragment)
-            elif (not entry.is_expired() and entry.lifetime is not None) or prefer_cache:
+    def _is_fresh(self, entry: CacheItem, prefer_cache: bool) -> bool:
+        return (not entry.is_expired() and entry.lifetime is not None) or prefer_cache
+
+    def _is_trusted(self, entry: CacheItem) -> bool:
+        # An entry written under another version scheme (e.g. the pre-v1.7.0 datetime.now() versions) may hold a
+        # payload whose shape or coverage no longer matches what the service serves today, and the
+        # if_newer_than/304 refresh would keep it alive forever. A broken entry (e.g. permanently cached as empty
+        # by a since-fixed bug) must be refetched too, regardless of expiry or prefer_cache.
+        return entry.version == self.version and not _should_discard(entry)
+
+    def _lookup_or_lock(self, fragment, product, prefer_cache, **kwargs) -> Union[SpeasyVariable, _Fetch, _Wait]:
+        entry = self._cache.get_or_lock_cache_entry(fragment, product, **kwargs)
+        stale_entry = None
+        if isinstance(entry, CacheItem):
+            if self._is_trusted(entry) and self._is_fresh(entry, prefer_cache):
                 try:
-                    data_chunks.append(from_dictionary(entry.data))
+                    return from_dictionary(entry.data)
                 except Exception as e:
-                    missing_fragments.append(fragment)
                     log.warning(f"got an exception {e} while loading fragment {fragment} for {product}")
             else:
-                maybe_outdated_fragments.append((fragment, entry))
+                stale_entry = entry if self._is_trusted(entry) else None
+            self._cache.drop_cache_entry(fragment, product, **kwargs)
+            entry = self._cache.get_or_lock_cache_entry(fragment, product, **kwargs)
+        if isinstance(entry, PendingRequest) and entry.is_from_current_thread:
+            return _Fetch(fragment, stale_entry)
+        return _Wait(fragment)
 
-        missing_fragments = group_contiguous_fragments(missing_fragments, duration=fragment_duration)
+    def split_fragments(self, fragments, product, fragment_duration, prefer_cache=False, **kwargs):
+        """Sort fragments into cached data, groups this thread locked and must fetch, and fragments another
+        thread or process is already fetching.
+
+        Fetch groups hold either only missing fragments or only stale ones, the latter being revalidated with
+        if_newer_than.
+        """
+        with self._cache.cache.transact(product):
+            lookups = [self._lookup_or_lock(fragment, product, prefer_cache, **kwargs) for fragment in fragments]
+        data_chunks = [chunk for chunk in lookups if isinstance(chunk, SpeasyVariable)]
+        to_fetch = [chunk for chunk in lookups if isinstance(chunk, _Fetch)]
+        waiting = [chunk.fragment for chunk in lookups if isinstance(chunk, _Wait)]
         # This is a deliberate choice here to group fragments in order to reduce requests count, the bet here is
         # that it costs less to asks for more data in one shot then doing several requests. To be more clear about
         # the issue here, grouping fragments implies choosing a date to compare for the whole group and by
-        # construction each fragment inside the group is likely to have different date. So the safe choice is to
-        # declare the whole group as old as the oldest element which leads to maybe updating some fragments inside
-        # the group that were up-to-date.
-        maybe_outdated_fragments = group_fragments_if(
-            maybe_outdated_fragments,
-            lambda previous, current: (previous[0] + fragment_duration * 1.01) > current[0])
-        return data_chunks, maybe_outdated_fragments, missing_fragments
+        # construction each fragment inside the group is likely to have different date.
+        fetch_groups = group_fragments_if(
+            to_fetch,
+            lambda previous, current: (previous.stale_entry is None) == (current.stale_entry is None)
+                                      and (previous.fragment + fragment_duration * 1.01) > current.fragment)
+        return data_chunks, fetch_groups, waiting
+
+    def _release(self, group: List[_Fetch], product, **kwargs):
+        for item in group:
+            if item.stale_entry is None:
+                self._cache.drop_cache_entry(item.fragment, product, **kwargs)
+            else:
+                self._cache.set_cache_entry(item.fragment, product, item.stale_entry, **kwargs)
+
+    def _keep_stale_entries(self, group: List[_Fetch], product, **kwargs) -> List[SpeasyVariable]:
+        for item in group:
+            if item.stale_entry is not None:
+                item.stale_entry.bump_creation_time()
+        self._release(group, product, **kwargs)
+        return [from_dictionary(item.stale_entry.data) for item in group if item.stale_entry is not None]
+
+    def _fetch_group(self, get_data, wrapped_self, product, group: List[_Fetch], fragment_duration,
+                     **kwargs) -> List[SpeasyVariable]:
+        fragments = [item.fragment for item in group]
+        if group[0].stale_entry is not None:
+            kwargs['if_newer_than'] = max(item.stale_entry.created for item in group)
+        try:
+            data = get_data(wrapped_self, product=product, start_time=fragments[0],
+                            stop_time=fragments[-1] + fragment_duration, **kwargs)
+            if data is None:
+                return self._keep_stale_entries(group, product, **kwargs)
+            self._cache.add_to_cache(data, fragments, product, fragment_duration=fragment_duration,
+                                     version=self.version, lifetime=self.cache_retention, **kwargs)
+            return [data]
+        except Exception:
+            # Leaving our locks behind would make every other caller wait deduplication_timeout for nothing.
+            self._release(group, product, **kwargs)
+            raise
+
+    def _wait_for_others(self, fragments: List[datetime], product, **kwargs) -> List[Optional[SpeasyVariable]]:
+        # prefer_cache: whatever the other caller just wrote is as fresh as this request can get.
+        return [self._cache.get_from_cache(fragment, product, self.version, prefer_cache=True, **kwargs)
+                for fragment in fragments]
 
     @staticmethod
     def _get_data_without_cache(self, get_data, wrapped_self, product, start_time, stop_time, **kwargs):
@@ -511,51 +569,13 @@ class UnversionedProviderCache(object):
         dt_range = DateTimeRange(start_time, stop_time)
         prefer_cache = kwargs.pop("prefer_cache", False)
         fragment_duration, fragments = self._cache.fragment_list(product, dt_range)
-        data_chunks, maybe_outdated_fragments, missing_fragments = self.split_fragments(fragments, product,
-                                                                                        fragment_duration, **kwargs,
-                                                                                        prefer_cache=prefer_cache)
-        data_chunks += \
-            list(filter(lambda d: d is not None, [
-                self._cache.add_to_cache(
-                    get_data(
-                        wrapped_self, product=product, start_time=fragment_group[0],
-                        stop_time=fragment_group[-1] + fragment_duration, **kwargs),
-                    fragments=fragment_group, product=product, fragment_duration=fragment_duration,
-                    version=self.version, lifetime=self.cache_retention, **kwargs)
-                for fragment_group
-                in progress_bar(leave=False, desc="Downloading missing fragments from cache", **kwargs)(
-                    missing_fragments)]))
-
-        for group in progress_bar(leave=False, desc="Checking if cache fragments are outdated", **kwargs)(
-            maybe_outdated_fragments):
-            oldest = max(group, key=lambda item: item[1].created)[1].created
-            kwargs['if_newer_than'] = oldest
-            data = get_data(wrapped_self, product=product, start_time=group[0][0],
-                            stop_time=group[-1][0] + fragment_duration, **kwargs)
-            if data is None:
-                for fragment, entry in group:
-                    self._cache.set_cache_entry(fragment, product, entry.bump_creation_time())
-                    data_chunks.append(from_dictionary(entry.data))
-            else:
-                self._cache.add_to_cache(data, [item[0] for item in group], product,
-                                         fragment_duration=fragment_duration,
-                                         version=self.version,
-                                         lifetime=self.cache_retention,
-                                         **kwargs)
-                data_chunks.append(data)
-
-        if len(data_chunks):
-            if len(data_chunks) == 1:
-                if data_chunks[0] is not None:
-                    return data_chunks[0][dt_range.start_time:dt_range.stop_time].copy()
-                else:
-                    return None
-            if data_chunks[0] is not None:
-                data_chunks[0] = data_chunks[0][dt_range.start_time:]
-            if data_chunks[-1] is not None:
-                data_chunks[-1] = data_chunks[-1][:dt_range.stop_time]
-            return merge_variables(data_chunks)[dt_range.start_time:dt_range.stop_time]
-        return None
+        data_chunks, fetch_groups, waiting = self.split_fragments(fragments, product, fragment_duration,
+                                                                  prefer_cache=prefer_cache, **kwargs)
+        for group in progress_bar(leave=False, desc="Downloading missing or outdated fragments", **kwargs)(
+            fetch_groups):
+            data_chunks += self._fetch_group(get_data, wrapped_self, product, group, fragment_duration, **kwargs)
+        data_chunks += self._wait_for_others(waiting, product, **kwargs)
+        return merge_variables(_hand_over_trimmed(data_chunks, dt_range))
 
     def __call__(self, get_data):
         @wraps(get_data)
