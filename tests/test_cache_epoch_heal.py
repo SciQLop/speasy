@@ -300,24 +300,24 @@ def test_split_fragments_discards_legacy_empty_entry_even_with_prefer_cache(unve
     fragment = datetime(2020, 1, 1, tzinfo=timezone.utc)
     _put_unversioned_entry(unversioned_provider, fragment, "prod", _variable_dict(0), epoch=0)
 
-    data_chunks, maybe_outdated, missing = unversioned_provider.split_fragments(
+    data_chunks, fetch_groups, waiting = unversioned_provider.split_fragments(
         [fragment], "prod", timedelta(hours=1), prefer_cache=True)
 
     assert data_chunks == []
-    assert maybe_outdated == []
-    assert missing == [[fragment]]
+    assert waiting == []
+    assert [[(item.fragment, item.stale_entry) for item in group] for group in fetch_groups] == [[(fragment, None)]]
 
 
 def test_split_fragments_keeps_legacy_non_empty_entry(unversioned_provider):
     fragment = datetime(2020, 1, 1, tzinfo=timezone.utc)
     _put_unversioned_entry(unversioned_provider, fragment, "prod2", _variable_dict(12, shape_extra=(3,)), epoch=0)
 
-    data_chunks, maybe_outdated, missing = unversioned_provider.split_fragments(
+    data_chunks, fetch_groups, waiting = unversioned_provider.split_fragments(
         [fragment], "prod2", timedelta(hours=1), prefer_cache=True)
 
     assert len(data_chunks) == 1
     assert len(data_chunks[0]) == 12
-    assert missing == []
+    assert fetch_groups == []
 
 
 def test_split_fragments_keeps_current_epoch_empty_entry(unversioned_provider):
@@ -325,12 +325,12 @@ def test_split_fragments_keeps_current_epoch_empty_entry(unversioned_provider):
     _put_unversioned_entry(unversioned_provider, fragment, "prod3", _variable_dict(0),
                            epoch=_NEWEST_GATE)
 
-    data_chunks, maybe_outdated, missing = unversioned_provider.split_fragments(
+    data_chunks, fetch_groups, waiting = unversioned_provider.split_fragments(
         [fragment], "prod3", timedelta(hours=1), prefer_cache=True)
 
     assert len(data_chunks) == 1
     assert len(data_chunks[0]) == 0
-    assert missing == []
+    assert fetch_groups == []
 
 
 def test_is_empty_on_speasyvariable_object_does_not_raise():
