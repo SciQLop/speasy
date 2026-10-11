@@ -483,7 +483,7 @@ class UnversionedProviderCache(object):
         # by a since-fixed bug) must be refetched too, regardless of expiry or prefer_cache.
         return entry.version == self.version and not _should_discard(entry)
 
-    def _lookup_or_lock(self, fragment, product, prefer_cache, **kwargs) -> Union[SpeasyVariable, _Fetch, _Wait]:
+    def _lookup_or_lock(self, fragment, product, prefer_cache, **kwargs) -> SpeasyVariable | _Fetch | _Wait:
         entry = self._cache.get_or_lock_cache_entry(fragment, product, **kwargs)
         stale_entry = None
         if isinstance(entry, CacheItem):
