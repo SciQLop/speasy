@@ -1,0 +1,165 @@
+{
+  "HAPI": "3.3",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  },
+  "catalog": [
+    {
+      "id": "dataset1",
+      "info": {
+        "description": "A sample dataset containing a vector parameter.",
+        "startDate": "1970-01-01Z",
+        "stopDate": "1970-01-01T00:02Z",
+        "sampleStartDate": "1970-01-01Z",
+        "sampleStopDate": "1970-01-01T00:01:11Z",
+        "cadence": "PT1S",
+        "datasetCitation": "https://doi.org/10.1186/1742-9994-10-80",
+        "resourceURL": "https://hapi-server.org/servers/#server=TestData3.3&dataset=dataset1",
+        "resourceID": "TestData3.3/dataset1",
+        "citation": "Please use the DOI given in datasetCitation and thank your parents in the acknowledgements of any paper.",
+        "licenseURL": [
+          "https://spdx.org/licenses/CC-BY-1.0",
+          "https://spdx.org/licenses/C-UDA-1.0"
+        ],
+        "provenance": "Data providers can add free text here describing where the data came from, upstream sources, etc.",
+        "unitsSchema": "vounits1.1",
+        "note": "a note about dataset",
+        "warning": "a warning about dataset",
+        "location": {
+          "point": [
+            1,
+            2,
+            3
+          ],
+          "vectorComponents": [
+            "x",
+            "y",
+            "z"
+          ],
+          "units": "m",
+          "coordinateSystemName": "GSM"
+        },
+        "additionalMetadata": {
+          "contentURL": "https://hapi-server.org/servers/#dataset=dataset1&server=TestData3.3"
+        },
+        "parameters": [
+          {
+            "name": "Time",
+            "type": "isotime",
+            "units": "UTC",
+            "fill": null,
+            "length": 24
+          },
+          {
+            "name": "vector",
+            "type": "double",
+            "units": "m",
+            "fill": "-1e31",
+            "vectorComponents": [
+              "x",
+              "y",
+              "z"
+            ],
+            "size": [
+              3
+            ],
+            "description": "Each component is a sine wave with a 600 s period with differing phases."
+          }
+        ]
+      }
+    },
+    {
+      "id": "dataset2",
+      "info": {
+        "startDate": "1970-01-01Z",
+        "stopDate": "1970-01-01T00:02Z",
+        "sampleStartDate": "1970-01-01Z",
+        "sampleStopDate": "1970-01-01T00:01:11Z",
+        "cadence": "PT1S",
+        "datasetCitation": "https://doi.org/10.1186/1742-9994-10-80",
+        "licenseURL": [
+          "https://spdx.org/licenses/CC-BY-1.0",
+          "https://spdx.org/licenses/C-UDA-1.0"
+        ],
+        "provenance": "Data providers can add free text here describing where the data came from, upstream sources, etc.",
+        "unitsSchema": "vounits1.1",
+        "note": "a note about dataset",
+        "warning": "a warning about dataset",
+        "geoLocation": [
+          1,
+          2,
+          3
+        ],
+        "additionalMetadata": [
+          {
+            "name": "Other metadata",
+            "schemaURL": "https://raw.githubusercontent.com/hapi-server/data-specification-schema/refs/heads/main/HAPI-data-access-schema-3.3.json",
+            "aboutURL": "https://raw.githubusercontent.com/hapi-server/data-specification",
+            "contentURL": "https://hapi-server.org/servers/#server=TestData3.3&dataset=dataset2"
+          },
+          {
+            "name": "Other metadata",
+            "content": {
+              "key1": "value1",
+              "key2": "value2"
+            }
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Time",
+            "type": "isotime",
+            "units": "UTC",
+            "fill": null,
+            "length": 24
+          },
+          {
+            "name": "vector",
+            "type": "double",
+            "units": "m",
+            "fill": "-1e31",
+            "vectorComponents": [
+              "x",
+              "y",
+              "z"
+            ],
+            "size": [
+              3
+            ],
+            "description": "Each component is a sine wave with a 600 s period with differing phases."
+          }
+        ]
+      }
+    },
+    {
+      "id": "dataset3",
+      "info": {
+        "startDate": "1970-01-01Z",
+        "stopDate": "1970-01-01T00:02Z",
+        "sampleStartDate": "1970-01-01Z",
+        "sampleStopDate": "1970-01-01T00:01:11Z",
+        "cadence": "PT1S",
+        "parameters": [
+          {
+            "name": "Time",
+            "type": "isotime",
+            "units": "UTC",
+            "fill": null,
+            "length": 24
+          },
+          {
+            "name": "vector parameter",
+            "type": "double",
+            "units": "m",
+            "fill": "-1e31",
+            "size": [
+              3
+            ],
+            "description": ""
+          }
+        ]
+      }
+    }
+  ]
+}

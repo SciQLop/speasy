@@ -1,0 +1,21 @@
+{
+  "catalog": [
+    {
+      "id": "dataset1",
+      "title": "Dataset w/valid HAPI 2.0"
+    },
+    {
+      "id": "dataset2",
+      "title": "Dataset w/valid HAPI 2.0 - Same as dataset1 but at PT1H resolution"
+    },
+    {
+      "id": "dataset3",
+      "title": "Dataset w/valid HAPI 2.0 - Same as dataset1 but at P1D resolution"
+    }
+  ],
+  "HAPI": "2.0",
+  "status": {
+    "code": 1200,
+    "message": "OK"
+  }
+}
