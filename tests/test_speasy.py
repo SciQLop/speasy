@@ -229,8 +229,7 @@ class SpeasyModule(unittest.TestCase):
 
         os.environ.pop(spz.config.proxy.enabled.env_var_name)
         for provider in providers:
-            self.assertGreaterEqual(
-                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+            self.assertTrue(_has_products(provider), provider)
 
     def test_raises_if_product_path_is_broken(self):
         with self.assertRaises(ValueError):
