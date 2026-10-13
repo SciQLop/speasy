@@ -1,6 +1,8 @@
 """HAPI provider logic against a fake HapiClient serving recorded responses: no network access."""
 import json
 import os
+import threading
+import time
 import unittest
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -10,6 +12,7 @@ import numpy as np
 
 from speasy.core.data_containers import DataContainer, VariableTimeAxis
 from speasy.core.hapi.exceptions import HapiRequestError
+from speasy.core.hapi import inventory as hapi_inventory
 from speasy.core.hapi.inventory import HapiDatasetIndex, HapiServerIndex
 from speasy.core.hapi.registry import enabled_servers, server_key
 from speasy.core import dataprovider
@@ -25,8 +28,8 @@ def _load(name):
         return json.load(f)
 
 
-def _slashed_info(max_duration=None):
-    info = {'startDate': '2000-01-01Z', 'stopDate': '2001-01-01Z',
+def _slashed_info(max_duration=None, start='2000-01-01Z'):
+    info = {'startDate': start, 'stopDate': '2001-01-01Z',
             'parameters': [{'name': 'Time', 'type': 'isotime', 'length': 24},
                            {'name': 'Field/X', 'type': 'double', 'units': 'nT'}]}
     if max_duration:
@@ -48,8 +51,10 @@ SERVERS = {
     },
     'https://fake/slashed/hapi': {
         'capabilities': {'HAPI': '3.1', 'outputFormats': ['csv'], 'status': {'code': 1200}},
-        'catalog': [{'id': 'aaa/PT1M/xyz', 'title': 'one minute'}, {'id': 'aaa/PT1H/xyz', 'title': 'one hour'}],
-        'infos': {'aaa/PT1M/xyz': _slashed_info('P10D'), 'aaa/PT1H/xyz': _slashed_info()},
+        'catalog': [{'id': 'aaa/PT1M/xyz', 'title': 'one minute'}, {'id': 'aaa/PT1H/xyz', 'title': 'one hour'},
+                    {'id': 'aaa/PT1S/xyz', 'title': 'starts mid-second'}],
+        'infos': {'aaa/PT1M/xyz': _slashed_info('P10D'), 'aaa/PT1H/xyz': _slashed_info(),
+                  'aaa/PT1S/xyz': _slashed_info(start='2000-01-01T06:00:00.7Z')},
     },
 }
 
@@ -112,6 +117,7 @@ def _hapi_provider(registry=REGISTRY, disabled=('cdaweb',), extra=None, client=F
     saved = [namespace.get('hapi') for namespace in namespaces]
     saved_loaders = HapiServerIndex.loader, HapiDatasetIndex.loader
     FakeClient.instances = []
+    hapi_inventory._failed_loads.clear()
     servers = enabled_servers(registry, set(disabled), extra or {})
     with mock.patch.object(hapi, 'HapiClient', client), \
             mock.patch.object(hapi, '_server_records', return_value=servers):
@@ -206,6 +212,41 @@ class TestServerNodes(unittest.TestCase):
             self.assertIn('v2/dataset1', provider.flat_inventory.datasets)
             self.assertIn('v2/dataset1/scalar', provider.flat_inventory.parameters)
 
+    def test_a_slow_load_is_waited_for_by_concurrent_requests(self):
+        with _hapi_provider() as provider:
+            registering = threading.Event()
+            register = provider._register
+
+            def slow_register(node):
+                registering.set()
+                time.sleep(0.3)
+                register(node)
+            provider._register = slow_register
+            loader = threading.Thread(target=lambda: dir(tree.hapi.v3))
+            loader.start()
+            registering.wait(2)
+            v = request_dispatch.get_data('hapi/v3/dataset1/vector', _utc(1970, 1, 1), _utc(1970, 1, 1, 0, 1),
+                                          disable_cache=True)
+            loader.join()
+            self.assertEqual(len(v), 1)
+
+    def test_nodes_from_before_an_inventory_update_dont_break_get_data(self):
+        with _hapi_provider() as provider:
+            old_server = tree.hapi.v2
+            dir(old_server.dataset1)
+            provider.update_inventory()
+            dir(old_server.dataset2)
+            v = request_dispatch.get_data('hapi/v2/dataset2/scalar', _utc(2010, 1, 1), _utc(2010, 1, 2),
+                                          disable_cache=True)
+            self.assertEqual(len(v), 24)
+
+    def test_an_inventory_update_forgets_loaded_servers(self):
+        with _hapi_provider() as provider:
+            tree.hapi.v2.dataset1.scalar
+            provider.update_inventory()
+            self.assertEqual(provider.flat_inventory.parameters, {})
+            self.assertFalse(tree.hapi.__dict__['v2'].hapi_loaded)
+
     def test_unreachable_server_has_no_children_and_is_retried(self):
         with _hapi_provider():
             self.assertFalse(hasattr(tree.hapi.down, 'anything'))
@@ -250,6 +291,11 @@ class TestGetData(unittest.TestCase):
                              ['2000-01-01T00:00:00Z', '2000-01-11T00:00:00Z', '2000-01-21T00:00:00Z'])
             self.assertEqual(len(v), 25 * 24)
 
+    def test_sub_second_dataset_starts_are_sent_with_their_fraction(self):
+        with _hapi_provider():
+            self._get('slashed/aaa/PT1S/xyz/Field/X', _utc(2000, 1, 1), _utc(2000, 1, 1, 7))
+            self.assertEqual(FakeClient.calls_of('data')[0][2], '2000-01-01T06:00:00.700000Z')
+
     def test_requests_are_clamped_to_the_dataset_range(self):
         with _hapi_provider():
             self._get('slashed/aaa/PT1H/xyz/Field/X', _utc(2000, 12, 31, 12), _utc(2001, 1, 2))
@@ -276,12 +322,12 @@ class TestGetData(unittest.TestCase):
 
     def test_unknown_parameter_error_names_it(self):
         with _hapi_provider():
-            with self.assertRaisesRegex(ValueError, r"Unknown parameter.*v2/dataset1/nope"):
+            with self.assertRaisesRegex(ValueError, r"(?s)'v2/dataset1/nope'.*spz\.inventories\.tree\.hapi\.v2"):
                 self._get('v2/dataset1/nope')
 
     def test_unreachable_server_error_is_raised(self):
         with _hapi_provider():
-            with self.assertRaisesRegex(ConnectionError, 'unreachable'):
+            with self.assertRaisesRegex(ConnectionError, r"(?s)'down'.*unreachable.*disabled_servers"):
                 self._get('down/ds/p')
 
 

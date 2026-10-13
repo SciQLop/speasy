@@ -1,6 +1,7 @@
 from enum import Enum
 import io
 import json
+import re
 from json import JSONDecodeError
 from typing import Dict, List, Mapping, Optional
 from urllib.parse import urlencode
@@ -40,6 +41,8 @@ def _check_hapi_status(data: Dict) -> None:
 
 
 def _check_http_status(status_code: int, text: str) -> None:
+    # Error pages can be whole HTML documents
+    text = text if len(text) <= 300 else f"{text[:300]}…"
     if 400 <= status_code < 500:
         raise HapiRequestError(status_code, text)
     elif status_code >= 500:
@@ -89,12 +92,11 @@ class HapiClient:
 
     @staticmethod
     def _is_v3(version: Optional[str]) -> bool:
-        if not version:
-            raise RuntimeError("HAPI version not provided by server")
-        major = int(version.split('.')[0])
-        if major not in (1, 2, 3):
-            raise RuntimeError(f"Unsupported HAPI version: {version}")
-        return major == 3
+        major = re.match(r'\D*(\d+)', version or '')
+        if major is None or int(major[1]) not in (1, 2, 3):
+            raise RuntimeError(f"Unsupported HAPI version {version!r}: Speasy supports HAPI 1.x to 3.x. Stop listing "
+                               f"this server with the [HAPI] disabled_servers config entry")
+        return int(major[1]) == 3
 
     @property
     def _dataset_key(self) -> str:

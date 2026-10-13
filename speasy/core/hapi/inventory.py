@@ -4,6 +4,7 @@ See https://github.com/hapi-server/data-specification/blob/master/hapi-3.3.0/HAP
 """
 import logging
 import re
+import time
 from datetime import timedelta
 from threading import Lock
 from typing import Callable, Dict, Iterable, List, Mapping, Optional
@@ -21,8 +22,13 @@ _NUMBER = r'(\d+(?:\.\d+)?)'
 _DURATION = re.compile(
     rf'^P(?:{_NUMBER}Y)?(?:{_NUMBER}M)?(?:{_NUMBER}W)?(?:{_NUMBER}D)?(?:T(?:{_NUMBER}H)?(?:{_NUMBER}M)?(?:{_NUMBER}S)?)?$')
 
+FAILED_LOAD_BACKOFF = 60
+"""Seconds during which implicit accesses (hasattr, dir, completion) don't retry a failed load: retrying an unreachable
+server takes tens of seconds, holding the node's lock."""
+
 _load_locks: Dict[tuple, Lock] = {}
 _load_locks_guard = Lock()
+_failed_loads: Dict[tuple, float] = {}
 
 
 def normalized_time(hapi_time: str) -> str:
@@ -44,17 +50,26 @@ class _LazyIndex:
     """Fills itself through ``loader`` (set by the HAPI provider) on first access to a missing name."""
     loader: Optional[Callable[[SpeasyIndex], None]] = None
 
-    def _load(self) -> None:
+    def _load(self, implicit: bool = False) -> None:
         if self.__dict__.get(_LOADED, False):
             return
+        key = _node_key(self)
         with _lock_for(self):
-            if not self.__dict__.get(_LOADED, False) and type(self).loader is not None:
+            if self.__dict__.get(_LOADED, False) or type(self).loader is None:
+                return
+            if implicit and time.monotonic() - _failed_loads.get(key, -FAILED_LOAD_BACKOFF) < FAILED_LOAD_BACKOFF:
+                return
+            try:
                 type(self).loader(self)
+            except Exception:
+                _failed_loads[key] = time.monotonic()
+                raise
+            _failed_loads.pop(key, None)
 
     def _try_load(self) -> None:
-        # Swallowed: hasattr() and tree walkers must not crash on an unreachable server, the next access retries.
+        # Swallowed: hasattr() and tree walkers must not crash on an unreachable server, a later access retries.
         try:
-            self._load()
+            self._load(implicit=True)
         except Exception as e:  # pylint: disable=broad-except
             log.warning(f"Could not load HAPI node {self.spz_uid()}: {e!r}")
 
@@ -88,9 +103,13 @@ class HapiDatasetIndex(_LazyIndex, DatasetIndex):
         return super().__contains__(item)
 
 
+def _node_key(node: SpeasyIndex) -> tuple:
+    return type(node).__name__, node.spz_provider(), node.spz_uid()
+
+
 def _lock_for(node: SpeasyIndex) -> Lock:
     with _load_locks_guard:
-        return _load_locks.setdefault((type(node).__name__, node.spz_provider(), node.spz_uid()), Lock())
+        return _load_locks.setdefault(_node_key(node), Lock())
 
 
 def load_into(node: SpeasyIndex, fill: Callable[[SpeasyIndex], None]) -> None:
@@ -143,7 +162,7 @@ def _add_dataset(root: SpeasyIndex, entry: Mapping, dataset_type: type) -> None:
 
 
 def _add_parameter(dataset: DatasetIndex, parameter: Mapping) -> None:
-    meta = {**parameter, 'start_date': dataset.__dict__.get('start_date'),
+    meta = {**parameter, 'dataset': dataset.spz_uid(), 'start_date': dataset.__dict__.get('start_date'),
             'stop_date': dataset.__dict__.get('stop_date')}
     uid = f"{dataset.spz_uid()}/{parameter['name']}"
     _new_child(dataset, parameter['name'],
