@@ -151,7 +151,7 @@ class TestRegistry(unittest.TestCase):
     def test_bundled_registry_is_the_official_list(self):
         from speasy.core.hapi.registry import bundled_registry
         keys = {server_key(e['id']) for e in bundled_registry()}
-        self.assertTrue({'cdaweb', 'amda', 'csa', 'sscweb', 'lisird', 'knmi', 'intermagnet'} <= keys)
+        self.assertLessEqual({'cdaweb', 'amda', 'csa', 'sscweb', 'lisird', 'knmi', 'intermagnet'}, keys)
 
     def test_natively_served_servers_are_disabled_by_default(self):
         import speasy.config as cfg

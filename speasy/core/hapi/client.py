@@ -2,7 +2,6 @@ from enum import Enum
 import io
 import json
 import re
-from json import JSONDecodeError
 from typing import Dict, List, Mapping, Optional
 from urllib.parse import urlencode
 
@@ -52,7 +51,7 @@ def _check_http_status(status_code: int, text: str) -> None:
 def _check_response(response) -> None:
     try:
         _check_hapi_status(response.json())
-    except (JSONDecodeError, UnicodeDecodeError, KeyError, TypeError):
+    except (json.JSONDecodeError, UnicodeDecodeError, KeyError, TypeError):
         _check_http_status(response.status_code, response.text)
 
 

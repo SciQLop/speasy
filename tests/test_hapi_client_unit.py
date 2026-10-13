@@ -136,8 +136,9 @@ class TestHapiClientData(unittest.TestCase):
 
     def test_errors_raise_with_the_hapi_code(self):
         error = _Response(400, {'HAPI': '3.3', 'status': {'code': 1405, 'message': 'time outside valid range'}})
+        server = _FakeServer(data=error)
         with self.assertRaises(HapiRequestError) as ctx:
-            self._get_data(_FakeServer(data=error))
+            self._get_data(server)
         self.assertEqual(ctx.exception.code, 1405)
 
     def test_binary_body_is_not_decoded_as_json(self):
