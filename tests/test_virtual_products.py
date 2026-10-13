@@ -1,8 +1,9 @@
 import unittest
 from datetime import datetime, timedelta, timezone
+from functools import reduce
 
 import numpy as np
-from ddt import data, ddt
+from ddt import data, ddt, unpack
 
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
@@ -23,6 +24,13 @@ def _hourly_ramp(start_time, stop_time):
                           values=DataContainer(values=np.arange(len(time), dtype=float), meta=None),
                           columns=["Values"])
 
+def _mag_divided_offset(start_time, stop_time):
+    ace_mag = spz.get_data("amda/imf", start_time, stop_time)
+    if ace_mag is None:
+        return None
+    return ace_mag / 3 + 50
+
+
 def _reset_registry():
     """Leave no registered product behind: tests share the module level registry."""
     registry._callbacks.clear()
@@ -36,57 +44,82 @@ class VirtualProviderRegistration(unittest.TestCase):
 
 
 
-class VirtualProductWithDummy(unittest.TestCase):
+def _tree_node(path):
+    """Resolve 'virtual/a/b' to spz.inventories.tree.virtual.a.b at runtime."""
+    return reduce(getattr, path.split('/'), spz.inventories.tree)
+
+
+_VP_PATHS = ["virtual/test/hourly_ramp", "virtual/test/mag_divided_offset"]
+
+
+class VirtualProductWithVP(unittest.TestCase):
     def setUp(self):
         self.addCleanup(_reset_registry)
-        self.hourly_ramp_node = register_virtual_product("virtual/test/hourly_ramp", _hourly_ramp)
+        self.registered_nodes = {
+            "virtual/test/hourly_ramp":
+                register_virtual_product("virtual/test/hourly_ramp", _hourly_ramp),
+            "virtual/test/mag_divided_offset":
+                register_virtual_product("virtual/test/mag_divided_offset", _mag_divided_offset),
+        }
 
-class VirtualProductGetData(VirtualProductWithDummy):
+@ddt
+class VirtualProductGetData(VirtualProductWithVP):
 
-    def test_get_data_returns_product(self):
-        var = spz.get_data("virtual/test/hourly_ramp", _START, _STOP)
+    @data(*_VP_PATHS)
+    def test_get_data_returns_product(self, path):
+        var = spz.get_data(path, _START, _STOP)
         self.assertIsInstance(var, SpeasyVariable)
         self.assertGreater(len(var), 0)
 
-    def test_values_inside_time_window(self):
-        var = spz.get_data("virtual/test/hourly_ramp", _START, _STOP)
+    @data(*_VP_PATHS)
+    def test_values_inside_time_window(self, path):
+        var = spz.get_data(path, _START, _STOP)
         self.assertGreaterEqual(var.time[0], make_utc_datetime64(_START))
         self.assertLessEqual(var.time[-1], make_utc_datetime64(_STOP))
 
-    def test_tree_node_or_path_are_equivalent(self):
-        by_path = spz.get_data("virtual/test/hourly_ramp", _START, _STOP)
-        by_node = spz.get_data(spz.inventories.tree.virtual.test.hourly_ramp, _START, _STOP)
+    @data(*_VP_PATHS)
+    def test_tree_node_or_path_are_equivalent(self, path):
+        by_path = spz.get_data(path, _START, _STOP)
+        by_node = spz.get_data(_tree_node(path), _START, _STOP)
         self.assertEqual(len(by_path), len(by_node))
 
-
-class VirtualProductInventory(VirtualProductWithDummy):
+@ddt
+class VirtualProductInventory(VirtualProductWithVP):
 
     def test_virtual_branch_exists(self):
         self.assertIsInstance(spz.inventories.tree.virtual, SpeasyIndex)
 
-    def test_product_appears_in_tree(self):
-        self.assertIsInstance(spz.inventories.tree.virtual.test.hourly_ramp, ParameterIndex)
+    @data(*_VP_PATHS)
+    def test_product_appears_in_tree(self, path):
+        self.assertIsInstance(_tree_node(path), ParameterIndex)
 
-    def test_leaf_carries_the_full_uid(self):
-        self.assertEqual(spz.inventories.tree.virtual.test.hourly_ramp.spz_uid(), "test/hourly_ramp")
+    @data(*_VP_PATHS)
+    def test_leaf_carries_the_full_uid(self, path):
+        uid = path.removeprefix("virtual/")
+        self.assertEqual(_tree_node(path).spz_uid(), uid)
 
     def test_deep_path_digs_every_folder(self):
         register_virtual_product("virtual/test/deep/hourly_ramp", _hourly_ramp)
         self.assertIsInstance(spz.inventories.tree.virtual.test.deep.hourly_ramp, ParameterIndex)
 
-    def test_product_appears_in_flat_inventory(self):
-        node = spz.inventories.flat_inventories.virtual.parameters["test/hourly_ramp"]
-        self.assertIs(node, spz.inventories.tree.virtual.test.hourly_ramp)
+    @data(*_VP_PATHS)
+    def test_product_appears_in_flat_inventory(self, path):
+        uid = path.removeprefix("virtual/")
+        node = spz.inventories.flat_inventories.virtual.parameters[uid]
+        self.assertIs(node, _tree_node(path))
 
-    def test_register_returns_the_tree_leaf(self):
-        self.assertIs(self.hourly_ramp_node, spz.inventories.tree.virtual.test.hourly_ramp)
+    @data(*_VP_PATHS)
+    def test_register_returns_the_tree_leaf(self, path):
+        self.assertIs(self.registered_nodes[path], _tree_node(path))
 
-    def test_tree_leaf_is_callable(self):
-        var = spz.inventories.tree.virtual.test.hourly_ramp(_START, _STOP)
+    @data(*_VP_PATHS)
+    def test_tree_leaf_is_callable(self, path):
+        var = _tree_node(path)(_START, _STOP)
         self.assertIsInstance(var, SpeasyVariable)
 
-    def test_tree_leaf_is_a_virtual_product(self):
-        self.assertIsInstance(spz.inventories.tree.virtual.test.hourly_ramp, registry.VirtualProduct)
+    @data(*_VP_PATHS)
+    def test_tree_leaf_is_a_virtual_product(self, path):
+        self.assertIsInstance(_tree_node(path), registry.VirtualProduct)
 
 
 @ddt
