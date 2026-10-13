@@ -292,6 +292,24 @@ For example, from Python:
     >>> spz.config.amda.username.set('my_amda_username') # doctest: +SKIP
     >>> spz.config.amda.password.set('my_amda_password') # doctest: +SKIP
 
+HAPI section
+------------
+
+.. list-table::
+   :widths: 25 15 60
+   :header-rows: 1
+
+   * - Entry / env var
+     - Default
+     - Purpose
+   * - ``disabled_servers`` / ``SPEASY_HAPI_DISABLED_SERVERS``
+     - ``cdaweb,amda,csa,sscweb``
+     - Comma-separated HAPI servers (keys of ``spz.inventories.tree.hapi``) not to list. The defaults are served
+       natively by Speasy; see :doc:`hapi/hapi`.
+   * - ``extra_servers`` / ``SPEASY_HAPI_EXTRA_SERVERS``
+     - ``{}``
+     - HAPI servers missing from the official list, as a ``{key: url}`` dictionary.
+
 Archive section
 ---------------
 
