@@ -547,7 +547,8 @@ class UnversionedProviderCache(object):
             if data is None:
                 return self._keep_stale_entries(group, product, **kwargs)
             self._cache.add_to_cache(data, fragments, product, fragment_duration=fragment_duration,
-                                     version=self.version, lifetime=self.cache_retention, **kwargs)
+                                     version=self.version, lifetime=self.cache_retention,
+                                     coverage_end=_coverage_end(wrapped_self, product), **kwargs)
             return [data]
         except Exception:
             # Leaving our locks behind would make every other caller wait deduplication_timeout for nothing.

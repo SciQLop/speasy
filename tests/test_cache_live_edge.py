@@ -7,7 +7,7 @@ import numpy as np
 
 import speasy.core.cache._providers_caches as providers_caches
 from speasy.core import epoch_to_datetime64
-from speasy.core.cache import Cache, Cacheable
+from speasy.core.cache import Cache, Cacheable, UnversionedProviderCache
 from speasy.core.datetime_range import DateTimeRange
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 
@@ -40,6 +40,15 @@ class _GrowingDataset:
         return _minutely(start_time, min(stop_time, self.coverage_end))
 
 
+class _GrowingUnversionedDataset(_GrowingDataset):
+    """A CDAWeb or HAPI-like dataset: no version at all, a coverage that grows."""
+
+    @UnversionedProviderCache(prefix="live_edge_unversioned", cache_instance=_cache, fragment_hours=lambda x: 12)
+    def get_data(self, product, start_time, stop_time, if_newer_than=None):
+        self.calls += 1
+        return _minutely(start_time, min(stop_time, self.coverage_end))
+
+
 class _NoCoverageInfo:
     def __init__(self):
         self.calls = 0
@@ -57,6 +66,17 @@ class LiveEdgeFragments(unittest.TestCase):
 
     def test_data_added_after_the_coverage_end_is_fetched_later(self):
         dataset = _GrowingDataset()
+        start, stop = _FIRST_COVERAGE_END - timedelta(days=1), _FIRST_COVERAGE_END + timedelta(days=1)
+        with mock.patch.object(providers_caches, "PROVISIONAL_FRAGMENT_LIFETIME", timedelta(0)):
+            self.assertLess(dataset.get_data("ace", start, stop).time[-1], np.datetime64("2026-08-27"))
+
+        dataset.coverage_end = stop
+        refreshed = dataset.get_data("ace", start, stop)
+
+        self.assertEqual(refreshed.time[-1], np.datetime64("2026-08-27T23:59"))
+
+    def test_unversioned_data_added_after_the_coverage_end_is_fetched_later(self):
+        dataset = _GrowingUnversionedDataset()
         start, stop = _FIRST_COVERAGE_END - timedelta(days=1), _FIRST_COVERAGE_END + timedelta(days=1)
         with mock.patch.object(providers_caches, "PROVISIONAL_FRAGMENT_LIFETIME", timedelta(0)):
             self.assertLess(dataset.get_data("ace", start, stop).time[-1], np.datetime64("2026-08-27"))
