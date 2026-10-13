@@ -11,7 +11,9 @@ _NOT_DATASET_META = ('HAPI', 'status', 'parameters')
 
 
 def build_inventory(root: SpeasyIndex, server_meta: Mapping, catalog: Iterable[Mapping]) -> SpeasyIndex:
-    """Fills ``root`` with one node per catalog entry.
+    """Fills ``root``, the node of one HAPI server, with one node per catalog entry.
+
+    UIDs are ``<root uid>/<dataset id>[/<parameter name>]``, so ``root``'s uid must be the server key.
 
     ``catalog`` has the shape of ``/catalog?depth=all``: ``{"id", "title", "info"?}`` entries, where ``info`` is the
     ``/info`` response for that dataset. Entries without ``info`` become datasets holding only their title.
@@ -27,9 +29,10 @@ def _add_dataset(root: SpeasyIndex, entry: Mapping) -> None:
     *folders, name = _segments(entry['id'])
     parent = root
     for depth, segment in enumerate(folders, start=1):
-        parent = _folder(parent, '/'.join(folders[:depth]), segment)
+        parent = _folder(parent, '/'.join([root.spz_uid(), *folders[:depth]]), segment)
     meta = _dataset_meta(entry)
-    dataset = _new_child(parent, name, lambda n: DatasetIndex(name=n, provider=provider, uid=entry['id'], meta=meta))
+    uid = f"{root.spz_uid()}/{entry['id']}"
+    dataset = _new_child(parent, name, lambda n: DatasetIndex(name=n, provider=provider, uid=uid, meta=meta))
     for parameter in _data_parameters(entry):
         _add_parameter(dataset, parameter)
 
