@@ -16,6 +16,14 @@ def _started_providers():
     return [name for name in _enabled_provider_names() if getattr(spz, name) is not None]
 
 
+def _has_products(provider):
+    """hapi only lists its servers up front, their products load on first access."""
+    if provider == 'hapi':
+        from speasy.core.hapi.inventory import HapiServerIndex
+        return any(isinstance(node, HapiServerIndex) for node in spz.inventories.tree.__dict__[provider].__dict__.values())
+    return len(spz.inventories.flat_inventories.__dict__[provider].parameters) >= 1
+
+
 @ddt
 class SpeasyGetData(unittest.TestCase):
     def setUp(self):
@@ -167,9 +175,9 @@ class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
         if spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}):
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool', 'hapi'])
         else:
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool', 'hapi'])
         self.assertListEqual(sorted(l), expected_providers)
 
     @data(*[(provider,) for provider in _enabled_provider_names()])
@@ -182,8 +190,7 @@ class SpeasyModule(unittest.TestCase):
         self.assertEqual(
             len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
         getattr(spz, provider).update_inventory()
-        self.assertGreaterEqual(
-            len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+        self.assertTrue(_has_products(provider))
 
     def test_can_update_inventories_all_at_once_from_proxy(self):
         providers = _started_providers()
@@ -198,8 +205,7 @@ class SpeasyModule(unittest.TestCase):
         spz.update_inventories()
 
         for provider in providers:
-            self.assertGreaterEqual(
-                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 1)
+            self.assertTrue(_has_products(provider), provider)
 
     def test_can_update_inventories_all_at_once_without_proxy(self):
         if "SPEASY_INVENTORY_TESTS" not in os.environ:
