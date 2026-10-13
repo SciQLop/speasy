@@ -201,9 +201,12 @@ class HapiWebservice(DataProvider):
             Optional[SpeasyVariable]:
         parameter = self._to_parameter_index(product)
         dataset = self._dataset_of(parameter)
+        time_range = _clamped(DateTimeRange(start_time, stop_time), self._dataset_range(dataset))
+        if time_range is None:
+            return None
         max_duration = iso8601_duration(dataset.__dict__.get('maxRequestDuration')) or _DEFAULT_MAX_REQUEST_DURATION
         return merge(self._download(parameter, dataset, chunk, extra_http_headers)
-                     for chunk in _chunks(DateTimeRange(start_time, stop_time), max_duration))
+                     for chunk in _chunks(time_range, max_duration))
 
     def _download(self, parameter: ParameterIndex, dataset: DatasetIndex, time_range: DateTimeRange,
                   extra_http_headers: Optional[Dict]) -> Optional[SpeasyVariable]:
@@ -217,6 +220,12 @@ class HapiWebservice(DataProvider):
                                    [name], header=header, headers=extra_http_headers).get(name)
         except HapiNoData:
             return None
+
+
+def _clamped(time_range: DateTimeRange, dataset_range: DateTimeRange) -> Optional[DateTimeRange]:
+    """The cache asks for whole fragments, which can overflow the dataset: servers answer 1405 to that."""
+    start, stop = max(time_range.start_time, dataset_range.start_time), min(time_range.stop_time, dataset_range.stop_time)
+    return DateTimeRange(start, stop) if start < stop else None
 
 
 def _chunks(time_range: DateTimeRange, max_duration: timedelta) -> List[DateTimeRange]:
