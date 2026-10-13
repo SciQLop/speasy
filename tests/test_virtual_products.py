@@ -301,5 +301,31 @@ class VirtualProductRobustness(unittest.TestCase):
         self.assertIsInstance(spz.get_data("virtual/c", _START, _STOP), SpeasyVariable)
 
 
+@ddt
+class VirtualProductPlots(VirtualProductWithVP):
+
+    def setUp(self):
+        super().setUp()
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            self.skipTest("Can't import matplotlib")
+
+    @data(*_VP_PATHS)
+    def test_product_is_plottable(self, path):
+        import matplotlib.pyplot as plt
+        var = spz.get_data(path, _START, _STOP)
+        plt.close('all')
+        ax = var.plot()
+        self.assertIsNotNone(ax)
+
+    def test_plot_shows_units(self):
+        import matplotlib.pyplot as plt
+        var = spz.get_data("virtual/test/mag_divided_offset", _START, _STOP)
+        plt.close('all')
+        ax = var.plot()
+        self.assertIn(var.unit, ax.get_ylabel())
+
+
 if __name__ == '__main__':
     unittest.main()
