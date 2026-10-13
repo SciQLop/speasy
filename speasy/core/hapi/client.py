@@ -1,11 +1,12 @@
 from enum import Enum
 import io
+import json
 from json import JSONDecodeError
 from typing import Dict, List, Mapping, Optional
 from urllib.parse import urlencode
 
 from speasy.core import http
-from speasy.core.hapi.parser import _parse_hapi_csv
+from speasy.core.codecs.codecs_registry import get_codec
 from speasy.products.variable import SpeasyVariable
 
 from .exceptions import (
@@ -48,46 +49,69 @@ def _check_http_status(status_code: int, text: str) -> None:
 def _check_response(response) -> None:
     try:
         _check_hapi_status(response.json())
-    except (JSONDecodeError, KeyError):
+    except (JSONDecodeError, UnicodeDecodeError, KeyError, TypeError):
         _check_http_status(response.status_code, response.text)
+
+
+def _check_data_response(response) -> None:
+    """A data body is CSV or binary, so only an error response is worth parsing as a HAPI status."""
+    if not response.ok:
+        _check_response(response)
+        _check_http_status(response.status_code, response.text)
+
+
+def _hapi_base_url(server_url: str) -> str:
+    """Registry URLs end with '/hapi', older code passes the server root."""
+    url = server_url.rstrip('/')
+    return url if url.endswith('/hapi') else f"{url}/hapi"
+
+
+def _header_for(header: Mapping, parameters: List[str]) -> Dict:
+    """The data columns are the time column then the requested parameters, in /info order."""
+    wanted = set(parameters)
+    columns = [p for i, p in enumerate(header["parameters"]) if i == 0 or p["name"] in wanted]
+    return {**header, "parameters": columns}
+
+
+def _prepend_header(header: Mapping, body: bytes) -> io.BytesIO:
+    return io.BytesIO(b"#" + json.dumps(header).encode("utf-8") + b"\n" + body)
 
 
 class HapiClient:
     def __init__(self, server_url: str):
-        self.server_url = server_url.rstrip('/')
-        self._dataset_param_name = self._init_dataset_param_name()
+        self.base_url = _hapi_base_url(server_url)
+        self.capabilities = self.get_capabilities()
+        self.is_v3 = self._is_v3(self.capabilities.get("HAPI"))
 
-    def _init_dataset_param_name(self) -> str:
-        """ Starting from HAPI-3.0, 'id' parameter becomes 'dataset'
-            set by major version number
-        """
-        version = self.get_capabilities().get("HAPI")
+    @property
+    def server_url(self) -> str:
+        return self.base_url[:-len('/hapi')]
 
+    @staticmethod
+    def _is_v3(version: Optional[str]) -> bool:
         if not version:
             raise RuntimeError("HAPI version not provided by server")
-
         major = int(version.split('.')[0])
+        if major not in (2, 3):
+            raise RuntimeError(f"Unsupported HAPI version: {version}")
+        return major == 3
 
-        if major == 2:
-            return "id"
-        elif major == 3:
-            return "dataset"
+    @property
+    def _dataset_key(self) -> str:
+        """Starting from HAPI-3.0, the 'id' parameter becomes 'dataset'"""
+        return "dataset" if self.is_v3 else "id"
 
-        raise RuntimeError(f"Unsupported HAPI version: {version}")
-
-    def _fetch_variables(self, query_parameters: Dict) -> Mapping[str, SpeasyVariable]:
-        parameters = query_parameters.get("parameters", [])
-        url = self._build_url(HapiEndpoint.DATA, query_parameters)
-        f = io.BytesIO(_fetch_response(url).text.encode("utf-8"))
-        return _parse_hapi_csv(f, parameters)
+    @property
+    def _time_keys(self) -> tuple:
+        """Starting from HAPI-3.0, 'time.min'/'time.max' become 'start'/'stop'"""
+        return ("start", "stop") if self.is_v3 else ("time.min", "time.max")
 
     def _build_url(
         self,
         endpoint: Optional[HapiEndpoint] = None,
         query_parameters: Optional[Dict] = None
     ) -> str:
-        base = f"{self.server_url}/hapi"
-        url = f"{base}/{endpoint.value}" if endpoint else base
+        url = f"{self.base_url}/{endpoint.value}" if endpoint else self.base_url
 
         # Flatten "parameters" into a comma-separated query string
         if query_parameters:
@@ -110,6 +134,11 @@ class HapiClient:
         url = self._build_url(endpoint, query_parameters)
         return _fetch_response(url).json()
 
+    def _data_format(self, header: Mapping) -> str:
+        # The binary reader can't decode string parameters, CSV can always be used.
+        has_strings = any(p.get("type") == "string" for p in header["parameters"][1:])
+        return "binary" if "binary" in self.capabilities.get("outputFormats", []) and not has_strings else "csv"
+
     def get_hapi(self) -> str:
         url = self._build_url()
         with http.urlopen(url) as response:
@@ -119,15 +148,15 @@ class HapiClient:
     def get_capabilities(self) -> Dict:
         return self._endpoint_to_json(HapiEndpoint.CAPABILITIES)
 
-    def get_catalog(self) -> Dict:
-        return self._endpoint_to_json(HapiEndpoint.CATALOG)
+    def get_catalog(self, depth: Optional[str] = None) -> Dict:
+        return self._endpoint_to_json(HapiEndpoint.CATALOG, {"depth": depth} if depth else None)
 
     def get_about(self) -> Dict:
         return self._endpoint_to_json(HapiEndpoint.ABOUT)
 
     def get_info(self, dataset: str, parameters: Optional[List[str]] = None) -> Dict:
         query_params = {
-            self._dataset_param_name: dataset,
+            self._dataset_key: dataset,
         }
         if parameters is not None:
             query_params["parameters"] = parameters  # List[str], will be flatten in _build_url
@@ -135,14 +164,21 @@ class HapiClient:
         return self._endpoint_to_json(HapiEndpoint.INFO, query_params)
 
     def get_data(
-        self, dataset: str, start: str, stop: str, parameters: List[str]
+        self, dataset: str, start: str, stop: str, parameters: List[str], header: Optional[Mapping] = None
     ) -> Mapping[str, SpeasyVariable]:
-        query_params = {
-            self._dataset_param_name: dataset,
+        """Downloads ``parameters`` without the server's header, then decodes them with ``header``: the /info
+        response of ``dataset``, fetched when not given. Some servers reject ``include=header``."""
+        header = _header_for(header if header is not None else self.get_info(dataset, parameters), parameters)
+        data_format = self._data_format(header)
+        start_key, stop_key = self._time_keys
+        url = self._build_url(HapiEndpoint.DATA, {
+            self._dataset_key: dataset,
             "parameters": parameters,
-            "start": start,
-            "stop": stop,
-            "format": "csv",
-            "include": "header",
-        }
-        return self._fetch_variables(query_params)
+            start_key: start,
+            stop_key: stop,
+            "format": data_format,
+        })
+        response = http.get(url)
+        _check_data_response(response)
+        return get_codec(f"hapi/{data_format}").load_variables(
+            file=_prepend_header(header, response.bytes), variables=parameters, disable_cache=True)
