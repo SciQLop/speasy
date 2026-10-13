@@ -5,3 +5,4 @@ from .ssc import SscWebservice
 from .generic_archive import GenericArchive
 from .uiowa_eph_tool import UiowaEphTool
 from .cdpp3dview import Cdpp3dViewWebservice
+from .hapi import HapiWebservice

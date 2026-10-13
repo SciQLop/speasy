@@ -4,11 +4,12 @@ See https://github.com/hapi-server/data-specification/blob/master/hapi-3.3.0/HAP
 """
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import timedelta
 from threading import Lock
 from typing import Callable, Dict, Iterable, List, Mapping, Optional
 
 from speasy.core import fix_name
+from speasy.core.codecs.bundled_codecs.hapi.isotime import day_of_year_to_calendar
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
 
 log = logging.getLogger(__name__)
@@ -16,7 +17,6 @@ log = logging.getLogger(__name__)
 _NOT_DATASET_META = ('HAPI', 'status', 'parameters')
 _LOADED = 'hapi_loaded'
 
-_DAY_OF_YEAR = re.compile(r'^(\d{4})-(\d{3})(T.*)?$')
 _NUMBER = r'(\d+(?:\.\d+)?)'
 _DURATION = re.compile(
     rf'^P(?:{_NUMBER}Y)?(?:{_NUMBER}M)?(?:{_NUMBER}W)?(?:{_NUMBER}D)?(?:T(?:{_NUMBER}H)?(?:{_NUMBER}M)?(?:{_NUMBER}S)?)?$')
@@ -27,9 +27,7 @@ _load_locks_guard = Lock()
 
 def normalized_time(hapi_time: str) -> str:
     """HAPI allows date-only and day-of-year times (``1970-01-01Z``, ``2015-032T00:00Z``), which Speasy can't parse."""
-    t = hapi_time.strip().rstrip('Z')
-    if m := _DAY_OF_YEAR.match(t):
-        t = datetime.strptime(m[1] + m[2], '%Y%j').strftime('%Y-%m-%d') + (m[3] or '')
+    t = day_of_year_to_calendar(hapi_time.strip().rstrip('Z'))
     return (t if 'T' in t else f"{t}T00:00") + 'Z'
 
 

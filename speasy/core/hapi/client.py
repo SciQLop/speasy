@@ -92,13 +92,13 @@ class HapiClient:
         if not version:
             raise RuntimeError("HAPI version not provided by server")
         major = int(version.split('.')[0])
-        if major not in (2, 3):
+        if major not in (1, 2, 3):
             raise RuntimeError(f"Unsupported HAPI version: {version}")
         return major == 3
 
     @property
     def _dataset_key(self) -> str:
-        """Starting from HAPI-3.0, the 'id' parameter becomes 'dataset'"""
+        """Starting from HAPI-3.0, the 'id' parameter becomes 'dataset' (1.x queries are those of 2.x)"""
         return "dataset" if self.is_v3 else "id"
 
     @property
@@ -164,7 +164,8 @@ class HapiClient:
         return self._endpoint_to_json(HapiEndpoint.INFO, query_params)
 
     def get_data(
-        self, dataset: str, start: str, stop: str, parameters: List[str], header: Optional[Mapping] = None
+        self, dataset: str, start: str, stop: str, parameters: List[str], header: Optional[Mapping] = None,
+        headers: Optional[Dict[str, str]] = None
     ) -> Mapping[str, SpeasyVariable]:
         """Downloads ``parameters`` without the server's header, then decodes them with ``header``: the /info
         response of ``dataset``, fetched when not given. Some servers reject ``include=header``."""
@@ -178,7 +179,7 @@ class HapiClient:
             stop_key: stop,
             "format": data_format,
         })
-        response = http.get(url)
+        response = http.get(url, headers=headers)
         _check_data_response(response)
         return get_codec(f"hapi/{data_format}").load_variables(
             file=_prepend_header(header, response.bytes), variables=parameters, disable_cache=True)

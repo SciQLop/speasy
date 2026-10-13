@@ -258,6 +258,17 @@ archive = ConfigSection("ARCHIVE",
                                                      "type_ctor": _parse_dir_set}
                         )
 
+hapi = ConfigSection("HAPI",
+                     disabled_servers={"default": "cdaweb,amda,csa,sscweb",
+                                       "description": """A comma separated list of HAPI servers (keys of speasy.inventories.tree.hapi)
+you don't want listed. Defaults to the servers Speasy already serves natively, so their products aren't listed twice.""",
+                                       "type_ctor": _parse_dir_set},
+                     extra_servers={"default": {},
+                                    "description": """HAPI servers missing from the official registry, as a {key: url} dictionary.
+Example: {"mylab": "https://mylab.example.org/hapi"} gives access to speasy.inventories.tree.hapi.mylab""",
+                                    "type_ctor": _load_dict_from_repr}
+                     )
+
 inventories = ConfigSection("INVENTORIES",
                             cache_retention_days={
                                 "default": 2,

@@ -7,6 +7,7 @@ import pandas as pds
 
 from speasy.core.codecs.bundled_codecs.hapi.reader import _extract_headers, _load_hapi
 from speasy.core.codecs.bundled_codecs.hapi.hapi_file import HapiFile
+from speasy.core.codecs.bundled_codecs.hapi.isotime import parse_isotime
 from speasy.core.codecs.codec_interface import Buffer
 from speasy.core.any_files import any_loc_open
 
@@ -19,7 +20,7 @@ def _extract_data_csv(file: io.IOBase, headers: Dict[str, Any]) -> pds.DataFrame
         # a 1201 no-data response is a header with no records, which read_csv refuses to parse
         n_columns = sum(int(np.prod(p.get("size", [1]))) for p in headers["parameters"][1:])
         return pds.DataFrame(np.empty((0, n_columns)), index=pds.DatetimeIndex([], dtype="datetime64[ns]"))
-    return pds.read_csv(data, comment='#', sep=',', header=None, skiprows=0, parse_dates=[0], index_col=0)
+    return pds.read_csv(data, comment='#', sep=',', header=None, skiprows=0, index_col=0)
 
 
 
@@ -29,7 +30,7 @@ def load_hapi_csv(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
     if data is not None and headers is not None:
         time_header = headers["parameters"][0]
         assert time_header["type"] == "isotime"
-        hapi_csv_file.create_parameter(data.index.to_numpy(dtype="datetime64[ns]"),
+        hapi_csv_file.create_parameter(parse_isotime(data.index.to_numpy()),
                                        meta=time_header)
         column_offset = 0
         for i, param_meta in enumerate(headers["parameters"][1:]):
