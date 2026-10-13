@@ -302,6 +302,13 @@ class TestHapiCsvDayOfYear(unittest.TestCase):
         v = get_codec('hapi/csv').load_variables(file=body, variables=["x"], disable_cache=True)["x"]
         np.testing.assert_array_equal(v.time, np.array(["2024-02-29T01:00:00", "2024-03-01T01:00:00"], dtype="datetime64[ns]"))
 
+    def test_hour_24_and_leap_seconds(self):
+        header = {"HAPI": "3.3", "parameters": [{"name": "Time", "type": "isotime", "length": 20},
+                                                {"name": "x", "type": "double"}]}
+        body = io.BytesIO(b"#" + json.dumps(header).encode() + b"\n2016-01-31T24:00:00Z,1.0\n1998-12-31T23:59:60Z,2.0\n")
+        v = get_codec('hapi/csv').load_variables(file=body, variables=["x"], disable_cache=True)["x"]
+        np.testing.assert_array_equal(v.time, np.array(["2016-02-01T00:00:00", "1999-01-01T00:00:00"], dtype="datetime64[ns]"))
+
 
 @ddt
 class TestHapiBinaryCodec(unittest.TestCase):

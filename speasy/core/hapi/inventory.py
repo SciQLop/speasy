@@ -10,7 +10,7 @@ from threading import Lock
 from typing import Callable, Dict, Iterable, List, Mapping, Optional
 
 from speasy.core import fix_name
-from speasy.core.codecs.bundled_codecs.hapi.isotime import day_of_year_to_calendar
+from speasy.core.codecs.bundled_codecs.hapi.isotime import calendar_isotime
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
 
 log = logging.getLogger(__name__)
@@ -32,8 +32,8 @@ _failed_loads: Dict[tuple, float] = {}
 
 
 def normalized_time(hapi_time: str) -> str:
-    """HAPI allows date-only and day-of-year times (``1970-01-01Z``, ``2015-032T00:00Z``), which Speasy can't parse."""
-    t = day_of_year_to_calendar(hapi_time.strip().rstrip('Z'))
+    """HAPI allows date-only, day-of-year, hour 24 and leap second times, which Speasy can't parse."""
+    t = calendar_isotime(hapi_time.strip().rstrip('Z'))
     return (t if 'T' in t else f"{t}T00:00") + 'Z'
 
 
@@ -139,7 +139,7 @@ def build_inventory(root: SpeasyIndex, server_meta: Mapping, catalog: Iterable[M
 
 
 def fill_dataset(dataset: DatasetIndex, info: Mapping) -> None:
-    dataset.__dict__.update(_dataset_meta(info))
+    dataset.__dict__.update(_dataset_meta(dataset.spz_uid(), info))
     for parameter in info.get('parameters', [])[1:]:
         _add_parameter(dataset, parameter)
 
@@ -151,14 +151,29 @@ def _add_dataset(root: SpeasyIndex, entry: Mapping, dataset_type: type) -> None:
     for depth, segment in enumerate(folders, start=1):
         parent = _folder(parent, '/'.join([root.spz_uid(), *folders[:depth]]), segment)
     meta = {k: v for k, v in entry.items() if k not in ('id', 'info')}
-    if issubclass(dataset_type, _LazyIndex):
-        meta[_LOADED] = 'info' in entry
     uid = f"{root.spz_uid()}/{entry['id']}"
+    info = _usable_info(uid, entry)
+    if issubclass(dataset_type, _LazyIndex):
+        meta[_LOADED] = info is not None
     dataset = _new_child(parent, name, lambda n: dataset_type(name=n, provider=provider, uid=uid, meta=meta))
-    if 'info' in entry:
-        fill_dataset(dataset, entry['info'])
+    if info is not None:
+        fill_dataset(dataset, info)
     if 'title' in dataset.__dict__:
         dataset.__dict__.setdefault('description', dataset.__dict__['title'])
+
+
+def _usable_info(uid: str, entry: Mapping) -> Optional[Mapping]:
+    """A broken /catalog?depth=all entry must not make the whole server unloadable: it is left to load on its own,
+    which reports what is wrong with it."""
+    info = entry.get('info')
+    if info is not None and not _has_dates(info):
+        log.warning(f"HAPI dataset {uid!r} has no valid startDate/stopDate in its server's catalog")
+        return None
+    return info
+
+
+def _has_dates(info: Mapping) -> bool:
+    return isinstance(info.get('startDate'), str) and isinstance(info.get('stopDate'), str)
 
 
 def _add_parameter(dataset: DatasetIndex, parameter: Mapping) -> None:
@@ -173,12 +188,15 @@ def _segments(dataset_id: str) -> List[str]:
     return [s for s in dataset_id.split('/') if s] or [dataset_id]
 
 
-def _dataset_meta(info: Mapping) -> dict:
+def _dataset_meta(uid: str, info: Mapping) -> dict:
     """``parameters[0]`` is always the time column: it gets no node but is kept to decode data responses."""
+    if not _has_dates(info):
+        raise ValueError(f"HAPI dataset {uid!r} has no valid startDate/stopDate (got {info.get('startDate')!r} and "
+                         f"{info.get('stopDate')!r}), which HAPI requires: this is a bug of its server, please report "
+                         f"it to the server's contact")
     meta = {k: v for k, v in info.items() if k not in _NOT_DATASET_META}
     meta['time_parameter'] = (info.get('parameters') or [None])[0]
-    if 'startDate' in info and 'stopDate' in info:
-        meta.update(start_date=normalized_time(info['startDate']), stop_date=normalized_time(info['stopDate']))
+    meta.update(start_date=normalized_time(info['startDate']), stop_date=normalized_time(info['stopDate']))
     return meta
 
 

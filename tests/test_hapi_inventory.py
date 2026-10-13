@@ -6,8 +6,8 @@ import threading
 from datetime import timedelta
 from unittest import mock
 
-from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build_inventory, iso8601_duration,
-                                        load_into, normalized_time)
+from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build_inventory, fill_dataset,
+                                        iso8601_duration, load_into, normalized_time)
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex, SpeasyIndex, from_dict, to_dict)
 
@@ -168,6 +168,35 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(iso8601_duration('PT0.5S'), timedelta(seconds=0.5))
         self.assertIsNone(iso8601_duration('soon'))
         self.assertIsNone(iso8601_duration(None))
+
+
+class TestRolledOverTimes(unittest.TestCase):
+    def test_hour_24_is_the_next_day(self):
+        self.assertEqual(normalized_time('2016-01-31T24:00:00.000Z'), '2016-02-01T00:00Z')
+        self.assertEqual(normalized_time('2015-365T24:00Z'), '2016-01-01T00:00Z')
+
+    def test_leap_second_is_the_next_minute(self):
+        self.assertEqual(normalized_time('1998-12-31T23:59:60Z'), '1999-01-01T00:00Z')
+        self.assertEqual(normalized_time('1998-12-31T23:59:60.5Z'), '1999-01-01T00:00Z')
+
+
+class TestMissingDates(unittest.TestCase):
+    def _lazy_build(self, catalog):
+        return build_inventory(SpeasyIndex(name=SERVER, provider=PROVIDER, uid=SERVER), {}, catalog,
+                               dataset_type=HapiDatasetIndex)
+
+    def test_depth_all_entry_without_dates_does_not_hide_the_others(self):
+        root = self._lazy_build([{'id': 'bad', 'info': {**_info('x'), 'startDate': None}},
+                                 {'id': 'missing', 'info': {'parameters': _info('x')['parameters']}},
+                                 {'id': 'good', 'info': _info('x')}])
+        self.assertIn('x', root.__dict__['good'].__dict__)
+        self.assertFalse(root.__dict__['bad'].__dict__['hapi_loaded'])
+        self.assertFalse(root.__dict__['missing'].__dict__['hapi_loaded'])
+
+    def test_info_without_dates_says_what_is_wrong(self):
+        dataset = DatasetIndex(name='bad', provider=PROVIDER, uid='test/bad')
+        with self.assertRaisesRegex(ValueError, r"(?s)'test/bad'.*startDate.*stopDate.*server"):
+            fill_dataset(dataset, {**_info('x'), 'stopDate': None})
 
 
 class TestTimeParameter(unittest.TestCase):
