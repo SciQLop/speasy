@@ -105,16 +105,16 @@ class FakeClient:
 
 
 @contextmanager
-def _hapi_provider(registry=REGISTRY, disabled=('cdaweb',), extra=None):
-    """A HapiWebservice using FakeClient; the global provider state is restored afterwards."""
+def _hapi_provider(registry=REGISTRY, disabled=('cdaweb',), extra=None, client=FakeClient):
+    """A HapiWebservice using ``client`` (FakeClient by default); the global provider state is restored afterwards."""
     from speasy.data_providers import hapi
     namespaces = (tree.__dict__, flat_inventories.__dict__, request_dispatch.PROVIDERS, dataprovider.PROVIDERS)
     saved = [namespace.get('hapi') for namespace in namespaces]
     saved_loaders = HapiServerIndex.loader, HapiDatasetIndex.loader
     FakeClient.instances = []
     servers = enabled_servers(registry, set(disabled), extra or {})
-    with mock.patch.object(hapi, 'HapiClient', FakeClient), mock.patch.object(hapi, '_server_records',
-                                                                              return_value=servers):
+    with mock.patch.object(hapi, 'HapiClient', client), \
+            mock.patch.object(hapi, '_server_records', return_value=servers):
         try:
             provider = request_dispatch.PROVIDERS['hapi'] = hapi.HapiWebservice()
             yield provider
@@ -250,6 +250,11 @@ class TestGetData(unittest.TestCase):
                              ['2000-01-01T00:00:00Z', '2000-01-11T00:00:00Z', '2000-01-21T00:00:00Z'])
             self.assertEqual(len(v), 25 * 24)
 
+    def test_requests_are_clamped_to_the_dataset_range(self):
+        with _hapi_provider():
+            self._get('slashed/aaa/PT1H/xyz/Field/X', _utc(2000, 12, 31, 12), _utc(2001, 1, 2))
+            self.assertEqual(FakeClient.calls_of('data')[0][2:4], ('2000-12-31T12:00:00Z', '2001-01-01T00:00:00Z'))
+
     def test_requests_outside_the_dataset_range_return_none(self):
         with _hapi_provider():
             self.assertIsNone(self._get('slashed/aaa/PT1H/xyz/Field/X', _utc(2005, 1, 1), _utc(2005, 1, 2)))
@@ -278,6 +283,46 @@ class TestGetData(unittest.TestCase):
         with _hapi_provider():
             with self.assertRaisesRegex(ConnectionError, 'unreachable'):
                 self._get('down/ds/p')
+
+
+TEST_SERVERS = [{'id': 'TestData2.0', 'x_url': 'https://hapi-server.org/servers/TestData2.0/hapi'},
+                {'id': 'TestData3.3', 'x_url': 'https://hapi-server.org/servers/TestData3.3/hapi'}]
+
+
+class TestLiveTestDataServers(unittest.TestCase):
+    """The real HapiClient against the HAPI project's test servers."""
+
+    def _provider(self):
+        from speasy.core.hapi.client import HapiClient
+        return _hapi_provider(registry=TEST_SERVERS, disabled=(), client=HapiClient)
+
+    def test_hapi_2_spectra_with_bins(self):
+        with self._provider():
+            v = request_dispatch.get_data('hapi/testdata2_0/dataset1/spectra', _utc(1970, 1, 1), _utc(1970, 1, 1, 0, 1),
+                                          disable_cache=True)
+            self.assertEqual(v.values.shape, (50, 10))  # the server has a 10 s gap in this minute
+            self.assertEqual(len(v.axes), 2)
+
+    def test_hapi_3_binary_vector(self):
+        with self._provider():
+            v = request_dispatch.get_data(tree.hapi.testdata3_3.dataset1.vector, _utc(1970, 1, 1),
+                                          _utc(1970, 1, 1, 0, 1), disable_cache=True)
+            self.assertEqual(v.values.shape, (60, 3))
+            self.assertEqual(v.unit, 'm')
+
+    def test_parameter_names_with_spaces(self):
+        with self._provider():
+            v = request_dispatch.get_data('hapi/testdata3_3/dataset3/vector parameter', _utc(1970, 1, 1),
+                                          _utc(1970, 1, 1, 0, 1), disable_cache=True)
+            self.assertEqual(v.values.shape, (60, 3))
+
+    def test_cached_requests_give_the_same_data(self):
+        with self._provider():
+            args = 'hapi/testdata3_3/dataset1/vector', _utc(1970, 1, 1), _utc(1970, 1, 1, 0, 2)
+            first = request_dispatch.get_data(*args)
+            second = request_dispatch.get_data(*args)
+            self.assertEqual(len(first), 60)  # the server has no record after 00:00:59
+            self.assertEqual(first, second)
 
 
 if __name__ == '__main__':
