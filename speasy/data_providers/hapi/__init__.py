@@ -173,28 +173,46 @@ class HapiWebservice(DataProvider):
                 if candidate == uid or uid in self.flat_inventory.parameters:
                     return
 
+    def _find(self, uid: str, kind: str) -> Optional[SpeasyIndex]:
+        """``kind`` is 'datasets' or 'parameters'. update_inventory() empties the flat inventory: a lookup it
+        interleaves with starts over on the new tree, rather than reporting a valid product as unknown."""
+        while True:
+            root = self._root()
+            if uid not in getattr(self.flat_inventory, kind):
+                self._resolve(uid)
+            found = getattr(self.flat_inventory, kind).get(uid)
+            if found is not None or self._root() is root:
+                return found
+
     def _dataset_of(self, parameter: ParameterIndex) -> DatasetIndex:
         uid = parameter.__dict__['dataset']
-        if uid not in self.flat_inventory.datasets:
-            self._resolve(uid)
-        if uid not in self.flat_inventory.datasets:
+        dataset = self._find(uid, 'datasets')
+        if dataset is None:
             raise ValueError(f"HAPI dataset {uid!r} is no longer listed by its server, "
                              f"browse spz.inventories.tree.hapi.{uid.split('/', 1)[0]} to see what it offers now")
-        return self.flat_inventory.datasets[uid]
+        return dataset
 
     def _to_parameter_index(self, index_or_str) -> ParameterIndex:
-        if type(index_or_str) is str and index_or_str not in self.flat_inventory.parameters:
-            self._resolve(index_or_str)
-            if index_or_str not in self.flat_inventory.parameters and index_or_str not in self.flat_inventory.datasets:
-                raise ValueError(f"Unknown HAPI product {index_or_str!r}, browse "
-                                 f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets and "
-                                 f"parameters it offers")
-        return super()._to_parameter_index(index_or_str)
+        if type(index_or_str) is not str:
+            return super()._to_parameter_index(index_or_str)
+        parameter = self._find(index_or_str, 'parameters')
+        if parameter is not None:
+            return parameter
+        if self._find(index_or_str, 'datasets') is not None:
+            raise ValueError(f"{index_or_str!r} is a HAPI dataset, get its parameters one by one: "
+                             f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} lists them")
+        raise ValueError(f"Unknown HAPI product {index_or_str!r}, browse "
+                         f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets and "
+                         f"parameters it offers")
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
-        if type(index_or_str) is str and index_or_str not in self.flat_inventory.datasets:
-            self._resolve(index_or_str)
-        return super()._to_dataset_index(index_or_str)
+        if type(index_or_str) is not str:
+            return super()._to_dataset_index(index_or_str)
+        dataset = self._find(index_or_str, 'datasets')
+        if dataset is None:
+            raise ValueError(f"Unknown HAPI dataset {index_or_str!r}, browse "
+                             f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets it offers")
+        return dataset
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.

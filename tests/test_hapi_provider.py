@@ -263,6 +263,17 @@ class TestGetData(unittest.TestCase):
             self.assertEqual(len(v), 24)
             self.assertEqual(FakeClient.calls_of('info'), [('info', 'dataset1')])
 
+    def test_an_inventory_update_during_a_lookup_does_not_lose_the_product(self):
+        with _hapi_provider() as provider:
+            publish = provider._publish
+
+            def publish_then_update(node, staging):
+                publish(node, staging)
+                provider._publish = publish
+                provider.update_inventory()
+            provider._publish = publish_then_update
+            self.assertEqual(len(self._get('v2/dataset1/scalar')), 24)
+
     def test_data_request_carries_the_time_column_and_parameter_header(self):
         with _hapi_provider():
             self._get('v2/dataset1/scalar')
@@ -324,6 +335,11 @@ class TestGetData(unittest.TestCase):
         with _hapi_provider():
             with self.assertRaisesRegex(ValueError, r"(?s)'v2/dataset1/nope'.*spz\.inventories\.tree\.hapi\.v2"):
                 self._get('v2/dataset1/nope')
+
+    def test_whole_dataset_error_says_to_get_its_parameters(self):
+        with _hapi_provider():
+            with self.assertRaisesRegex(ValueError, r"(?s)'v2/dataset1' is a HAPI dataset.*one by one.*hapi\.v2"):
+                self._get('v2/dataset1')
 
     def test_unreachable_server_error_is_raised(self):
         with _hapi_provider():

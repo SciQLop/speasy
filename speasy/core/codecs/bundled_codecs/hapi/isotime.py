@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 import numpy as np
 
@@ -45,10 +45,25 @@ def day_of_year_to_calendar(isotime: str) -> str:
     return datetime.strptime(m[1] + m[2], "%Y%j").strftime("%Y-%m-%d") + (m[3] or "")
 
 
+_HOUR_24 = re.compile(r"^(\d{4}-\d{2}-\d{2})T24(?::00)*(?:\.0*)?$")
+_LEAP_SECOND = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}):60(?:\.\d*)?$")
+
+
+def calendar_isotime(isotime: str) -> str:
+    """HAPI allows day-of-year dates, hour 24 and leap seconds, which neither numpy nor dateutil parse. Hour 24 is the
+    next day's midnight, and a leap second becomes the start of the next minute (dropping up to a second)."""
+    t = day_of_year_to_calendar(isotime)
+    if m := _HOUR_24.match(t):
+        return (date.fromisoformat(m[1]) + timedelta(days=1)).isoformat() + "T00:00"
+    if m := _LEAP_SECOND.match(t):
+        return (datetime.fromisoformat(m[1]) + timedelta(minutes=1)).isoformat(timespec="minutes")
+    return t
+
+
 def parse_isotime(values: np.ndarray) -> np.ndarray:
-    """HAPI isotimes may use day-of-year dates (YYYY-DDD), which numpy can't parse."""
     strings = np.char.rstrip(np.char.strip(np.asarray(values).astype(str)), "Z")
-    if strings.size and _DAY_OF_YEAR.match(str(strings.flat[0])):
-        # simplify: per-value Python conversion, fine for the few small day-of-year servers; vectorize if that changes.
-        strings = np.array([day_of_year_to_calendar(t) for t in strings.flat]).reshape(strings.shape)
-    return strings.astype("datetime64[ns]")
+    try:
+        return strings.astype("datetime64[ns]")
+    except ValueError:
+        # simplify: per-value Python conversion, fine for the few servers sending such times; vectorize if that changes.
+        return np.array([calendar_isotime(t) for t in strings.flat]).reshape(strings.shape).astype("datetime64[ns]")
