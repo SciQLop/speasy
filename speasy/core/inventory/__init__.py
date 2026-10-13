@@ -43,8 +43,12 @@ class ProviderInventory:
     def _register_nodes(self, node: SpeasyIndex):
         if isinstance(node, SpeasyIndex):
             for child in node.__dict__.values():
-                self._type_lookup.get(type(child), lambda _: None)(child)
+                self._registrar(type(child))(child)
                 self._register_nodes(child)
+
+    def _registrar(self, node_type: type) -> Callable:
+        """Nearest registered base class wins, so index subclasses are registered like their base."""
+        return next((self._type_lookup[t] for t in node_type.__mro__ if t in self._type_lookup), lambda _: None)
 
     def update(self, root: SpeasyIndex):
         self._register_nodes(root)
