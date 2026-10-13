@@ -1,0 +1,1 @@
+{"id":"TestData3.3","title":"Server using HAPI 3.3 additions","HAPI":"3.3","contact":"rweigel@gmu.edu","serverCitation":"https://doi.org/10.1186/1742-9994-10-80","note":["note 1","note 2"],"warning":["warning 1","warning 2"],"status":{"code":1200,"message":"OK"},"x_SPASE":{"PersonID":"spase://SMWG/Robert.S.Weigel","RepositoryID":"spase://SMWG/Repository/UNKNOWN"}}
