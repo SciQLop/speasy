@@ -2,7 +2,11 @@ import json
 import os
 import unittest
 
-from speasy.core.hapi.inventory import build_inventory
+import threading
+from datetime import timedelta
+
+from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build_inventory, iso8601_duration,
+                                        load_into, normalized_time)
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex, SpeasyIndex, from_dict, to_dict)
 
@@ -48,7 +52,7 @@ class TestHapi33DepthAll(unittest.TestCase):
         self.assertEqual(self.dataset.spz_provider(), PROVIDER)
 
     def test_dataset_dates_are_speasy_ranges(self):
-        self.assertEqual(self.dataset.start_date, '1970-01-01Z')
+        self.assertEqual(self.dataset.start_date, '1970-01-01T00:00Z')
         self.assertEqual(self.dataset.stop_date, self.dataset.stopDate)
 
     def test_hapi_fields_are_kept_verbatim(self):
@@ -139,6 +143,142 @@ class TestIdentifiers(unittest.TestCase):
         root = _build([{'id': 'HAPI', 'title': 't', 'info': _info('x')}], {'HAPI': '3.3'})
         self.assertEqual(root.HAPI, '3.3')
         self.assertEqual(_flat(root).datasets['test/HAPI'].spz_uid(), 'test/HAPI')
+
+
+class TestTimes(unittest.TestCase):
+    def test_hapi_time_forms_become_iso(self):
+        self.assertEqual(normalized_time('1970-01-01Z'), '1970-01-01T00:00Z')
+        self.assertEqual(normalized_time('2015-032T01:02:03.5Z'), '2015-02-01T01:02:03.5Z')
+        self.assertEqual(normalized_time('2015-032Z'), '2015-02-01T00:00Z')
+        self.assertEqual(normalized_time('2024-01-01T00:00Z'), '2024-01-01T00:00Z')
+
+    def test_dataset_dates_are_normalized(self):
+        root = _build([{'id': 'ds', 'info': {**_info('x'), 'startDate': '2015-032Z'}}])
+        self.assertEqual(root.ds.start_date, '2015-02-01T00:00Z')
+        self.assertEqual(root.ds.startDate, '2015-032Z')
+        self.assertEqual(root.ds.x.start_date, '2015-02-01T00:00Z')
+
+    def test_durations(self):
+        self.assertEqual(iso8601_duration('P366D'), timedelta(days=366))
+        self.assertEqual(iso8601_duration('PT1H30M'), timedelta(hours=1, minutes=30))
+        self.assertEqual(iso8601_duration('P1M'), timedelta(days=28))
+        self.assertEqual(iso8601_duration('P2Y'), timedelta(days=730))
+        self.assertEqual(iso8601_duration('PT0.5S'), timedelta(seconds=0.5))
+        self.assertIsNone(iso8601_duration('soon'))
+        self.assertIsNone(iso8601_duration(None))
+
+
+class TestTimeParameter(unittest.TestCase):
+    def test_time_column_is_kept_on_the_dataset(self):
+        root = _build([{'id': 'ds', 'info': _info('x')}])
+        self.assertEqual(root.ds.time_parameter, {'name': 'Time', 'type': 'isotime'})
+
+
+class _Loader:
+    def __init__(self, fill):
+        self.fill = fill
+        self.calls = 0
+
+    def __call__(self, node):
+        self.calls += 1
+        load_into(node, self.fill)
+
+
+class TestLazyNodes(unittest.TestCase):
+    def setUp(self):
+        self._saved = HapiServerIndex.loader, HapiDatasetIndex.loader
+        self.server_loader = _Loader(lambda node: build_inventory(
+            node, {'HAPI': '3.3'}, [{'id': 'ds', 'title': 't'}], dataset_type=HapiDatasetIndex))
+        self.dataset_loader = _Loader(lambda node: build_inventory(node, {}, []) and None)
+        HapiServerIndex.loader = self.server_loader
+        HapiDatasetIndex.loader = self.dataset_loader
+
+    def tearDown(self):
+        HapiServerIndex.loader, HapiDatasetIndex.loader = self._saved
+
+    def _server(self):
+        return HapiServerIndex(name=SERVER, provider=PROVIDER, uid=SERVER)
+
+    def test_server_loads_on_first_missing_attribute_only(self):
+        server = self._server()
+        self.assertEqual(self.server_loader.calls, 0)
+        self.assertIsInstance(server.ds, HapiDatasetIndex)
+        server.ds
+        self.assertEqual(self.server_loader.calls, 1)
+        self.assertTrue(server.hapi_loaded)
+
+    def test_dir_loads(self):
+        self.assertIn('ds', dir(self._server()))
+
+    def test_private_names_never_load(self):
+        server = self._server()
+        self.assertFalse(hasattr(server, '_repr_html_'))
+        self.assertEqual(self.server_loader.calls, 0)
+
+    def test_unknown_name_after_load_is_attribute_error(self):
+        with self.assertRaises(AttributeError):
+            self._server().nope
+
+    def test_failed_load_is_attribute_error_and_retried(self):
+        def broken(node):
+            raise RuntimeError('server down')
+        HapiServerIndex.loader = broken
+        server = self._server()
+        self.assertFalse(hasattr(server, 'ds'))
+        HapiServerIndex.loader = self.server_loader
+        self.assertIsInstance(server.ds, HapiDatasetIndex)
+
+    def test_dataset_loads_on_iteration_and_membership(self):
+        def fill(node):
+            from speasy.core.hapi.inventory import fill_dataset
+            fill_dataset(node, _info('x'))
+        HapiDatasetIndex.loader = _Loader(fill)
+        ds = self._server().ds
+        self.assertEqual([p.spz_uid() for p in ds], ['test/ds/x'])
+        self.assertIn('test/ds/x', ds)
+        self.assertEqual(HapiDatasetIndex.loader.calls, 1)
+
+    def test_entries_with_info_are_loaded_datasets(self):
+        root = _build([{'id': 'ds', 'info': _info('x')}, {'id': 'lazy'}])
+        self.assertIsInstance(root.ds, DatasetIndex)
+        self.assertNotIsInstance(root.ds, HapiDatasetIndex)
+        root = build_inventory(SpeasyIndex(name=SERVER, provider=PROVIDER, uid=SERVER), {},
+                               [{'id': 'ds', 'info': _info('x')}, {'id': 'lazy'}], dataset_type=HapiDatasetIndex)
+        self.assertTrue(root.ds.hapi_loaded)
+        self.assertFalse(root.lazy.hapi_loaded)
+
+    def test_load_swaps_the_dict_so_iterating_readers_never_see_it_change(self):
+        server = self._server()
+        before = server.__dict__
+        server.ds
+        self.assertIsNot(server.__dict__, before)
+        self.assertNotIn('ds', before)
+
+    def test_lazy_nodes_round_trip_through_dict(self):
+        server = self._server()
+        server.ds
+        restored = from_dict(to_dict(server, version=2), version=2)
+        self.assertIsInstance(restored, HapiServerIndex)
+        self.assertIsInstance(restored.__dict__['ds'], HapiDatasetIndex)
+        self.assertTrue(restored.hapi_loaded)
+
+    def test_concurrent_first_access_loads_once(self):
+        gate = threading.Event()
+
+        def slow_fill(node):
+            gate.wait(1)
+            build_inventory(node, {}, [{'id': 'ds'}], dataset_type=HapiDatasetIndex)
+        HapiServerIndex.loader = _Loader(slow_fill)
+        server = self._server()
+        results = []
+        threads = [threading.Thread(target=lambda: results.append(server.ds)) for _ in range(8)]
+        for t in threads:
+            t.start()
+        gate.set()
+        for t in threads:
+            t.join()
+        self.assertEqual(HapiServerIndex.loader.calls, 1)
+        self.assertEqual(len(results), 8)
 
 
 if __name__ == '__main__':
