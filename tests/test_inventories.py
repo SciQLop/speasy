@@ -148,3 +148,23 @@ class CdaUpdateTreeDuringImport(unittest.TestCase):
                                 env={**os.environ, "SPEASY_SKIP_INIT_PROVIDERS": "1"},
                                 capture_output=True, text=True, timeout=60)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class FlatInventoryRegistersIndexSubclasses(unittest.TestCase):
+    def test_dataset_and_parameter_subclasses_are_registered(self):
+        from speasy.core.inventory import ProviderInventory
+        from speasy.core.inventory.indexes import ParameterIndex
+
+        class _LazyDataset(DatasetIndex):
+            pass
+
+        class _CustomParameter(ParameterIndex):
+            pass
+
+        root = SpeasyIndex(name='root', provider='p', uid='root')
+        ds = root.__dict__['ds'] = _LazyDataset(name='ds', provider='p', uid='ds')
+        param = ds.__dict__['x'] = _CustomParameter(name='x', provider='p', uid='ds/x')
+        flat = ProviderInventory()
+        flat.update(root)
+        self.assertIs(flat.datasets.get('ds'), ds)
+        self.assertIs(flat.parameters.get('ds/x'), param)

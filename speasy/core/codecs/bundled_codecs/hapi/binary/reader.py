@@ -50,8 +50,8 @@ def load_hapi_binary(file: Union[Buffer, str, io.IOBase]) -> Optional[HapiFile]:
         time_header = headers["parameters"][0]
         assert time_header["type"] == "isotime"
         # Widen to whatever length the server declared, truncating loses precision silently.
-        data_time = np.char.rstrip(data["Time"].astype(f"U{data['Time'].dtype.itemsize}"), "Z").astype(
-            "datetime64[ns]")
+        raw_time = data[time_header["name"]]
+        data_time = np.char.rstrip(raw_time.astype(f"U{raw_time.dtype.itemsize}"), "Z").astype("datetime64[ns]")
         hapi_binary_file.create_parameter(data_time,
                                        meta=time_header)
         for i, param_meta in enumerate(headers["parameters"][1:]):

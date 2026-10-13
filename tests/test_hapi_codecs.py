@@ -334,6 +334,13 @@ class TestHapiBinaryCodec(unittest.TestCase):
         self.assertEqual(v.time[0], first_value)
         self.assertEqual(v.time[-1], last_value)
 
+    def test_time_column_is_found_by_its_declared_name(self):
+        with open(os.path.join(__HERE__, 'resources', "HAPI_sample_TestData3.3.binary"), 'rb') as f:
+            renamed = io.BytesIO(f.read().replace(b'{"name":"Time"', b'{"name":"Epoch"', 1))
+        v = get_codec('hapi/binary').load_variables(file=renamed, variables=["vector parameter"],
+                                                    disable_cache=True)["vector parameter"]
+        self.assertEqual(v.time[0], np.datetime64("1970-01-01T00:00:00.000"))
+
     def test_load_multiple_variables(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
         fname = "HAPI_amda_imf_all.binary"
