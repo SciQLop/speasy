@@ -195,8 +195,9 @@ class TestMissingDates(unittest.TestCase):
 
     def test_info_without_dates_says_what_is_wrong(self):
         dataset = DatasetIndex(name='bad', provider=PROVIDER, uid='test/bad')
+        info = {**_info('x'), 'stopDate': None}
         with self.assertRaisesRegex(ValueError, r"(?s)'test/bad'.*startDate.*stopDate.*server"):
-            fill_dataset(dataset, {**_info('x'), 'stopDate': None})
+            fill_dataset(dataset, info)
 
 
 class TestTimeParameter(unittest.TestCase):
