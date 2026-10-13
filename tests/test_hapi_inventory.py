@@ -4,6 +4,7 @@ import unittest
 
 import threading
 from datetime import timedelta
+from unittest import mock
 
 from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build_inventory, iso8601_duration,
                                         load_into, normalized_time)
@@ -71,6 +72,7 @@ class TestHapi33DepthAll(unittest.TestCase):
         self.assertEqual(vector.units, 'm')
         self.assertEqual(vector.start_date, self.dataset.start_date)
         self.assertEqual(vector.stop_date, self.dataset.stop_date)
+        self.assertEqual(vector.dataset, 'test/dataset1')
 
     def test_parameter_name_with_space_keeps_raw_uid(self):
         parameter = self.root.dataset3.vector_parameter
@@ -186,6 +188,8 @@ class _Loader:
 
 class TestLazyNodes(unittest.TestCase):
     def setUp(self):
+        from speasy.core.hapi import inventory
+        inventory._failed_loads.clear()
         self._saved = HapiServerIndex.loader, HapiDatasetIndex.loader
         self.server_loader = _Loader(lambda node: build_inventory(
             node, {'HAPI': '3.3'}, [{'id': 'ds', 'title': 't'}], dataset_type=HapiDatasetIndex))
@@ -226,7 +230,25 @@ class TestLazyNodes(unittest.TestCase):
         server = self._server()
         self.assertFalse(hasattr(server, 'ds'))
         HapiServerIndex.loader = self.server_loader
-        self.assertIsInstance(server.ds, HapiDatasetIndex)
+        with mock.patch('speasy.core.hapi.inventory.FAILED_LOAD_BACKOFF', 0):
+            self.assertIsInstance(server.ds, HapiDatasetIndex)
+
+    def test_implicit_loads_back_off_after_a_failure(self):
+        failing = _Loader(lambda node: (_ for _ in ()).throw(RuntimeError('server down')))
+        HapiServerIndex.loader = failing
+        server = self._server()
+        for _ in range(3):
+            self.assertFalse(hasattr(server, 'ds'))
+        self.assertEqual(failing.calls, 1)
+
+    def test_explicit_loads_ignore_the_back_off(self):
+        failing = _Loader(lambda node: (_ for _ in ()).throw(RuntimeError('server down')))
+        HapiServerIndex.loader = failing
+        server = self._server()
+        self.assertFalse(hasattr(server, 'ds'))
+        with self.assertRaises(RuntimeError):
+            server._load()
+        self.assertEqual(failing.calls, 2)
 
     def test_dataset_loads_on_iteration_and_membership(self):
         def fill(node):

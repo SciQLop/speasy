@@ -4,7 +4,7 @@ Starting the provider contacts no server: a server's catalog is fetched on first
 dataset's /info on first access to the dataset, see :mod:`speasy.core.hapi.inventory`.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Dict, Iterator, List, Optional
 
@@ -14,7 +14,7 @@ from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
 from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider, ParameterRangeCheck, register_provider
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.hapi.client import HapiClient
-from speasy.core.hapi.exceptions import HapiNoData
+from speasy.core.hapi.exceptions import HapiNoData, HapiRequestError, HapiServerError, HapiServerUnavailable
 from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build_inventory, fill_dataset,
                                         iso8601_duration, load_into)
 from speasy.core.hapi.registry import bundled_registry, enabled_servers, server_key
@@ -27,7 +27,12 @@ log = logging.getLogger(__name__)
 
 # Without maxRequestDuration, a week of 1 s cadence data is about 600k records per request.
 _DEFAULT_MAX_REQUEST_DURATION = timedelta(days=7)
-_NOT_HAPI_PARAMETER_META = ('start_date', 'stop_date')
+_NOT_HAPI_PARAMETER_META = ('dataset', 'start_date', 'stop_date')
+
+
+def _tree() -> SpeasyIndex:
+    from speasy.inventories import tree  # speasy.inventories imports the providers
+    return tree
 
 
 def _server_records() -> Dict[str, dict]:
@@ -44,7 +49,8 @@ def _hapi_meta(node: SpeasyIndex) -> dict:
 
 
 def _hapi_time(t: datetime) -> str:
-    return t.strftime('%Y-%m-%dT%H:%M:%SZ')
+    """Whole seconds when possible: a truncated fraction could start before the dataset, which servers reject."""
+    return t.strftime('%Y-%m-%dT%H:%M:%S') + (f".{t.microsecond:06d}" if t.microsecond else '') + 'Z'
 
 
 def _dataset_candidates(uid: str) -> Iterator[str]:
@@ -66,6 +72,16 @@ class HapiWebservice(DataProvider):
         # speasy-proxy doesn't serve a 'hapi' inventory (yet), and building ours costs no request.
         DataProvider.__init__(self, inventory_disable_proxy=True)
 
+    def update_inventory(self) -> None:
+        """Starts over from unloaded servers. Swapped under the lock loads publish with, so a load in flight can't
+        mix nodes of the old and new trees, and readers never see a half-cleared flat inventory."""
+        root = self.build_inventory(SpeasyIndex(name=self.provider_name, provider=self.provider_name,
+                                                uid=self.provider_name,
+                                                meta={'build_date': datetime.now(tz=timezone.utc).isoformat()}))
+        with self._flat_inventory_lock:
+            _tree().__dict__[self.provider_name] = root
+            self.flat_inventory.datasets, self.flat_inventory.parameters = {}, {}
+
     def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
         for key, record in self._servers.items():
             root.__dict__[key] = HapiServerIndex(name=key, provider=self.provider_name, uid=key,
@@ -77,15 +93,21 @@ class HapiWebservice(DataProvider):
         depth = 'all' if 'all' in client.capabilities.get('catalogDepthOptions', []) else None
         catalog = client.get_catalog(depth=depth)['catalog']
         server_meta = {**_without_status(client.capabilities), **self._about(client)}
-        load_into(node, lambda staging: build_inventory(staging, server_meta, catalog, dataset_type=HapiDatasetIndex))
         self._clients[node.spz_uid()] = client
-        self._register(node)
+
+        def fill(staging):
+            build_inventory(staging, server_meta, catalog, dataset_type=HapiDatasetIndex)
+            self._publish(node, staging)
+        load_into(node, fill)
 
     def _load_dataset(self, node: HapiDatasetIndex) -> None:
         key, dataset_id = node.spz_uid().split('/', 1)
         info = self._client(key).get_info(dataset_id)
-        load_into(node, lambda staging: fill_dataset(staging, info))
-        self._register(node)
+
+        def fill(staging):
+            fill_dataset(staging, info)
+            self._publish(node, staging)
+        load_into(node, fill)
 
     @staticmethod
     def _about(client: HapiClient) -> dict:
@@ -98,13 +120,25 @@ class HapiWebservice(DataProvider):
             log.warning(f"Ignoring the /about of {client.base_url}: {e!r}")
             return {}
 
-    def _register(self, node: SpeasyIndex) -> None:
-        """Swaps whole dicts, so a reader iterating the flat inventory never sees it change size."""
+    def _publish(self, node: SpeasyIndex, staging: SpeasyIndex) -> None:
+        """Registers ``staging``'s children before ``load_into`` marks ``node`` loaded, so whoever sees it loaded
+        finds its products. Nodes of a tree replaced by update_inventory() aren't registered: they still browse, but
+        get_data only goes through the current tree."""
         loaded = ProviderInventory()
-        loaded.update(node)
+        loaded.update(staging)
         with self._flat_inventory_lock:
-            self.flat_inventory.datasets = {**self.flat_inventory.datasets, **loaded.datasets}
-            self.flat_inventory.parameters = {**self.flat_inventory.parameters, **loaded.parameters}
+            if self._is_current(node):
+                self._register(loaded)
+
+    def _register(self, loaded: ProviderInventory) -> None:
+        """Swaps whole dicts, so a reader iterating the flat inventory never sees it change size."""
+        self.flat_inventory.datasets = {**self.flat_inventory.datasets, **loaded.datasets}
+        self.flat_inventory.parameters = {**self.flat_inventory.parameters, **loaded.parameters}
+
+    def _is_current(self, node: SpeasyIndex) -> bool:
+        if isinstance(node, HapiServerIndex):
+            return self._root().__dict__.get(node.spz_uid()) is node
+        return self.flat_inventory.datasets.get(node.spz_uid()) is node
 
     def _server_node(self, key: str) -> HapiServerIndex:
         node = self._root().__dict__.get(key)
@@ -119,8 +153,7 @@ class HapiWebservice(DataProvider):
                          f"e.g. {{\"{key}\": \"https://example.org/hapi\"}}")
 
     def _root(self) -> SpeasyIndex:
-        from speasy.inventories import tree
-        return tree.__dict__[self.provider_name]
+        return _tree().__dict__[self.provider_name]
 
     def _client(self, key: str) -> HapiClient:
         if key not in self._clients:
@@ -129,26 +162,33 @@ class HapiWebservice(DataProvider):
 
     def _resolve(self, uid: str) -> None:
         """Loads what ``uid`` needs: its server, then the dataset it belongs to."""
-        self._server_node(uid.split('/', 1)[0])._load()
+        key = uid.split('/', 1)[0]
+        server = self._server_node(key)
+        _load_or_explain(server, key)
         for candidate in _dataset_candidates(uid):
             dataset = self.flat_inventory.datasets.get(candidate)
             if dataset is not None:
                 if isinstance(dataset, HapiDatasetIndex):
-                    dataset._load()
+                    _load_or_explain(dataset, key)
                 if candidate == uid or uid in self.flat_inventory.parameters:
                     return
 
     def _dataset_of(self, parameter: ParameterIndex) -> DatasetIndex:
-        uid = parameter.spz_uid()
-        for candidate in _dataset_candidates(uid):
-            dataset = self.flat_inventory.datasets.get(candidate)
-            if dataset is not None and uid in dataset:
-                return dataset
-        raise ValueError(f"Can't find the HAPI dataset of {uid}")
+        uid = parameter.__dict__['dataset']
+        if uid not in self.flat_inventory.datasets:
+            self._resolve(uid)
+        if uid not in self.flat_inventory.datasets:
+            raise ValueError(f"HAPI dataset {uid!r} is no longer listed by its server, "
+                             f"browse spz.inventories.tree.hapi.{uid.split('/', 1)[0]} to see what it offers now")
+        return self.flat_inventory.datasets[uid]
 
     def _to_parameter_index(self, index_or_str) -> ParameterIndex:
         if type(index_or_str) is str and index_or_str not in self.flat_inventory.parameters:
             self._resolve(index_or_str)
+            if index_or_str not in self.flat_inventory.parameters and index_or_str not in self.flat_inventory.datasets:
+                raise ValueError(f"Unknown HAPI product {index_or_str!r}, browse "
+                                 f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets and "
+                                 f"parameters it offers")
         return super()._to_parameter_index(index_or_str)
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
@@ -215,11 +255,24 @@ class HapiWebservice(DataProvider):
         header = {'HAPI': client.capabilities.get('HAPI'),
                   'parameters': [dataset.__dict__['time_parameter'], _hapi_meta(parameter)]}
         name = parameter.__dict__['name']
+        start, stop = _hapi_time(time_range.start_time), _hapi_time(time_range.stop_time)
         try:
-            return client.get_data(dataset_id, _hapi_time(time_range.start_time), _hapi_time(time_range.stop_time),
-                                   [name], header=header, headers=extra_http_headers).get(name)
+            return client.get_data(dataset_id, start, stop, [name], header=header, headers=extra_http_headers).get(name)
         except HapiNoData:
             return None
+        except (HapiRequestError, HapiServerError) as e:
+            raise type(e)(e.code, f"{e.message} (getting {name!r} of {dataset_id!r} from {start} to {stop} "
+                                  f"on {client.base_url})") from e
+
+
+def _load_or_explain(node, key: str) -> None:
+    try:
+        node._load()
+    except Exception as e:
+        raise HapiServerUnavailable(
+            f"HAPI server {key!r} is unreachable or misbehaving, loading {node.spz_uid()!r} failed with {e!r}. "
+            f"Try again later, or stop listing this server with the [HAPI] disabled_servers config entry "
+            f"(or SPEASY_HAPI_DISABLED_SERVERS)") from e
 
 
 def _clamped(time_range: DateTimeRange, dataset_range: DateTimeRange) -> Optional[DateTimeRange]:

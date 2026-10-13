@@ -21,3 +21,8 @@ class HapiServerError(HapiError):
 class HapiNoData(HapiError):
     """1201 — Valid request, but no available data on time range"""
     pass
+
+
+class HapiServerUnavailable(HapiError, ConnectionError):
+    """The server, or the dataset needed, could not be loaded"""
+    pass
