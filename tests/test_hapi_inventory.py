@@ -7,7 +7,8 @@ from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex, SpeasyIndex, from_dict, to_dict)
 
 RESOURCES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', 'hapi_inventory')
-PROVIDER = 'hapi_test'
+PROVIDER = 'hapi'
+SERVER = 'test'
 
 
 def _load(name):
@@ -16,7 +17,7 @@ def _load(name):
 
 
 def _build(catalog, server_meta=None):
-    root = SpeasyIndex(name=PROVIDER, provider=PROVIDER, uid=PROVIDER)
+    root = SpeasyIndex(name=SERVER, provider=PROVIDER, uid=SERVER)
     return build_inventory(root, server_meta or {}, catalog)
 
 
@@ -43,7 +44,7 @@ class TestHapi33DepthAll(unittest.TestCase):
 
     def test_datasets_are_dataset_indexes_with_raw_uid(self):
         self.assertIsInstance(self.dataset, DatasetIndex)
-        self.assertEqual(self.dataset.spz_uid(), 'dataset1')
+        self.assertEqual(self.dataset.spz_uid(), 'test/dataset1')
         self.assertEqual(self.dataset.spz_provider(), PROVIDER)
 
     def test_dataset_dates_are_speasy_ranges(self):
@@ -61,7 +62,7 @@ class TestHapi33DepthAll(unittest.TestCase):
     def test_parameter_uid_and_meta(self):
         vector = self.dataset.vector
         self.assertIsInstance(vector, ParameterIndex)
-        self.assertEqual(vector.spz_uid(), 'dataset1/vector')
+        self.assertEqual(vector.spz_uid(), 'test/dataset1/vector')
         self.assertEqual(vector.size, [3])
         self.assertEqual(vector.units, 'm')
         self.assertEqual(vector.start_date, self.dataset.start_date)
@@ -69,15 +70,15 @@ class TestHapi33DepthAll(unittest.TestCase):
 
     def test_parameter_name_with_space_keeps_raw_uid(self):
         parameter = self.root.dataset3.vector_parameter
-        self.assertEqual(parameter.spz_uid(), 'dataset3/vector parameter')
+        self.assertEqual(parameter.spz_uid(), 'test/dataset3/vector parameter')
 
     def test_hapi_description_is_kept(self):
         self.assertEqual(self.dataset.description, 'A sample dataset containing a vector parameter.')
 
     def test_flat_inventory_lookup_by_raw_ids(self):
         flat = _flat(self.root)
-        self.assertIs(flat.datasets['dataset3'], self.root.dataset3)
-        self.assertIs(flat.parameters['dataset3/vector parameter'], self.root.dataset3.vector_parameter)
+        self.assertIs(flat.datasets['test/dataset3'], self.root.dataset3)
+        self.assertIs(flat.parameters['test/dataset3/vector parameter'], self.root.dataset3.vector_parameter)
 
     def test_round_trips_through_dict(self):
         self.assertEqual(from_dict(to_dict(self.root, version=2), version=2), self.root)
@@ -121,22 +122,23 @@ class TestIdentifiers(unittest.TestCase):
                        {'id': 'data/IBEX/ENA/AVG1H', 'title': 't', 'info': _info('flux')}])
         ena = root.data.IBEX.ENA
         self.assertIsInstance(ena, SpeasyIndex)
-        self.assertEqual(ena.AVG5MIN.spz_uid(), 'data/IBEX/ENA/AVG5MIN')
-        self.assertEqual(ena.AVG1H.flux.spz_uid(), 'data/IBEX/ENA/AVG1H/flux')
+        self.assertEqual(ena.spz_uid(), 'test/data/IBEX/ENA')
+        self.assertEqual(ena.AVG5MIN.spz_uid(), 'test/data/IBEX/ENA/AVG5MIN')
+        self.assertEqual(ena.AVG1H.flux.spz_uid(), 'test/data/IBEX/ENA/AVG1H/flux')
 
     def test_colliding_parameter_names_are_all_kept(self):
         root = _build([{'id': 'ds', 'title': 't', 'info': _info('a b', 'a_b')}])
-        self.assertEqual(sorted(p.spz_uid() for p in root.ds), ['ds/a b', 'ds/a_b'])
+        self.assertEqual(sorted(p.spz_uid() for p in root.ds), ['test/ds/a b', 'test/ds/a_b'])
 
     def test_parameter_named_like_a_hapi_field_does_not_clobber_it(self):
         root = _build([{'id': 'ds', 'title': 't', 'info': _info('cadence') | {'cadence': 'PT1S'}}])
         self.assertEqual(root.ds.cadence, 'PT1S')
-        self.assertEqual([p.spz_uid() for p in root.ds], ['ds/cadence'])
+        self.assertEqual([p.spz_uid() for p in root.ds], ['test/ds/cadence'])
 
     def test_dataset_named_like_a_server_field_does_not_clobber_it(self):
         root = _build([{'id': 'HAPI', 'title': 't', 'info': _info('x')}], {'HAPI': '3.3'})
         self.assertEqual(root.HAPI, '3.3')
-        self.assertEqual(_flat(root).datasets['HAPI'].spz_uid(), 'HAPI')
+        self.assertEqual(_flat(root).datasets['test/HAPI'].spz_uid(), 'test/HAPI')
 
 
 if __name__ == '__main__':
