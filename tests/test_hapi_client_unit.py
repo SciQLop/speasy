@@ -79,6 +79,9 @@ class TestHapiClientUrls(unittest.TestCase):
         self.assertTrue(_client(_FakeServer(version='3.3.1')).is_v3)
         self.assertFalse(_client(_FakeServer(version='2.0')).is_v3)
 
+    def test_hapi_1_servers_are_queried_like_hapi_2(self):
+        self.assertFalse(_client(_FakeServer(version='1.1')).is_v3)
+
 
 class TestHapiClientData(unittest.TestCase):
     def _get_data(self, server, parameters=('scalar',), **kwargs):

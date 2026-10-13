@@ -294,6 +294,15 @@ class TestHapiCsvCodec(unittest.TestCase):
             self.assertAlmostEqual(float(df.iloc[0, 1]), float(imf_data.values[0, 1]), places=3)
             self.assertAlmostEqual(float(df.iloc[0, 2]), float(imf_data.values[0, 2]), places=3)
 
+class TestHapiCsvDayOfYear(unittest.TestCase):
+    def test_day_of_year_times(self):
+        header = {"HAPI": "2.0", "parameters": [{"name": "Time", "type": "isotime", "length": 18},
+                                                {"name": "x", "type": "double"}]}
+        body = io.BytesIO(b"#" + json.dumps(header).encode() + b"\n2024-060T01:00:00Z,1.0\n2024-061T01:00:00Z,2.0\n")
+        v = get_codec('hapi/csv').load_variables(file=body, variables=["x"], disable_cache=True)["x"]
+        np.testing.assert_array_equal(v.time, np.array(["2024-02-29T01:00:00", "2024-03-01T01:00:00"], dtype="datetime64[ns]"))
+
+
 @ddt
 class TestHapiBinaryCodec(unittest.TestCase):
 
@@ -340,6 +349,15 @@ class TestHapiBinaryCodec(unittest.TestCase):
         v = get_codec('hapi/binary').load_variables(file=renamed, variables=["vector parameter"],
                                                     disable_cache=True)["vector parameter"]
         self.assertEqual(v.time[0], np.datetime64("1970-01-01T00:00:00.000"))
+
+    def test_day_of_year_times(self):
+        header = {"HAPI": "2.0", "parameters": [{"name": "Time", "type": "isotime", "length": 22},
+                                                {"name": "x", "type": "double"}]}
+        record = np.zeros(1, dtype=[("Time", "S22"), ("x", "<f8")])
+        record["Time"] = b"2026-360T23:49:00.000Z"
+        body = io.BytesIO(b"#" + json.dumps(header).encode() + b"\n" + record.tobytes())
+        v = get_codec('hapi/binary').load_variables(file=body, variables=["x"], disable_cache=True)["x"]
+        self.assertEqual(v.time[0], np.datetime64("2026-12-26T23:49:00"))
 
     def test_load_multiple_variables(self):
         hapi_binary_codec: CodecInterface = get_codec('hapi/binary')
