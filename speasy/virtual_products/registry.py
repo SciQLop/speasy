@@ -28,6 +28,11 @@ class _Resolution(threading.local):
 _resolution = _Resolution()
 
 
+def _normalize_uid(uid: str) -> str:
+    """Sanitize each segment of a registry uid with fix_name; drop empty segments."""
+    return '/'.join(fix_name(seg) for seg in uid.split('/') if seg.strip())
+
+
 def _path_to_uid(path: str) -> str:
     """Turn the public path 'virtual/plasma/beta' into the registry uid 'plasma/beta'.
 
@@ -38,10 +43,9 @@ def _path_to_uid(path: str) -> str:
     provider, _, rest = path.partition('/')
     if provider != 'virtual' or not rest:
         raise ValueError(f"virtual product path must look like 'virtual/<path>', got {path!r}")
-    segments = [fix_name(seg) for seg in rest.split('/') if seg.strip()]
-    if not segments:
+    uid = _normalize_uid(rest)
+    if not uid:
         raise ValueError(f"virtual product path must look like 'virtual/<path>', got {path!r}")
-    uid = '/'.join(segments)
     return uid
 
 
@@ -162,6 +166,7 @@ class _VirtualProvider:
     """
 
     def get_data(self, product_uid: str, start_time, stop_time, **kwargs):
+        product_uid = _normalize_uid(product_uid)
         callback = _callbacks.get(product_uid)
         if callback is None:
             message = f"Unknown virtual product 'virtual/{product_uid}'"
