@@ -9,6 +9,8 @@ from speasy.products.variable import SpeasyVariable
 
 HAPITEST33_SERVER_ROOT = "https://hapi-server.org/servers/TestData3.3"
 HAPITEST20_SERVER_ROOT = "https://hapi-server.org/servers/TestData2.0"
+# The HAPI test servers have no per-component labels, the BGS World Data Centre does.
+BGS_WDC_SERVER_ROOT = "https://wdcapi.bgs.ac.uk/hapi"
 
 @ddt
 class TestHapiClient(unittest.TestCase):
@@ -47,6 +49,11 @@ class TestHapiClient(unittest.TestCase):
         hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
         result = hapi_client.get_data('dataset1', '1970-01-01Z', '1970-01-01T00:01:11Z', ['vector'])
         self.assertIsInstance(result['vector'], SpeasyVariable)
+
+    def test_labels_become_column_names(self):
+        hapi_client = HapiClient(BGS_WDC_SERVER_ROOT)
+        result = hapi_client.get_data('aaa/PT1M/xyz', '2010-01-01T00:00Z', '2010-01-01T00:10Z', ['Field_Vector'])
+        self.assertEqual(['X', 'Y', 'Z'], result['Field_Vector'].columns)
 
 
 @ddt

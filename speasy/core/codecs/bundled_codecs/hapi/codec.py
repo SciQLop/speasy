@@ -73,18 +73,23 @@ def _bin_units(unit: Any) -> str:
     return _parameter_units(unit, []) or "dimensionless"
 
 
-def _vector_components(components: Any, size: List[int]) -> str | List[str] | None:
-    # A scalar takes one string, a 1-D array one per element; HAPI has none for other shapes.
-    if components is None:
+def _element_names(names: Any, size: List[int]) -> str | List[str] | None:
+    # HAPI labels and vectorComponents: a scalar takes one string, a 1-D array one per element, other shapes none.
+    if names is None:
         return None
-    components = [components] if isinstance(components, str) else np.ravel(components).tolist()
-    if any(_is_blank(c) for c in components):
+    names = [names] if isinstance(names, str) else np.ravel(names).tolist()
+    if any(_is_blank(n) for n in names):
         return None
-    if not size and len(components) == 1:
-        return components[0]
-    if len(size) == 1 and len(components) == size[0]:
-        return components
+    if not size and len(names) == 1:
+        return names[0]
+    if len(size) == 1 and len(names) == size[0]:
+        return names
     return None
+
+
+def _label_columns(meta: Mapping[str, Any]) -> List[str]:
+    names = _element_names(meta.get("label"), meta.get("size", []))
+    return [names] if isinstance(names, str) else names or []
 
 
 def _make_hapi_time_axis(time_axis: VariableTimeAxis) -> HapiParameter:
@@ -160,7 +165,7 @@ def _create_meta(variable:SpeasyVariable) -> Dict[str, Any]:
     if not _is_blank(variable.meta.get("coordinateSystemName")):
         meta["coordinateSystemName"] = variable.meta["coordinateSystemName"]
     if "vectorComponents" in variable.meta:
-        components = _vector_components(variable.meta["vectorComponents"], size)
+        components = _element_names(variable.meta["vectorComponents"], size)
         if components is not None:
             meta["vectorComponents"] = components
 
@@ -306,7 +311,8 @@ def _hapifile_to_speasy_variables(hapi_file: HapiFile, variables: List[str]) -> 
         loaded_vars[var_name] = SpeasyVariable(axes=_axes, values=DataContainer(parameter.values,
                                                                                 name=parameter.name,
                                                                                 meta=_decode_meta(
-                                                                                parameter.meta)))
+                                                                                parameter.meta)),
+                                             columns=_label_columns(parameter.meta))
     return loaded_vars
 
 
