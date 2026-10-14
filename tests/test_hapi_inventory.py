@@ -220,15 +220,16 @@ class TestLazyNodes(unittest.TestCase):
     def setUp(self):
         from speasy.core.hapi import inventory
         inventory._failed_loads.clear()
-        self._saved = HapiServerIndex.loader, HapiDatasetIndex.loader
         self.server_loader = _Loader(lambda node: build_inventory(
             node, {'HAPI': '3.3'}, [{'id': 'ds', 'title': 't'}], dataset_type=HapiDatasetIndex))
         self.dataset_loader = _Loader(lambda node: build_inventory(node, {}, []) and None)
-        HapiServerIndex.loader = self.server_loader
-        HapiDatasetIndex.loader = self.dataset_loader
+        self._use_loader(HapiServerIndex, self.server_loader)
+        self._use_loader(HapiDatasetIndex, self.dataset_loader)
 
-    def tearDown(self):
-        HapiServerIndex.loader, HapiDatasetIndex.loader = self._saved
+    def _use_loader(self, index_type, loader):
+        patcher = mock.patch.object(index_type, 'loader', loader)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _server(self):
         return HapiServerIndex(name=SERVER, provider=PROVIDER, uid=SERVER)
@@ -256,16 +257,16 @@ class TestLazyNodes(unittest.TestCase):
     def test_failed_load_is_attribute_error_and_retried(self):
         def broken(node):
             raise RuntimeError('server down')
-        HapiServerIndex.loader = broken
+        self._use_loader(HapiServerIndex, broken)
         server = self._server()
         self.assertFalse(hasattr(server, 'ds'))
-        HapiServerIndex.loader = self.server_loader
+        self._use_loader(HapiServerIndex, self.server_loader)
         with mock.patch('speasy.core.hapi.inventory.FAILED_LOAD_BACKOFF', 0):
             self.assertIsInstance(server.ds, HapiDatasetIndex)
 
     def test_implicit_loads_back_off_after_a_failure(self):
         failing = _Loader(lambda node: (_ for _ in ()).throw(RuntimeError('server down')))
-        HapiServerIndex.loader = failing
+        self._use_loader(HapiServerIndex, failing)
         server = self._server()
         for _ in range(3):
             self.assertFalse(hasattr(server, 'ds'))
@@ -273,7 +274,7 @@ class TestLazyNodes(unittest.TestCase):
 
     def test_explicit_loads_ignore_the_back_off(self):
         failing = _Loader(lambda node: (_ for _ in ()).throw(RuntimeError('server down')))
-        HapiServerIndex.loader = failing
+        self._use_loader(HapiServerIndex, failing)
         server = self._server()
         self.assertFalse(hasattr(server, 'ds'))
         with self.assertRaises(RuntimeError):
@@ -284,7 +285,7 @@ class TestLazyNodes(unittest.TestCase):
         def fill(node):
             from speasy.core.hapi.inventory import fill_dataset
             fill_dataset(node, _info('x'))
-        HapiDatasetIndex.loader = _Loader(fill)
+        self._use_loader(HapiDatasetIndex, _Loader(fill))
         ds = self._server().ds
         self.assertEqual([p.spz_uid() for p in ds], ['test/ds/x'])
         self.assertIn('test/ds/x', ds)
@@ -320,7 +321,7 @@ class TestLazyNodes(unittest.TestCase):
         def slow_fill(node):
             gate.wait(1)
             build_inventory(node, {}, [{'id': 'ds'}], dataset_type=HapiDatasetIndex)
-        HapiServerIndex.loader = _Loader(slow_fill)
+        self._use_loader(HapiServerIndex, _Loader(slow_fill))
         server = self._server()
         results = []
         threads = [threading.Thread(target=lambda: results.append(server.ds)) for _ in range(8)]
