@@ -83,6 +83,19 @@ class VirtualProductGetData(VirtualProductWithVP):
         by_node = spz.get_data(_tree_node(path), _START, _STOP)
         self.assertEqual(len(by_path), len(by_node))
 
+    def test_get_data_with_double_slash_in_path(self):
+        var = spz.get_data("virtual/test//hourly_ramp", _START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+
+    def test_get_data_with_trailing_slash_in_path(self):
+        var = spz.get_data("virtual/test/hourly_ramp/", _START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+
+    def test_get_data_with_spaces_in_path(self):
+        register_virtual_product("virtual/my product/beta", _hourly_ramp)
+        var = spz.get_data("virtual/my product/beta", _START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+
 @ddt
 class VirtualProductInventory(VirtualProductWithVP):
 
