@@ -579,6 +579,25 @@ class TestHapiWriters(unittest.TestCase):
         self.assertNotIn("size", headers["parameters"][1])
         self.assertEqual(headers["parameters"][1]["label"], "|B|")
 
+    @data(("hapi/csv", ["Bx", "By", "Bz"]), ("hapi/binary", ["Bx", "By", "Bz"]), ("hapi/csv", ["|B|"]),
+          ("hapi/binary", ["|B|"]))
+    @unpack
+    def test_labels_reload_as_columns(self, codec_name, columns):
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1.]).time)],
+                           values=DataContainer(np.ones((1, len(columns))), name="v"), columns=columns)
+        payload, _ = _save_and_read_headers(codec_name, v)
+        reloaded = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertEqual(columns, reloaded.columns)
+
+    def test_a_single_label_for_a_whole_vector_names_no_column(self):
+        payload = _HAPI_CSV_WITH_FILL_VALUES.replace('"description": "B-field magnitude"',
+                                                     '"size": [2], "label": "B"').replace(",2.658", ",1,2")
+        payload = "\n".join(payload.splitlines()[:-2]) + "\n"
+        v = get_codec("hapi/csv").load_variable(variable="Magnitude", file=io.BytesIO(payload.encode()),
+                                                disable_cache=True)
+        self.assertEqual((1, 2), v.values.shape)
+        self.assertEqual([], v.columns)
+
     def test_blank_units_and_labels_are_left_out(self):
         v = SpeasyVariable(axes=[VariableTimeAxis(values=_variable([1.]).time)],
                            values=DataContainer(np.ones((1, 2)), name="v", meta={"UNITS": ""}), columns=["a", ""])
