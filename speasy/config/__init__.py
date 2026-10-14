@@ -259,9 +259,9 @@ archive = ConfigSection("ARCHIVE",
                         )
 
 hapi = ConfigSection("HAPI",
-                     disabled_servers={"default": "cdaweb,amda,csa,sscweb",
+                     disabled_servers={"default": "",
                                        "description": """A comma separated list of HAPI servers (keys of speasy.inventories.tree.hapi)
-you don't want listed. Defaults to the servers Speasy already serves natively, so their products aren't listed twice.""",
+you don't want listed. The servers Speasy serves natively (CDAWeb, AMDA, CSA, SSCWeb) are never listed.""",
                                        "type_ctor": _parse_dir_set},
                      extra_servers={"default": {},
                                     "description": """HAPI servers missing from the official registry, as a {key: url} dictionary.

@@ -303,9 +303,9 @@ HAPI section
      - Default
      - Purpose
    * - ``disabled_servers`` / ``SPEASY_HAPI_DISABLED_SERVERS``
-     - ``cdaweb,amda,csa,sscweb``
-     - Comma-separated HAPI servers (keys of ``spz.inventories.tree.hapi``) not to list. The defaults are served
-       natively by Speasy; see :doc:`hapi/hapi`.
+     - ``""``
+     - Comma-separated HAPI servers (keys of ``spz.inventories.tree.hapi``) not to list. The servers Speasy serves
+       natively are never listed; see :doc:`hapi/hapi`.
    * - ``extra_servers`` / ``SPEASY_HAPI_EXTRA_SERVERS``
      - ``{}``
      - HAPI servers missing from the official list, as a ``{key: url}`` dictionary.

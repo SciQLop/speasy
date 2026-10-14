@@ -7,17 +7,16 @@ from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError, HapiN
 from speasy.products.variable import SpeasyVariable
 
 
-AMDA_SERVER_ROOT = "https://amda.irap.omp.eu/service"
 HAPITEST33_SERVER_ROOT = "https://hapi-server.org/servers/TestData3.3"
-CDAWEB_SERVER_ROOT = "https://cdaweb.gsfc.nasa.gov"
+HAPITEST20_SERVER_ROOT = "https://hapi-server.org/servers/TestData2.0"
 
 @ddt
 class TestHapiClient(unittest.TestCase):
 
     def test_build_url(self):
-        hapi_client = HapiClient(AMDA_SERVER_ROOT)
-        amda_about_url = hapi_client._build_url(endpoint=HapiEndpoint.ABOUT)
-        self.assertEqual(f"{AMDA_SERVER_ROOT}/hapi/about", amda_about_url)
+        hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
+        about_url = hapi_client._build_url(endpoint=HapiEndpoint.ABOUT)
+        self.assertEqual(f"{HAPITEST33_SERVER_ROOT}/hapi/about", about_url)
 
     def test_get_info_bad_dataset(self):
         hapi_client = HapiClient(HAPITEST33_SERVER_ROOT)
@@ -54,7 +53,7 @@ class TestHapiClient(unittest.TestCase):
 class TestHapiProvider(unittest.TestCase):
 
     def test_capabilities(self):
-        hapi_provider = HapiProvider(CDAWEB_SERVER_ROOT)
+        hapi_provider = HapiProvider(HAPITEST20_SERVER_ROOT)
         result = hapi_provider.capabilities()
         self.assertEqual( result["HAPI"], "2.0")
         self.assertCountEqual( result["outputFormats"], ['json', 'csv', 'binary'])
@@ -68,8 +67,7 @@ class TestHapiProvider(unittest.TestCase):
 
     @data (
         (HAPITEST33_SERVER_ROOT, ["data", "info"]),
-        (AMDA_SERVER_ROOT, ["data", "info"]),
-        (CDAWEB_SERVER_ROOT, ["data", "info"]),
+        (HAPITEST20_SERVER_ROOT, ["data", "info"]),
     )
     @unpack
     def test_hapi(self, root_url, contents):
@@ -81,8 +79,7 @@ class TestHapiProvider(unittest.TestCase):
 
     @data (
         (HAPITEST33_SERVER_ROOT,),
-        (AMDA_SERVER_ROOT,),
-        (CDAWEB_SERVER_ROOT,)
+        (HAPITEST20_SERVER_ROOT,)
     )
     @unpack
     def test_catalog(self, root_url):
@@ -102,7 +99,7 @@ class TestHapiProvider(unittest.TestCase):
 
     @data(
         (HAPITEST33_SERVER_ROOT,"dataset1", 2),
-        (CDAWEB_SERVER_ROOT, "AC_OR_SSC", 6),
+        (HAPITEST20_SERVER_ROOT, "dataset1", 18),
     )
     @unpack
     def test_info_dataset_only(self, root_url, dataset, nb_params):
@@ -114,7 +111,7 @@ class TestHapiProvider(unittest.TestCase):
 
     @data(
         (HAPITEST33_SERVER_ROOT, "dataset1", ['vector']),
-        (CDAWEB_SERVER_ROOT, "AC_OR_SSC", ["GSE_LAT", "GSE_LON"]) ,
+        (HAPITEST20_SERVER_ROOT, "dataset1", ["scalar", "vector"]) ,
     )
     @unpack
     def test_info_with_parameters(self, root_url, dataset, parameters):
@@ -124,8 +121,7 @@ class TestHapiProvider(unittest.TestCase):
 
     @data (
         (HAPITEST33_SERVER_ROOT,),
-        (AMDA_SERVER_ROOT,),
-        (CDAWEB_SERVER_ROOT,)
+        (HAPITEST20_SERVER_ROOT,)
     )
     @unpack
     def test_info_wrong_dataset(self, server_root):
@@ -136,8 +132,7 @@ class TestHapiProvider(unittest.TestCase):
 
     @data(
         (HAPITEST33_SERVER_ROOT, "dataset1"),
-        (CDAWEB_SERVER_ROOT, "AC_OR_SSC"),
-        # (AMDA_SERVER_ROOT, "ace-epam-ca60") should return 1407 not 1401
+        (HAPITEST20_SERVER_ROOT, "dataset1"),
     )
     @unpack
     def test_info_wrong_parameters(self, server_root, dataset):

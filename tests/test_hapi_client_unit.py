@@ -82,6 +82,21 @@ class TestHapiClientUrls(unittest.TestCase):
     def test_hapi_1_servers_are_queried_like_hapi_2(self):
         self.assertFalse(_client(_FakeServer(version='1.1')).is_v3)
 
+    def test_natively_served_servers_are_never_contacted(self):
+        server = _FakeServer()
+        for url, provider in (('https://amda.irap.omp.eu/service/hapi', 'amda'), ('https://AMDA.irap.omp.eu:443/service', 'amda'),
+                              ('https://cdaweb.gsfc.nasa.gov/hapi', 'cda'),
+                              ('https://csatools.esac.esa.int/HapiServer/hapi', 'csa'),
+                              ('http://hapi-server.org/servers/SSCWeb/hapi', 'ssc')):
+            with self.assertRaisesRegex(ValueError, rf"(?s)served natively.*spz\.{provider}\b.*never"):
+                _client(server, url)
+        self.assertEqual(server.queries, [])
+
+    def test_other_servers_sharing_a_native_host_are_contacted(self):
+        server = _FakeServer()
+        _client(server, 'https://hapi-server.org/servers/TestData3.3/hapi')
+        self.assertEqual(len(server.queries), 1)
+
 
 class TestHapiClientData(unittest.TestCase):
     def _get_data(self, server, parameters=('scalar',), **kwargs):

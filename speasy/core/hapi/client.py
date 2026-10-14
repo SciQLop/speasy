@@ -9,6 +9,7 @@ from speasy.core import http
 from speasy.core.codecs.codecs_registry import get_codec
 from speasy.products.variable import SpeasyVariable
 
+from .registry import blocked_reason
 from .exceptions import (
     HapiRequestError, HapiServerError, HapiNoData
 )
@@ -82,6 +83,8 @@ def _prepend_header(header: Mapping, body: bytes) -> io.BytesIO:
 class HapiClient:
     def __init__(self, server_url: str):
         self.base_url = _hapi_base_url(server_url)
+        if (reason := blocked_reason(self.base_url)) is not None:
+            raise ValueError(reason)
         self.capabilities = self.get_capabilities()
         self.is_v3 = self._is_v3(self.capabilities.get("HAPI"))
 

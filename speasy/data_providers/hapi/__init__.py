@@ -17,7 +17,7 @@ from speasy.core.hapi.client import HapiClient
 from speasy.core.hapi.exceptions import HapiNoData, HapiRequestError, HapiServerError, HapiServerUnavailable
 from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build_inventory, fill_dataset,
                                         iso8601_duration, load_into)
-from speasy.core.hapi.registry import bundled_registry, enabled_servers, server_key
+from speasy.core.hapi.registry import blocked_reason, bundled_registry, enabled_servers, server_key
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS
@@ -37,6 +37,12 @@ def _tree() -> SpeasyIndex:
 
 def _server_records() -> Dict[str, dict]:
     return enabled_servers(bundled_registry(), hapi_cfg.disabled_servers(), hapi_cfg.extra_servers())
+
+
+def _blocked_server_reason(key: str) -> Optional[str]:
+    urls = {**{server_key(e['id']): e['x_url'] for e in bundled_registry()},
+            **{server_key(k): url for k, url in hapi_cfg.extra_servers().items()}}
+    return blocked_reason(urls.get(server_key(key), ''))
 
 
 def _without_status(response: dict) -> dict:
@@ -144,6 +150,8 @@ class HapiWebservice(DataProvider):
         node = self._root().__dict__.get(key)
         if isinstance(node, HapiServerIndex):
             return node
+        if (reason := _blocked_server_reason(key)) is not None:
+            raise ValueError(reason)
         if server_key(key) in {server_key(k) for k in hapi_cfg.disabled_servers()}:
             raise ValueError(f"HAPI server {key!r} is disabled, remove it from the [HAPI] disabled_servers config "
                              f"entry (or SPEASY_HAPI_DISABLED_SERVERS) to use it")
