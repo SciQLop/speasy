@@ -55,14 +55,14 @@ class TestHapiProvider(unittest.TestCase):
     def test_capabilities(self):
         hapi_provider = HapiProvider(HAPITEST20_SERVER_ROOT)
         result = hapi_provider.capabilities()
-        self.assertEqual( result["HAPI"], "2.0")
+        self.assertEqual("2.0", result["HAPI"])
         self.assertCountEqual( result["outputFormats"], ['json', 'csv', 'binary'])
 
     def test_about(self):
         hapi_provider = HapiProvider(HAPITEST33_SERVER_ROOT)
         result = hapi_provider.about()
-        self.assertEqual(result["HAPI"], "3.3")
-        self.assertEqual( result["status"]["code"], 1200)
+        self.assertEqual("3.3", result["HAPI"])
+        self.assertEqual(1200, result["status"]["code"])
         self.assertIsInstance(result["note"], list)
 
     @data (
@@ -94,8 +94,8 @@ class TestHapiProvider(unittest.TestCase):
         self.assertIn("HAPI", data)
 
         self.assertIn("status", data)
-        self.assertEqual(data["status"]["code"], 1200)
-        self.assertEqual(data["status"]["message"].lower(), "ok")
+        self.assertEqual(1200, data["status"]["code"])
+        self.assertEqual("ok", data["status"]["message"].lower())
 
     @data(
         (HAPITEST33_SERVER_ROOT,"dataset1", 2),
@@ -107,7 +107,7 @@ class TestHapiProvider(unittest.TestCase):
         data = hapi_provider.info(dataset)
         self.assertIn("HAPI", data)
         self.assertIn("parameters", data)
-        self.assertEqual(len(data['parameters']), nb_params)
+        self.assertEqual(nb_params, len(data['parameters']))
 
     @data(
         (HAPITEST33_SERVER_ROOT, "dataset1", ['vector']),
@@ -117,7 +117,7 @@ class TestHapiProvider(unittest.TestCase):
     def test_info_with_parameters(self, root_url, dataset, parameters):
         hapi_provider = HapiProvider(root_url)
         data = hapi_provider.info(dataset, parameters)
-        self.assertEqual(len(data['parameters']), 1+len(parameters))
+        self.assertEqual(1+len(parameters), len(data['parameters']))
 
     @data (
         (HAPITEST33_SERVER_ROOT,),
