@@ -14,7 +14,7 @@ from speasy.core.data_containers import DataContainer, VariableTimeAxis
 from speasy.core.hapi.exceptions import HapiRequestError
 from speasy.core.hapi import inventory as hapi_inventory
 from speasy.core.hapi.inventory import HapiDatasetIndex, HapiServerIndex
-from speasy.core.hapi.registry import enabled_servers, server_key
+from speasy.core.hapi.registry import bundled_registry, enabled_servers, server_key
 from speasy.core import dataprovider
 from speasy.core.requests_scheduling import request_dispatch
 from speasy.inventories import flat_inventories, tree
@@ -144,6 +144,11 @@ class TestRegistry(unittest.TestCase):
     def test_disabled_servers_are_dropped_whatever_their_spelling(self):
         self.assertNotIn('cdaweb', enabled_servers(REGISTRY, {'CDAWeb'}, {}))
 
+    def test_natively_served_servers_are_never_enabled(self):
+        servers = enabled_servers(bundled_registry(), set(), {'mirror': 'https://amda.irap.omp.eu/service/hapi'})
+        self.assertEqual({'cdaweb', 'amda', 'csa', 'sscweb', 'mirror'} & set(servers), set())
+        self.assertIn('intermagnet', servers)
+
     def test_extra_servers_are_added_under_their_key(self):
         servers = enabled_servers([], set(), {'MyLab': 'https://lab.example/hapi'})
         self.assertEqual(servers['mylab']['x_url'], 'https://lab.example/hapi')
@@ -153,10 +158,10 @@ class TestRegistry(unittest.TestCase):
         keys = {server_key(e['id']) for e in bundled_registry()}
         self.assertLessEqual({'cdaweb', 'amda', 'csa', 'sscweb', 'lisird', 'knmi', 'intermagnet'}, keys)
 
-    def test_natively_served_servers_are_disabled_by_default(self):
+    def test_no_server_is_disabled_by_default(self):
         import speasy.config as cfg
         entry = cfg.hapi.disabled_servers
-        self.assertEqual(entry.type_ctor(entry.default), {'cdaweb', 'amda', 'csa', 'sscweb'})
+        self.assertEqual(entry.type_ctor(entry.default), set())
 
 
 class TestServerNodes(unittest.TestCase):
@@ -327,9 +332,16 @@ class TestGetData(unittest.TestCase):
                 self._get('nope/ds/p')
 
     def test_disabled_server_error_says_how_to_enable_it(self):
-        with _hapi_provider():
-            with self.assertRaisesRegex(ValueError, r"(?s)'cdaweb' is disabled.*disabled_servers"):
-                self._get('cdaweb/ds/p')
+        with mock.patch.dict(os.environ, {'SPEASY_HAPI_DISABLED_SERVERS': 'v2'}), _hapi_provider(disabled=('v2',)):
+            with self.assertRaisesRegex(ValueError, r"(?s)'v2' is disabled.*disabled_servers"):
+                self._get('v2/ds/p')
+
+    def test_natively_served_server_error_points_to_the_native_provider(self):
+        for key, provider in (('amda', 'amda'), ('cdaweb', 'cda'), ('csa', 'csa'), ('sscweb', 'ssc')):
+            for disabled in ((), (key,)):
+                with _hapi_provider(registry=bundled_registry(), disabled=disabled):
+                    with self.assertRaisesRegex(ValueError, rf"(?s)served natively.*spz\.{provider}\b"):
+                        self._get(f'{key}/ds/p')
 
     def test_unknown_parameter_error_names_it(self):
         with _hapi_provider():

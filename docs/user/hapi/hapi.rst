@@ -60,15 +60,17 @@ results are cached on disk like the other providers.
 Choosing servers
 ----------------
 
-CDAWeb, AMDA, CSA and SSCWeb also run HAPI servers, but Speasy already serves them natively, so they are disabled by
-default to avoid listing their products twice. Servers are enabled, disabled or added in the ``[HAPI]`` section of the
-configuration file, see :doc:`../configuration`:
+CDAWeb, AMDA, CSA and SSCWeb also run HAPI servers, but Speasy serves them natively. Speasy never sends them HAPI
+requests, whatever the configuration: it would only add load to them, and binary requests crash AMDA's. Use their native
+providers instead (``spz.cda``, ``spz.amda``, ``spz.csa``, ``spz.ssc``).
+
+Other servers are disabled or added in the ``[HAPI]`` section of the configuration file, see :doc:`../configuration`:
 
 .. code-block:: ini
 
     [HAPI]
-    # list the native CDAWeb HAPI server too, but not KNMI
-    disabled_servers = amda,csa,sscweb,knmi
+    # don't list KNMI
+    disabled_servers = knmi
     # a server missing from the official list, available as spz.inventories.tree.hapi.mylab
     extra_servers = {"mylab": "https://mylab.example.org/hapi"}
 
