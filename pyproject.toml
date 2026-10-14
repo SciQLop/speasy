@@ -60,6 +60,7 @@ homepage = "https://github.com/SciQLop/speasy"
 [project.optional-dependencies]
 zstd = ["pyzstd"]
 blosc = ["numcodecs"]
+xarray = ["xarray"]
 
 [dependency-groups]
 dev = [
@@ -71,6 +72,7 @@ dev = [
     "watchdog",
     "IPython",
     "cogapp",
+    "xarray",
 ]
 docs = [
     "sphinx!=5.2.0.post0",
