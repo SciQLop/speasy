@@ -14,7 +14,7 @@ from ..products.variable import SpeasyVariable
 _callbacks: Dict[str, Callable] = {}
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
-_MAX_DEPTH = 16
+_MAX_DEPTH = 128
 
 
 class _Resolution(threading.local):
