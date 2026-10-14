@@ -134,8 +134,6 @@ class VirtualProductPath(unittest.TestCase):
           "amda/imf_gsm",          # bad provider name
           "virtual",               # no uid at all
           "virtual/",              # empty uid
-          "virtual/plasma//beta",  # empty segment
-          "virtual/plasma/beta/",  # trailing slash
           "",
           "   ")
     def test_rejects_malformed_path(self, path):
@@ -146,6 +144,21 @@ class VirtualProductPath(unittest.TestCase):
     def test_rejects_non_string_path(self, path):
         with self.assertRaises(TypeError):
             registry._path_to_uid(path)
+
+    def test_collapses_double_slashes(self):
+        self.assertEqual(registry._path_to_uid("virtual/plasma//beta"), "plasma/beta")
+
+    def test_strips_trailing_slash(self):
+        self.assertEqual(registry._path_to_uid("virtual/plasma/beta/"), "plasma/beta")
+
+    def test_fix_name_on_segment_with_spaces(self):
+        self.assertEqual(registry._path_to_uid("virtual/inventory test/beta"), "inventory_test/beta")
+
+    def test_fix_name_on_segment_with_special_chars(self):
+        self.assertEqual(registry._path_to_uid("virtual/inventory test # hello/2"), "inventory_test___hello/n_2")
+
+    def test_combined_double_slash_and_special_chars(self):
+        self.assertEqual(registry._path_to_uid("virtual/some//inventory test/beta"), "some/inventory_test/beta")
 
 
 class VirtualProductObject(unittest.TestCase):

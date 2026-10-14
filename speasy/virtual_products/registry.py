@@ -5,6 +5,7 @@ import threading
 import warnings
 from typing import Callable, Dict, Optional
 
+from ..core.algorithms import fix_name
 from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..core.requests_scheduling.request_dispatch import PROVIDERS
@@ -28,12 +29,19 @@ _resolution = _Resolution()
 
 
 def _path_to_uid(path: str) -> str:
-    """Turn the public path 'virtual/plasma/beta' into the registry uid 'plasma/beta'."""
+    """Turn the public path 'virtual/plasma/beta' into the registry uid 'plasma/beta'.
+
+    Segments are sanitized with fix_name; empty segments (from // or trailing /) are dropped.
+    """
     if not isinstance(path, str):
         raise TypeError(f"virtual product path must be a str, got {type(path).__name__}")
-    provider, _, uid = path.partition('/')
-    if provider != 'virtual' or not uid or not all(seg.strip() for seg in uid.split('/')):
+    provider, _, rest = path.partition('/')
+    if provider != 'virtual' or not rest:
         raise ValueError(f"virtual product path must look like 'virtual/<path>', got {path!r}")
+    segments = [fix_name(seg) for seg in rest.split('/') if seg.strip()]
+    if not segments:
+        raise ValueError(f"virtual product path must look like 'virtual/<path>', got {path!r}")
+    uid = '/'.join(segments)
     return uid
 
 
