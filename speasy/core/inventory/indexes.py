@@ -192,9 +192,10 @@ def from_json(inventory_tree: str, version: int = 1):
     return from_dict(json.loads(inventory_tree), version)
 
 
-def make_inventory_node(parent, ctor, name, provider, uid, **meta):
-    if name not in parent.__dict__:
-        parent.__dict__[name] = ctor(name=name, provider=provider, uid=uid, meta=meta)
+def make_inventory_node(parent, ctor, name, provider, uid, extra_args=None, force=False, **meta):
+    if force or name not in parent.__dict__:
+        parent.__dict__[name] = ctor(name=name, provider=provider, uid=uid, meta=meta,
+                                     **(extra_args or {}))
     return parent.__dict__[name]
 
 
