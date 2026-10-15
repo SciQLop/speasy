@@ -24,6 +24,18 @@ def _hourly_ramp(start_time, stop_time):
                           values=DataContainer(values=np.arange(len(time), dtype=float), meta=None),
                           columns=["Values"])
 
+def _hourly_ramp_labeled(start_time, stop_time):
+    """Callback that explicitly names its columns."""
+    time = np.arange(
+            make_utc_datetime64(start_time), make_utc_datetime64(stop_time),
+            np.timedelta64(1, 'h'))
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=time)
+            ],
+        values=DataContainer(values=np.zeros((len(time), 3), dtype=float), meta=None),
+        columns=["Fx", "Fy", "Fz"]
+    )
+
 def _mag_divided_offset(start_time, stop_time):
     ace_mag = spz.get_data("amda/imf", start_time, stop_time)
     if ace_mag is None:
@@ -216,6 +228,28 @@ class VirtualProductRegistration(unittest.TestCase):
             return _hourly_ramp(start_time, stop_time)
 
         self.assertEqual(beta.units, "nT")
+
+    def test_without_labels_mag_columns_are_generic(self):
+        register_virtual_product("virtual/plasma/mag", _mag_divided_offset)
+        var = spz.get_data("virtual/plasma/mag", _START, _STOP)
+        self.assertEqual(var.columns, ["column_0", "column_1", "column_2"])
+
+    def test_with_labels_mag_columns_are_overridden(self):
+        register_virtual_product("virtual/plasma/mag", _mag_divided_offset,
+                                 labels=["bx", "by", "bz"])
+        var = spz.get_data("virtual/plasma/mag", _START, _STOP)
+        self.assertEqual(var.columns, ["bx", "by", "bz"])
+
+    def test_without_labels_own_columns_are_preserved(self):
+        register_virtual_product("virtual/plasma/f", _hourly_ramp_labeled)
+        var = spz.get_data("virtual/plasma/f", _START, _STOP)
+        self.assertEqual(var.columns, ["Fx", "Fy", "Fz"])
+
+    def test_with_labels_own_columns_are_overridden(self):
+        register_virtual_product("virtual/plasma/f", _hourly_ramp_labeled,
+                                 labels=["bx", "by", "bz"])
+        var = spz.get_data("virtual/plasma/f", _START, _STOP)
+        self.assertEqual(var.columns, ["bx", "by", "bz"])
 
 
 @ddt
