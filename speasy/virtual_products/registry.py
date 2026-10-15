@@ -50,7 +50,7 @@ def _path_to_uid(path: str) -> str:
 
 
 def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
-                  labels: Optional[list] = None):
+                  labels: Optional[list] = None, meta: Optional[dict] = None):
     """Call callback(start_time, stop_time) and check it returned a SpeasyVariable or None.
 
     Shared by both ways of reaching a virtual product: calling the VirtualProduct
@@ -70,9 +70,14 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
         raise VirtualProductTypeError(f"Virtual product 'virtual/{product_uid}': "
                                       f"{getattr(callback, '__qualname__', callback)} returned "
                                       f"{type(result).__name__}, expected SpeasyVariable or None")
-    if result is not None and labels is not None:
+    if result is not None and (labels is not None or meta is not None):
         result = result.copy()
-        result._SpeasyVariable__columns = list(labels)
+        if labels is not None:
+            result._SpeasyVariable__columns = list(labels)
+        if meta is not None:
+            # keys are uppercased to match ISTP convention (e.g. "units" -> "UNITS")
+            node_meta = {k.upper(): v for k, v in meta.items()}
+            result.meta.update(node_meta)
     return result
 
 
@@ -88,10 +93,11 @@ class VirtualProduct(ParameterIndex):
         super().__init__(name=name, provider=provider, uid=uid, meta=meta)
         self.__spz_callback__ = callback
         self.__spz_labels__ = labels
+        self.__spz_meta__ = meta
 
     def __call__(self, start_time, stop_time):
         return _call_checked(self.spz_uid(), self.__spz_callback__, start_time, stop_time,
-                             labels=self.__spz_labels__)
+                             labels=self.__spz_labels__, meta=self.__spz_meta__)
 
 
 def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None,
@@ -172,7 +178,8 @@ class _VirtualProvider:
             raise UnknownVirtualProduct(message)
         node = _flat_inventory.parameters.get(product_uid)
         labels = node.__spz_labels__ if node is not None else None
-        return _call_checked(product_uid, callback, start_time, stop_time, labels=labels)
+        meta = node.__spz_meta__ if node is not None else None
+        return _call_checked(product_uid, callback, start_time, stop_time, labels=labels, meta=meta)
 
 
 def _init_virtual_provider():
