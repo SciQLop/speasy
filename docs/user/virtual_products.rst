@@ -53,16 +53,27 @@ Pass the function as second argument; the product is returned:
 Describing the product
 ----------------------
 
-Both forms accept ``meta=``, a dictionary whose keys become attributes of the
-product in the inventory tree:
+Both forms accept ``meta=`` and ``labels=``.
+
+**meta=** — a dictionary that does two things. Its keys become attributes
+of the product in the inventory tree, and they are also injected into the
+``SpeasyVariable.meta`` returned by the callback, with keys uppercased to
+follow the ISTP convention (e.g. ``"units"`` becomes ``"UNITS"``). Values
+from the inventory always take precedence over any conflicting metadata
+returned by the callback:
 
     >>> level = register_virtual_product("virtual/demo/level", hourly_ramp, meta={"units": "nT"})
     >>> spz.inventories.tree.virtual.demo.level.units
     'nT'
+    >>> spz.get_data("virtual/demo/level", "2016-10-10", "2016-10-11").unit
+    'nT'
 
-``meta=`` only describes the product in the inventory: it is not copied into the
-``SpeasyVariable`` returned by the function. To give the data a unit, set it in
-that ``SpeasyVariable``.
+**labels=** — a list of strings that overrides the column names of the
+``SpeasyVariable`` returned by the callback:
+
+    >>> labeled = register_virtual_product("virtual/demo/labeled", hourly_ramp, labels=["value"])
+    >>> spz.get_data("virtual/demo/labeled", "2016-10-10", "2016-10-11").columns
+    ['value']
 
 Using a virtual product
 -----------------------
