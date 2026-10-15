@@ -88,21 +88,6 @@ class VirtualProduct(ParameterIndex):
         return _call_checked(self.spz_uid(), self.__spz_callback__, start_time, stop_time)
 
 
-def _make_virtual_product_node(parent: SpeasyIndex, name: str, uid: str,
-                               callback: Callable, meta: Optional[dict] = None) -> VirtualProduct:
-    """Attach a VirtualProduct leaf under parent, replacing any existing one, and return it.
-
-    Counterpart of make_inventory_node, which can't be used here:
-    - it can't pass the callback to VirtualProduct;
-    - it returns an existing leaf untouched, so on re-registration the tree node would
-      still call the old callback while _callbacks (used by get_data) holds the new one.
-      Replacing the leaf keeps both in sync.
-    """
-    node = VirtualProduct(name=name, provider='virtual', uid=uid, callback=callback, meta=meta)
-    parent.__dict__[name] = node
-    return node
-
-
 def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None) -> VirtualProduct:
     """Serve callback(start_time, stop_time) as the product 'virtual/<product_uid>'.
 
@@ -121,7 +106,8 @@ def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None)
     parent = _root
     for name in folders:
         parent = make_inventory_node(parent, SpeasyIndex, name, 'virtual', name)
-    node = _make_virtual_product_node(parent, leaf, product_uid, callback, meta)
+    node = make_inventory_node(parent, VirtualProduct, leaf, 'virtual', product_uid,
+                               extra_args={"callback": callback}, force=True, **(meta or {}))
     _flat_inventory.parameters[product_uid] = node
     return node
 
