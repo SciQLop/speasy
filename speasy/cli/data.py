@@ -1,7 +1,8 @@
 import os
-from typing import Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Annotated, List, Optional, Tuple
 
-from cyclopts import App
+from cyclopts import App, Parameter
 
 from ._common import console, error, table
 
@@ -54,6 +55,64 @@ def get(product: str, start: str, stop: str, *, output: Optional[str] = None) ->
         writers[extension](var, output)
     console().print(table('', '', rows=_summary(var)))
     return 0
+
+
+def _read_ranges(path: str) -> List[Tuple[str, str]]:
+    """One 'start stop' (or 'start,stop') range per line; blank lines and '#' comments are skipped."""
+    ranges = []
+    with open(path) as f:
+        for number, line in enumerate(f, start=1):
+            fields = line.split('#')[0].replace(',', ' ').split()
+            if not fields:
+                continue
+            if len(fields) != 2:
+                raise ValueError(f"{path} line {number}: expected 'START STOP', got '{line.strip()}'")
+            ranges.append((fields[0], fields[1]))
+    return ranges
+
+
+def _warm_one(product: str, start: str, stop: str) -> Tuple[bool, str]:
+    import speasy
+    try:
+        var = speasy.get_data(product, start, stop)
+    except Exception as e:  # one failing request must not stop the warm-up
+        return False, f"[red]✗[/red] {product} {start} → {stop}: {type(e).__name__}: {e}"
+    found = f"{len(var)} samples" if var is not None else "no data"
+    return True, f"[green]✓[/green] {product} {start} → {stop} ({found})"
+
+
+@cache_app.command
+def warm(*products: str,
+         time_ranges: Annotated[Optional[List[Tuple[str, str]]], Parameter(name='--range', negative=())] = None,
+         ranges_file: Optional[str] = None, workers: int = 1) -> int:
+    """Download products ahead of time, so later requests are served from the cache.
+
+    Parameters
+    ----------
+    products: str
+        Product paths, e.g. 'amda/imf' 'cda/AC_H0_MFI/BGSEc'.
+    time_ranges: Optional[List[Tuple[str, str]]]
+        A START STOP time range, repeat it for several ranges.
+    ranges_file: Optional[str]
+        A file with one 'START STOP' range per line ('#' starts a comment).
+    workers: int
+        How many requests run at the same time.
+    """
+    ranges = [*(time_ranges or []), *(_read_ranges(ranges_file) if ranges_file else [])]
+    if not ranges:
+        return error("give at least one time range, with --range START STOP or --ranges-file FILE")
+    if workers < 1:
+        return error(f"--workers must be at least 1, got {workers}")
+    # threads, not processes: a process pool deadlocks on Speasy's import lock (#381)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_warm_one, product, start, stop) for product in products for start, stop in ranges]
+        results = []
+        for future in as_completed(futures):  # printed from this thread only, lines never interleave
+            ok, line = future.result()
+            console().print(line, highlight=False)
+            results.append(ok)
+    console().print(f"{sum(results)}/{len(results)} requests done")
+    return 0 if all(results) else 1
 
 
 @cache_app.command
