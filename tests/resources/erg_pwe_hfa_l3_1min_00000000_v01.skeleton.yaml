@@ -1,5 +1,7 @@
 erg_pwe_hfa_l3_1min:
   inventory_path: cda/test
+  split_rule: regular
+  url_pattern: https://example.org/erg/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v01.cdf
   meta:
     PROJECT: ["ERG>Exploration of Energization and Radiation in Geospace"]
     DISCIPLINE: ["Space Physics>Magnetospheric Science"]

@@ -20,6 +20,7 @@ Space Physics made EASY
    user/numpy
    user/scipy
    user/configuration
+   user/cli
    dev/index
    history
    contributing
