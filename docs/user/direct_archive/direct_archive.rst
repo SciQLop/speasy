@@ -234,6 +234,16 @@ variable of each dataset, which checks ``url_pattern`` against the real files:
 Fix, run it again, and repeat until it prints the tree. It returns ``True`` once the file is good.
 It always reads the master file again, ignoring the 7-day cache described below.
 
+The same check runs from a terminal, without writing any Python. It exits with ``1`` when a file has a
+problem, so it also fits in a CI job that guards a shared inventory:
+
+.. code-block:: bash
+
+    uvx speasy archive validate my_datasets.yaml --start 2018-06-01 --stop 2018-06-02
+
+``speasy archive dirs`` lists the directories Speasy scans and how many YAML files each holds,
+see :doc:`../cli` for the other commands.
+
 **Step 4: Restart Python and use it**
 
 After saving the YAML file, restart your Python session (the inventory is built once, when the archive is first used):

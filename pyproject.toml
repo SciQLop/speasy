@@ -35,6 +35,7 @@ dependencies = ['PyYAML',
  'appdirs',
  'astropy',
  'astroquery',
+ 'cyclopts>=4.25',
  'diskcache',
  'pysciqlop-cache>=0.3.0,<0.4; sys_platform != "emscripten"',
  'humanize',
@@ -53,6 +54,9 @@ dependencies = ['PyYAML',
  'pysocks'
 ]
 
+
+[project.scripts]
+speasy = "speasy.cli:main"
 
 [project.urls]
 homepage = "https://github.com/SciQLop/speasy"

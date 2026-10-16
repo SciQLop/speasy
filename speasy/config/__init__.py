@@ -7,8 +7,9 @@ Configuration module for SPEASY, it reads or sets config entries first from ENV 
 
 import configparser
 import os
-from typing import Any
+from typing import Any, Dict, Iterable
 import ast
+import difflib
 
 import appdirs
 
@@ -134,6 +135,60 @@ class ConfigSection:
         for _, entry in self.__dict__.items():
             s += f"\n  {entry}\n-------------------------------------------"
         return s
+
+
+def all_entries() -> Dict[str, ConfigEntry]:
+    """Every config entry, keyed by its 'section.key' name, e.g. 'proxy.url'."""
+    return {f"{section.name.lower()}.{key}": entry
+            for section in _entries.values()
+            for key, entry in vars(section).items() if isinstance(entry, ConfigEntry)}
+
+
+def find_entry(name: str) -> ConfigEntry:
+    """The entry called 'section.key' (any case), with a suggestion when there is no such entry."""
+    known = all_entries()
+    if name.lower() in known:
+        return known[name.lower()]
+    close = difflib.get_close_matches(name.lower(), known, n=1)
+    hint = f"did you mean {close[0]}?" if close else "run 'speasy config show' to list them"
+    raise ValueError(f"unknown config entry '{name}', {hint}")
+
+
+def entry_source(entry: ConfigEntry) -> str:
+    """Where the current value comes from: 'env', 'file' or 'default'."""
+    if entry.env_var_name in os.environ:
+        return 'env'
+    if entry.key1 in _config and entry.key2 in _config[entry.key1]:
+        return 'file'
+    return 'default'
+
+
+def is_list_entry(entry: ConfigEntry) -> bool:
+    return entry.type_ctor is _parse_dir_set
+
+
+def _normalized(entry: ConfigEntry, value: str) -> str:
+    # a relative directory would otherwise be resolved against whatever folder Speasy later runs from
+    if entry.key2.endswith('_dirs'):
+        return os.path.abspath(os.path.expanduser(value))
+    return value
+
+
+def _require_list(entry: ConfigEntry) -> ConfigEntry:
+    if not is_list_entry(entry):
+        raise ValueError(f"{entry.key1.lower()}.{entry.key2} is not a list, use 'speasy config set' instead")
+    return entry
+
+
+def add_values(entry: ConfigEntry, values: Iterable[str]):
+    """Adds values to a comma separated list entry, e.g. a directory to archive.extra_inventory_lookup_dirs."""
+    current = _require_list(entry).get()
+    entry.set(','.join(sorted(current | {_normalized(entry, v) for v in values})))
+
+
+def remove_values(entry: ConfigEntry, values: Iterable[str]):
+    current = _require_list(entry).get()
+    entry.set(','.join(sorted(current - {_normalized(entry, v) for v in values})))
 
 
 def remove_entry(entry: ConfigEntry):
