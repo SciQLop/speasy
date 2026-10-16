@@ -217,7 +217,24 @@ just like the inline format, controlled by the same ``meta_priority``:
       split_rule: regular
       url_pattern: https://my_server.net/data/{Y}/{M:02d}/data_{Y}{M:02d}{D:02d}.nc
 
-**Step 3: Restart Python and use it**
+**Step 3: Check it**
+
+Before restarting anything, ask Speasy to check the file. ``validate_inventory_file`` loads each
+dataset exactly the way Speasy will, lists every problem it finds, and prints the resulting inventory
+tree when there is none. Give it a time range where your data exists and it also fetches the first
+variable of each dataset, which checks ``url_pattern`` against the real files:
+
+    >>> from speasy.data_providers.generic_archive import validate_inventory_file # doctest: +SKIP
+    >>> validate_inventory_file("~/.config/speasy/archive/my_datasets.yaml", "2018-06-01", "2018-06-02") # doctest: +SKIP
+    Checking ~/.config/speasy/archive/my_datasets.yaml
+      ✗ tha_fgm: split_rule is 'regulr', expected one of: regular, random
+      ✗ tha_fgm: unknown key 'url_patern' (did you mean 'url_pattern'?)
+    2 problem(s) found, fix them and run validate_inventory_file() again.
+
+Fix, run it again, and repeat until it prints the tree. It returns ``True`` once the file is good.
+It always reads the master file again, ignoring the 7-day cache described below.
+
+**Step 4: Restart Python and use it**
 
 After saving the YAML file, restart your Python session (the inventory is built once, when the archive is first used):
 
@@ -293,7 +310,7 @@ YAML field reference
    * - **split_rule**
      - How the files are organized: ``regular`` (predictable, one file per time period) or ``random``
        (variable-length files like burst data). See :ref:`random_split_datasets`. **Required, no
-       default** — see :ref:`archive_troubleshooting` for what happens if it's missing.
+       default.**
    * - **split_frequency**
      - Time granularity of the files: ``daily`` (default), ``monthly``, ``yearly``, or ``none``.
        For ``regular`` datasets, this is how often a new file starts (``none`` treats the whole
@@ -477,9 +494,9 @@ A few things about metadata and caching are easy to miss:
   exists: Speasy checks that the server responds (cached for 2 minutes), then tries to fetch the
   master. A live host serving a 404 for that specific path fails the same way as a genuinely
   unreachable host — the dataset is silently skipped with a warning, not an error.
-- **A local master file's path is never checked for existence at inventory build time either** — a
-  typo'd local path is only caught when Speasy actually tries to open it, and produces the same
-  silent "could not be loaded" warning as any other malformed entry.
+- **A typo'd local master path** makes the dataset fail to load with a "could not be loaded" warning,
+  like any other unreadable master. ``validate_inventory_file`` shows the underlying
+  ``No such file or directory`` error.
 
 ``get_data()`` on an archive product also accepts a few extra keyword arguments:
 
@@ -505,36 +522,38 @@ A few things about metadata and caching are easy to miss:
 Troubleshooting
 ------------------
 
-Most of the diagnostics below are emitted as log *warnings*, not exceptions. If you don't
-see them, make sure logging is configured in your Python session:
+**Start with** ``validate_inventory_file`` (see *Step 3* above). It reports, per dataset, every
+problem Speasy finds: invalid YAML, missing or misspelled keys, unsupported values, unreadable or
+non-ISTP master files, and — given a time range — a ``url_pattern`` that doesn't match your files.
+
+At startup Speasy reports the same problems as log *warnings*, and skips the broken datasets: a broken
+file or dataset never hides the others. If you don't see the warnings, configure logging in your
+Python session:
 
 .. code-block:: python
 
     import logging
     logging.basicConfig(level=logging.WARNING)
 
-- **A dataset builds fine but** ``get_data()`` **raises** ``TypeError: get_product() missing 1
-  required positional argument: 'split_rule'``: your YAML entry is missing ``split_rule`` (or,
-  similarly, ``url_pattern``). Unlike most malformed-entry mistakes, these two aren't validated
-  until the first actual fetch, so the dataset can look completely normal in the inventory right up
-  until you call ``get_data()``.
 - **The log says several files cover the same time range**: your archive keeps more than one
   version of a file and ``fname_regex`` has no ``(?P<version>...)`` group, so Speasy can't tell
   which one is current and merges them all. Add the group — see :ref:`random_split_datasets`.
-- **A dataset silently doesn't appear in the inventory at all**: check the log for a warning — the
-  usual causes are an unreachable/nonexistent master file, an unrecognized ``codec``, or a codec that
-  can't enumerate a master file's variables (see :ref:`supported_file_formats`).
+- **A dataset doesn't appear in the inventory at all**: run ``validate_inventory_file`` on its file.
+  The usual causes are a missing or misspelled key, an unreachable/nonexistent master file, an
+  unrecognized ``codec``, or a codec that can't enumerate a master file's variables
+  (see :ref:`supported_file_formats`).
 - **The log says** ``Unknown codec 'nc'`` **even though the spelling is right**: the NetCDF codec is
   only registered when the optional ``netCDF4`` package is importable. A missing dependency and a
   typo produce the same message — check ``python -c "import netCDF4"`` first.
-- **The dataset appears but has no variables in it**: the master file was read, but nothing in it
-  looked like an ISTP data variable. Look for ``Non compliant ISTP file: ...`` in the log — the
-  usual cause is pointing an ISTP codec (``cdf``/``nc``) at a file that doesn't follow the ISTP
-  conventions. Describe the variables with **variables** instead, or write a codec for that format.
+- **The log says** ``no variables found in its master file``: the master file was read, but nothing
+  in it looked like an ISTP data variable, so the dataset is skipped. Look for
+  ``Non compliant ISTP file: ...`` right before it — the usual cause is pointing an ISTP codec
+  (``cdf``/``nc``) at a file that doesn't follow the ISTP conventions. Describe the variables with
+  **variables** instead, or write a codec for that format.
 - ``get_data()`` **returns** ``None`` **rather than raising**: this is normal when the requested time
   range isn't covered by any file, or falls entirely outside the dataset's actual data range — it's
-  not an error. A misspelled ``split_rule`` (anything other than ``regular`` or ``random``) produces
-  exactly the same silent ``None``, so check that spelling before investigating your time range.
+  not an error. ``validate_inventory_file`` with that time range tells you which file
+  ``url_pattern`` points to, so you can check it exists.
 - **Nothing changed after I updated my master file**: see the 7-day caching note in
   :ref:`archive_metadata_and_caching` above.
 

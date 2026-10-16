@@ -374,8 +374,7 @@ class TestLoadInventoryFile(unittest.TestCase):
     def test_skips_dataset_with_variables_list(self):
         # the bare list-of-names format is no longer supported (no meta): dataset must be skipped
         root = _load_yaml_doc(_VARIABLES_YAML)
-        test_node = root.__dict__['cda'].__dict__['test']
-        self.assertNotIn('my_dataset', test_node.__dict__)
+        self.assertNotIn('cda', root.__dict__)  # a skipped dataset leaves no empty folder behind
 
     def test_loads_dataset_with_variables_and_meta(self):
         # inline format: dataset-level meta + variables given as a dict with per-variable meta
@@ -405,8 +404,7 @@ class TestLoadInventoryFile(unittest.TestCase):
         # a typo would sail through inventory building and only blow up deep inside get_data(),
         # instead of being skipped up front like an unknown codec on the master_file path.
         root = _load_yaml_doc(_VARIABLES_WITH_UNKNOWN_CODEC_YAML)
-        test_node = root.__dict__['cda'].__dict__['test']
-        self.assertNotIn('bogus_codec_dataset', test_node.__dict__)
+        self.assertNotIn('cda', root.__dict__)  # a skipped dataset leaves no empty folder behind
 
     def test_loads_dataset_with_master_file_nc(self):
         root = _make_root()
@@ -571,8 +569,7 @@ ac_mfi_nc_remote_dataset:
         # up disabling the whole archive provider. Skip the dataset instead, like an unknown codec
         # already does.
         root = _load_yaml_doc(_NO_LIST_VARIABLES_CODEC_YAML)  # must not raise
-        test_node = root.__dict__['cda'].__dict__['test']
-        self.assertNotIn('hapi_dataset', test_node.__dict__)
+        self.assertNotIn('cda', root.__dict__)  # a skipped dataset leaves no empty folder behind
 
     def test_codec_that_cannot_list_variables_says_so_in_the_log(self):
         # the dataset is skipped either way, but list_variables *raises* instead of returning None,
