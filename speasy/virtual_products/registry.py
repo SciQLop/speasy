@@ -6,9 +6,9 @@ import warnings
 from typing import Callable, Dict, Optional
 
 from ..core.algorithms import fix_name
+from ..core.dataprovider import register_provider
 from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
-from ..core.requests_scheduling.request_dispatch import PROVIDERS
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
 
@@ -159,13 +159,17 @@ class VirtualProductCycleError(RecursionError):
     """Raised when virtual products request each other more than _MAX_DEPTH levels deep, usually a cycle."""
 
 
+@register_provider
 class _VirtualProvider:
-    """Serves virtual products through speasy's dispatch table.
+    """Serves virtual products as a registered provider, started by the dispatcher on first use.
 
     Deliberately not a DataProvider subclass: get_data() is the whole contract the
     dispatcher needs, while DataProvider.__init__ would fetch an inventory through
     the proxy for products that are local by definition.
     """
+    NAME = 'virtual'
+    ALIASES = ()
+    provider_name = NAME
 
     def get_data(self, product_uid: str, start_time, stop_time, **kwargs):
         product_uid = _normalize_uid(product_uid)
@@ -183,8 +187,7 @@ class _VirtualProvider:
 
 
 def _init_virtual_provider():
-    """Register the virtual provider in the dispatch table and its inventory."""
-    PROVIDERS['virtual'] = _VirtualProvider()
+    """Plug the virtual products inventory into speasy's inventory trees."""
     tree.__dict__['virtual'] = _root
     flat_inventories.__dict__['virtual'] = _flat_inventory
 
