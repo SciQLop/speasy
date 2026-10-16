@@ -216,6 +216,69 @@ class TestCache(_IsolatedConfig):
             self.assertIn(word, out.lower())
 
 
+class TestCacheWarm(_IsolatedConfig):
+
+    def setUp(self):
+        super().setUp()
+        var = get_codec('cdf').load_variable(file=_CDF, variable='BGSEc')
+        p = mock.patch('speasy.get_data', return_value=var)
+        self.get_data = p.start()
+        self.addCleanup(p.stop)
+
+    def test_fetches_every_product_on_every_range(self):
+        code, out = _run('cache', 'warm', 'amda/a', 'amda/b',
+                         '--range', '2018-01-01', '2018-01-02', '--range', '2019-01-01', '2019-01-02')
+        self.assertEqual(code, 0)
+        self.assertEqual([c.args for c in self.get_data.call_args_list],
+                         [('amda/a', '2018-01-01', '2018-01-02'), ('amda/a', '2019-01-01', '2019-01-02'),
+                          ('amda/b', '2018-01-01', '2018-01-02'), ('amda/b', '2019-01-01', '2019-01-02')])
+        self.assertIn('4/4', out)
+
+    def test_reads_ranges_from_a_file(self):
+        ranges = os.path.join(self.dir, 'ranges.txt')
+        with open(ranges, 'w') as f:
+            f.write("# storm season\n2018-01-01 2018-01-02\n\n2019-01-01,2019-01-02\n")
+        _run('cache', 'warm', 'amda/a', '--ranges-file', ranges)
+        self.assertEqual([c.args for c in self.get_data.call_args_list],
+                         [('amda/a', '2018-01-01', '2018-01-02'), ('amda/a', '2019-01-01', '2019-01-02')])
+
+    def test_malformed_ranges_file_line_is_reported(self):
+        ranges = os.path.join(self.dir, 'ranges.txt')
+        with open(ranges, 'w') as f:
+            f.write("2018-01-01 2018-01-02\n2019-01-01\n")
+        code, out = _run('cache', 'warm', 'amda/a', '--ranges-file', ranges)
+        self.assertEqual(code, 1)
+        self.assertIn("ranges.txt line 2", out)
+        self.get_data.assert_not_called()
+
+    def test_a_failure_does_not_stop_the_others(self):
+        self.get_data.side_effect = [RuntimeError("server down"), self.get_data.return_value]
+        code, out = _run('cache', 'warm', 'amda/a', 'amda/b', '--range', '2018-01-01', '2018-01-02')
+        self.assertEqual(code, 1)
+        self.assertEqual(self.get_data.call_count, 2)
+        self.assertIn('server down', out)
+        self.assertIn('1/2', out)
+
+    def test_workers_fetch_everything_too(self):
+        code, out = _run('cache', 'warm', 'amda/a', 'amda/b', '--workers', '4',
+                         '--range', '2018-01-01', '2018-01-02', '--range', '2019-01-01', '2019-01-02')
+        self.assertEqual(code, 0)
+        self.assertEqual(sorted(c.args for c in self.get_data.call_args_list),
+                         [('amda/a', '2018-01-01', '2018-01-02'), ('amda/a', '2019-01-01', '2019-01-02'),
+                          ('amda/b', '2018-01-01', '2018-01-02'), ('amda/b', '2019-01-01', '2019-01-02')])
+        self.assertIn('4/4', out)
+
+    def test_needs_at_least_one_worker(self):
+        code, out = _run('cache', 'warm', 'amda/a', '--workers', '0', '--range', '2018-01-01', '2018-01-02')
+        self.assertEqual(code, 1)
+        self.assertIn('--workers', out)
+
+    def test_needs_a_time_range(self):
+        code, out = _run('cache', 'warm', 'amda/a')
+        self.assertEqual(code, 1)
+        self.assertIn('--range', out)
+
+
 class TestHelp(unittest.TestCase):
 
     def test_no_command_lists_the_groups(self):

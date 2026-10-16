@@ -60,3 +60,15 @@ Data and cache
     speasy get amda/imf 2018-06-01 2018-06-02                 # print a summary
     speasy get amda/imf 2018-06-01 2018-06-02 --output imf.cdf # or .csv, or .nc with netCDF4 installed
     speasy cache info
+
+``cache warm`` downloads products ahead of time, e.g. before a flight or a workshop, so later requests
+are served from the cache. It fetches every product on every range, and a failed request doesn't stop
+the others:
+
+.. code-block:: bash
+
+    speasy cache warm amda/imf cda/AC_H0_MFI/BGSEc --range 2018-06-01 2018-06-08 --range 2019-03-01 2019-03-08
+    speasy cache warm amda/imf --ranges-file storms.txt --workers 4
+
+A ranges file holds one ``START STOP`` (or ``START,STOP``) range per line; blank lines and ``#``
+comments are ignored. ``--workers`` runs that many requests at the same time (one by default).
