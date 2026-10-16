@@ -69,6 +69,8 @@ the others:
 
     speasy cache warm amda/imf cda/AC_H0_MFI/BGSEc --range 2018-06-01 2018-06-08 --range 2019-03-01 2019-03-08
     speasy cache warm amda/imf --ranges-file storms.txt --workers 4
+    speasy cache warm amda/b_mgs_mso --ranges-from amda/sharedtimeTable_37   # one range per event
 
 A ranges file holds one ``START STOP`` (or ``START,STOP``) range per line; blank lines and ``#``
-comments are ignored. ``--workers`` runs that many requests at the same time (one by default).
+comments are ignored. ``--ranges-from`` takes a timetable or catalog product, e.g. an AMDA shared
+timetable, and warms every event of it. ``--workers`` runs that many requests at the same time (one by default).
