@@ -79,7 +79,7 @@ class Plot:
         cm = self._mesh(ax, x, y, z,
                         cmap=cmap or 'plasma',
                         norm=norm, *args, **kwargs)
-        cbar = plt.colorbar(cm, ax=ax)
+        cbar = ax.figure.colorbar(cm, ax=ax)  # plt.colorbar would draw it via pyplot's current figure
         if zaxis_units is not None and zaxis_label is not None:
             cbar.set_label(f'{zaxis_label} ({zaxis_units})')
         return ax
