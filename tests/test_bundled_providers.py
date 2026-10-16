@@ -10,7 +10,7 @@ from speasy.data_providers import CsaWebservice
 class BundledProviders(unittest.TestCase):
     def test_bundled_providers_register_in_the_historical_init_order(self):
         self.assertEqual(list(registered_providers()),
-                         ["amda", "csa", "cda", "ssc", "archive", "uiowaephtool", "cdpp3dview", "hapi"])
+                         ["amda", "csa", "cda", "ssc", "archive", "uiowaephtool", "cdpp3dview", "hapi", "virtual"])
 
     def test_aliases_resolve_to_their_main_name(self):
         expected = {"cdaweb": "cda", "sscweb": "ssc", "generic_archive": "archive", "file": "archive",
