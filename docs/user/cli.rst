@@ -74,3 +74,26 @@ the others:
 A ranges file holds one ``START STOP`` (or ``START,STOP``) range per line; blank lines and ``#``
 comments are ignored. ``--ranges-from`` takes a timetable or catalog product, e.g. an AMDA shared
 timetable, and warms every event of it. ``--workers`` runs that many requests at the same time (one by default).
+
+Quicklooks
+----------
+
+``speasy quicklook`` renders a `SciQLop <https://github.com/SciQLop/SciQLop>`_ plot template as one image per
+time window, without SciQLop or a display: handy for daily overview plots on a server.
+
+.. code-block:: bash
+
+    speasy quicklook ~/.local/share/sciqlop/templates/mms_overview.json \
+        --start 2015-11-01 --stop 2015-12-01 --split daily --output-dir quicklooks/ --workers 4
+
+``--split`` is ``daily``, ``monthly``, ``yearly`` or ``none`` (a single image), windows are aligned on the
+calendar and clipped to the time range, which defaults to the one saved in the template. ``--format`` picks
+the image format (``png`` by default, ``pdf``, ``svg``...), and ``--workers`` downloads that many windows at
+the same time. Each image is named after the template and the window start, e.g.
+``mms_overview_20151101T000000.png``.
+
+Templates saved by SciQLop's current (v3) and previous (v2) formats are both read, as JSON or YAML. Only
+speasy products on time series plots are drawn; virtual products, plugin plots and the like are listed as
+skipped. Log scales come from the template, while saved axis ranges are ignored: they record one zoom level
+and would clip other windows. A product that fails to download leaves its plot empty, and the command
+exits with ``1``.
