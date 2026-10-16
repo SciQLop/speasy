@@ -71,6 +71,19 @@ def _read_ranges(path: str) -> List[Tuple[str, str]]:
     return ranges
 
 
+def _ranges_from(product: str) -> List[Tuple[str, str]]:
+    import speasy
+    from speasy.products import Catalog, TimeTable
+    needed = "it needs a timetable or a catalog"
+    try:
+        events = speasy.get_data(product)  # without a time range, speasy only looks for timetables and catalogs
+    except ValueError as e:
+        raise ValueError(f"--ranges-from {product}: {e}, {needed}") from e
+    if not isinstance(events, (TimeTable, Catalog)):
+        raise ValueError(f"--ranges-from {product}: gives a {type(events).__name__}, {needed}")
+    return [(r.start_time.isoformat(), r.stop_time.isoformat()) for r in events]
+
+
 def _warm_one(product: str, start: str, stop: str) -> Tuple[bool, str]:
     import speasy
     try:
@@ -84,7 +97,7 @@ def _warm_one(product: str, start: str, stop: str) -> Tuple[bool, str]:
 @cache_app.command
 def warm(*products: str,
          time_ranges: Annotated[Optional[List[Tuple[str, str]]], Parameter(name='--range', negative=())] = None,
-         ranges_file: Optional[str] = None, workers: int = 1) -> int:
+         ranges_file: Optional[str] = None, ranges_from: Optional[str] = None, workers: int = 1) -> int:
     """Download products ahead of time, so later requests are served from the cache.
 
     Parameters
@@ -95,12 +108,16 @@ def warm(*products: str,
         A START STOP time range, repeat it for several ranges.
     ranges_file: Optional[str]
         A file with one 'START STOP' range per line ('#' starts a comment).
+    ranges_from: Optional[str]
+        A timetable or catalog product, e.g. an AMDA shared timetable: one range per event.
     workers: int
         How many requests run at the same time.
     """
-    ranges = [*(time_ranges or []), *(_read_ranges(ranges_file) if ranges_file else [])]
+    ranges = [*(time_ranges or []), *(_read_ranges(ranges_file) if ranges_file else []),
+              *(_ranges_from(ranges_from) if ranges_from else [])]
     if not ranges:
-        return error("give at least one time range, with --range START STOP or --ranges-file FILE")
+        return error("give at least one time range, with --range START STOP, --ranges-file FILE "
+                     "or --ranges-from TIMETABLE")
     if workers < 1:
         return error(f"--workers must be at least 1, got {workers}")
     # threads, not processes: a process pool deadlocks on Speasy's import lock (#381)

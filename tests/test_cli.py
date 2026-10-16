@@ -10,6 +10,8 @@ from unittest import mock
 from speasy import config
 from speasy.cli import main
 from speasy.core.codecs import get_codec
+from speasy.core.datetime_range import DateTimeRange
+from speasy.products import Catalog, Event, TimeTable
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 _CDF = f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf"
@@ -267,6 +269,35 @@ class TestCacheWarm(_IsolatedConfig):
                          [('amda/a', '2018-01-01', '2018-01-02'), ('amda/a', '2019-01-01', '2019-01-02'),
                           ('amda/b', '2018-01-01', '2018-01-02'), ('amda/b', '2019-01-01', '2019-01-02')])
         self.assertIn('4/4', out)
+
+    def _events_then_data(self, events):
+        var = self.get_data.return_value
+        self.get_data.side_effect = lambda *args: events if len(args) == 1 else var
+
+    def test_reads_ranges_from_a_timetable(self):
+        self._events_then_data(TimeTable('tt', dt_ranges=[DateTimeRange('2018-01-01', '2018-01-02')]))
+        code, _ = _run('cache', 'warm', 'amda/a', '--ranges-from', 'amda/my_tt')
+        self.assertEqual(code, 0)
+        self.assertEqual(self.get_data.call_args_list[0].args, ('amda/my_tt',))
+        self.assertEqual(self.get_data.call_args_list[1].args,
+                         ('amda/a', '2018-01-01T00:00:00+00:00', '2018-01-02T00:00:00+00:00'))
+
+    def test_reads_ranges_from_a_catalog(self):
+        self._events_then_data(Catalog('cat', events=[Event('2018-01-01', '2018-01-02'),
+                                                      Event('2019-01-01', '2019-01-02')]))
+        _, out = _run('cache', 'warm', 'amda/a', '--ranges-from', 'amda/my_cat')
+        self.assertIn('2/2', out)
+
+    def test_ranges_from_a_non_event_product_is_refused(self):
+        code, out = _run('cache', 'warm', 'amda/a', '--ranges-from', 'amda/imf')
+        self.assertEqual(code, 1)
+        self.assertIn("--ranges-from amda/imf: gives a SpeasyVariable, it needs a timetable or a catalog", out)
+
+    def test_ranges_from_an_unknown_product_says_what_it_needs(self):
+        self.get_data.side_effect = ValueError("Unknown product: imf")
+        code, out = _run('cache', 'warm', 'amda/a', '--ranges-from', 'amda/imf')
+        self.assertEqual(code, 1)
+        self.assertIn("--ranges-from amda/imf: Unknown product: imf, it needs a timetable or a catalog", out)
 
     def test_needs_at_least_one_worker(self):
         code, out = _run('cache', 'warm', 'amda/a', '--workers', '0', '--range', '2018-01-01', '2018-01-02')
