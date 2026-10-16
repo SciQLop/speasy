@@ -32,7 +32,7 @@ class LazyProviderInit(unittest.TestCase):
             import speasy as spz
             from speasy.core.requests_scheduling.request_dispatch import PROVIDERS
             expected = {"csa", "cda", "cdaweb", "ssc", "sscweb", "archive", "generic_archive", "file",
-                        "uiowaephtool", "UiowaEphTool", "cdpp3dview", "3DView", "hapi"}
+                        "uiowaephtool", "UiowaEphTool", "cdpp3dview", "3DView", "hapi", "virtual"}
             assert set(spz.list_providers()) == expected, spz.list_providers()
             assert PROVIDERS == {}, PROVIDERS
         """, disabled="amda")

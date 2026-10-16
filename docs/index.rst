@@ -19,6 +19,7 @@ Space Physics made EASY
    user/plotting
    user/numpy
    user/scipy
+   user/virtual_products
    user/configuration
    dev/index
    history
