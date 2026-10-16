@@ -27,8 +27,8 @@ def validate(*files: str, start: Optional[str] = None, stop: Optional[str] = Non
     from speasy.data_providers.generic_archive import validate_inventory_file
     if (start is None) != (stop is None):
         return error("--start and --stop go together")
-    results = [validate_inventory_file(file, start, stop) for file in files]
-    return 0 if all(results) else 1
+    failed = [file for file in files if not validate_inventory_file(file, start, stop)]
+    return 1 if failed else 0
 
 
 def _lookup_dirs():

@@ -39,10 +39,11 @@ def _rotated_color_cycle(offset: int):
 
 
 def _merge_legends(ax, twin):
-    handles, labels = (sum(pair, []) for pair in zip(ax.get_legend_handles_labels(), twin.get_legend_handles_labels()))
+    handles, labels = ax.get_legend_handles_labels()
+    twin_handles, twin_labels = twin.get_legend_handles_labels()
     if twin.get_legend() is not None:
         twin.get_legend().remove()
-    ax.legend(handles, labels)
+    ax.legend(handles + twin_handles, labels + twin_labels)
 
 
 def _on_right_axis(product) -> bool:

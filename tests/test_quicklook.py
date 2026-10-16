@@ -153,8 +153,9 @@ class TestLoadTemplate(_TempDir):
         self.assertTrue(line.right_axis)
 
     def test_not_a_template_says_so(self):
+        path = self.write({'hello': 1})
         with self.assertRaisesRegex(ValueError, r"t\.json is not a SciQLop panel template"):
-            load_template(self.write({'hello': 1}))
+            load_template(path)
 
 
 class TestWindows(unittest.TestCase):

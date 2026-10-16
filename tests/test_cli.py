@@ -90,8 +90,8 @@ class TestConfig(_IsolatedConfig):
 
     def test_show_lists_entries_with_their_source(self):
         config.proxy.url.set("https://example.org/cache")
-        os.environ['SPEASY_CACHE_PATH'] = '/tmp/x'
-        code, out = _run('config', 'show')
+        with mock.patch.dict(os.environ, {'SPEASY_CACHE_PATH': '/tmp/x'}):
+            code, out = _run('config', 'show')
         self.assertEqual(code, 0)
         self.assertRegex(out, r"proxy\.url.*https://example\.org/cache.*file")
         self.assertRegex(out, r"cache\.path.*/tmp/x.*env")
@@ -109,8 +109,8 @@ class TestConfig(_IsolatedConfig):
         self.assertEqual(self.ini_value('PROXY', 'url'), 'https://example.org/cache')
 
     def test_set_warns_when_the_environment_overrides_it(self):
-        os.environ['SPEASY_PROXY_URL'] = 'https://env.org'
-        _, out = _run('config', 'set', 'proxy.url', 'https://example.org/cache')
+        with mock.patch.dict(os.environ, {'SPEASY_PROXY_URL': 'https://env.org'}):
+            _, out = _run('config', 'set', 'proxy.url', 'https://example.org/cache')
         self.assertIn('SPEASY_PROXY_URL', out)
 
     def test_unknown_entry_suggests_the_close_one(self):
@@ -311,6 +311,11 @@ class TestCacheWarm(_IsolatedConfig):
 
 
 class TestHelp(unittest.TestCase):
+
+    def test_usage_error_exits_two_without_raising_system_exit(self):
+        code, out = _run('nope')
+        self.assertEqual(code, 2)
+        self.assertIn('nope', out)
 
     def test_no_command_lists_the_groups(self):
         code, out = _run()
