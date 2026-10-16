@@ -1,7 +1,7 @@
 """The ``speasy`` command, e.g. ``uvx speasy archive validate my_datasets.yaml``."""
 from typing import List, Optional
 
-from cyclopts import App
+from cyclopts import App, CycloptsError
 
 from . import archive, config, providers, data, quicklook
 from ._common import error
@@ -17,8 +17,8 @@ app.command(quicklook.quicklook)
 
 def main(argv: Optional[List[str]] = None) -> int:
     try:
-        return app(argv) or 0
-    except SystemExit as e:  # usage errors: cyclopts already printed what is wrong
-        return e.code
+        return app(argv, exit_on_error=False) or 0
+    except CycloptsError:  # a usage error, cyclopts already printed what is wrong
+        return 2
     except ValueError as e:  # bad names or values given on the command line
         return error(str(e))

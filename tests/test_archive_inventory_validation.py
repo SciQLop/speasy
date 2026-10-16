@@ -67,7 +67,7 @@ class _TempYaml(unittest.TestCase):
             ok = validate_inventory_file(self.write(content), *args)
         return ok, out.getvalue()
 
-    def non_istp_cdf(self):
+    def _non_istp_cdf(self):
         cdf = pycdfpp.CDF()
         cdf.add_variable("Epoch", values=np.arange("2022-01-01T00:00:00", "2022-01-01T00:00:10",
                                                    dtype="datetime64[s]").astype("datetime64[ns]"),
@@ -161,7 +161,7 @@ class TestEntryChecks(_TempYaml):
         self.assertNoDataset(root)
 
     def test_dataset_without_variables_is_skipped(self):
-        plain = self.non_istp_cdf()
+        plain = self._non_istp_cdf()
         root, log = self.load(_good_entry(master_file=plain, url_pattern=plain))
         self.assertIn("my_ds: no variables found", log)
         self.assertNoDataset(root)
@@ -203,7 +203,7 @@ class TestValidateInventoryFile(_TempYaml):
         self.assertNotIn("Inventory:", out)
 
     def test_pyistp_complaints_are_attributed_to_the_dataset(self):
-        plain = self.non_istp_cdf()
+        plain = self._non_istp_cdf()
         ok, out = self.validate(_good_entry(master_file=plain, url_pattern=plain))
         self.assertFalse(ok)
         self.assertRegex(out, r"my_ds:.*Non compliant ISTP file")
