@@ -7,10 +7,11 @@ __email__ = 'alexis.jeandet@member.fsf.org'
 __version__ = '0.1.0'
 
 import logging
+import os
 from typing import Optional
 from datetime import timedelta
 
-from speasy.config import SPEASY_CONFIG_DIR
+from speasy.config import SPEASY_CONFIG_DIR, SPEASY_CONFIG_FILE
 from speasy.config import archive as cfg
 from speasy.core import AnyDateTimeType, AllowedKwargs
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
@@ -22,6 +23,8 @@ from speasy.core.http import is_server_up
 from speasy.core.url_utils import host_and_port, is_local_file
 from speasy.products.variable import SpeasyVariable
 from speasy.core.cache import CacheCall, CACHE_ALLOWED_KWARGS
+
+from ._checks import FETCH_KEYS, read_entries as _read_entries, entry_problems as _entry_problems
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +73,7 @@ def _merge_meta(file_meta: dict, yaml_meta: dict, priority: str) -> dict:
     # same 'meta_priority' knob resolves file-vs-YAML metadata everywhere in the pipeline:
     # here at inventory-build time (master-extracted vs YAML-declared), and again in
     # _get_data() (freshly-read file vs whatever ended up on the built ParameterIndex)
-    if priority == 'yaml':
+    if priority.lower() == 'yaml':
         return {**file_meta, **yaml_meta}
     return {**yaml_meta, **file_meta}
 
@@ -102,7 +105,8 @@ def _dataset_from_variables(name, path, entry_meta, variables, codec_id='', data
                               meta={**dataset_meta, **entry_meta})
 
 
-def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_meta=None, meta_priority='file'):
+def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_meta=None, meta_priority='file',
+                         disable_cache=False):
     # All strings for a codec id (extension, mime type, class name) resolve to the same instance in
     # the registry, so we test the codec object instead of a string
     codec = get_codec(codec_id or 'cdf')  # legacy master_cdf entries carry no codec
@@ -112,7 +116,7 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_
     if codec in _ISTP_CODECS:  # ISTP formats: pyistp extraction with variable + dataset meta
         result = extract_from_master(master_file, provider='archive',
                                      params_uid_format=f"{path}/{{var_name}}",
-                                     params_meta=entry_meta)
+                                     params_meta=entry_meta, disable_cache=disable_cache)
         if result:
             parameters, master_meta = result
             meta = _merge_meta(master_meta, dataset_meta or {}, meta_priority)
@@ -134,37 +138,59 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_
                               parameters=parameters, meta={**meta, **entry_meta})
 
 
-def _load_inventory_entry(name, entry, root: SpeasyIndex):
+def _load_inventory_entry(name, entry, root: SpeasyIndex, disable_cache=False):
     path = f"{entry['inventory_path']}/{name}"
-    parent = get_or_make_node(entry['inventory_path'], root)
     entry_meta = {"spz_ga_cfg": entry}
     entry_meta['spz_ga_cfg']['use_file_list'] = entry_meta['spz_ga_cfg'].get('use_file_list', False)
     master_file = entry.get('master_file') or entry.get('master_cdf') or None
     if 'variables' in entry:
         dataset = _dataset_from_variables(name, path, entry_meta, entry['variables'],
                                           codec_id=entry.get('codec', ''), dataset_meta=entry.get('meta'))
-    elif master_file and (is_local_file(master_file) or _is_reachable(master_file)):
+    elif is_local_file(master_file) or _is_reachable(master_file):
         dataset = _dataset_from_master(name, path, entry_meta,
                                        master_file, entry.get('codec', ''),
                                        dataset_meta=entry.get('meta'),
-                                       meta_priority=entry.get('meta_priority', 'file'))
+                                       meta_priority=entry.get('meta_priority', 'file'),
+                                       disable_cache=disable_cache)
     else:
         dataset = None
-        log.warning(f"No reachable master for dataset {name}, skipping")
-    if dataset:
-        parent.__dict__[dataset.spz_name()] = dataset
+        log.warning(f"Master file {master_file} of dataset {name} is unreachable, skipping")
+    if dataset is not None and not _has_parameters(dataset):
+        log.warning(f"{name}: no variables found in its master file, skipping")
+        dataset = None
+    if dataset is not None:  # the folder is only created for a dataset that loaded, never left empty
+        get_or_make_node(entry['inventory_path'], root).__dict__[dataset.spz_name()] = dataset
+
+
+def _has_parameters(dataset: SpeasyIndex) -> bool:
+    return any(isinstance(v, ParameterIndex) for v in dataset.__dict__.values())
+
+
+def load_inventory_entry(file: str, name: str, entry, root: SpeasyIndex, disable_cache=False):
+    errors, warnings = _entry_problems(name, entry)
+    for problem in (*errors, *warnings):
+        log.warning(f"{file}: {problem}")
+    if errors:
+        return
+    try:
+        _load_inventory_entry(name, entry, root, disable_cache=disable_cache)
+    except Exception:  # a malformed entry must cost only itself, not the whole provider
+        log.warning(f"{file}: {name}: could not be loaded, skipping", exc_info=True)
 
 
 def load_inventory_file(file: str, root: SpeasyIndex):
-    import yaml
-    with open(file, 'r') as f:
-        entries = yaml.safe_load(f)
-        for name, entry in entries.items():
-            try:
-                _load_inventory_entry(name, entry, root)
-            except Exception:  # a malformed entry must cost only itself, not the whole provider
-                log.warning(f"Dataset {name}: could not be loaded from {file}, skipping",
-                            exc_info=True)
+    entries, problems = _read_entries(file)
+    for problem in problems:
+        log.warning(problem)
+    for name, entry in entries.items():
+        load_inventory_entry(file, name, entry, root)
+
+
+def _warn_about_missing_dirs(lookup_dirs):
+    for lookup_dir in sorted(lookup_dirs):
+        if not os.path.isdir(lookup_dir):
+            log.warning(f"Archive inventory directory {lookup_dir} does not exist, "
+                        f"check extra_inventory_lookup_dirs in the [ARCHIVE] section of {SPEASY_CONFIG_FILE}")
 
 
 @register_provider
@@ -177,10 +203,9 @@ class GenericArchive(DataProvider):
 
     def build_inventory(self, root: SpeasyIndex):
         from glob import glob
-        lookup_dirs = cfg.extra_inventory_lookup_dirs.get()
-        lookup_dirs.add(_global_inventory_dir())
-        lookup_dirs.add(user_inventory_dir())
-        for lookup_dir in lookup_dirs:
+        extra_dirs = cfg.extra_inventory_lookup_dirs.get()
+        _warn_about_missing_dirs(extra_dirs)
+        for lookup_dir in {*extra_dirs, _global_inventory_dir(), user_inventory_dir()}:
             for file in glob(f"{lookup_dir}/*.y*ml"):
                 load_inventory_file(file, root)
         return root
@@ -206,15 +231,23 @@ class GenericArchive(DataProvider):
     def _get_data(self, product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType, **kwargs) -> \
         Optional[
             SpeasyVariable]:
-        ga_cfg: dict = dict(getattr(product, 'spz_ga_cfg'))  # copy: spz_ga_cfg is shared across the dataset and its params
-        meta_priority = ga_cfg.pop('meta_priority', 'file')
-        ga_cfg.pop('inventory_path', None)
-        ga_cfg.pop('master_cdf', None)
-        ga_cfg.pop('master_file', None)
-        ga_cfg.pop('meta', None)
-        ga_cfg.pop('variables', None)
-        result = get_product(**ga_cfg,
-                             variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
-        if result is not None:
-            _patch_meta(result, _public_meta(product), meta_priority)
-        return result
+        return fetch(product, start_time, stop_time, **kwargs)
+
+
+def fetch_kwargs(product: ParameterIndex) -> dict:
+    """The YAML fields get_product() understands; anything else (a typo, a note) never reaches it."""
+    ga_cfg: dict = getattr(product, 'spz_ga_cfg')
+    return {k: v for k, v in ga_cfg.items() if k in FETCH_KEYS}
+
+
+def fetch(product: ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
+          **kwargs) -> Optional[SpeasyVariable]:
+    meta_priority = getattr(product, 'spz_ga_cfg').get('meta_priority', 'file')
+    result = get_product(**fetch_kwargs(product),
+                         variable=product.spz_name(), start_time=start_time, stop_time=stop_time, **kwargs)
+    if result is not None:
+        _patch_meta(result, _public_meta(product), meta_priority)
+    return result
+
+
+from .validation import validate_inventory_file  # noqa: E402,F401 -- it builds on the loader defined above

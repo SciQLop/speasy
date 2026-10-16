@@ -300,6 +300,10 @@ class RegularSplitDirectDownload:
         return None
 
 
+def _unknown_split_rule(split_rule: str) -> ValueError:
+    return ValueError(f"split_rule '{split_rule}' is not supported, expected one of: regular, random")
+
+
 def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                use_file_list: bool = False, split_frequency: str = "daily", fname_regex: Optional[str] = None,
                date_format=None, **kwargs) -> Optional[str]:
@@ -317,7 +321,7 @@ def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, s
                 for date in spilt_range(split_frequency=split_frequency, start_time=start_time,
                                         stop_time=stop_time))
         return next(filter(None, urls), None)
-    return None
+    raise _unknown_split_rule(split_rule)
 
 
 def get_product(url_pattern: str, split_rule: str, variable: str, start_time: AnyDateTimeType,
@@ -337,5 +341,4 @@ def get_product(url_pattern: str, split_rule: str, variable: str, start_time: An
     if split_rule.lower() == "random":
         return RandomSplitDirectDownload.get_product(url_pattern, variable, start_time, stop_time,
                                                      file_reader=file_reader, **kwargs)
-
-    return None
+    raise _unknown_split_rule(split_rule)
