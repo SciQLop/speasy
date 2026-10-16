@@ -2,6 +2,7 @@ import configparser
 import contextlib
 import io
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -82,7 +83,7 @@ class TestArchive(_IsolatedConfig):
         config.archive.extra_inventory_lookup_dirs.set(f"{self.dir},/nope/typo")
         code, out = _run('archive', 'dirs')
         self.assertEqual(code, 0)
-        self.assertRegex(out, rf"{self.dir}.*yes")
+        self.assertRegex(out, rf"{re.escape(self.dir)}.*yes")
         self.assertRegex(out, r"/nope/typo.*no")
 
 
@@ -126,14 +127,20 @@ class TestConfig(_IsolatedConfig):
     def test_add_and_remove_directories(self):
         _run('config', 'add', 'archive.extra_inventory_lookup_dirs', self.dir, '~/b')
         self.assertEqual(config.archive.extra_inventory_lookup_dirs.get(),
-                         {self.dir, os.path.expanduser('~/b')})
+                         {self.dir, os.path.abspath(os.path.expanduser('~/b'))})
         _run('config', 'remove', 'archive.extra_inventory_lookup_dirs', '~/b')
         self.assertEqual(config.archive.extra_inventory_lookup_dirs.get(), {self.dir})
 
     def test_relative_directories_are_stored_absolute(self):
-        with mock.patch('os.getcwd', return_value=self.dir):
+        cwd = os.getcwd()
+        os.chdir(self.dir)  # Windows' abspath does not go through os.getcwd, so it can't be mocked
+        try:
             _run('config', 'add', 'core.user_codecs_extra_dirs', 'codecs')
-        self.assertEqual(config.core.user_codecs_extra_dirs.get(), {os.path.join(self.dir, 'codecs')})
+        finally:
+            os.chdir(cwd)  # before tearDown: Windows can't delete the current directory
+        # realpath: on macOS the temp dir is under /var, a symlink getcwd() resolves to /private/var
+        self.assertEqual({os.path.realpath(d) for d in config.core.user_codecs_extra_dirs.get()},
+                         {os.path.realpath(os.path.join(self.dir, 'codecs'))})
 
     def test_add_refuses_entries_that_are_not_lists(self):
         code, out = _run('config', 'add', 'proxy.url', 'x')

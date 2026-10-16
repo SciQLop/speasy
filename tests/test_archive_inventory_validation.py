@@ -1,6 +1,7 @@
 import contextlib
 import io
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -112,7 +113,7 @@ class TestBrokenFilesCostOnlyThemselves(_TempYaml):
         missing = os.path.join(self.dir, 'typo')
         with self.assertLogs(_LOG, level='WARNING') as logs:
             self.build_inventory([missing])
-        self.assertRegex('\n'.join(logs.output), rf"{missing} does not exist")
+        self.assertRegex('\n'.join(logs.output), rf"{re.escape(missing)} does not exist")
 
 
 class TestEntryChecks(_TempYaml):
