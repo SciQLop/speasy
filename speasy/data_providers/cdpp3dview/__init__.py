@@ -308,7 +308,8 @@ class Cdpp3dViewWebservice(DataProvider):
             f"start={start_time.strftime(date_format)}&stop={stop_time.strftime(date_format)}&"
             f"sampling={sampling}&format=json"
         )
-        # Not format=cdf: its Epoch is 30 days early (2015-10-16 comes back as 2015-09-16), the JSON times are right
+        # Not format=cdf: its Epoch is a month early except in January (2015-10-16 comes back as 2015-09-16,
+        # 2016-12-31 as 2016-12-01), the JSON times are right. See https://github.com/SciQLop/speasy/pull/412
         return self._fetch(URL, _load_transform_json, if_newer_than)
 
     def _fetch(self, URL: str, load: Callable[[bytes], SpeasyVariable], if_newer_than: Optional[AnyDateTimeType]):
