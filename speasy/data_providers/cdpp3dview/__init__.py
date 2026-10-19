@@ -6,11 +6,15 @@ __author__ = """Richard Hitier"""
 __email__ = "hitier.richard@gmail.com"
 __version__ = "0.1.0"
 
+import json
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import Callable, List, Optional
+
+import numpy as np
 
 from speasy import SpeasyVariable
+from speasy.products.variable import DataContainer, VariableTimeAxis
 from speasy.core import fix_name, http
 from speasy.core.algorithms import AllowedKwargs
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
@@ -71,6 +75,37 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
             'sampling': kwargs.get('sampling', '600')}
 
 CDPP3DVIEW_MIN_PROXY_VERSION = Version('0.14.0')
+TRANSFORMS_PREFIX = "Transforms/"
+# 3DView publishes no coverage per frame: Earth frames answer for any date, frames bound to a
+# spacecraft or a small body answer HTTP 500 outside their SPICE kernels.
+FRAME_COVERAGE = ("1900-01-01T00:00:00Z", "2100-01-01T00:00:00Z")
+
+
+def _is_transform(product: str) -> bool:
+    return product.startswith(TRANSFORMS_PREFIX)
+
+
+def _load_transform_json(payload: bytes) -> Optional[SpeasyVariable]:
+    steps = json.loads(payload)["values"]
+    if not steps:
+        return None
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=np.array([s["time"].rstrip("Z") for s in steps], dtype="datetime64[ns]"))],
+        values=DataContainer(values=np.array([s["matrix"] for s in steps], dtype=np.float64), name="matrix"))
+
+
+def _tag_trajectory(var: Optional[SpeasyVariable], frame: str) -> Optional[SpeasyVariable]:
+    if var is not None:
+        var.meta["COORDINATE_SYSTEM"] = frame
+    return var
+
+
+def _tag_transform(var: Optional[SpeasyVariable], source: str, target: str) -> Optional[SpeasyVariable]:
+    # Cluster CAA Metadata Dictionary §7.8 convention: v_target = M @ v_source
+    if var is not None:
+        var.meta.update({"COORDINATE_SYSTEM": source, "TARGET_SYSTEM": target, "TENSOR_ORDER": 2,
+                         "REPRESENTATION_1": ["x", "y", "z"], "REPRESENTATION_2": ["x", "y", "z"]})
+    return var
 
 @register_provider
 class Cdpp3dViewWebservice(DataProvider):
@@ -86,10 +121,22 @@ class Cdpp3dViewWebservice(DataProvider):
     def version(self, product):  # NOSONAR (S1172)
         return 1
 
+    def _get_frames_descriptions(self):
+        return _get_json(f"{self.BASE_URL}/get_frames")['frames']
+
     def _build_frames_list(self):
-        data = _get_json(f"{self.BASE_URL}/get_frames")
-        _frames = [f["name"] for f in data['frames']]
-        return _frames
+        return [f["name"] for f in self._get_frames_descriptions()]
+
+    def _build_transforms_tree(self, root: SpeasyIndex, frames):
+        transforms_node = make_inventory_node(root, SpeasyIndex, provider="cdpp3dview", uid="Transforms",
+                                              name="Transforms",
+                                              description="Rotation matrices from each frame to the frame "
+                                                          "given as coordinate_frame")
+        for frame in frames:
+            make_inventory_node(transforms_node, ParameterIndex, provider="cdpp3dview",
+                                uid=f"{TRANSFORMS_PREFIX}{frame['name']}", name=fix_name(frame['name']),
+                                description=f"Rotation matrices from {frame['name']} ({frame['desc']})",
+                                start_date=FRAME_COVERAGE[0], stop_date=FRAME_COVERAGE[1])
 
     def _build_bodies_tree(self, trajectory_node: SpeasyIndex):
         bodies = self._get_bodies()
@@ -127,8 +174,8 @@ class Cdpp3dViewWebservice(DataProvider):
                 )
 
     def build_inventory(self, root: SpeasyIndex):
-
-        self._frames = self._build_frames_list()
+        frames = self._get_frames_descriptions()
+        self._frames = [f["name"] for f in frames]
 
         trajectory_node = make_inventory_node(
             root,
@@ -138,6 +185,7 @@ class Cdpp3dViewWebservice(DataProvider):
             name="Trajectories",
         )
         self._build_bodies_tree(trajectory_node)
+        self._build_transforms_tree(root, frames)
 
         return root
 
@@ -153,6 +201,9 @@ class Cdpp3dViewWebservice(DataProvider):
         **kwargs,
     ) -> Optional[SpeasyVariable]:
         coordinate_frame = _resolve_coordinate_frame(coordinate_frame, coordinate_system)
+        if _is_transform(product):
+            return self._get_data_transform(product, start_time, stop_time, coordinate_frame, sampling,
+                                            if_newer_than, **kwargs)
         available_frames = self.get_frames()
         if not available_frames:
             log.warning(
@@ -174,7 +225,25 @@ class Cdpp3dViewWebservice(DataProvider):
             if_newer_than=if_newer_than,
             **kwargs,
         )
-        return var
+        return _tag_trajectory(var, coordinate_frame)
+
+    def _get_data_transform(self, product, start_time, stop_time, target_frame, sampling, if_newer_than, **kwargs):
+        source_frame = product[len(TRANSFORMS_PREFIX):]
+        self._check_frames(source_frame, target_frame)
+        var = self._get_transform(product=product, start_time=start_time, stop_time=stop_time,
+                                  coordinate_frame=target_frame, sampling=sampling, if_newer_than=if_newer_than,
+                                  **kwargs)
+        return _tag_transform(var, source_frame, target_frame)
+
+    def _check_frames(self, *frames):
+        available_frames = self.get_frames()
+        if not available_frames:
+            log.warning("No available coordinate frames retrieved from 3dView, sending the request unchecked.")
+            return
+        for frame in frames:
+            if frame not in available_frames:
+                raise Cdpp3dViewWebException(
+                    f"Coordinate frame '{frame}' is not available.\nAvailable frames are: {available_frames}")
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS
@@ -208,6 +277,40 @@ class Cdpp3dViewWebservice(DataProvider):
             f"start={start_date}&stop={stop_date}&"
             f"sampling={sampling}&format={format}"
         )
+        return self._fetch(URL, lambda payload: self._cdf_codec.load_variable(file=payload, variable="pos"),
+                           if_newer_than)
+
+    # The proxy can't serve transforms until it runs a speasy that has them, so they skip it.
+    @AllowedKwargs(
+        CACHE_ALLOWED_KWARGS
+        + GET_DATA_ALLOWED_KWARGS
+        + PROXY_ALLOWED_KWARGS
+        + ["coordinate_frame", "sampling", "if_newer_than"],
+        )
+    @EnsureUTCDateTime()
+    @ParameterRangeCheck()
+    @UnversionedProviderCache(prefix="cdpp3dview", fragment_hours=lambda x: 24, entry_name=_make_cache_entry_name)
+    def _get_transform(
+        self,
+        product: str,
+        start_time: AnyDateTimeType,
+        stop_time: AnyDateTimeType,
+        coordinate_frame: str,
+        sampling: str = "600",
+        if_newer_than: Optional[AnyDateTimeType] = None,
+        **kwargs,
+    ):
+        date_format = "%Y-%m-%dT%H:%M:%S"
+        URL = (
+            f"{self.BASE_URL}/get_transform_matrices?"
+            f"fromframe={product[len(TRANSFORMS_PREFIX):]}&toframe={coordinate_frame}&"
+            f"start={start_time.strftime(date_format)}&stop={stop_time.strftime(date_format)}&"
+            f"sampling={sampling}&format=json"
+        )
+        # Not format=cdf: its Epoch is 30 days early (2015-10-16 comes back as 2015-09-16), the JSON times are right
+        return self._fetch(URL, _load_transform_json, if_newer_than)
+
+    def _fetch(self, URL: str, load: Callable[[bytes], SpeasyVariable], if_newer_than: Optional[AnyDateTimeType]):
         headers = {}
         if if_newer_than is not None:
             # If-Modified-Since must be a valid HTTP-date (RFC 7231), datetime.ctime()
@@ -215,8 +318,7 @@ class Cdpp3dViewWebservice(DataProvider):
             headers["If-Modified-Since"] = format_datetime(make_utc_datetime(if_newer_than), usegmt=True)
         resp = http.get(URL, headers=headers, timeout=5*60)
         if resp.status_code == 200:
-            return self._cdf_codec.load_variable(file=resp.bytes,
-                                                 variable='pos')
+            return load(resp.bytes)
         elif not resp.ok:
             if resp.status_code == 404:
                 log.warning(
@@ -261,6 +363,8 @@ class Cdpp3dViewWebservice(DataProvider):
         <DateTimeRange: 1972-03-05T12:00:00+00:00 -> 2049-12-31T00:00:00+00:00>
 
         """
+        if isinstance(parameter_id, str) and _is_transform(parameter_id):
+            return DateTimeRange(*FRAME_COVERAGE)
         return self._parameter_range(parameter_id)
 
     def _get_bodies(self):

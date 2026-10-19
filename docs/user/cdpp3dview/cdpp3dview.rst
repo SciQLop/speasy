@@ -93,3 +93,33 @@ The naming follows a consistent pattern across bodies, so you can usually guess 
 
 ``get_data()`` also accepts ``if_newer_than=...`` to only fetch data newer than a given
 timestamp (it sends an ``If-Modified-Since`` header to the server).
+
+Rotation matrices between frames
+--------------------------------
+
+3DView also serves the rotation matrices between any two of its frames. They live in the inventory under
+``Transforms``, one product per **source** frame. The **target** frame is the ``coordinate_frame`` keyword,
+just like for trajectories:
+
+    >>> m = spz.get_data("cdpp3dview/Transforms/GSE", "2015-10-16", "2015-10-16T02", coordinate_frame="GSM")
+    >>> m.values.shape
+    (12, 3, 3)
+    >>> m.meta["COORDINATE_SYSTEM"], m.meta["TARGET_SYSTEM"]
+    ('GSE', 'GSM')
+
+Each matrix turns a source-frame vector into a target-frame vector, ``v_target = M @ v_source``, the same
+convention as the Cluster archive and SPICE. Trajectories carry their frame in ``COORDINATE_SYSTEM`` too,
+so you can check that both sides match before rotating:
+
+    >>> import numpy as np
+    >>> pos = spz.get_data("cdpp3dview/MMS1", "2015-10-16", "2015-10-16T02", coordinate_frame="GSE")
+    >>> pos.meta["COORDINATE_SYSTEM"] == m.meta["COORDINATE_SYSTEM"]
+    True
+    >>> pos_gsm = np.einsum("nij,nj->ni", m.values, pos.values)
+
+Both variables share the same time steps here because they use the same ``sampling``. Otherwise,
+interpolate the matrices first.
+
+.. note::
+    3DView gives no time coverage per frame. Earth frames work for any date, but frames tied to a
+    spacecraft or a small body (``67PCG_CSO``, ...) make the server fail outside their mission.
