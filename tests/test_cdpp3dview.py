@@ -5,6 +5,7 @@
 import unittest
 from datetime import datetime, timezone
 
+import numpy as np
 from ddt import data, ddt
 
 import speasy as spz
@@ -247,6 +248,96 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
             f"You are requesting {kw.get('product')} outside of its definition range", cm.output[0])
 
 
+TRANSFORM_START = datetime(2015, 10, 16, 0, 0, 0, tzinfo=timezone.utc)
+TRANSFORM_STOP = datetime(2015, 10, 16, 2, 0, 0, tzinfo=timezone.utc)
+
+
+def _get_transform(source="GSE", target="GSM", **kwargs):
+    return spz.cdpp3dview.get_data(f"Transforms/{source}", TRANSFORM_START, TRANSFORM_STOP,
+                                   coordinate_frame=target, sampling="600", **kwargs)
+
+
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}),
+                 "cdpp3dview provider not available")
+class Cdpp3dViewTransforms(unittest.TestCase):
+
+    def test_returns_one_rotation_matrix_per_time_step(self):
+        m = _get_transform(disable_cache=True, disable_proxy=True)
+        self.assertEqual(m.values.shape[1:], (3, 3))
+        self.assertGreater(len(m), 1)
+        identities = m.values @ m.values.transpose(0, 2, 1)
+        np.testing.assert_allclose(identities, np.broadcast_to(np.eye(3), identities.shape), atol=1e-5)
+
+    def test_is_tagged_with_source_and_target_frames(self):
+        m = _get_transform(disable_cache=True, disable_proxy=True)
+        self.assertEqual(m.meta["COORDINATE_SYSTEM"], "GSE")
+        self.assertEqual(m.meta["TARGET_SYSTEM"], "GSM")
+        self.assertEqual(m.meta["TENSOR_ORDER"], 2)
+
+    def test_matrices_map_source_vectors_to_target_frame(self):
+        # v_target = M @ v_source (CAA and SPICE convention); M.T @ v_source lands thousands of km off
+        pos = {frame: spz.cdpp3dview.get_data("MMS1", TRANSFORM_START, TRANSFORM_STOP, coordinate_frame=frame,
+                                              sampling="600", disable_cache=True, disable_proxy=True)
+               for frame in ("GSE", "GSM")}
+        m = _get_transform(disable_cache=True, disable_proxy=True)
+        np.testing.assert_array_equal(m.time, pos["GSE"].time)
+        rotated = np.einsum("nij,nj->ni", m.values, pos["GSE"].values)
+        np.testing.assert_allclose(rotated, pos["GSM"].values, atol=10.)
+
+    def test_works_through_top_level_get_data(self):
+        m = spz.get_data("cdpp3dview/Transforms/GSE", TRANSFORM_START, TRANSFORM_STOP, coordinate_frame="GSM",
+                         disable_cache=True, disable_proxy=True)
+        self.assertEqual(m.meta["TARGET_SYSTEM"], "GSM")
+
+    def test_cache_keeps_target_frames_apart(self):
+        to_gsm = _get_transform(target="GSM")
+        to_sm = _get_transform(target="SM")
+        self.assertEqual(to_sm.meta["TARGET_SYSTEM"], "SM")
+        self.assertFalse(np.allclose(to_gsm.values, to_sm.values))
+
+    def test_unknown_target_frame_raises(self):
+        with self.assertRaisesRegex(cdpp3dview.Cdpp3dViewWebException, "(?s)NOPE.*Available frames"):
+            _get_transform(target="NOPE", disable_cache=True, disable_proxy=True)
+
+    def test_unknown_source_frame_raises(self):
+        with self.assertRaisesRegex(cdpp3dview.Cdpp3dViewWebException, "(?s)NOPE.*Available frames"):
+            _get_transform(source="NOPE", disable_cache=True, disable_proxy=True)
+
+    def test_trajectories_are_tagged_with_their_frame(self):
+        traj = spz.cdpp3dview.get_data("MMS1", TRANSFORM_START, TRANSFORM_STOP, coordinate_frame="GSM",
+                                       sampling="600")
+        self.assertEqual(traj.meta["COORDINATE_SYSTEM"], "GSM")
+
+    def test_accepts_a_parameter_index(self):
+        index = ParameterIndex(name="GSE", provider="cdpp3dview", uid="Transforms/GSE")
+        m = spz.cdpp3dview.get_data(index, TRANSFORM_START, TRANSFORM_STOP, coordinate_frame="GSM",
+                                    disable_cache=True, disable_proxy=True)
+        self.assertEqual(m.meta["TARGET_SYSTEM"], "GSM")
+
+    def test_trajectories_accept_a_parameter_index(self):
+        index = spz.cdpp3dview._to_parameter_index("MMS1")
+        traj = spz.cdpp3dview.get_data(index, TRANSFORM_START, TRANSFORM_STOP, coordinate_frame="GSE",
+                                       disable_cache=True, disable_proxy=True)
+        self.assertEqual(traj.meta["COORDINATE_SYSTEM"], "GSE")
+
+    def test_range_does_not_need_the_inventory(self):
+        # an inventory served by an older proxy has no Transforms nodes
+        self.assertIsNotNone(spz.cdpp3dview.parameter_range("Transforms/NOT_IN_ANY_INVENTORY"))
+
+    def test_far_future_is_in_range(self):
+        m = spz.cdpp3dview.get_data("Transforms/GSE", "2101-01-01", "2101-01-01T02", coordinate_frame="GSM",
+                                    disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(m)
+
+    def test_inventory_lists_one_transform_per_source_frame(self):
+        root = spz.cdpp3dview.build_inventory(SpeasyIndex(name="root", provider="cdpp3dview", uid=""))
+        gse = root.Transforms.GSE
+        self.assertIsInstance(gse, ParameterIndex)
+        self.assertEqual(gse.spz_uid(), "Transforms/GSE")
+        transforms = [node for node in root.Transforms.__dict__.values() if isinstance(node, ParameterIndex)]
+        self.assertEqual(len(transforms), len(spz.cdpp3dview.get_frames()))
+
+
 if __name__ == '__main__':
     unittest.main()
 
@@ -361,3 +452,9 @@ class Cdpp3dViewInventoryRequests(unittest.TestCase):
         self.addCleanup(server.close)
         with self.assertRaises(cdpp3dview.Cdpp3dViewWebException):
             cdpp3dview._get_json(f"{server.url}/get_bodies")
+
+
+class Cdpp3dViewTransformParsing(unittest.TestCase):
+
+    def test_empty_answer_is_none(self):
+        self.assertIsNone(cdpp3dview._load_transform_json(b'{"fromframe": "GSE", "toframe": "GSM", "values": []}'))
