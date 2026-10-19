@@ -308,6 +308,27 @@ class Cdpp3dViewTransforms(unittest.TestCase):
                                        sampling="600")
         self.assertEqual(traj.meta["COORDINATE_SYSTEM"], "GSM")
 
+    def test_accepts_a_parameter_index(self):
+        index = ParameterIndex(name="GSE", provider="cdpp3dview", uid="Transforms/GSE")
+        m = spz.cdpp3dview.get_data(index, TRANSFORM_START, TRANSFORM_STOP, coordinate_frame="GSM",
+                                    disable_cache=True, disable_proxy=True)
+        self.assertEqual(m.meta["TARGET_SYSTEM"], "GSM")
+
+    def test_trajectories_accept_a_parameter_index(self):
+        index = spz.cdpp3dview._to_parameter_index("MMS1")
+        traj = spz.cdpp3dview.get_data(index, TRANSFORM_START, TRANSFORM_STOP, coordinate_frame="GSE",
+                                       disable_cache=True, disable_proxy=True)
+        self.assertEqual(traj.meta["COORDINATE_SYSTEM"], "GSE")
+
+    def test_range_does_not_need_the_inventory(self):
+        # an inventory served by an older proxy has no Transforms nodes
+        self.assertIsNotNone(spz.cdpp3dview.parameter_range("Transforms/NOT_IN_ANY_INVENTORY"))
+
+    def test_far_future_is_in_range(self):
+        m = spz.cdpp3dview.get_data("Transforms/GSE", "2101-01-01", "2101-01-01T02", coordinate_frame="GSM",
+                                    disable_cache=True, disable_proxy=True)
+        self.assertIsNotNone(m)
+
     def test_inventory_lists_one_transform_per_source_frame(self):
         root = spz.cdpp3dview.build_inventory(SpeasyIndex(name="root", provider="cdpp3dview", uid=""))
         gse = root.Transforms.GSE

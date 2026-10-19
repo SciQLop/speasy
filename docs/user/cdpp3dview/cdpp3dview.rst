@@ -121,5 +121,7 @@ Both variables share the same time steps here because they use the same ``sampli
 interpolate the matrices first.
 
 .. note::
-    3DView gives no time coverage per frame. Earth frames work for any date, but frames tied to a
-    spacecraft or a small body (``67PCG_CSO``, ...) make the server fail outside their mission.
+    3DView gives no time coverage per frame, so Speasy assumes 1900 to 2500. Earth and planet frames work over
+    that whole span. Frames tied to a small body (``67PCG_CSO``, ...) only work while 3DView has ephemerides for
+    it, and the server fails outside that span. Transforms are always read as JSON, there is no ``format``
+    keyword: the server's CDF answer has its times 30 days early.

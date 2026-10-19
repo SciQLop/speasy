@@ -35,6 +35,7 @@ class MatrixWithLabelGrid(unittest.TestCase):
         var = get_codec('cdf').load_variable("matrix", file=_make_matrix_cdf(), disable_cache=True)
         self.assertIsNotNone(var)
         self.assertEqual(var.values.shape, (len(_EPOCH), 3, 3))
+        self.assertEqual(var.columns, [])
 
 
 if __name__ == '__main__':

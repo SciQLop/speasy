@@ -76,9 +76,9 @@ def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, 
 
 CDPP3DVIEW_MIN_PROXY_VERSION = Version('0.14.0')
 TRANSFORMS_PREFIX = "Transforms/"
-# 3DView publishes no coverage per frame: Earth frames answer for any date, frames bound to a
-# spacecraft or a small body answer HTTP 500 outside their SPICE kernels.
-FRAME_COVERAGE = ("1900-01-01T00:00:00Z", "2100-01-01T00:00:00Z")
+# 3DView publishes no coverage per frame. Measured: every frame fails in 1850 and Earth or planet frames answer
+# from 1900 to at least 2500, while small-body frames (67PCG_CSO, ...) answer HTTP 500 outside their ephemerides.
+FRAME_COVERAGE = ("1900-01-01T00:00:00Z", "2500-01-01T00:00:00Z")
 
 
 def _is_transform(product: str) -> bool:
@@ -103,8 +103,7 @@ def _tag_trajectory(var: Optional[SpeasyVariable], frame: str) -> Optional[Speas
 def _tag_transform(var: Optional[SpeasyVariable], source: str, target: str) -> Optional[SpeasyVariable]:
     # Cluster CAA Metadata Dictionary §7.8 convention: v_target = M @ v_source
     if var is not None:
-        var.meta.update({"COORDINATE_SYSTEM": source, "TARGET_SYSTEM": target, "TENSOR_ORDER": 2,
-                         "REPRESENTATION_1": ["x", "y", "z"], "REPRESENTATION_2": ["x", "y", "z"]})
+        var.meta.update({"COORDINATE_SYSTEM": source, "TARGET_SYSTEM": target, "TENSOR_ORDER": 2})
     return var
 
 @register_provider
@@ -201,6 +200,8 @@ class Cdpp3dViewWebservice(DataProvider):
         **kwargs,
     ) -> Optional[SpeasyVariable]:
         coordinate_frame = _resolve_coordinate_frame(coordinate_frame, coordinate_system)
+        if isinstance(product, ParameterIndex):
+            product = product.spz_uid()
         if _is_transform(product):
             return self._get_data_transform(product, start_time, stop_time, coordinate_frame, sampling,
                                             if_newer_than, **kwargs)
