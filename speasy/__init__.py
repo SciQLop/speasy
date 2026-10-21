@@ -27,6 +27,7 @@ from .products import SpeasyVariable, Catalog, Event, Dataset, TimeTable, MaybeA
 # keep this import last
 from .core.requests_scheduling.request_dispatch import get_data, list_providers
 from .core.dataprovider import registered_providers as _registered_providers
+from . import virtual_products
 
 __all__ = ['get_data', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTable', *_registered_providers()]
 

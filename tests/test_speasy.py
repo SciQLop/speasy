@@ -12,8 +12,16 @@ import speasy as spz
 from speasy.core.requests_scheduling.request_dispatch import _enabled_provider_names
 
 
+# virtual serves locally registered products: it has no server to rebuild its inventory from
+_LOCAL_INVENTORY_PROVIDERS = {'virtual'}
+
+
+def _refreshable_providers():
+    return [name for name in _enabled_provider_names() if name not in _LOCAL_INVENTORY_PROVIDERS]
+
+
 def _started_providers():
-    return [name for name in _enabled_provider_names() if getattr(spz, name) is not None]
+    return [name for name in _refreshable_providers() if getattr(spz, name) is not None]
 
 
 def _has_products(provider):
@@ -175,12 +183,12 @@ class SpeasyModule(unittest.TestCase):
     def test_can_list_providers(self):
         l = spz.list_providers()
         if spz.config.core.disabled_providers.get().intersection({'cdpp3dview', '3DView'}):
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool', 'hapi'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool', 'hapi', 'virtual'])
         else:
-            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool', 'hapi'])
+            expected_providers = sorted(['amda', 'cdaweb', 'cda', 'cdpp3dview', '3DView', 'sscweb', 'ssc', 'csa', 'archive', 'generic_archive', 'file', 'uiowaephtool', 'UiowaEphTool', 'hapi', 'virtual'])
         self.assertListEqual(sorted(l), expected_providers)
 
-    @data(*[(provider,) for provider in _enabled_provider_names()])
+    @data(*[(provider,) for provider in _refreshable_providers()])
     @unpack
     def test_can_update_inventories(self, provider):
         if getattr(spz, provider) is None:
