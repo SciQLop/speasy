@@ -59,9 +59,11 @@ class Storable(unittest.TestCase):
 class NoExtensionSerializer(unittest.TestCase):
     def test_refuses_anything_that_is_not_plain_data_on_write(self):
         # datetimes are plain msgpack (its timestamp type), no class is involved
+        serializer = Serializer()
         for value in (np.arange(3), np.int32(1), object()):
+            entry = {'v': value}
             with self.subTest(value=type(value).__name__), self.assertRaises(TypeError):
-                Serializer().dumps({'v': value})
+                serializer.dumps(entry)
 
     def test_never_builds_an_object_on_read(self):
         # pysciqlop-cache's msgspec serializer imports the class an "object" extension names

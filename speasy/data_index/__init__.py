@@ -253,7 +253,9 @@ class DataIndex:
             return load_product(stored["product"])
         if not installed:
             raise _not_installed(path)
-        return self._store_whole(path, options, _spz_get_data(path, **kwargs))
+        product = _spz_get_data(path, **kwargs)
+        self._store_whole(path, options, product)
+        return product
 
     def _store_whole(self, path: str, options: dict, product):
         provider, name = _split(path)
@@ -261,11 +263,10 @@ class DataIndex:
             entry = {"fetched_at": int(_now().timestamp()), "product": store_product(product)}
         except NotStorable as e:
             log.warning(f"{path} is not stored in the data index ({e}): it won't be available offline")
-            return product
+            return
         with self._store.transact():
             self._store[request_key(provider, name, options_hash(options))] = {"options": options}
             self._store[static_key(provider, name, options_hash(options))] = entry
-        return product
 
     def _serve_range(self, path: str, options: dict, start: AnyDateTimeType, stop: AnyDateTimeType, refresh: bool,
                      kwargs: dict, installed: bool):
@@ -289,13 +290,14 @@ class DataIndex:
             entries.update(self._fetch_missing(path, options, missing, now, kwargs))
         except NotStorable as e:
             if isinstance(e.product, _WHOLE_KINDS):
-                return self._store_whole(path, options, e.product)
+                self._store_whole(path, options, e.product)
+                return e.product
             log.warning(f"{path} is not stored in the data index ({e}): it won't be available offline")
             return _spz_get_data(path, start, stop, **kwargs)
         entries.update(self._refetch_live_edges(path, options, live, now, kwargs))
         return _merged([entry.product for entry in entries.values() if entry is not None], start, stop)
 
-    def _fetch_run(self, path: str, options: dict, run: List[datetime], now: datetime, kwargs: dict) -> dict:
+    def _fetch_run(self, path: str, run: List[datetime], now: datetime, kwargs: dict) -> dict:
         product = _spz_get_data(path, run[0], min(run[-1] + FRAGMENT, now), **kwargs)
         if product is not None and not isinstance(product, (SpeasyVariable, Dataset)):
             raise NotStorable(f"{path} gives a {type(product).__name__} for a time range", product)
@@ -324,7 +326,7 @@ class DataIndex:
         fetched, errors = {}, []
         for run in runs(missing):
             try:
-                fetched.update(self._store_pieces(path, options, self._fetch_run(path, options, run, now, kwargs), now))
+                fetched.update(self._store_pieces(path, options, self._fetch_run(path, run, now, kwargs), now))
             except Exception as e:  # pylint: disable=broad-except
                 errors.append(e)
         if errors:
@@ -337,7 +339,7 @@ class DataIndex:
         refetched = {}
         for run in runs(live):
             try:
-                pieces = self._fetch_run(path, options, run, now, kwargs)
+                pieces = self._fetch_run(path, run, now, kwargs)
             except Exception as e:  # pylint: disable=broad-except
                 self._warn_once(path, options, run, e)
                 continue

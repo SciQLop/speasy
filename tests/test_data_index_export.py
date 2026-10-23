@@ -107,8 +107,9 @@ class RefusedImports(unittest.TestCase):
         store['__meta__'] = {'format': 1, 'fragment_hours': 24}
         store['data/ssc/ace/x/2023-01-01T00:00:00Z'] = _Unpickled()
         store.close()
+        archive = self._tar_of(folder)
         with self.assertRaisesRegex(ValueError, "not a Speasy data index"):
-            self.target.import_data(self._tar_of(folder))
+            self.target.import_data(archive)
         self.assertFalse(_Unpickled.ran)
 
     def test_another_fragment_length_is_refused(self):
