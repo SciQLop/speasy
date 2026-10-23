@@ -264,7 +264,8 @@ class CdaWebservice(DataProvider):
         log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
         if archive_params is not None:
             return direct_archive_get_product(variable=variable, start_time=start_time, stop_time=stop_time,
-                                              force_refresh=kwargs.get('force_refresh', False), **archive_params)
+                                              force_refresh=kwargs.get('force_refresh', False),
+                                              prefer_cache=kwargs.get('prefer_cache', False), **archive_params)
         if not mode_is_best:
             log.warning(f"Can't get {product} without web service, switching to web service")
         return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,

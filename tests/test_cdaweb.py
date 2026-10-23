@@ -650,12 +650,15 @@ class DirectArchiveConverter(unittest.TestCase):
         self.assertTrue(web_service.call_args.kwargs['prefer_cache'])
         self.assertTrue(web_service.call_args.kwargs['force_refresh'])
 
-    def test_force_refresh_reaches_the_archive(self):
+    def test_cache_options_reach_the_archive(self):
+        # the archive path, which BEST takes by default, dropped them: prefer_cache did nothing on CDAWeb
         from unittest.mock import patch
 
         with patch('speasy.data_providers.cda.direct_archive_get_product', return_value=None) as archive:
-            spz.cda.get_data("AC_H0_MFI/BGSEc", "2020-01-01", "2020-01-02", method='FILE', force_refresh=True)
+            spz.cda.get_data("AC_H0_MFI/BGSEc", "2020-01-01", "2020-01-02", method='FILE', force_refresh=True,
+                             prefer_cache=True)
         self.assertTrue(archive.call_args.kwargs['force_refresh'])
+        self.assertTrue(archive.call_args.kwargs['prefer_cache'])
 
     def test_dateless_file_naming_resolves_its_only_file(self):
         # before the fix this raised KeyError: 'start' when the folder was listable, and silently
