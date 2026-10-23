@@ -165,9 +165,10 @@ class Cdpp3dViewWebservice(DataProvider):
         coordinate_frame = _resolve_coordinate_frame(coordinate_frame, coordinate_system)
         available_frames = self.get_frames()
         if not available_frames:
-            log.warning(
-                "No available coordinate frames retrieved from 3dView.")
-            coordinate_frame = DEFAULT_COORDINATE_FRAME
+            # 3DView is unreachable, but the proxy or the cache may still serve this frame: never swap it for
+            # another one, that would hand back data in a frame nobody asked for
+            log.warning(f"Could not retrieve the coordinate frames from 3dView, can't check that "
+                        f"'{coordinate_frame}' is one of them.")
         elif coordinate_frame not in available_frames:
             exception_msg = (
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"

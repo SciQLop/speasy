@@ -7,6 +7,9 @@ Unreleased
 
 Bug fixes:
 
+* CDPP 3DView: when its list of coordinate frames could not be fetched, ``get_data`` silently replaced
+  the requested frame by ``J2000``. With 3DView down but the proxy or the local cache still serving
+  data, a ``GSE`` request could return ``J2000`` positions. The requested frame is now always kept.
 * The HAPI writers (``hapi/csv``, ``hapi/binary``) write headers that validate against the HAPI 3.2 schema:
 
   * a fill value is written as one number (``"-1e+31"``, ``"NaN"``), not as an array (``"[-1e+31]"``);
