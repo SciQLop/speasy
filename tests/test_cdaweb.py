@@ -638,6 +638,25 @@ class DirectArchiveConverter(unittest.TestCase):
                 spz.cda.get_data(variable.spz_uid(), "2020-01-01", "2020-01-02", method='BEST')
             self.assertTrue(web_service.called)   # it really did take the fallback path
 
+    def test_best_method_fallback_keeps_the_cache_options(self):
+        # BEST is the default method, and its fallback to the web service dropped every option but
+        # if_newer_than and extra_http_headers, so prefer_cache, disable_cache and force_refresh did nothing
+        from unittest.mock import patch
+
+        with patch('speasy.data_providers.cda._archive_params_for', return_value=None), \
+                patch.object(spz.cda, '_get_data_with_ws', return_value=None) as web_service:
+            spz.cda.get_data("AC_H0_MFI/BGSEc", "2020-01-01", "2020-01-02", method='BEST', prefer_cache=True,
+                             force_refresh=True)
+        self.assertTrue(web_service.call_args.kwargs['prefer_cache'])
+        self.assertTrue(web_service.call_args.kwargs['force_refresh'])
+
+    def test_force_refresh_reaches_the_archive(self):
+        from unittest.mock import patch
+
+        with patch('speasy.data_providers.cda.direct_archive_get_product', return_value=None) as archive:
+            spz.cda.get_data("AC_H0_MFI/BGSEc", "2020-01-01", "2020-01-02", method='FILE', force_refresh=True)
+        self.assertTrue(archive.call_args.kwargs['force_refresh'])
+
     def test_dateless_file_naming_resolves_its_only_file(self):
         # before the fix this raised KeyError: 'start' when the folder was listable, and silently
         # returned nothing when it wasn't

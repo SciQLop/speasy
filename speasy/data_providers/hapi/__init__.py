@@ -263,8 +263,9 @@ class HapiWebservice(DataProvider):
 
     @UnversionedProviderCache(prefix="hapi", fragment_hours=lambda product: 12, cache_retention=timedelta(days=7))
     def _get_data(self, product: str, start_time: datetime, stop_time: datetime,
-                  if_newer_than: Optional[datetime] = None, extra_http_headers: Optional[Dict] = None) -> \
-            Optional[SpeasyVariable]:
+                  if_newer_than: Optional[datetime] = None, extra_http_headers: Optional[Dict] = None,
+                  disable_proxy: bool = False) -> Optional[SpeasyVariable]:
+        """``disable_proxy`` comes from the cache on a forced refresh; HAPI requests never use the proxy."""
         parameter = self._to_parameter_index(product)
         dataset = self._dataset_of(parameter)
         time_range = _clamped(DateTimeRange(start_time, stop_time), self._dataset_range(dataset))

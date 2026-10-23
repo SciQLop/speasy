@@ -262,6 +262,16 @@ class TestGetData(unittest.TestCase):
     def _get(self, product, start=_utc(2010, 1, 1), stop=_utc(2010, 1, 2), **kwargs):
         return request_dispatch.get_data(f"hapi/{product}", start, stop, disable_cache=True, **kwargs)
 
+    def test_force_refresh_downloads_again(self):
+        # the cache makes a forced refresh skip the proxy, which HAPI never uses but must still accept
+        with _hapi_provider():
+            request_dispatch.get_data('hapi/v2/dataset1/scalar', _utc(2010, 1, 1), _utc(2010, 1, 2))
+            downloads = len(FakeClient.calls_of('data'))
+            v = request_dispatch.get_data('hapi/v2/dataset1/scalar', _utc(2010, 1, 1), _utc(2010, 1, 2),
+                                          force_refresh=True)
+            self.assertEqual(len(v), 24)
+            self.assertGreater(len(FakeClient.calls_of('data')), downloads)
+
     def test_get_data_resolves_unloaded_products(self):
         with _hapi_provider():
             v = self._get('v2/dataset1/scalar')
