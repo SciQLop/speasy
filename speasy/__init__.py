@@ -33,6 +33,10 @@ __all__ = ['get_data', 'SpeasyVariable', 'Catalog', 'Event', 'Dataset', 'TimeTab
 
 
 def __getattr__(name):
+    if name == 'DataIndex':
+        # loaded on first use: it needs pysciqlop-cache, which isn't installed under Pyodide
+        from .data_index import DataIndex
+        return DataIndex
     from .core.requests_scheduling import request_dispatch
     if name in _registered_providers():
         return getattr(request_dispatch, name)
