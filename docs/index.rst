@@ -21,6 +21,7 @@ Space Physics made EASY
    user/scipy
    user/virtual_products
    user/configuration
+   user/data_index
    user/cli
    dev/index
    history
