@@ -17,20 +17,29 @@ __HERE__ = os.path.dirname(os.path.abspath(__file__))
 
 
 class _LocalHttpArchive:
-    """Serves a directory tree over HTTP, so remote file listing and its cache are really exercised."""
+    """Serves a directory tree over HTTP, so remote file listing and its cache are really exercised.
+
+    Its URL starts with a random folder: listings are cached by URL in the real cache, and a port an earlier test
+    (or test run) used would otherwise hand this server that test's cached listing."""
 
     def __init__(self, root: str):
         import functools
         import threading
+        import uuid
         from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
+        prefix = f"/{uuid.uuid4().hex}"
+
         class _QuietHandler(SimpleHTTPRequestHandler):
+            def translate_path(self, path):
+                return super().translate_path(path.removeprefix(prefix))
+
             def log_message(self, *args):
                 pass
 
         self._server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(_QuietHandler, directory=root))
         threading.Thread(target=self._server.serve_forever, daemon=True).start()
-        self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
+        self.url = f"http://127.0.0.1:{self._server.server_address[1]}{prefix}"
 
     def close(self):
         self._server.shutdown()
