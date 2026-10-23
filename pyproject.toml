@@ -38,6 +38,7 @@ dependencies = ['PyYAML',
  'cyclopts>=4.25',
  'diskcache',
  'pysciqlop-cache>=0.3.0,<0.4; sys_platform != "emscripten"',
+ 'numcodecs; sys_platform != "emscripten"',
  'humanize',
  'matplotlib',
  'numpy',
@@ -63,7 +64,8 @@ homepage = "https://github.com/SciQLop/speasy"
 
 [project.optional-dependencies]
 zstd = ["pyzstd"]
-blosc = ["numcodecs"]
+# kept so that "speasy[blosc]" still installs: numcodecs is now a dependency
+blosc = []
 
 [dependency-groups]
 dev = [
@@ -71,7 +73,6 @@ dev = [
     "pytest",
     "pytest-cov",
     "pyzstd",
-    "numcodecs",
     "watchdog",
     "IPython",
     "cogapp",
