@@ -10,7 +10,8 @@ from speasy.core import epoch_to_datetime64
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.data_index import DataIndex
 from speasy.data_index._keys import data_key
-from speasy.products import Catalog
+from speasy.core.datetime_range import DateTimeRange
+from speasy.products import Catalog, Dataset, Event, TimeTable
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 
 DAY = timedelta(days=1)
@@ -27,15 +28,20 @@ def _hourly(start, stop, value=1.):
 
 
 class _Server:
-    """Stands for spz.get_data: records every request and serves hourly data, or what a test sets."""
+    """Stands for the provider: records every request and serves hourly data, a timetable for requests without a
+    time range, or what a test sets."""
 
     def __init__(self):
         self.calls = []
         self.answer = lambda start, stop: _hourly(start, stop, len(self.calls))
+        self.static_answer = lambda: TimeTable('storms', dt_ranges=[DateTimeRange(_utc(2023, 1, 1), _utc(2023, 1, 2))])
 
-    def __call__(self, product, start, stop, **kwargs):
-        self.calls.append((product, start, stop, kwargs))
-        return self.answer(start, stop)
+    def __call__(self, product, *time_range, **kwargs):
+        if not time_range:
+            self.calls.append((product, None, None, kwargs))
+            return self.static_answer()
+        self.calls.append((product, *time_range, kwargs))
+        return self.answer(*time_range)
 
 
 class _Clock:
@@ -94,10 +100,11 @@ class Fetching(GetDataTestCase):
         self.assertEqual(len(self.server.calls), 1)
         self.assertEqual(self.server.calls[0][0], 'ssc/ace')
 
-    def test_only_time_series_are_stored(self):
-        self.server.answer = lambda start, stop: Catalog(name='events')
-        with self.assertRaisesRegex(TypeError, "time series"):
-            self.get(_utc(2023, 1, 1), _utc(2023, 1, 2))
+    def test_a_product_kind_the_index_doesnt_know_is_returned_unstored(self):
+        # whatever spz.get_data gives, the index gives too
+        self.server.answer = lambda start, stop: "some future product kind"
+        self.assertEqual(self.get(_utc(2023, 1, 1), _utc(2023, 1, 2)), "some future product kind")
+        self.assertEqual(self.index.requests(), [])
 
 
 class EmptyFragments(GetDataTestCase):
@@ -112,12 +119,12 @@ class EmptyFragments(GetDataTestCase):
         self.get(_utc(2023, 1, 1), _utc(2023, 1, 3))
         entries = [self.index.read_fragment('ssc/ace', {'coordinate_system': 'gse'}, day)
                    for day in (_utc(2023, 1, 1), _utc(2023, 1, 2))]
-        self.assertEqual((len(entries[0].variable), entries[1].variable), (24, None))
+        self.assertEqual((len(entries[0].product), entries[1].product), (24, None))
 
     def test_a_zero_row_variable_is_stored_as_empty(self):
         self.server.answer = lambda start, stop: _hourly(start, start)
         self.get(_utc(2023, 1, 1), _utc(2023, 1, 2))
-        self.assertIsNone(self.index.read_fragment('ssc/ace', {'coordinate_system': 'gse'}, _utc(2023, 1, 1)).variable)
+        self.assertIsNone(self.index.read_fragment('ssc/ace', {'coordinate_system': 'gse'}, _utc(2023, 1, 1)).product)
 
 
 class Refresh(GetDataTestCase):
@@ -227,6 +234,137 @@ class UpdateAllData(GetDataTestCase):
         self.server.calls.clear()
         self.index.update_all_data(['sscweb/ace'])
         self.assertEqual([c[0] for c in self.server.calls], ['ssc/ace'])
+
+
+class Transparent(GetDataTestCase):
+    """Inside `with DataIndex(...)`, spz.get_data goes through the index; outside, it is back to normal."""
+
+    def setUp(self):
+        super().setUp()
+        import speasy.core.requests_scheduling.request_dispatch as dispatch
+        patcher = mock.patch.object(dispatch, '_scalar_get_data', return_value='direct')
+        self.direct = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_spz_get_data_goes_through_the_index_inside_the_block(self):
+        import speasy as spz
+        with self.index:
+            spz.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2))
+            v = spz.get_data('ssc/ace', (_utc(2023, 1, 1), _utc(2023, 1, 2)))   # a time range tuple too
+        self.assertEqual((len(self.server.calls), len(v)), (1, 24))
+        self.direct.assert_not_called()
+        self.index = DataIndex(self.index.path)   # setUp's cleanup closes it
+
+    def test_spz_get_data_is_back_to_normal_after_the_block(self):
+        import speasy as spz
+        with self.index:
+            pass
+        self.assertEqual(spz.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2)), 'direct')
+        self.index = DataIndex(self.index.path)
+
+    def test_back_to_normal_even_when_the_block_raises(self):
+        import speasy as spz
+        with self.assertRaises(RuntimeError), self.index:
+            raise RuntimeError("boom")
+        self.assertEqual(spz.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2)), 'direct')
+        self.index = DataIndex(self.index.path)
+
+    def test_nested_blocks_restore_the_outer_index(self):
+        import speasy as spz
+        outer, inner = DataIndex(tempfile.mkdtemp()), DataIndex(tempfile.mkdtemp())
+        with outer:
+            with inner:
+                spz.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2))
+            spz.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2))
+        self.assertEqual(len(self.server.calls), 2)   # once into each index
+        self.assertEqual(spz.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2)), 'direct')
+
+    def test_timetables_and_catalogs_go_through_the_index_too(self):
+        import speasy as spz
+        with self.index:
+            spz.get_data('amda/my_timetable')
+            self.assertEqual(len(spz.get_data('amda/my_timetable')), 1)
+        self.assertEqual(len(self.server.calls), 1)
+        self.direct.assert_not_called()
+        self.index = DataIndex(self.index.path)
+
+    def test_datasets_go_through_the_index_too(self):
+        import speasy as spz
+        self.server.answer = lambda start, stop: Dataset('mfi', {'b': _hourly(start, stop)}, {})
+        with self.index:
+            spz.get_data('amda/some_dataset', _utc(2023, 1, 1), _utc(2023, 1, 2))
+            self.assertIsInstance(spz.get_data('amda/some_dataset', _utc(2023, 1, 1), _utc(2023, 1, 2)), Dataset)
+        self.assertEqual(len(self.server.calls), 1)
+        self.direct.assert_not_called()
+        self.index = DataIndex(self.index.path)
+
+    def test_only_the_thread_that_entered_the_block(self):
+        import threading
+        import speasy as spz
+        seen = []
+        with self.index:
+            thread = threading.Thread(target=lambda: seen.append(spz.get_data('ssc/ace', _utc(2023, 1, 1),
+                                                                               _utc(2023, 1, 2))))
+            thread.start()
+            thread.join()
+        self.assertEqual(seen, ['direct'])
+        self.index = DataIndex(self.index.path)
+
+
+class EveryProductKind(GetDataTestCase):
+    def test_a_dataset_is_stored_by_day_and_served_trimmed(self):
+        self.server.answer = lambda start, stop: Dataset('mfi', {'b': _hourly(start, stop), 'n': _hourly(start, stop, 2.)},
+                                                         {'source': 'test'})
+        self.get(_utc(2023, 1, 1), _utc(2023, 1, 3), product='amda/mfi')
+        d = self.get(_utc(2023, 1, 1, 6), _utc(2023, 1, 2, 6), product='amda/mfi')
+        self.assertEqual(len(self.server.calls), 1)
+        self.assertEqual((d.name, d.meta, sorted(d.variables)), ('mfi', {'source': 'test'}, ['b', 'n']))
+        self.assertEqual((len(d['b']), d['n'].values[0, 0]), (24, 2.))
+
+    def test_a_timetable_is_stored_whole(self):
+        first = self.index.get_data('amda/storms')
+        again = self.index.get_data('amda/storms')
+        self.assertEqual(len(self.server.calls), 1)
+        self.assertEqual((again.name, list(again)), (first.name, list(first)))
+
+    def test_a_catalog_is_stored_whole_with_its_events_meta(self):
+        self.server.static_answer = lambda: Catalog('events', meta={'author': 'me'},
+                                                    events=[Event(_utc(2023, 1, 1), _utc(2023, 1, 2), {'class': 'storm'})])
+        self.index.get_data('amda/events')
+        catalog = self.index.get_data('amda/events')
+        self.assertEqual(len(self.server.calls), 1)
+        self.assertEqual((catalog.meta, catalog[0].meta, catalog[0].start_time), ({'author': 'me'}, {'class': 'storm'},
+                                                                                  _utc(2023, 1, 1)))
+
+    def test_refresh_and_update_all_data_cover_timetables(self):
+        self.index.get_data('amda/storms')
+        self.index.get_data('amda/storms', refresh=True)
+        self.index.update_all_data()
+        self.assertEqual(len(self.server.calls), 3)
+        self.assertTrue(all(c[3].get('force_refresh') for c in self.server.calls[1:]))
+
+
+class SameArgumentsAsSpzGetData(GetDataTestCase):
+    def test_a_time_range_tuple(self):
+        self.assertEqual(len(self.index.get_data('ssc/ace', (_utc(2023, 1, 1), _utc(2023, 1, 2)))), 24)
+
+    def test_several_products(self):
+        a, b = self.index.get_data(['ssc/ace', 'ssc/wind'], _utc(2023, 1, 1), _utc(2023, 1, 2))
+        self.assertEqual((len(a), len(b)), (24, 24))
+
+    def test_several_ranges(self):
+        found = self.index.get_data('ssc/ace', [(_utc(2023, 1, 1), _utc(2023, 1, 2)), (_utc(2023, 2, 1), _utc(2023, 2, 2))])
+        self.assertEqual([len(v) for v in found], [24, 24])
+
+    def test_a_timetable_as_the_ranges(self):
+        found = self.index.get_data('ssc/ace', 'amda/storms')
+        self.assertEqual([len(v) for v in found], [24])
+        self.assertEqual(len(self.index.requests()), 2)   # the timetable is stored too
+
+    def test_spz_get_data_is_back_to_normal_afterwards(self):
+        import speasy.core.requests_scheduling.request_dispatch as dispatch
+        self.index.get_data('ssc/ace', _utc(2023, 1, 1), _utc(2023, 1, 2))
+        self.assertIsNone(dispatch.active_data_index.get())
 
 
 class Portability(unittest.TestCase):

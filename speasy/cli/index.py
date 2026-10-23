@@ -44,14 +44,16 @@ def fill(path: str, *products: str, time_ranges: TimeRanges = None, ranges_file:
 
 @app.command
 def info(path: str) -> int:
-    """Print what the data index at PATH holds: per product, the days with data and those known to hold none."""
+    """Print what the data index at PATH holds: per product, the days with data and those known to hold none, or
+    'whole product' for a timetable or a catalog."""
     import humanize
     from speasy.data_index import FORMAT
     with _open(path) as index:
         console().print(table('', '', rows=[('path', index.path), ('size', humanize.naturalsize(index.disk_size())),
                                             ('format', str(FORMAT))]))
         rows = [(entry['product'], ', '.join(f"{k}={v}" for k, v in entry['options'].items()) or '-',
-                 _spans(entry['data']), _spans(entry['empty'])) for entry in index.summary()]
+                 'whole product' if entry['whole'] else _spans(entry['data']), _spans(entry['empty']))
+                for entry in index.summary()]
         console().print(table('product', 'options', 'data', 'known empty', rows=rows))
     return 0
 

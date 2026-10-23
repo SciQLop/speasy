@@ -46,6 +46,26 @@ and serves the rest from the folder:
 Options that change the data, such as a coordinate system, are part of what is stored, so each set of
 options has its own entries. Cache and network options such as ``disable_proxy`` aren't.
 
+Existing code, unchanged
+------------------------
+
+Inside a ``with`` block, plain ``spz.get_data`` goes through the index too, so a notebook becomes
+reproducible without touching its calls. ``DataIndex.get_data`` takes the same arguments as
+``spz.get_data`` (lists of products, lists of ranges, a timetable as the ranges...) and gives the same
+products:
+
+.. code-block:: python
+
+    with spz.DataIndex("~/studies/storms"):
+        b = spz.get_data("amda/imf", "2018-06-01", "2018-06-08")     # stored into / served from the index
+        tt = spz.get_data("amda/sharedtimeTable_37")                  # timetables and catalogs too
+    b = spz.get_data("amda/imf", "2018-06-01", "2018-06-08")         # after the block: back to normal
+
+Everything ``spz.get_data`` gives is stored: time series and datasets by day, timetables and catalogs
+whole. When the block ends, even on an exception,
+``spz.get_data`` works as before. It only applies to the thread that entered the block: threads it
+starts don't use the index.
+
 Refreshing
 ----------
 
@@ -87,7 +107,6 @@ event of an AMDA timetable. See :doc:`cli`.
 Limits
 ------
 
-- Time series only: timetables, catalogs and datasets aren't stored.
 - Data is stored by whole UTC days, so a one-hour request on a fast product downloads its whole day once.
 - For an AMDA template parameter, leaving ``product_inputs`` out and passing their default values store
   the data twice.

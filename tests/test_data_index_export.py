@@ -57,8 +57,8 @@ class ExportImport(unittest.TestCase):
         self.source.write_fragment('cda/AC_H0_MFI/BGSEc', {}, _DAY, None, fetched_at=10)
         self.source.export_data(self.tar)
         target = self._imported()
-        np.testing.assert_array_equal(target.read_fragment('ssc/ace', _OPTIONS, _DAY).variable.values, big.values)
-        self.assertIsNone(target.read_fragment('cda/AC_H0_MFI/BGSEc', {}, _DAY).variable)
+        np.testing.assert_array_equal(target.read_fragment('ssc/ace', _OPTIONS, _DAY).product.values, big.values)
+        self.assertIsNone(target.read_fragment('cda/AC_H0_MFI/BGSEc', {}, _DAY).product)
         self.assertEqual(len(target.requests()), 2)
 
     def test_the_archive_holds_no_sqlite_side_files(self):
