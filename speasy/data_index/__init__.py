@@ -2,6 +2,7 @@
 import inspect
 import logging
 import os
+import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
@@ -20,6 +21,7 @@ from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, provider_class
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS
 from speasy.core.requests_scheduling.request_dispatch import get_data as _spz_get_data, provider_and_product
 from speasy.products.variable import SpeasyVariable, from_dictionary, merge
+from . import _archive
 from ._keys import (FRAGMENT, canonical_provider, data_key, fragments, options_hash, parse_data_key, request_key,
                     runs)
 from ._storable import Serializer, from_storable, to_storable
@@ -227,6 +229,37 @@ class DataIndex:
             log.warning(f"Could not refresh {path} from {run[0]}, which may have grown since it was stored "
                         f"({error}): using the stored data")
 
+    def export_data(self, tar_path: str):
+        """Writes the whole index to ``tar_path``, for ``import_data`` on another machine.
+
+        It copies the index into a temporary folder first, so it needs that much free temporary space."""
+        with tempfile.TemporaryDirectory() as tmp:
+            with DataIndex(os.path.join(tmp, "index")) as snapshot, snapshot._store.transact():
+                for key in self._store.iterkeys():
+                    snapshot._store[key] = self._store[key]
+            # closed: SQLite has folded its write-ahead log into the database, no -wal/-shm left to ship
+            _archive.pack(snapshot.path, tar_path)
+
+    def import_data(self, source: str):
+        """Adds what ``source``, a tar from ``export_data`` or an index folder, holds. When both hold a fragment, the
+        one fetched last wins."""
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = source if os.path.isdir(source) else _archive.unpack(source, tmp)
+            if not os.path.exists(os.path.join(folder, _DB_FILE)):
+                raise ValueError(f"{source} is not a Speasy data index")
+            with DataIndex(folder) as other:
+                self._merge(other)
+
+    def _merge(self, other: "DataIndex"):
+        ours, theirs = self._store[_META].get("fragment_hours"), other._store[_META].get("fragment_hours")
+        if ours != theirs:
+            raise ValueError(f"{other.path} uses {theirs} h fragments and this index {ours} h: they can't be merged")
+        # the write transaction is taken before reading, so a concurrent writer can't slip in between
+        with self._store.transact():
+            for key in other._store.iterkeys():
+                if key != _META and _is_newer(other._store[key], self._store.get(key), key):
+                    self._store[key] = other._store[key]
+
     def update_all_data(self, products: Optional[Iterable] = None):
         """Downloads again everything the index holds, or only ``products`` (any name of their provider), past the
         provider cache. Fragments known to be empty are checked again too."""
@@ -251,6 +284,14 @@ class DataIndex:
             except Exception as e:  # pylint: disable=broad-except
                 errors.append(e)
         return errors
+
+
+def _is_newer(theirs, ours, key: str) -> bool:
+    if not key.startswith("data/"):
+        return True
+    if not (isinstance(theirs, dict) and isinstance(theirs.get("fetched_at"), int)):
+        raise ValueError(f"Refusing a malformed data index entry {key!r}")
+    return ours is None or theirs["fetched_at"] > ours["fetched_at"]
 
 
 def _canonical_path(product) -> str:

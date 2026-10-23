@@ -168,7 +168,8 @@ class DataProvider:
         """The ``get_data`` keyword arguments that change the returned data, defaults filled in, so that two
         requests for the same data give equal dicts. Cache and transport options are left out.
 
-        A classmethod, so it never starts the provider. Override it when ``get_data`` takes such options."""
+        A classmethod, so it never starts the provider. Override it when ``get_data`` takes such options.
+        What it returns must be valid ``get_data`` keyword arguments: a data index replays them to refresh its data."""
         return {}
 
     def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
