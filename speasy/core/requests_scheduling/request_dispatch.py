@@ -329,6 +329,9 @@ def get_data(*args, **kwargs) -> MaybeAnyProduct:
             ignore proxy configuration and always bypass proxy server when True (default: False).
         - disable_cache: bool
             ignore cache content when True (default: False).
+        - force_refresh: bool
+            download again even when the cache is up to date, and store the result in the cache when True
+            (default: False). It always bypasses the proxy server, which is shared by every user.
         - progress: bool
             show progress bar when True (default: False).
 

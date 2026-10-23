@@ -252,7 +252,7 @@ class CdaWebservice(DataProvider):
 
     def _get_data_with_direct_archive(self, product, start_time: datetime, stop_time: datetime, mode_is_best: bool,
                                       if_newer_than: datetime or None = None,
-                                      extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
+                                      extra_http_headers: Dict or None = None, **kwargs) -> Optional[SpeasyVariable]:
 
         dataset, variable = self._to_dataset_and_variable(product)
         dataset = self.flat_inventory.datasets[dataset]
@@ -264,11 +264,11 @@ class CdaWebservice(DataProvider):
         log.debug(f"Trying to get {product} with direct_archive method, archive_params={archive_params}")
         if archive_params is not None:
             return direct_archive_get_product(variable=variable, start_time=start_time, stop_time=stop_time,
-                                              **archive_params)
+                                              force_refresh=kwargs.get('force_refresh', False), **archive_params)
         if not mode_is_best:
             log.warning(f"Can't get {product} without web service, switching to web service")
         return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
-                                      if_newer_than=if_newer_than, extra_http_headers=extra_http_headers)
+                                      if_newer_than=if_newer_than, extra_http_headers=extra_http_headers, **kwargs)
 
     @AllowedKwargs(
         PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['if_newer_than', 'method'])
@@ -282,7 +282,7 @@ class CdaWebservice(DataProvider):
             return self._get_data_with_direct_archive(product=product, start_time=start_time, stop_time=stop_time,
                                                       if_newer_than=if_newer_than,
                                                       extra_http_headers=extra_http_headers,
-                                                      mode_is_best=method.upper() == 'BEST')
+                                                      mode_is_best=method.upper() == 'BEST', **kwargs)
         else:
             return self._get_data_with_ws(product=product, start_time=start_time, stop_time=stop_time,
                                           if_newer_than=if_newer_than, extra_http_headers=extra_http_headers, **kwargs)
