@@ -569,6 +569,10 @@ class UnversionedProviderCache(object):
             data = get_data(wrapped_self, product=product, start_time=fragments[0],
                             stop_time=fragments[-1] + fragment_duration, **kwargs)
             if data is None:
+                if force_refresh:
+                    # the server has nothing there any more, so what we had is gone too
+                    self._release([item._replace(stale_entry=None) for item in group], product, **kwargs)
+                    return []
                 return self._keep_stale_entries(group, product, **kwargs)
             self._cache.add_to_cache(data, fragments, product, fragment_duration=fragment_duration,
                                      version=self.version, lifetime=self.cache_retention,

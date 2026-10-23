@@ -25,11 +25,14 @@ class _Dataset:
     def __init__(self):
         self.calls = []
         self.offline = False
+        self.gone = False
 
     def _serve(self, start_time, stop_time, **kwargs):
         if self.offline:
             raise ConnectionError("offline")
         self.calls.append(kwargs)
+        if self.gone:
+            return None
         return _minutely(start_time, stop_time, len(self.calls))
 
 
@@ -65,6 +68,13 @@ class ForceRefresh:
         cached = self.dataset.get_data("ace", _START, _STOP)
         self.assertEqual(len(self.dataset.calls), 2)
         self.assertTrue(np.all(cached.values == 2.))
+
+    def test_finding_no_data_drops_the_old_data(self):
+        # a forced refresh means "what the server has now": giving the old rows back would let the data index
+        # store them again under a fresh date
+        self.dataset.gone = True
+        self.assertIsNone(self.dataset.get_data("ace", _START, _STOP, force_refresh=True))
+        self.assertIsNone(self.dataset.get_data("ace", _START, _STOP))
 
     def test_bypasses_the_proxy(self):
         self.dataset.get_data("ace", _START, _STOP, force_refresh=True)
