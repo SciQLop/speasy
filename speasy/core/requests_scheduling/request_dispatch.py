@@ -1,5 +1,6 @@
 import functools
 import threading
+from contextvars import ContextVar
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
 import traceback
@@ -265,15 +266,31 @@ def _unavailable_provider_hint(name: str) -> str:
 
 
 def _get_catalog_or_timetable(index, **kwargs):
-    return _scalar_get_data(index, **kwargs)
+    return _get_one(index, **kwargs)
+
+
+# The DataIndex a `with DataIndex(...)` block made active: every request goes through it. A ContextVar, so it only
+# applies to the thread (or async task) that entered the block, and is restored when the block ends.
+active_data_index: ContextVar = ContextVar("active_data_index", default=None)
+
+
+def _get_one(index, *time_range, **kwargs):
+    data_index = active_data_index.get()
+    if data_index is not None:
+        return data_index.serve(index, *time_range, **kwargs)
+    return _scalar_get_data(index, *time_range, **kwargs)
+
+
+def _get_timeserie(index, start, stop, **kwargs):
+    return _get_one(index, start, stop, **kwargs)
 
 
 def _get_timeserie1(index, dtrange, **kwargs):
-    return _scalar_get_data(index, dtrange[0], dtrange[1], **kwargs)
+    return _get_timeserie(index, dtrange[0], dtrange[1], **kwargs)
 
 
 def _get_timeserie2(index, start, stop, **kwargs):
-    return _scalar_get_data(index, start, stop, **kwargs)
+    return _get_timeserie(index, start, stop, **kwargs)
 
 
 def _compile_args(*args, **kwargs):
