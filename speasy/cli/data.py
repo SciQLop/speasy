@@ -1,6 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Annotated, List, Optional, Tuple
+from typing import Annotated, Callable, List, Optional, Tuple
 
 from cyclopts import App, Parameter
 
@@ -84,20 +84,54 @@ def _ranges_from(product: str) -> List[Tuple[str, str]]:
     return [(r.start_time.isoformat(), r.stop_time.isoformat()) for r in events]
 
 
-def _warm_one(product: str, start: str, stop: str) -> Tuple[bool, str]:
-    import speasy
+TimeRanges = Annotated[Optional[List[Tuple[str, str]]], Parameter(name='--range', negative=())]
+
+
+def collect_ranges(time_ranges: Optional[List[Tuple[str, str]]], ranges_file: Optional[str],
+                   ranges_from: Optional[str]) -> List[Tuple[str, str]]:
+    """The ranges given with --range, --ranges-file and --ranges-from, at least one."""
+    ranges = [*(time_ranges or []), *(_read_ranges(ranges_file) if ranges_file else []),
+              *(_ranges_from(ranges_from) if ranges_from else [])]
+    if not ranges:
+        raise ValueError("give at least one time range, with --range START STOP, --ranges-file FILE "
+                         "or --ranges-from TIMETABLE")
+    return ranges
+
+
+def _fetch_one(get_data: Callable, product: str, start: str, stop: str) -> Tuple[bool, str]:
     try:
-        var = speasy.get_data(product, start, stop)
-    except Exception as e:  # one failing request must not stop the warm-up
+        var = get_data(product, start, stop)
+    except Exception as e:  # one failing request must not stop the others
         return False, f"[red]✗[/red] {product} {start} → {stop}: {type(e).__name__}: {e}"
     found = f"{len(var)} samples" if var is not None else "no data"
     return True, f"[green]✓[/green] {product} {start} → {stop} ({found})"
 
 
+def fetch_all(get_data: Callable, products, ranges: List[Tuple[str, str]], workers: int) -> int:
+    """Calls get_data on every product and range, ``workers`` at a time, and prints how each one went."""
+    if workers < 1:
+        return error(f"--workers must be at least 1, got {workers}")
+    # threads, not processes: a process pool deadlocks on Speasy's import lock (#381)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_fetch_one, get_data, product, start, stop)
+                   for product in products for start, stop in ranges]
+        results = []
+        for future in as_completed(futures):  # printed from this thread only, lines never interleave
+            ok, line = future.result()
+            console().print(line, highlight=False)
+            results.append(ok)
+    console().print(f"{sum(results)}/{len(results)} requests done")
+    return 0 if all(results) else 1
+
+
+def _speasy_get_data(*args):
+    import speasy
+    return speasy.get_data(*args)
+
+
 @cache_app.command
-def warm(*products: str,
-         time_ranges: Annotated[Optional[List[Tuple[str, str]]], Parameter(name='--range', negative=())] = None,
-         ranges_file: Optional[str] = None, ranges_from: Optional[str] = None, workers: int = 1) -> int:
+def warm(*products: str, time_ranges: TimeRanges = None, ranges_file: Optional[str] = None,
+         ranges_from: Optional[str] = None, workers: int = 1) -> int:
     """Download products ahead of time, so later requests are served from the cache.
 
     Parameters
@@ -113,23 +147,7 @@ def warm(*products: str,
     workers: int
         How many requests run at the same time.
     """
-    ranges = [*(time_ranges or []), *(_read_ranges(ranges_file) if ranges_file else []),
-              *(_ranges_from(ranges_from) if ranges_from else [])]
-    if not ranges:
-        return error("give at least one time range, with --range START STOP, --ranges-file FILE "
-                     "or --ranges-from TIMETABLE")
-    if workers < 1:
-        return error(f"--workers must be at least 1, got {workers}")
-    # threads, not processes: a process pool deadlocks on Speasy's import lock (#381)
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(_warm_one, product, start, stop) for product in products for start, stop in ranges]
-        results = []
-        for future in as_completed(futures):  # printed from this thread only, lines never interleave
-            ok, line = future.result()
-            console().print(line, highlight=False)
-            results.append(ok)
-    console().print(f"{sum(results)}/{len(results)} requests done")
-    return 0 if all(results) else 1
+    return fetch_all(_speasy_get_data, products, collect_ranges(time_ranges, ranges_file, ranges_from), workers)
 
 
 @cache_app.command
