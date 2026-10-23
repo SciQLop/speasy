@@ -40,9 +40,13 @@ class Cdpp3dViewWebException(Exception):
     pass
 
 
+DEFAULT_COORDINATE_FRAME = "J2000"
+DEFAULT_SAMPLING = "600"
+
+
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
-    coordinate_frame = kwargs.get('coordinate_frame', 'J2000')
-    sampling = kwargs.get('sampling', '600')
+    coordinate_frame = kwargs.get('coordinate_frame', DEFAULT_COORDINATE_FRAME)
+    sampling = kwargs.get('sampling', DEFAULT_SAMPLING)
     return f"{prefix}/{product}/{coordinate_frame}/{sampling}/{start_time}"
 
 
@@ -55,7 +59,7 @@ def _resolve_coordinate_frame(coordinate_frame: Optional[str], coordinate_system
             f"Got conflicting coordinate_frame={coordinate_frame!r} and "
             f"coordinate_system={coordinate_system!r} -- they are aliases for the same thing, pass only one."
         )
-    return coordinate_frame or coordinate_system or "J2000"
+    return coordinate_frame or coordinate_system or DEFAULT_COORDINATE_FRAME
 
 
 def _get_json(url: str):
@@ -67,8 +71,8 @@ def _get_json(url: str):
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"cdpp3dview/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_frame', 'J2000'),
-            'sampling': kwargs.get('sampling', '600')}
+            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_frame', DEFAULT_COORDINATE_FRAME),
+            'sampling': kwargs.get('sampling', DEFAULT_SAMPLING)}
 
 CDPP3DVIEW_MIN_PROXY_VERSION = Version('0.14.0')
 
@@ -141,6 +145,12 @@ class Cdpp3dViewWebservice(DataProvider):
 
         return root
 
+    @classmethod
+    def request_options(cls, coordinate_frame: Optional[str] = None, coordinate_system: Optional[str] = None,
+                        sampling: str = DEFAULT_SAMPLING, **kwargs) -> dict:
+        return {'coordinate_frame': _resolve_coordinate_frame(coordinate_frame, coordinate_system),
+                'sampling': str(sampling)}
+
     def get_data(
         self,
         product: str,
@@ -148,16 +158,17 @@ class Cdpp3dViewWebservice(DataProvider):
         stop_time: AnyDateTimeType,
         coordinate_frame: Optional[str] = None,
         coordinate_system: Optional[str] = None,
-        sampling: str = "600",
+        sampling: str = DEFAULT_SAMPLING,
         if_newer_than: Optional[AnyDateTimeType] = None,
         **kwargs,
     ) -> Optional[SpeasyVariable]:
         coordinate_frame = _resolve_coordinate_frame(coordinate_frame, coordinate_system)
         available_frames = self.get_frames()
         if not available_frames:
-            log.warning(
-                "No available coordinate frames retrieved from 3dView.")
-            coordinate_frame = "J2000"
+            # 3DView is unreachable, but the proxy or the cache may still serve this frame: never swap it for
+            # another one, that would hand back data in a frame nobody asked for
+            log.warning(f"Could not retrieve the coordinate frames from 3dView, can't check that "
+                        f"'{coordinate_frame}' is one of them.")
         elif coordinate_frame not in available_frames:
             exception_msg = (
                 f"Coordinate frame '{coordinate_frame}' is not available.\n"
@@ -192,7 +203,7 @@ class Cdpp3dViewWebservice(DataProvider):
         start_time: AnyDateTimeType,
         stop_time: AnyDateTimeType,
         coordinate_frame: str,
-        sampling: str = "600",
+        sampling: str = DEFAULT_SAMPLING,
         if_newer_than: Optional[AnyDateTimeType] = None,
         format: str = "cdf",
         **kwargs,

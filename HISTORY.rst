@@ -7,6 +7,9 @@ Unreleased
 
 Bug fixes:
 
+* CDPP 3DView: when its list of coordinate frames could not be fetched, ``get_data`` silently replaced
+  the requested frame by ``J2000``. With 3DView down but the proxy or the local cache still serving
+  data, a ``GSE`` request could return ``J2000`` positions. The requested frame is now always kept.
 * The HAPI writers (``hapi/csv``, ``hapi/binary``) write headers that validate against the HAPI 3.2 schema:
 
   * a fill value is written as one number (``"-1e+31"``, ``"NaN"``), not as an array (``"[-1e+31]"``);
@@ -45,6 +48,11 @@ New features:
 * Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
   URL in ``url_pattern`` or ``master_file``. Folder listing (``use_file_list``, ``random`` splits) and
   the file cache work as for HTTP.
+* ``DataProvider.request_options(**kwargs)``, a classmethod, gives the ``get_data`` options that change
+  the returned data, with their defaults filled in: the coordinate system for SSCWeb, the frame and
+  sampling for CDPP 3DView, and the output format, restricted period and template inputs for AMDA. It
+  works without starting the provider. ``speasy.core.dataprovider.provider_class(name)`` gives the
+  class registered under a provider name or alias.
 
 1.9.1 (2026-10-06)
 ------------------

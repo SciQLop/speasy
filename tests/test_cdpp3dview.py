@@ -318,6 +318,25 @@ class Cdpp3dViewFramesWithProxyInventory(unittest.TestCase):
             self.assertEqual(spz.cdpp3dview.get_frames(), [])
 
 
+class Cdpp3dViewFramesUnreachable(unittest.TestCase):
+    # 3DView down while the proxy or the local cache can still serve data: the requested frame used to be
+    # silently replaced by J2000, so a GSE request got J2000 positions back with only a warning
+    def _requested_frame(self, **kwargs):
+        from unittest.mock import patch
+        provider = object.__new__(cdpp3dview.Cdpp3dViewWebservice)   # not started, 3DView is never contacted
+        with patch.object(provider, 'get_frames', return_value=[]), \
+                patch.object(provider, '_get_trajectory', return_value=None) as trajectory:
+            provider.get_data('Pioneer10', datetime(2020, 1, 1, tzinfo=timezone.utc),
+                              datetime(2020, 1, 2, tzinfo=timezone.utc), **kwargs)
+        return trajectory.call_args.kwargs['coordinate_frame']
+
+    def test_the_requested_frame_is_kept(self):
+        self.assertEqual(self._requested_frame(coordinate_frame='GSE'), 'GSE')
+
+    def test_the_default_frame_is_still_j2000(self):
+        self.assertEqual(self._requested_frame(), 'J2000')
+
+
 class _FlakyJsonServer:
     """Answers each GET with the next (status, body) in `replies`, repeating the last one."""
 
