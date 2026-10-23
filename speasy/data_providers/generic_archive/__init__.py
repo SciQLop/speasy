@@ -221,7 +221,7 @@ class GenericArchive(DataProvider):
         else:
             raise ValueError(f"Got unexpected type {type(product)}, expecting str or ParameterIndex")
 
-    @AllowedKwargs(GET_DATA_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + ['force_refresh'])
+    @AllowedKwargs(GET_DATA_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS)
     def get_data(self, product: str or ParameterIndex, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                  **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_data(product=self._parameter_index(product), start_time=start_time, stop_time=stop_time,

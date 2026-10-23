@@ -33,8 +33,19 @@ Bug fixes:
   * ``hapi/csv`` can read back a header-only "no data" file;
   * bin centers containing NaN or infinity are written as ``null`` instead of invalid JSON;
   * the HAPI readers accept bins given only by their ``ranges``, centered on each range.
+* CDAWeb with the default ``BEST`` (or ``FILE``) access method passed on no cache option:
+  ``prefer_cache``, ``disable_cache`` and ``disable_proxy`` were ignored, whether the data came from
+  the archive or from the web service fallback. ``prefer_cache=True`` now reaches the archive.
+* Direct archives (CDAWeb's archive path included) honour ``prefer_cache`` for their folder listings
+  too: once the 12 h listing cache had expired, every request listed the folders again, which fails
+  offline. With an expired cache, a cached CDAWeb request now makes no network request at all, where
+  it made one listing plus a ``HEAD`` request per file.
 
 New features:
+
+* ``get_data(..., force_refresh=True)`` downloads the data again even when the cache is up to date,
+  and stores the result in the cache. It works with every provider, and always bypasses the proxy
+  server.
 
 * CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
   parameters sharing a time axis can be told apart from the inventory alone.
