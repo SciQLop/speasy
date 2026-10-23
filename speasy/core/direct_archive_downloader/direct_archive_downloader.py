@@ -62,12 +62,13 @@ def _natural_order(file_name: str) -> List[Tuple[int, int | str]]:
     return [(1, int(chunk)) if chunk.isdigit() else (0, chunk) for chunk in _DIGITS.split(file_name)]
 
 
-def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refresh=False) -> str | None:
+def _build_url(url_pattern: str, date: datetime, use_file_list=False, force_refresh=False,
+               prefer_cache=False) -> str | None:
     base_ulr = apply_date_format(url_pattern, date)
     if not use_file_list:
         return base_ulr
     folder_url, rx = base_ulr.rsplit('/', 1)
-    files = list_remote_files(folder_url, re.compile(rx), force_refresh=force_refresh)
+    files = list_remote_files(folder_url, re.compile(rx), force_refresh=force_refresh, prefer_cache=prefer_cache)
     if len(files):
         return '/'.join((folder_url, max(files, key=_natural_order)))
     return None
@@ -223,7 +224,7 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def list_files(split_frequency, url_pattern: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                   fname_regex: str, date_format=None, force_refresh=False) -> List[str]:
+                   fname_regex: str, date_format=None, force_refresh=False, prefer_cache=False) -> List[str]:
 
         keep = []
         start_time = make_utc_datetime(start_time)
@@ -239,7 +240,8 @@ class RandomSplitDirectDownload:
                 list_remote_files(folder_url, re.compile(folder_regex), force_refresh=True)
 
             files = filter_ranges(
-                map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format, force_refresh=force_refresh),
+                map_ranges(base_ulr, fname_regex=fname_regex, date_format=date_format, force_refresh=force_refresh,
+                           prefer_cache=prefer_cache),
                 start_time, stop_time)
 
             if len(files):
@@ -251,8 +253,9 @@ class RandomSplitDirectDownload:
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
                     file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> SpeasyVariable | None:
 
-        # kept in kwargs on purpose: it must also reach the file reader's own cache
+        # kept in kwargs on purpose: they must also reach the file reader's own cache
         force_refresh = kwargs.get('force_refresh', False)
+        prefer_cache = kwargs.get('prefer_cache', False)
         downloader = lambda force_refresh: merge(
             randomized_map(
                 partial(file_reader, variable=variable, **kwargs),
@@ -261,7 +264,8 @@ class RandomSplitDirectDownload:
                                                      start_time=start_time, stop_time=stop_time,
                                                      fname_regex=fname_regex,
                                                      date_format=date_format,
-                                                     force_refresh=force_refresh
+                                                     force_refresh=force_refresh,
+                                                     prefer_cache=prefer_cache
                                                      )
             )
         )
@@ -288,11 +292,12 @@ class RegularSplitDirectDownload:
                     file_reader: FileLoaderCallable = _read_cdf,
                     **kwargs) -> \
         SpeasyVariable | None:
-        # kept in kwargs on purpose: it must also reach the file reader's own cache
+        # kept in kwargs on purpose: they must also reach the file reader's own cache
         force_refresh = kwargs.get('force_refresh', False)
+        prefer_cache = kwargs.get('prefer_cache', False)
         v = merge(randomized_map(
             lambda date: file_reader(_build_url(url_pattern, date, use_file_list=use_file_list,
-                                                force_refresh=force_refresh),
+                                                force_refresh=force_refresh, prefer_cache=prefer_cache),
                                      variable=variable, **kwargs),
             spilt_range(split_frequency=split_frequency, start_time=start_time, stop_time=stop_time)))
         if v is not None:

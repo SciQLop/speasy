@@ -34,8 +34,12 @@ Bug fixes:
   * bin centers containing NaN or infinity are written as ``null`` instead of invalid JSON;
   * the HAPI readers accept bins given only by their ``ranges``, centered on each range.
 * CDAWeb with the default ``BEST`` (or ``FILE``) access method passed on no cache option:
-  ``prefer_cache``, ``disable_cache`` and ``disable_proxy`` were ignored when it fell back to the
-  web service.
+  ``prefer_cache``, ``disable_cache`` and ``disable_proxy`` were ignored, whether the data came from
+  the archive or from the web service fallback. ``prefer_cache=True`` now reaches the archive.
+* Direct archives (CDAWeb's archive path included) honour ``prefer_cache`` for their folder listings
+  too: once the 12 h listing cache had expired, every request listed the folders again, which fails
+  offline. With an expired cache, a cached CDAWeb request now makes no network request at all, where
+  it made one listing plus a ``HEAD`` request per file.
 
 New features:
 
