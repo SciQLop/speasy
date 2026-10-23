@@ -36,6 +36,10 @@ Bug fixes:
 
 New features:
 
+* ``numcodecs`` is now a dependency (except under Pyodide), so data from the community cache server
+  always comes ``blosc`` compressed. The ``blosc`` extra is kept, empty, so ``speasy[blosc]`` still
+  installs. ``speasy.core.proxy.blosc_arrays`` encodes numpy arrays in that same format, the inverse of
+  ``unblosc_arrays``.
 * CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
   parameters sharing a time axis can be told apart from the inventory alone.
 * Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
