@@ -57,8 +57,14 @@ except ImportError:
 
 try:
     from numcodecs import Blosc
+    from numcodecs.blosc import MAX_BUFFERSIZE
+
+    # Same settings as the proxy server: byte-shuffle + zstd level 1 per array (https://www.blosc.org/)
+    _BLOSC = Blosc(cname="zstd", clevel=1, shuffle=Blosc.SHUFFLE)
 except ImportError:
+    # numcodecs is a dependency everywhere but WASM, where users load Pyodide's numcodecs package themselves
     Blosc = None
+_BLOSC_KINDS = "biufcmM"
 
 zstd_compression = 'true' if pyzstd is not None else 'false'
 
@@ -66,6 +72,25 @@ zstd_compression = 'true' if pyzstd is not None else 'false'
 def _raw_view(array: np.ndarray) -> np.ndarray:
     # datetime64/timedelta64 don't expose the buffer protocol, the proxy sends their bytes as int64
     return array.view("i8") if array.dtype.kind in "mM" else array
+
+
+def _blosc_array(value):
+    # empty arrays stay raw: numcodecs cannot decode the chunk it makes for them
+    if isinstance(value, np.ndarray) and value.dtype.kind in _BLOSC_KINDS and 0 < value.nbytes <= MAX_BUFFERSIZE:
+        return {"__blosc__": _BLOSC.encode(np.ascontiguousarray(_raw_view(value))), "dtype": value.dtype.str,
+                "shape": list(value.shape)}
+    return value
+
+
+def blosc_arrays(obj):
+    """Replace every numeric numpy array by {"__blosc__": chunk, "dtype", "shape"}, the proxy's wire format.
+
+    The marker only holds bytes, str and a list, so it can be stored with msgpack as well as pickle."""
+    if isinstance(obj, dict):
+        return {k: blosc_arrays(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [blosc_arrays(v) for v in obj]
+    return _blosc_array(obj)
 
 
 def _unblosc_array(marker: dict) -> np.ndarray:
