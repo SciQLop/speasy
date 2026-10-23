@@ -157,6 +157,21 @@ class DataIndex:
                               "options": self._store[key]["options"]})
         return found
 
+    def summary(self) -> List[dict]:
+        """Per product and options: the spans of days with data, and of days known to hold none."""
+        days = defaultdict(lambda: ([], []))
+        for key in self._store.iterkeys():
+            if (parsed := parse_data_key(key)) is not None:
+                known_empty = self._store[key]["variable"] is None
+                days[(parsed.provider, parsed.product, parsed.options_digest)][known_empty].append(parsed.fragment)
+        return [{"product": f"{provider}/{product}",
+                 "options": self._store[request_key(provider, product, digest)]["options"],
+                 "data": _spans(with_data), "empty": _spans(empty)}
+                for (provider, product, digest), (with_data, empty) in sorted(days.items())]
+
+    def disk_size(self) -> int:
+        return self._store.volume()
+
     def get_data(self, product, start: AnyDateTimeType, stop: AnyDateTimeType, refresh: bool = False,
                  **kwargs) -> Optional[SpeasyVariable]:
         """Like ``speasy.get_data``, but served from the index, which downloads only what it doesn't hold yet.
@@ -292,6 +307,10 @@ def _is_newer(theirs, ours, key: str) -> bool:
     if not (isinstance(theirs, dict) and isinstance(theirs.get("fetched_at"), int)):
         raise ValueError(f"Refusing a malformed data index entry {key!r}")
     return ours is None or theirs["fetched_at"] > ours["fetched_at"]
+
+
+def _spans(starts: List[datetime]) -> List[Tuple[datetime, datetime]]:
+    return [(run[0], run[-1] + FRAGMENT) for run in runs(sorted(starts))]
 
 
 def _canonical_path(product) -> str:
