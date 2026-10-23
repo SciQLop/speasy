@@ -3,7 +3,7 @@ import hashlib
 import json
 import math
 from datetime import datetime, timedelta, timezone
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
 from urllib.parse import quote, unquote
 
 from speasy.core import AnyDateTimeType, make_utc_datetime
@@ -73,3 +73,17 @@ def parse_data_key(key: str) -> Optional[DataKey]:
     provider, product, digest, fragment = rest.split('/')
     return DataKey(provider, unquote(product), digest,
                    datetime.strptime(fragment, _KEY_TIME_FORMAT).replace(tzinfo=timezone.utc))
+
+
+def static_key(provider: str, product: str, options_digest: str) -> str:
+    """A product without a time range, a timetable or a catalog, stored whole."""
+    return f"static/{_request_prefix(provider, product, options_digest)}"
+
+
+def parse_static_key(key: str) -> Optional[Tuple[str, str, str]]:
+    """(provider, product, options digest) of a static/ key, or None for any other key."""
+    kind, sep, rest = key.partition('/')
+    if kind != "static" or not sep:
+        return None
+    provider, product, digest = rest.split('/')
+    return provider, unquote(product), digest

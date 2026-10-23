@@ -4,6 +4,7 @@ import logging
 import os
 import tempfile
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote
@@ -19,12 +20,15 @@ from speasy.core.cache import CACHE_ALLOWED_KWARGS
 from speasy.core.cache._providers_caches import PROVISIONAL_FRAGMENT_LIFETIME
 from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, provider_class
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS
-from speasy.core.requests_scheduling.request_dispatch import get_data as _spz_get_data, provider_and_product
-from speasy.products.variable import SpeasyVariable, from_dictionary, merge
+# straight to the provider: going through spz.get_data would come back here while this index is active
+from speasy.core.requests_scheduling.request_dispatch import (_scalar_get_data as _spz_get_data, active_data_index,
+                                                              get_data as _dispatch_get_data, provider_and_product)
+from speasy.products import Dataset, SpeasyVariable
+from speasy.products.variable import merge
 from . import _archive
-from ._keys import (FRAGMENT, canonical_provider, data_key, fragments, options_hash, parse_data_key, request_key,
-                    runs)
-from ._storable import Serializer, from_storable, to_storable
+from ._keys import (FRAGMENT, canonical_provider, data_key, fragments, options_hash, parse_data_key, parse_static_key,
+                    request_key, runs, static_key)
+from ._storable import NotStorable, Serializer, load_product, store_product, to_storable
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +46,9 @@ def _now() -> datetime:
 
 
 class Entry(NamedTuple):
-    """One stored fragment. ``variable`` is None for a fragment known to hold no data."""
+    """One stored fragment, a time series or a dataset; ``product`` is None for a fragment known to hold no data."""
     fetched_at: int
-    variable: Optional[SpeasyVariable]
+    product: Optional[SpeasyVariable | Dataset]
 
 
 def _split(product: str) -> Tuple[str, str]:
@@ -76,10 +80,15 @@ def _is_live_edge(fragment: datetime, entry: Entry, now: datetime) -> bool:
     return fragment + FRAGMENT > fetched and now - fetched >= PROVISIONAL_FRAGMENT_LIFETIME
 
 
-def _pieces(variable: Optional[SpeasyVariable], run: List[datetime]) -> Dict[datetime, Optional[SpeasyVariable]]:
-    """Cuts a run's result into its fragments; a fragment without rows is None."""
-    pieces = {fragment: variable[fragment:fragment + FRAGMENT] if variable is not None else None for fragment in run}
-    return {fragment: piece.copy() if piece is not None and len(piece) else None for fragment, piece in pieces.items()}
+def _cut(product, fragment: datetime):
+    """The part of a time series or dataset in one fragment; None when it holds no row."""
+    if product is None:
+        return None
+    if isinstance(product, Dataset):
+        variables = {name: v[fragment:fragment + FRAGMENT].copy() for name, v in product.variables.items()}
+        return Dataset(product.name, variables, product.meta) if any(map(len, variables.values())) else None
+    piece = product[fragment:fragment + FRAGMENT]
+    return piece.copy() if len(piece) else None
 
 
 def _refuse_foreign_folder(path: str):
@@ -98,10 +107,14 @@ def _open_store(path: str):
 class DataIndex:
     """A folder holding exactly the data put in it: it never expires, and can be exported and imported.
 
+    It stores whatever ``speasy.get_data`` gives: time series and datasets by day, timetables and catalogs whole.
+    Inside a ``with`` block, ``speasy.get_data`` itself goes through it, in the thread that entered the block.
+
     A fragment once stored, even known to be empty, is only downloaded again when asked to (``refresh=True``,
     ``update_all_data``), except the last one of a dataset, which may still grow and is refetched once an hour."""
 
     def __init__(self, path: str):
+        self._activations = []
         self.path = os.path.expanduser(path)
         _refuse_foreign_folder(self.path)
         self._store = _open_store(self.path)
@@ -124,27 +137,34 @@ class DataIndex:
         self._store.close()
 
     def __enter__(self):
+        """Inside the block, ``speasy.get_data`` goes through this index (in this thread)."""
+        self._activations.append(active_data_index.set(self))
         return self
 
+    @contextmanager
+    def _active(self):
+        token = active_data_index.set(self)
+        try:
+            yield
+        finally:
+            active_data_index.reset(token)
+
     def __exit__(self, *exc):
+        active_data_index.reset(self._activations.pop())
         self.close()
 
-    def write_fragment(self, product: str, options: dict, fragment: datetime, variable: Optional[SpeasyVariable],
-                       fetched_at: int):
+    def write_fragment(self, product: str, options: dict, fragment: datetime, data, fetched_at: int):
         provider, name = _split(product)
         digest = options_hash(options)
         # set() is idempotent: no read-then-write on every request
         self._store[request_key(provider, name, digest)] = {"options": options}
-        stored = to_storable(variable.to_dictionary()) if variable is not None else None
-        self._store[data_key(provider, name, digest, fragment)] = {"fetched_at": int(fetched_at), "variable": stored}
+        self._store[data_key(provider, name, digest, fragment)] = {"fetched_at": int(fetched_at),
+                                                                   "product": store_product(data)}
 
     def read_fragment(self, product: str, options: dict, fragment: datetime) -> Optional[Entry]:
         provider, name = _split(product)
         raw = self._store.get(data_key(provider, name, options_hash(options), fragment))
-        if raw is None:
-            return None
-        variable = raw["variable"]
-        return Entry(raw["fetched_at"], from_dictionary(from_storable(variable)) if variable is not None else None)
+        return None if raw is None else Entry(raw["fetched_at"], load_product(raw["product"]))
 
     def requests(self) -> List[dict]:
         """Every product and options this index stores data for."""
@@ -158,54 +178,91 @@ class DataIndex:
         return found
 
     def summary(self) -> List[dict]:
-        """Per product and options: the spans of days with data, and of days known to hold none."""
-        days = defaultdict(lambda: ([], []))
+        """Per product and options: the spans of days with data and of days known to hold none, or, for a timetable
+        or a catalog, ``whole``."""
+        days, whole = defaultdict(lambda: ([], [])), []
         for key in self._store.iterkeys():
             if (parsed := parse_data_key(key)) is not None:
-                known_empty = self._store[key]["variable"] is None
+                known_empty = self._store[key]["product"] is None
                 days[(parsed.provider, parsed.product, parsed.options_digest)][known_empty].append(parsed.fragment)
-        return [{"product": f"{provider}/{product}",
-                 "options": self._store[request_key(provider, product, digest)]["options"],
-                 "data": _spans(with_data), "empty": _spans(empty)}
-                for (provider, product, digest), (with_data, empty) in sorted(days.items())]
+            elif (static := parse_static_key(key)) is not None:
+                whole.append(static)
+        return sorted([*({**self._request(*request), "data": _spans(with_data), "empty": _spans(empty), "whole": False}
+                         for request, (with_data, empty) in days.items()),
+                       *({**self._request(*request), "data": [], "empty": [], "whole": True} for request in whole)],
+                      key=lambda entry: entry["product"])
+
+    def _request(self, provider: str, product: str, digest: str) -> dict:
+        return {"product": f"{provider}/{product}", "options": self._store[request_key(provider, product, digest)]["options"]}
 
     def disk_size(self) -> int:
         return self._store.volume()
 
-    def get_data(self, product, start: AnyDateTimeType, stop: AnyDateTimeType, refresh: bool = False,
-                 **kwargs) -> Optional[SpeasyVariable]:
-        """Like ``speasy.get_data``, but served from the index, which downloads only what it doesn't hold yet.
+    def get_data(self, *args, **kwargs):
+        """Takes the same arguments as ``speasy.get_data`` and gives the same products, served from the index, which
+        downloads only what it doesn't hold yet.
 
-        ``refresh=True`` downloads the whole range again, past the provider cache, and replaces what the index held,
-        even with nothing if the provider has no data there any more."""
+        ``refresh=True`` downloads again past the provider cache, and replaces what the index held, even with nothing
+        if the provider has no data there any more."""
+        with self._active():
+            return _dispatch_get_data(*args, **kwargs)
+
+    def serve(self, product, *time_range, refresh: bool = False, **kwargs):
+        """One request without lists, as ``speasy.get_data`` hands them to the active index."""
         path = _product_path(product)
-        _check_kwargs(provider_class(_split(path)[0]), kwargs)
+        provider = provider_class(_split(path)[0])
+        _check_kwargs(provider, kwargs)
+        options = to_storable(provider.request_options(**kwargs))
+        if refresh:
+            kwargs = {**kwargs, 'force_refresh': True}
+        if time_range:
+            return self._serve_range(path, options, *time_range, refresh=refresh, kwargs=kwargs)
+        return self._serve_whole(path, options, refresh, kwargs)
+
+    def _serve_whole(self, path: str, options: dict, refresh: bool, kwargs: dict):
+        """A product without a time range, a timetable or a catalog: stored whole."""
+        provider, name = _split(path)
+        key = static_key(provider, name, options_hash(options))
+        stored = None if refresh else self._store.get(key)
+        if stored is not None:
+            return load_product(stored["product"])
+        product = _spz_get_data(path, **kwargs)
+        try:
+            entry = {"fetched_at": int(_now().timestamp()), "product": store_product(product)}
+        except NotStorable:
+            return product
+        with self._store.transact():
+            self._store[request_key(provider, name, options_hash(options))] = {"options": options}
+            self._store[key] = entry
+        return product
+
+    def _serve_range(self, path: str, options: dict, start: AnyDateTimeType, stop: AnyDateTimeType, refresh: bool,
+                     kwargs: dict):
         start, stop, now = make_utc_datetime(start), make_utc_datetime(stop), _now()
         if stop <= start:
             raise ValueError(f"stop ({stop}) must be after start ({start})")
         if start >= now:
             return None
-        options = to_storable(provider_class(_split(path)[0]).request_options(**kwargs))
         grid = fragments(start, stop, now)
         entries = {fragment: self.read_fragment(path, options, fragment) for fragment in grid}
         missing = grid if refresh else [fragment for fragment, entry in entries.items() if entry is None]
         live = [] if refresh else [fragment for fragment, entry in entries.items()
                                    if entry is not None and _is_live_edge(fragment, entry, now)]
-        if refresh:
-            kwargs = {**kwargs, 'force_refresh': True}
-        entries.update(self._fetch_missing(path, options, missing, now, kwargs))
+        try:
+            entries.update(self._fetch_missing(path, options, missing, now, kwargs))
+        except NotStorable:
+            # a product kind this index doesn't know: give what speasy.get_data gives, not stored
+            return _spz_get_data(path, start, stop, **kwargs)
         entries.update(self._refetch_live_edges(path, options, live, now, kwargs))
-        return _merged([entry.variable for entry in entries.values() if entry is not None], start, stop)
+        return _merged([entry.product for entry in entries.values() if entry is not None], start, stop)
 
-    def _fetch_run(self, path: str, options: dict, run: List[datetime], now: datetime,
-                   kwargs: dict) -> Dict[datetime, Optional[SpeasyVariable]]:
-        variable = _spz_get_data(path, run[0], min(run[-1] + FRAGMENT, now), **kwargs)
-        if variable is not None and not isinstance(variable, SpeasyVariable):
-            raise TypeError(f"{path} gives a {type(variable).__name__}: a data index stores time series only")
-        return _pieces(variable, run)
+    def _fetch_run(self, path: str, options: dict, run: List[datetime], now: datetime, kwargs: dict) -> dict:
+        product = _spz_get_data(path, run[0], min(run[-1] + FRAGMENT, now), **kwargs)
+        if product is not None and not isinstance(product, (SpeasyVariable, Dataset)):
+            raise NotStorable(f"{path} gives a {type(product).__name__} for a time range")
+        return {fragment: _cut(product, fragment) for fragment in run}
 
-    def _store_pieces(self, path: str, options: dict, pieces: Dict[datetime, Optional[SpeasyVariable]],
-                      now: datetime) -> Dict[datetime, Entry]:
+    def _store_pieces(self, path: str, options: dict, pieces: dict, now: datetime) -> Dict[datetime, Entry]:
         with self._store.transact():
             for fragment, piece in pieces.items():
                 self.write_fragment(path, options, fragment, piece, fetched_at=int(now.timestamp()))
@@ -279,30 +336,36 @@ class DataIndex:
         """Downloads again everything the index holds, or only ``products`` (any name of their provider), past the
         provider cache. Fragments known to be empty are checked again too."""
         wanted = {_canonical_path(product) for product in products} if products is not None else None
-        stored = defaultdict(list)
+        stored, whole = defaultdict(list), []
         for key in self._store.iterkeys():
             if (parsed := parse_data_key(key)) is not None:
                 stored[(parsed.provider, parsed.product, parsed.options_digest)].append(parsed.fragment)
+            elif (static := parse_static_key(key)) is not None:
+                whole.append(static)
         errors = []
         for (provider, product, digest), starts in stored.items():
             if wanted is None or f"{provider}/{product}" in wanted:
                 options = self._store[request_key(provider, product, digest)]["options"]
                 errors += self._refresh_runs(f"{provider}/{product}", options, sorted(starts))
+        for provider, product, digest in whole:
+            if wanted is None or f"{provider}/{product}" in wanted:
+                errors += self._refresh_runs(f"{provider}/{product}", self._store[request_key(provider, product, digest)]["options"], [])
         if errors:
             raise errors[0]
 
     def _refresh_runs(self, path: str, options: dict, starts: List[datetime]) -> List[Exception]:
+        """Downloads again each run of ``starts``, or the whole product when there are none (timetables, catalogs)."""
         errors = []
-        for run in runs(starts):
+        for time_range in ([(run[0], run[-1] + FRAGMENT) for run in runs(starts)] if starts else [()]):
             try:
-                self.get_data(path, run[0], run[-1] + FRAGMENT, refresh=True, **options)
+                self.serve(path, *time_range, refresh=True, **options)
             except Exception as e:  # pylint: disable=broad-except
                 errors.append(e)
         return errors
 
 
 def _is_newer(theirs, ours, key: str) -> bool:
-    if not key.startswith("data/"):
+    if not key.startswith(("data/", "static/")):
         return True
     if not (isinstance(theirs, dict) and isinstance(theirs.get("fetched_at"), int)):
         raise ValueError(f"Refusing a malformed data index entry {key!r}")
@@ -318,9 +381,18 @@ def _canonical_path(product) -> str:
     return f"{canonical_provider(provider)}/{name}"
 
 
-def _merged(variables: List[Optional[SpeasyVariable]], start: datetime, stop: datetime) -> Optional[SpeasyVariable]:
-    merged = merge([v for v in variables if v is not None])
-    if merged is None or len(merged) == 0:
-        return None
-    trimmed = merged[start:stop]
-    return trimmed if len(trimmed) else None
+def _merged_variable(variables: List[SpeasyVariable], start: datetime, stop: datetime) -> Optional[SpeasyVariable]:
+    merged = merge(variables)
+    return None if merged is None else merged[start:stop]
+
+
+def _merged(pieces: list, start: datetime, stop: datetime):
+    """The fragments of a time series or dataset as one product over [start, stop); None when it holds no row."""
+    pieces = [piece for piece in pieces if piece is not None]
+    if pieces and isinstance(pieces[0], Dataset):
+        names = dict.fromkeys(name for piece in pieces for name in piece.variables)
+        variables = {name: _merged_variable([p.variables[name] for p in pieces if name in p.variables], start, stop)
+                     for name in names}
+        return Dataset(pieces[0].name, variables, pieces[0].meta) if any(map(len, variables.values())) else None
+    merged = _merged_variable(pieces, start, stop) if pieces else None
+    return merged if merged is not None and len(merged) else None

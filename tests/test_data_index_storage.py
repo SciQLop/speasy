@@ -160,11 +160,11 @@ class Entries(unittest.TestCase):
         self.index.write_fragment('cda/AC_K2_MFI/BGSEc', {}, _utc(2022, 1, 1), variable, fetched_at=1_700_000_000)
         entry = self.index.read_fragment('cda/AC_K2_MFI/BGSEc', {}, _utc(2022, 1, 1))
         self.assertEqual(entry.fetched_at, 1_700_000_000)
-        np.testing.assert_array_equal(entry.variable.values, variable.values)
+        np.testing.assert_array_equal(entry.product.values, variable.values)
 
     def test_an_empty_fragment_is_not_a_missing_one(self):
         self.index.write_fragment('cda/AC_K2_MFI/BGSEc', {}, _utc(2022, 1, 1), None, fetched_at=1)
-        self.assertIsNone(self.index.read_fragment('cda/AC_K2_MFI/BGSEc', {}, _utc(2022, 1, 1)).variable)
+        self.assertIsNone(self.index.read_fragment('cda/AC_K2_MFI/BGSEc', {}, _utc(2022, 1, 1)).product)
         self.assertIsNone(self.index.read_fragment('cda/AC_K2_MFI/BGSEc', {}, _utc(2022, 1, 2)))
 
     def test_options_select_their_own_entries(self):

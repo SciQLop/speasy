@@ -53,7 +53,10 @@ New features:
 * ``speasy.DataIndex(path)``, a persistent data index (#122): a folder that keeps exactly the data a
   study used, never expires, and works offline. ``DataIndex.get_data`` downloads only what the index
   doesn't hold yet; ``refresh=True`` and ``update_all_data()`` download it again on request.
-  ``export_data`` and ``import_data`` hand an index to someone else as a single tar. The ``speasy index``
+  ``export_data`` and ``import_data`` hand an index to someone else as a single tar. It stores whatever
+  ``speasy.get_data`` gives (time series, datasets, timetables, catalogs), and ``DataIndex.get_data``
+  takes the same arguments. Inside a ``with spz.DataIndex(path):`` block, plain ``spz.get_data`` goes through the index,
+  so existing code becomes reproducible unchanged; it is back to normal when the block ends. The ``speasy index``
   command fills (``fill``, with the same ranges as ``cache warm``), inspects, exports and imports one.
 
 * ``numcodecs`` is now a dependency (except under Pyodide), so data from the community cache server
