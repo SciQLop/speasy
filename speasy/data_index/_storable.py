@@ -89,7 +89,7 @@ _MARKERS = {
     "__datetime64__": lambda m: np.datetime64(m["__datetime64__"]),
     "__datetime__": lambda m: datetime.fromisoformat(m["__datetime__"]),
     "__tuple__": lambda m: tuple(from_storable(v) for v in m["__tuple__"]),
-    "__set__": lambda m: set(from_storable(v) for v in m["__set__"]),
+    "__set__": lambda m: {from_storable(v) for v in m["__set__"]},
     "__complex__": lambda m: complex(*m["__complex__"]),
     # inventory_from_dict only builds Speasy's own index classes: nothing an archive names is imported
     "__speasy_index__": lambda m: inventory_from_dict(from_storable(m["__speasy_index__"]), version=2),
