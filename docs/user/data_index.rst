@@ -62,7 +62,8 @@ products:
     b = spz.get_data("amda/imf", "2018-06-01", "2018-06-08")         # after the block: back to normal
 
 Everything ``spz.get_data`` gives is stored: time series and datasets by day, timetables and catalogs
-whole. When the block ends, even on an exception,
+whole. The same index can be used in several ``with`` blocks, e.g. one per notebook cell: leaving a
+block doesn't close it, ``index.close()`` does. When the block ends, even on an exception,
 ``spz.get_data`` works as before. It only applies to the thread that entered the block: threads it
 starts don't use the index.
 

@@ -1,3 +1,5 @@
+import os
+from contextlib import closing
 from typing import Optional
 
 from cyclopts import App
@@ -8,9 +10,11 @@ from .data import TimeRanges, collect_ranges, fetch_all
 app = App(name='index', help="Fill and inspect a persistent data index, see speasy.DataIndex.")
 
 
-def _open(path: str):
+def _open(path: str, create: bool = False):
     from speasy.data_index import DataIndex
-    return DataIndex(path)
+    if not create and not os.path.isdir(path):
+        raise ValueError(f"no data index at {path}")
+    return closing(DataIndex(path))
 
 
 def _spans(spans) -> str:
@@ -38,7 +42,7 @@ def fill(path: str, *products: str, time_ranges: TimeRanges = None, ranges_file:
         How many requests run at the same time.
     """
     ranges = collect_ranges(time_ranges, ranges_file, ranges_from)
-    with _open(path) as index:
+    with _open(path, create=True) as index:
         return fetch_all(index.get_data, products, ranges, workers)
 
 
@@ -70,7 +74,7 @@ def export_data(path: str, tar: str) -> int:
 @app.command(name='import')
 def import_data(path: str, source: str) -> int:
     """Add what SOURCE, a tar from 'speasy index export' or an index folder, holds to the data index at PATH."""
-    with _open(path) as index:
+    with _open(path, create=True) as index:
         index.import_data(source)
     console().print(f"imported {source} into {path}", highlight=False)
     return 0

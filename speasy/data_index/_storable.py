@@ -7,6 +7,7 @@ import numpy as np
 
 from speasy.core.proxy import blosc_arrays, unblosc_arrays
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.inventory.indexes import SpeasyIndex, from_dict as inventory_from_dict, to_dict as inventory_to_dict
 from speasy.products import Catalog, Dataset, Event, SpeasyVariable, TimeTable
 from speasy.products.variable import from_dictionary
 
@@ -25,48 +26,85 @@ class Serializer:
         return msgspec.msgpack.decode(data)
 
 
+class NotStorable(TypeError):
+    """A value or product kind a data index doesn't know how to store; ``product`` is the product it came with."""
+
+    def __init__(self, message: str, product=None):
+        super().__init__(message)
+        self.product = product
+
+
 def _array(array: np.ndarray, path: str):
-    if array.dtype.kind == 'O':
-        raise ValueError(f"{path}: can't store an array of Python objects ({array.dtype}) in a data index")
     marker = blosc_arrays(array)
     if marker is not array:
         return marker
-    # empty and non-numeric arrays, which blosc doesn't take
-    return {"__array__": array.tolist(), "dtype": array.dtype.str}
+    # empty and non-numeric arrays, which blosc doesn't take; an object array keeps its elements, if storable
+    elements = [to_storable(v, path) for v in array.ravel().tolist()] if array.dtype.kind == 'O' else array.tolist()
+    return {"__array__": elements, "dtype": array.dtype.str, "shape": list(array.shape)}
+
+
+_PLAIN = (type(None), bool, int, float, str, bytes)
 
 
 def to_storable(obj, path: str = ""):
-    """``obj`` as plain data: numpy arrays become blosc or list markers, numpy scalars Python ones, datetimes ISO
-    strings, tuples lists and dict keys str. Raises ValueError, naming the field, for what can't be stored."""
+    """``obj`` as plain data msgpack holds without losing its type: numpy arrays become blosc or list markers, numpy
+    scalars Python ones, and datetimes, tuples, sets, complex numbers and inventory nodes get a marker. Raises
+    NotStorable, naming the field, for anything else."""
+    if isinstance(obj, np.datetime64):
+        return {"__datetime64__": str(obj)}
+    if isinstance(obj, np.generic):  # before plain types: np.float64 is a float msgpack still refuses
+        return to_storable(obj.item(), path)
+    if isinstance(obj, _PLAIN):
+        return obj
     if isinstance(obj, dict):
         return {str(k): to_storable(v, f"{path}/{k}") for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
+    if isinstance(obj, list):
         return [to_storable(v, path) for v in obj]
     if isinstance(obj, np.ndarray):
         return _array(obj, path.lstrip('/'))
-    if isinstance(obj, np.datetime64):
-        return str(obj)
-    if isinstance(obj, np.generic):
-        return obj.item()
+    # msgpack turns a naive datetime into a str, and a tuple or a set into a list
     if isinstance(obj, datetime):
-        return obj.isoformat()
-    return obj
+        return {"__datetime__": obj.isoformat()}
+    if isinstance(obj, tuple):
+        return {"__tuple__": [to_storable(v, path) for v in obj]}
+    if isinstance(obj, (set, frozenset)):
+        return {"__set__": [to_storable(v, path) for v in obj]}
+    if isinstance(obj, complex):
+        return {"__complex__": [obj.real, obj.imag]}
+    if isinstance(obj, SpeasyIndex):
+        # e.g. AMDA's catalogs hold inventory nodes in their meta
+        return {"__speasy_index__": to_storable(inventory_to_dict(obj, version=2), path)}
+    raise NotStorable(f"{path.lstrip('/')}: can't store a {type(obj).__name__} ({obj!r}) in a data index")
+
+
+def _object_array(marker: dict) -> np.ndarray:
+    array = np.empty(len(marker["__array__"]), dtype=object)
+    array[:] = [from_storable(v) for v in marker["__array__"]]
+    return array.reshape(marker["shape"])
+
+
+_MARKERS = {
+    "__blosc__": unblosc_arrays,
+    "__array__": lambda m: _object_array(m) if m["dtype"] == "|O" else np.array(m["__array__"], dtype=m["dtype"]),
+    "__datetime64__": lambda m: np.datetime64(m["__datetime64__"]),
+    "__datetime__": lambda m: datetime.fromisoformat(m["__datetime__"]),
+    "__tuple__": lambda m: tuple(from_storable(v) for v in m["__tuple__"]),
+    "__set__": lambda m: set(from_storable(v) for v in m["__set__"]),
+    "__complex__": lambda m: complex(*m["__complex__"]),
+    # inventory_from_dict only builds Speasy's own index classes: nothing an archive names is imported
+    "__speasy_index__": lambda m: inventory_from_dict(from_storable(m["__speasy_index__"]), version=2),
+}
 
 
 def from_storable(obj):
     if isinstance(obj, dict):
-        if "__blosc__" in obj:
-            return unblosc_arrays(obj)
-        if "__array__" in obj:
-            return np.array(obj["__array__"], dtype=obj["dtype"])
+        marker = next((key for key in _MARKERS if key in obj), None)
+        if marker is not None:
+            return _MARKERS[marker](obj)
         return {k: from_storable(v) for k, v in obj.items()}
     if isinstance(obj, list):
         return [from_storable(v) for v in obj]
     return obj
-
-
-class NotStorable(TypeError):
-    """A product kind a data index doesn't know how to store."""
 
 
 def _ranges(ranges) -> list:
@@ -91,7 +129,7 @@ def store_product(product) -> Optional[dict]:
     if isinstance(product, Catalog):
         return {"kind": "catalog", "name": product.name, "meta": to_storable(product.meta),
                 "events": [[*_ranges([e])[0], to_storable(e.meta)] for e in product]}
-    raise NotStorable(f"a data index can't store a {type(product).__name__}")
+    raise NotStorable(f"a data index can't store a {type(product).__name__}", product)
 
 
 def _time(iso: str) -> datetime:
