@@ -159,6 +159,43 @@ class DirectArchiveDownloader(unittest.TestCase):
                                         'data_20180101_v01.cdf',   # v02 exists but listing is cached
                                         'data_20180101_v02.cdf'])  # force_refresh re-lists
 
+    def _resolve_offline_with_an_expired_cache(self, make_request):
+        """Lists the archive once, then asks again with every cache entry expired and the server gone."""
+        from unittest import mock
+        from speasy.core.cache import CacheItem
+
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(os.path.join(archive, '2018'))
+            open(os.path.join(archive, '2018', 'data_20180101_v01.cdf'), 'w').close()
+            server = _LocalHttpArchive(archive)
+            resolved = []
+
+            def record_url(url, variable, **kwargs):
+                resolved.append(url.rsplit('/', 1)[-1])
+                return None
+
+            request = make_request(server, record_url)
+            get_product(**request)
+            server.close()
+            with mock.patch.object(CacheItem, 'is_expired', return_value=True):
+                get_product(**request, prefer_cache=True)
+        return resolved
+
+    def test_prefer_cache_reuses_the_file_listing_of_a_regular_split_dataset(self):
+        # prefer_cache only reached the file reader's cache: once the 12h listing expired, the
+        # folder was listed again, which fails offline
+        self.assertListEqual(
+            self._resolve_offline_with_an_expired_cache(
+                lambda server, reader: dict(url_pattern=server.url + r"/{Y}/data_{Y}{M:02d}{D:02d}_v\d+\.cdf",
+                                            split_rule='regular', variable='B', start_time='2018-01-01',
+                                            stop_time='2018-01-01', use_file_list=True, file_reader=reader)),
+            ['data_20180101_v01.cdf', 'data_20180101_v01.cdf'])
+
+    def test_prefer_cache_reuses_the_file_listing_of_a_randomly_split_dataset(self):
+        self.assertListEqual(
+            self._resolve_offline_with_an_expired_cache(self._randomly_split_request),
+            ['data_20180101_v01.cdf', 'data_20180101_v01.cdf'])
+
     def _randomly_split_request(self, server, file_reader):
         return dict(url_pattern=server.url + r"/{Y}/data_\d+_v\d+\.cdf",
                     split_rule='random', split_frequency='yearly', variable='B',
