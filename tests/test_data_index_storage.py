@@ -43,15 +43,16 @@ class Storable(unittest.TestCase):
                 self.assertEqual(restored.dtype, array.dtype)
                 np.testing.assert_array_equal(restored, array)
 
-    def test_meta_becomes_plain_data(self):
+    def test_meta_becomes_plain_data_and_keeps_its_types(self):
         meta = {'n': np.int32(3), 'x': np.float64(1.5), 'b': np.bool_(True), 'when': datetime(2020, 1, 1),
                 'np_when': np.datetime64('2020-01-01T00:00:00'), 'pair': (1, 2), 3: 'int key'}
         self.assertEqual(from_storable(Serializer().loads(Serializer().dumps(to_storable(meta)))),
-                         {'n': 3, 'x': 1.5, 'b': True, 'when': '2020-01-01T00:00:00',
-                          'np_when': '2020-01-01T00:00:00', 'pair': [1, 2], '3': 'int key'})
+                         {'n': 3, 'x': 1.5, 'b': True, 'when': datetime(2020, 1, 1),
+                          'np_when': np.datetime64('2020-01-01T00:00:00'), 'pair': (1, 2), '3': 'int key'})
 
-    def test_object_arrays_are_refused_with_their_field(self):
-        with self.assertRaisesRegex(ValueError, r"values/meta/LABELS.*object"):
+    def test_an_object_array_of_something_unstorable_is_refused_with_its_field(self):
+        from speasy.data_index._storable import NotStorable
+        with self.assertRaisesRegex(NotStorable, r"values/meta/LABELS.*object"):
             to_storable({'values': {'meta': {'LABELS': np.array([object()])}}})
 
 
