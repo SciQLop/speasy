@@ -315,8 +315,7 @@ class _Cacheable:
         return None
 
     def get_or_lock_from_cache(self, fragment, product, version, prefer_cache=False, force_refresh=False,
-                               **kwargs) -> Union[
-        SpeasyVariable, PendingRequest]:
+                               **kwargs) -> SpeasyVariable | PendingRequest:
         """Get a cache entry or create a lock for it if it does not exist.
         Parameters
         ----------
