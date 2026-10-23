@@ -97,13 +97,17 @@ SSC_MALFORMED_RESPONSE_RETRY_COUNT = 2
 SSC_MALFORMED_RESPONSE_RETRY_DELAY_SECONDS = 1
 
 
+DEFAULT_COORDINATE_SYSTEM = 'gse'
+
+
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
-    return f"{prefix}/{product}/{kwargs.get('coordinate_system', 'gse')}/{start_time}"
+    return f"{prefix}/{product}/{kwargs.get('coordinate_system', DEFAULT_COORDINATE_SYSTEM)}/{start_time}"
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
     return {'path': f"sscweb/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}', 'coordinate_system': kwargs.get('coordinate_system', 'gse')}
+            'stop_time': f'{stop_time.isoformat()}',
+            'coordinate_system': kwargs.get('coordinate_system', DEFAULT_COORDINATE_SYSTEM)}
 
 
 def make_index(meta: Dict):
@@ -163,8 +167,13 @@ class SscWebservice(DataProvider):
         """
         return self._parameter_range(parameter_id)
 
-    def get_data(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
-                 debug=False, **kwargs) -> Optional[SpeasyVariable]:
+    @classmethod
+    def request_options(cls, coordinate_system: str = DEFAULT_COORDINATE_SYSTEM, **kwargs) -> dict:
+        # SSCWeb takes the coordinate system lowercased (see _get_orbit's URL)
+        return {'coordinate_system': coordinate_system.lower()}
+
+    def get_data(self, product: str, start_time: datetime, stop_time: datetime,
+                 coordinate_system: str = DEFAULT_COORDINATE_SYSTEM, debug=False, **kwargs) -> Optional[SpeasyVariable]:
         var = self._get_orbit(product=product, start_time=start_time, stop_time=stop_time,
                               coordinate_system=coordinate_system, debug=debug, **kwargs)
         return var
@@ -177,7 +186,8 @@ class SscWebservice(DataProvider):
     @Cacheable(prefix="ssc_orbits", fragment_hours=lambda x: 24, version=version, entry_name=_make_cache_entry_name)
     @SplitLargeRequests(threshold=lambda x: timedelta(days=60))
     @Proxyfiable(GetProduct, get_parameter_args)
-    def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime, coordinate_system: str = 'gse',
+    def _get_orbit(self, product: str, start_time: datetime, stop_time: datetime,
+                   coordinate_system: str = DEFAULT_COORDINATE_SYSTEM,
                    debug=False, extra_http_headers: Dict or None = None) -> Optional[SpeasyVariable]:
         request_stop_time = stop_time
         if request_stop_time - start_time < timedelta(days=1):
