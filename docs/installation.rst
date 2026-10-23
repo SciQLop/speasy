@@ -31,9 +31,8 @@ To install Speasy, run this command in your terminal:
 
 This is the preferred method to install Speasy, as it will always install the most recent stable release.
 
-To reduce download sizes when fetching from the community cache server, install the optional
-compression extras: ``python -m pip install "speasy[zstd,blosc]"``. ``zstd`` compresses inventories
-and data; ``blosc`` compresses data about twice as well and decodes faster. Under Pyodide, load the
+Data from the community cache server comes ``blosc`` compressed. To also compress inventories, install
+the optional ``zstd`` extra: ``python -m pip install "speasy[zstd]"``. Under Pyodide, load the
 ``numcodecs`` package to get ``blosc`` compression.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide

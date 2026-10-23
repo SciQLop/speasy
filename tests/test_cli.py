@@ -331,5 +331,78 @@ class TestHelp(unittest.TestCase):
             self.assertIn(group, out)
 
 
+class TestIndex(_IsolatedConfig):
+
+    def setUp(self):
+        super().setUp()
+        import numpy as np
+        from speasy.core import epoch_to_datetime64
+        from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
+
+        def hourly(product, start, stop, **kwargs):
+            if 'down' in product:
+                raise RuntimeError("server down")
+            if 'empty' in product:
+                return None
+            index = np.arange(start.timestamp(), stop.timestamp(), 3600.)
+            return SpeasyVariable(axes=[VariableTimeAxis(values=epoch_to_datetime64(index))],
+                                  values=DataContainer(values=index))
+        p = mock.patch('speasy.data_index._spz_get_data', side_effect=hourly)
+        self.get_data = p.start()
+        self.addCleanup(p.stop)
+        self.index = os.path.join(self.dir, 'study')
+
+    def fill(self, *args):
+        return _run('index', 'fill', self.index, *args)
+
+    def test_fill_stores_every_product_on_every_range(self):
+        code, out = self.fill('ssc/ace', 'ssc/wind', '--range', '2018-01-01', '2018-01-02',
+                              '--range', '2019-01-01', '2019-01-02')
+        self.assertEqual(code, 0)
+        self.assertIn('4/4', out)
+        from speasy.data_index import DataIndex
+        with DataIndex(self.index) as index:
+            self.assertEqual(sorted(r['product'] for r in index.requests()), ['ace', 'wind'])
+
+    def test_fill_reads_ranges_from_a_file_and_runs_workers(self):
+        ranges = os.path.join(self.dir, 'ranges.txt')
+        with open(ranges, 'w') as f:
+            f.write("2018-01-01 2018-01-02\n2019-01-01,2019-01-02\n")
+        code, out = self.fill('ssc/ace', '--ranges-file', ranges, '--workers', '2')
+        self.assertEqual(code, 0)
+        self.assertIn('2/2', out)
+
+    def test_a_failure_does_not_stop_the_others(self):
+        code, out = self.fill('ssc/down', 'ssc/ace', '--range', '2018-01-01', '2018-01-02')
+        self.assertEqual(code, 1)
+        self.assertIn('server down', out)
+        self.assertIn('1/2', out)
+
+    def test_fill_refuses_a_folder_that_holds_something_else(self):
+        os.makedirs(self.index)
+        with open(os.path.join(self.index, 'notes.txt'), 'w') as f:
+            f.write('my notes')
+        code, out = self.fill('ssc/ace', '--range', '2018-01-01', '2018-01-02')
+        self.assertEqual(code, 1)
+        self.assertIn('not a Speasy data index', out)
+
+    def test_info_lists_data_and_known_empty_ranges_apart(self):
+        self.fill('ssc/ace', '--range', '2018-01-01', '2018-01-03')
+        self.fill('ssc/empty', '--range', '2018-02-01', '2018-02-02')
+        code, out = _run('index', 'info', self.index)
+        self.assertEqual(code, 0)
+        self.assertRegex(out, r"ssc/ace.*coordinate_system.*gse.*2018-01-01 → 2018-01-03")
+        self.assertRegex(out, r"ssc/empty.*-.*2018-02-01 → 2018-02-02")
+        self.assertIn('format', out)
+
+    def test_export_then_import(self):
+        self.fill('ssc/ace', '--range', '2018-01-01', '2018-01-02')
+        tar = os.path.join(self.dir, 'study.tar')
+        self.assertEqual(_run('index', 'export', self.index, tar)[0], 0)
+        other = os.path.join(self.dir, 'other')
+        self.assertEqual(_run('index', 'import', other, tar)[0], 0)
+        self.assertIn('ssc/ace', _run('index', 'info', other)[1])
+
+
 if __name__ == '__main__':
     unittest.main()
