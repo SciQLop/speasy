@@ -42,8 +42,9 @@ class RequestOptions(unittest.TestCase):
         self.assertEqual(options(coordinate_system='GSE'), options(coordinate_frame='GSE'))
 
     def test_3dview_conflicting_aliases_raise(self):
+        options = provider_class('cdpp3dview').request_options
         with self.assertRaises(Cdpp3dViewWebException):
-            provider_class('cdpp3dview').request_options(coordinate_frame='GSE', coordinate_system='GSM')
+            options(coordinate_frame='GSE', coordinate_system='GSM')
 
     def test_3dview_sampling_as_number_or_string_is_the_same(self):
         options = provider_class('cdpp3dview').request_options
