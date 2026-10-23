@@ -91,8 +91,9 @@ class Fetching(GetDataTestCase):
         self.assertEqual(self.server.calls, [])
 
     def test_an_inverted_range_raises(self):
+        start, stop = _utc(2023, 1, 2), _utc(2023, 1, 1)
         with self.assertRaisesRegex(ValueError, "stop.*after.*start"):
-            self.get(_utc(2023, 1, 2), _utc(2023, 1, 1))
+            self.get(start, stop)
 
     def test_an_inventory_node_is_a_product_too(self):
         self.get(_utc(2023, 1, 1), _utc(2023, 1, 2), product=ParameterIndex('ace', 'ssc', 'ace'))
@@ -186,8 +187,9 @@ class PartialFailure(GetDataTestCase):
                 raise ConnectionError("down")
             return _hourly(start, stop)
         self.server.answer = fails_on_the_first_day
+        start, stop = _utc(2023, 1, 1), _utc(2023, 1, 5)
         with self.assertRaises(ConnectionError):
-            self.get(_utc(2023, 1, 1), _utc(2023, 1, 5))
+            self.get(start, stop)
         self.assertIsNotNone(self.index.read_fragment('ssc/ace', {'coordinate_system': 'gse'}, _utc(2023, 1, 4)))
 
 
@@ -202,8 +204,9 @@ class Kwargs(GetDataTestCase):
     def test_a_misspelt_option_raises_even_on_a_covered_range(self):
         # it would otherwise serve the default frame's data, where a cold index raises
         self.get(_utc(2023, 1, 1), _utc(2023, 1, 2))
+        start, stop = _utc(2023, 1, 1), _utc(2023, 1, 2)
         with self.assertRaisesRegex(TypeError, "coordinate_sytem"):
-            self.get(_utc(2023, 1, 1), _utc(2023, 1, 2), coordinate_sytem='geo')
+            self.get(start, stop, coordinate_sytem='geo')
 
     def test_transport_and_cache_options_are_accepted_and_not_keyed(self):
         self.get(_utc(2023, 1, 1), _utc(2023, 1, 2), disable_proxy=True, extra_http_headers={'a': 'b'})

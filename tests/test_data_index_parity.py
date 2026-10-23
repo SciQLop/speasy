@@ -49,12 +49,14 @@ class ProviderNotInstalled(ParityTestCase):
                                   _hourly(_utc(2023, 1, 1), _utc(2023, 1, 2), 2.), fetched_at=int(NOW.timestamp()))
         v = self.index.get_data('someplugin/x', _utc(2023, 1, 1), _utc(2023, 1, 2), frame='GSM')
         self.assertEqual(v.values[0, 0], 2.)
+        start, stop = _utc(2023, 1, 1), _utc(2023, 1, 2)
         with self.assertRaisesRegex(ValueError, "several.*frame"):
-            self.index.get_data('someplugin/x', _utc(2023, 1, 1), _utc(2023, 1, 2))
+            self.index.get_data('someplugin/x', start, stop)
 
     def test_what_isnt_stored_says_the_provider_is_missing(self):
+        start, stop = _utc(2023, 1, 1), _utc(2023, 1, 3)
         with self.assertRaisesRegex(ValueError, "someplugin.*isn't installed"):
-            self.index.get_data('someplugin/x', _utc(2023, 1, 1), _utc(2023, 1, 3))
+            self.index.get_data('someplugin/x', start, stop)
 
 
 class CacheOptionsKeepTheirMeaning(ParityTestCase):
@@ -109,7 +111,8 @@ class TimetableWithARange(ParityTestCase):
         again = self.index.get_data('amda/storms', _utc(2023, 1, 1), _utc(2023, 2, 1))
         whole = self.index.get_data('amda/storms')
         self.assertEqual(len(self.server.calls), 1)
-        self.assertEqual([list(first), list(again), list(whole)], [list(first)] * 3)
+        self.assertEqual(list(again), list(first))
+        self.assertEqual(list(whole), list(first))
 
 
 class MetaIsKeptAsItWas(unittest.TestCase):
@@ -130,7 +133,9 @@ class MetaIsKeptAsItWas(unittest.TestCase):
         # AMDA puts inventory nodes in its catalogs' meta
         node = ParameterIndex('imf', 'amda', 'imf', meta={'units': 'nT'})
         restored = self.round_trip({'parameter': node})['parameter']
-        self.assertEqual((type(restored), restored.spz_uid(), restored.units), (ParameterIndex, 'imf', 'nT'))
+        self.assertIsInstance(restored, ParameterIndex)
+        self.assertEqual(restored.spz_uid(), 'imf')
+        self.assertEqual(restored.units, 'nT')
 
     def test_what_still_cant_be_stored_names_its_field(self):
         with self.assertRaisesRegex(NotStorable, "meta/thing.*object"):
@@ -146,7 +151,8 @@ class MetaIsKeptAsItWas(unittest.TestCase):
         with mock.patch.object(data_index, '_spz_get_data', server):
             index.get_data('amda/events')
             catalog = index.get_data('amda/events')
-        self.assertEqual((len(server.calls), catalog.meta['parameter'].spz_uid()), (1, 'imf'))
+        self.assertEqual(len(server.calls), 1)
+        self.assertEqual(catalog.meta['parameter'].spz_uid(), 'imf')
 
 
 class ImportRobustness(ParityTestCase):
