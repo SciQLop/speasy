@@ -4,7 +4,7 @@ import logging
 import os
 import tempfile
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
 from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 from urllib.parse import unquote
@@ -18,12 +18,12 @@ except ImportError as e:  # pragma: no cover - WASM has no pysciqlop-cache wheel
 from speasy.core import AnyDateTimeType, make_utc_datetime
 from speasy.core.cache import CACHE_ALLOWED_KWARGS
 from speasy.core.cache._providers_caches import PROVISIONAL_FRAGMENT_LIFETIME
-from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, provider_class
+from speasy.core.dataprovider import GET_DATA_ALLOWED_KWARGS, DataProvider, provider_class
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS
 # straight to the provider: going through spz.get_data would come back here while this index is active
 from speasy.core.requests_scheduling.request_dispatch import (_scalar_get_data as _spz_get_data, active_data_index,
                                                               get_data as _dispatch_get_data, provider_and_product)
-from speasy.products import Dataset, SpeasyVariable
+from speasy.products import Catalog, Dataset, SpeasyVariable, TimeTable
 from speasy.products.variable import merge
 from . import _archive
 from ._keys import (FRAGMENT, canonical_provider, data_key, fragments, options_hash, parse_data_key, parse_static_key,
@@ -37,6 +37,9 @@ _META = "__meta__"
 _DB_FILE = "sciqlop-cache.db"
 # accepted by most providers, but they only change how the data travels, so they never are request options
 _TRANSPORT_KWARGS = {'method', 'if_newer_than', 'debug', 'format'}
+_NOT_DATA_KWARGS = {*GET_DATA_ALLOWED_KWARGS, *CACHE_ALLOWED_KWARGS, *PROXY_ALLOWED_KWARGS, *_TRANSPORT_KWARGS}
+# a product a provider gives whole, whatever the time range
+_WHOLE_KINDS = (TimeTable, Catalog)
 # (index path, data key) of the live-edge fragments already warned about, so an offline plotting loop warns once
 _warned_live_edges = set()
 
@@ -63,10 +66,25 @@ def _product_path(product) -> str:
     return f"{provider}/{name}"
 
 
+def _declares_options(provider: type) -> bool:
+    return provider.request_options.__func__ is not DataProvider.request_options.__func__
+
+
+def _options(provider: type, kwargs: dict) -> dict:
+    """The options a request is stored under."""
+    if _declares_options(provider):
+        _check_kwargs(provider, kwargs)
+        return to_storable(provider.request_options(**kwargs))
+    # a provider that doesn't say which options change its data (e.g. a plugin): every option but the known cache
+    # and transport ones is part of the key, so two requests that may give different data never share entries; a
+    # misspelt option then misses, and the provider refuses it when the index downloads
+    return to_storable({k: v for k, v in kwargs.items() if k not in _NOT_DATA_KWARGS})
+
+
 def _check_kwargs(provider: type, kwargs: dict):
     # checked here, not left to the provider: a covered request never reaches it, and a misspelt option would then
     # silently give the default's data
-    known = {*GET_DATA_ALLOWED_KWARGS, *CACHE_ALLOWED_KWARGS, *PROXY_ALLOWED_KWARGS, *_TRANSPORT_KWARGS,
+    known = {*_NOT_DATA_KWARGS,
              *(name for name, p in inspect.signature(provider.request_options).parameters.items()
                if p.kind is not inspect.Parameter.VAR_KEYWORD)}
     if unknown := sorted(set(kwargs) - known):
@@ -86,7 +104,7 @@ def _cut(product, fragment: datetime):
         return None
     if isinstance(product, Dataset):
         variables = {name: v[fragment:fragment + FRAGMENT].copy() for name, v in product.variables.items()}
-        return Dataset(product.name, variables, product.meta) if any(map(len, variables.values())) else None
+        return Dataset(product.name, variables, dict(product.meta)) if any(map(len, variables.values())) else None
     piece = product[fragment:fragment + FRAGMENT]
     return piece.copy() if len(piece) else None
 
@@ -150,16 +168,11 @@ class DataIndex:
             active_data_index.reset(token)
 
     def __exit__(self, *exc):
+        # the index stays open: a notebook enters `with index:` in several cells; close() closes it
         active_data_index.reset(self._activations.pop())
-        self.close()
 
     def write_fragment(self, product: str, options: dict, fragment: datetime, data, fetched_at: int):
-        provider, name = _split(product)
-        digest = options_hash(options)
-        # set() is idempotent: no read-then-write on every request
-        self._store[request_key(provider, name, digest)] = {"options": options}
-        self._store[data_key(provider, name, digest, fragment)] = {"fetched_at": int(fetched_at),
-                                                                   "product": store_product(data)}
+        self._write_fragments(product, options, {fragment: data}, fetched_at)
 
     def read_fragment(self, product: str, options: dict, fragment: datetime) -> Optional[Entry]:
         provider, name = _split(product)
@@ -210,48 +223,74 @@ class DataIndex:
     def serve(self, product, *time_range, refresh: bool = False, **kwargs):
         """One request without lists, as ``speasy.get_data`` hands them to the active index."""
         path = _product_path(product)
-        provider = provider_class(_split(path)[0])
-        _check_kwargs(provider, kwargs)
-        options = to_storable(provider.request_options(**kwargs))
+        provider = _installed_provider(_split(path)[0])
+        options = _options(provider, kwargs) if provider is not None else self._stored_options(path, kwargs)
+        # cache options keep their meaning: the caller wants what the provider has now
+        refresh = refresh or bool(kwargs.get('force_refresh')) or bool(kwargs.get('disable_cache'))
         if refresh:
             kwargs = {**kwargs, 'force_refresh': True}
-        if time_range:
-            return self._serve_range(path, options, *time_range, refresh=refresh, kwargs=kwargs)
-        return self._serve_whole(path, options, refresh, kwargs)
+        serve_one = self._serve_range if time_range else self._serve_whole
+        return serve_one(path, options, *time_range, refresh=refresh, kwargs=kwargs, installed=provider is not None)
 
-    def _serve_whole(self, path: str, options: dict, refresh: bool, kwargs: dict):
-        """A product without a time range, a timetable or a catalog: stored whole."""
+    def _stored_options(self, path: str, kwargs: dict) -> dict:
+        """The options to read a product of a provider that isn't installed with: the stored ones the caller's
+        options match."""
         provider, name = _split(path)
-        key = static_key(provider, name, options_hash(options))
-        stored = None if refresh else self._store.get(key)
+        stored = [r["options"] for r in self.requests() if r["provider"] == canonical_provider(provider)
+                  and r["product"] == name]
+        given = to_storable({k: v for k, v in kwargs.items() if k not in _NOT_DATA_KWARGS})
+        matching = [options for options in stored if all(options.get(k) == v for k, v in given.items())]
+        if len(matching) == 1:
+            return matching[0]
+        if not matching:
+            raise _not_installed(path)
+        raise ValueError(f"{path} is stored with several option sets {matching}: pass the options of the one you want")
+
+    def _serve_whole(self, path: str, options: dict, refresh: bool, kwargs: dict, installed: bool):
+        """A product without a time range, a timetable or a catalog: stored whole."""
+        stored = None if refresh else self._store.get(static_key(*_split(path), options_hash(options)))
         if stored is not None:
             return load_product(stored["product"])
-        product = _spz_get_data(path, **kwargs)
+        if not installed:
+            raise _not_installed(path)
+        return self._store_whole(path, options, _spz_get_data(path, **kwargs))
+
+    def _store_whole(self, path: str, options: dict, product):
+        provider, name = _split(path)
         try:
             entry = {"fetched_at": int(_now().timestamp()), "product": store_product(product)}
-        except NotStorable:
+        except NotStorable as e:
+            log.warning(f"{path} is not stored in the data index ({e}): it won't be available offline")
             return product
         with self._store.transact():
             self._store[request_key(provider, name, options_hash(options))] = {"options": options}
-            self._store[key] = entry
+            self._store[static_key(provider, name, options_hash(options))] = entry
         return product
 
     def _serve_range(self, path: str, options: dict, start: AnyDateTimeType, stop: AnyDateTimeType, refresh: bool,
-                     kwargs: dict):
+                     kwargs: dict, installed: bool):
         start, stop, now = make_utc_datetime(start), make_utc_datetime(stop), _now()
         if stop <= start:
             raise ValueError(f"stop ({stop}) must be after start ({start})")
         if start >= now:
             return None
+        whole = None if refresh else self._store.get(static_key(*_split(path), options_hash(options)))
+        if whole is not None:
+            # a timetable or a catalog asked for with a time range: its provider gives it whole, so does the index
+            return load_product(whole["product"])
         grid = fragments(start, stop, now)
         entries = {fragment: self.read_fragment(path, options, fragment) for fragment in grid}
         missing = grid if refresh else [fragment for fragment, entry in entries.items() if entry is None]
-        live = [] if refresh else [fragment for fragment, entry in entries.items()
-                                   if entry is not None and _is_live_edge(fragment, entry, now)]
+        if missing and not installed:
+            raise _not_installed(path)
+        live = [] if refresh or not installed else [fragment for fragment, entry in entries.items()
+                                                    if entry is not None and _is_live_edge(fragment, entry, now)]
         try:
             entries.update(self._fetch_missing(path, options, missing, now, kwargs))
-        except NotStorable:
-            # a product kind this index doesn't know: give what speasy.get_data gives, not stored
+        except NotStorable as e:
+            if isinstance(e.product, _WHOLE_KINDS):
+                return self._store_whole(path, options, e.product)
+            log.warning(f"{path} is not stored in the data index ({e}): it won't be available offline")
             return _spz_get_data(path, start, stop, **kwargs)
         entries.update(self._refetch_live_edges(path, options, live, now, kwargs))
         return _merged([entry.product for entry in entries.values() if entry is not None], start, stop)
@@ -259,14 +298,25 @@ class DataIndex:
     def _fetch_run(self, path: str, options: dict, run: List[datetime], now: datetime, kwargs: dict) -> dict:
         product = _spz_get_data(path, run[0], min(run[-1] + FRAGMENT, now), **kwargs)
         if product is not None and not isinstance(product, (SpeasyVariable, Dataset)):
-            raise NotStorable(f"{path} gives a {type(product).__name__} for a time range")
+            raise NotStorable(f"{path} gives a {type(product).__name__} for a time range", product)
         return {fragment: _cut(product, fragment) for fragment in run}
 
     def _store_pieces(self, path: str, options: dict, pieces: dict, now: datetime) -> Dict[datetime, Entry]:
-        with self._store.transact():
-            for fragment, piece in pieces.items():
-                self.write_fragment(path, options, fragment, piece, fetched_at=int(now.timestamp()))
+        self._write_fragments(path, options, pieces, int(now.timestamp()))
         return {fragment: Entry(int(now.timestamp()), piece) for fragment, piece in pieces.items()}
+
+    def _write_fragments(self, path: str, options: dict, pieces: dict, fetched_at: int):
+        """Converts every piece first, so one that can't be stored leaves the index untouched."""
+        provider, name = _split(path)
+        digest = options_hash(options)
+        entries = {data_key(provider, name, digest, fragment): {"fetched_at": int(fetched_at),
+                                                               "product": store_product(piece)}
+                   for fragment, piece in pieces.items()}
+        with self._store.transact():
+            # set() is idempotent: no read-then-write on every request
+            self._store[request_key(provider, name, digest)] = {"options": options}
+            for key, entry in entries.items():
+                self._store[key] = entry
 
     def _fetch_missing(self, path: str, options: dict, missing: List[datetime], now: datetime,
                        kwargs: dict) -> Dict[datetime, Entry]:
@@ -306,7 +356,7 @@ class DataIndex:
 
         It copies the index into a temporary folder first, so it needs that much free temporary space."""
         with tempfile.TemporaryDirectory() as tmp:
-            with DataIndex(os.path.join(tmp, "index")) as snapshot, snapshot._store.transact():
+            with closing(DataIndex(os.path.join(tmp, "index"))) as snapshot, snapshot._store.transact():
                 for key in self._store.iterkeys():
                     snapshot._store[key] = self._store[key]
             # closed: SQLite has folded its write-ahead log into the database, no -wal/-shm left to ship
@@ -319,7 +369,7 @@ class DataIndex:
             folder = source if os.path.isdir(source) else _archive.unpack(source, tmp)
             if not os.path.exists(os.path.join(folder, _DB_FILE)):
                 raise ValueError(f"{source} is not a Speasy data index")
-            with DataIndex(folder) as other:
+            with closing(DataIndex(folder)) as other:
                 self._merge(other)
 
     def _merge(self, other: "DataIndex"):
@@ -364,12 +414,29 @@ class DataIndex:
         return errors
 
 
+def _well_formed(entry) -> bool:
+    return isinstance(entry, dict) and isinstance(entry.get("fetched_at"), int)
+
+
 def _is_newer(theirs, ours, key: str) -> bool:
     if not key.startswith(("data/", "static/")):
         return True
-    if not (isinstance(theirs, dict) and isinstance(theirs.get("fetched_at"), int)):
+    if not _well_formed(theirs):
         raise ValueError(f"Refusing a malformed data index entry {key!r}")
-    return ours is None or theirs["fetched_at"] > ours["fetched_at"]
+    # a malformed local entry is replaced, whatever its date
+    return not _well_formed(ours) or theirs["fetched_at"] > ours["fetched_at"]
+
+
+def _installed_provider(name: str) -> Optional[type]:
+    try:
+        return provider_class(name)
+    except ValueError:  # e.g. a plugin provider, in an index from someone else
+        return None
+
+
+def _not_installed(path: str) -> ValueError:
+    provider, _ = _split(path)
+    return ValueError(f"{path} isn't in this data index, and its provider {provider!r} isn't installed to download it")
 
 
 def _spans(starts: List[datetime]) -> List[Tuple[datetime, datetime]]:
