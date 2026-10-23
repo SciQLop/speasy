@@ -137,6 +137,11 @@ Coding guidelines
               DataProvider.__init__(self)
 
   You can have a look at existing providers such as sscweb or uiowa_eph_tool for reference.
+
+  If ``get_data`` takes keyword arguments that change the returned data (a coordinate system, a
+  sampling), override the ``request_options`` classmethod. It returns them with their defaults filled
+  in, so that two requests for the same data give equal dicts; leave cache and transport options out.
+  See sscweb for an example.
 * A provider can also ship in its own package. Declare a zero-argument function that imports the
   module holding the decorated class, as a ``speasy.providers`` entry point:
 

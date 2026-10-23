@@ -65,6 +65,15 @@ def main_provider_name(name: str) -> Optional[str]:
     return cls.NAME if cls is not None else None
 
 
+def provider_class(name: str) -> type:
+    """The provider class registered under `name`, a main or alternative name. It is not started."""
+    cls = _PROVIDER_CLASSES.get(name)
+    if cls is None:
+        raise ValueError(f"Unknown provider {name!r}, use one of {sorted(registered_providers())} "
+                         f"or one of their alternative names")
+    return cls
+
+
 def provider_names(main_name: str) -> List[str]:
     cls = _PROVIDER_CLASSES[main_name]
     return [cls.NAME, *cls.ALIASES]
@@ -153,6 +162,14 @@ class DataProvider:
         if given != declared:
             raise ValueError(f"{cls.__name__} declares its names as {declared}, but was given {given}")
         return declared
+
+    @classmethod
+    def request_options(cls, **kwargs) -> dict:
+        """The ``get_data`` keyword arguments that change the returned data, defaults filled in, so that two
+        requests for the same data give equal dicts. Cache and transport options are left out.
+
+        A classmethod, so it never starts the provider. Override it when ``get_data`` takes such options."""
+        return {}
 
     def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
         """Override this method to build the inventory tree from the public inventory source."""

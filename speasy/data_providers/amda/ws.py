@@ -128,6 +128,18 @@ def _amda_get_proxy_parameter_args(start_time: datetime, stop_time: datetime, pr
 class AmdaWebservice(ImpexProvider):
     NAME = amda_provider_name
 
+    @classmethod
+    def request_options(cls, output_format: Optional[str] = None, restricted_period: bool = False,
+                        product_inputs: Optional[Dict] = None, **kwargs) -> dict:
+        # output_format and product_inputs defaults come from the user's config and the inventory: only what the
+        # caller passed counts, so the same call gives the same options on every machine
+        options = {'restricted_period': restricted_period}
+        if output_format is not None:
+            options['output_format'] = output_format.lower()
+        if product_inputs:
+            options['product_inputs'] = product_inputs
+        return options
+
     def __init__(self):
         ImpexProvider.__init__(self, provider_name=self.NAME, server_url=amda_cfg.entry_point() + "/php/rest",
                                max_chunk_size_days=amda_cfg.max_chunk_size_days(),
