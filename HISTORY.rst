@@ -33,8 +33,15 @@ Bug fixes:
   * ``hapi/csv`` can read back a header-only "no data" file;
   * bin centers containing NaN or infinity are written as ``null`` instead of invalid JSON;
   * the HAPI readers accept bins given only by their ``ranges``, centered on each range.
+* CDAWeb with the default ``BEST`` (or ``FILE``) access method passed on no cache option:
+  ``prefer_cache``, ``disable_cache`` and ``disable_proxy`` were ignored when it fell back to the
+  web service.
 
 New features:
+
+* ``get_data(..., force_refresh=True)`` downloads the data again even when the cache is up to date,
+  and stores the result in the cache. It works with every provider, and always bypasses the proxy
+  server.
 
 * CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
   parameters sharing a time axis can be told apart from the inventory alone.
