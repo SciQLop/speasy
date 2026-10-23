@@ -75,6 +75,28 @@ A ranges file holds one ``START STOP`` (or ``START,STOP``) range per line; blank
 comments are ignored. ``--ranges-from`` takes a timetable or catalog product, e.g. an AMDA shared
 timetable, and warms every event of it. ``--workers`` runs that many requests at the same time (one by default).
 
+Data index
+----------
+
+The cache can expire, be evicted, or be refreshed behind your back. A data index can't: it is a folder
+holding exactly the data you put in it, for a study you want to keep, take offline, or hand to someone
+else. ``index fill`` takes the same products and ranges as ``cache warm``:
+
+.. code-block:: bash
+
+    speasy index fill ~/studies/storms amda/imf cda/AC_H0_MFI/BGSEc --ranges-from amda/sharedtimeTable_37
+    speasy index info ~/studies/storms          # per product: days with data, days known to hold none
+    speasy index export ~/studies/storms storms.tar
+    speasy index import ~/other storms.tar      # where both hold a day, the one fetched last wins
+
+Then use it from Python, even offline:
+
+.. code-block:: python
+
+    import speasy as spz
+    index = spz.DataIndex("~/studies/storms")
+    b = index.get_data("amda/imf", "2018-06-01", "2018-06-02")
+
 Quicklooks
 ----------
 

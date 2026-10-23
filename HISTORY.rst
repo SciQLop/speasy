@@ -53,7 +53,8 @@ New features:
 * ``speasy.DataIndex(path)``, a persistent data index (#122): a folder that keeps exactly the data a
   study used, never expires, and works offline. ``DataIndex.get_data`` downloads only what the index
   doesn't hold yet; ``refresh=True`` and ``update_all_data()`` download it again on request.
-  ``export_data`` and ``import_data`` hand an index to someone else as a single tar.
+  ``export_data`` and ``import_data`` hand an index to someone else as a single tar. The ``speasy index``
+  command fills (``fill``, with the same ranges as ``cache warm``), inspects, exports and imports one.
 
 * ``numcodecs`` is now a dependency (except under Pyodide), so data from the community cache server
   always comes ``blosc`` compressed. The ``blosc`` extra is kept, empty, so ``speasy[blosc]`` still
