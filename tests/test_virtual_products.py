@@ -95,13 +95,13 @@ class VirtualProductGetData(VirtualProductWithVP):
         by_node = spz.get_data(_tree_node(path), _START, _STOP)
         self.assertEqual(len(by_path), len(by_node))
 
-    def test_get_data_with_double_slash_in_path(self):
-        var = spz.get_data("virtual/test//hourly_ramp", _START, _STOP)
-        self.assertIsInstance(var, SpeasyVariable)
+    def test_get_data_does_not_collapse_double_slash(self):
+        with self.assertRaises(registry.UnknownVirtualProduct):
+            spz.get_data("virtual/test//hourly_ramp", _START, _STOP)
 
-    def test_get_data_with_trailing_slash_in_path(self):
-        var = spz.get_data("virtual/test/hourly_ramp/", _START, _STOP)
-        self.assertIsInstance(var, SpeasyVariable)
+    def test_get_data_does_not_strip_trailing_slash(self):
+        with self.assertRaises(registry.UnknownVirtualProduct):
+            spz.get_data("virtual/test/hourly_ramp/", _START, _STOP)
 
     def test_get_data_with_spaces_in_path(self):
         register_virtual_product("virtual/my product/beta", _hourly_ramp)
@@ -177,13 +177,13 @@ class VirtualProductPath(unittest.TestCase):
         self.assertEqual(registry._path_to_uid("virtual/plasma/beta/"), "plasma/beta")
 
     def test_fix_name_on_segment_with_spaces(self):
-        self.assertEqual(registry._path_to_uid("virtual/inventory test/beta"), "inventory_test/beta")
+        self.assertEqual(registry._path_to_uid("virtual/inventory test/beta"), "inventory test/beta")
 
     def test_fix_name_on_segment_with_special_chars(self):
-        self.assertEqual(registry._path_to_uid("virtual/inventory test # hello/2"), "inventory_test___hello/n_2")
+        self.assertEqual(registry._path_to_uid("virtual/inventory test # hello/2"), "inventory test # hello/2")
 
     def test_combined_double_slash_and_special_chars(self):
-        self.assertEqual(registry._path_to_uid("virtual/some//inventory test/beta"), "some/inventory_test/beta")
+        self.assertEqual(registry._path_to_uid("virtual/some//inventory test/beta"), "some/inventory test/beta")
 
 
 class VirtualProductObject(unittest.TestCase):
