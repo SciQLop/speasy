@@ -114,6 +114,11 @@ def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None,
     parent = _root
     for name in folders:
         parent = make_inventory_node(parent, SpeasyIndex, name, 'virtual', name)
+    existing = parent.__dict__.get(leaf)
+    if isinstance(existing, VirtualProduct) and existing.spz_uid() != product_uid:
+        warnings.warn(f"'virtual/{product_uid}' and 'virtual/{existing.spz_uid()}' share the tree name "
+                      f"'{leaf}': the tree now shows 'virtual/{product_uid}' only",
+                      stacklevel=3)
     node = make_inventory_node(parent, VirtualProduct, leaf, 'virtual', product_uid,
                                extra_args={"callback": callback, "labels": labels},
                                force=True, **(meta or {}))

@@ -297,6 +297,22 @@ class VirtualProductRobustness(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, "virtual/x"):
             register_virtual_product("virtual/x", _hourly_ramp)
 
+    def test_tree_name_collision_warns_naming_both_paths(self):
+        register_virtual_product("virtual/B field", _hourly_ramp)
+        with self.assertWarns(UserWarning) as ctx:
+            register_virtual_product("virtual/B-field", _hourly_ramp)
+        message = str(ctx.warning)
+        self.assertIn("virtual/B field", message)
+        self.assertIn("virtual/B-field", message)
+
+    def test_tree_name_collision_keeps_both_products_by_path(self):
+        calls = []
+        register_virtual_product("virtual/B field", lambda s, e: calls.append("space"))
+        register_virtual_product("virtual/B-field", lambda s, e: calls.append("dash"))
+        spz.get_data("virtual/B field", _START, _STOP)
+        spz.get_data("virtual/B-field", _START, _STOP)
+        self.assertEqual(calls, ["space", "dash"])
+
     def test_wrong_return_type_raises(self):
         def returns_array(start_time, stop_time):
             return np.zeros(3)
