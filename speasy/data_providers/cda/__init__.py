@@ -8,7 +8,7 @@ __version__ = '0.1.0'
 
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Optional, Tuple
 from packaging.version import Version
 
@@ -29,6 +29,7 @@ from speasy.core.direct_archive_downloader import first_file, get_product as dir
 from speasy.products.variable import SpeasyVariable
 from ._direct_archive import to_direct_archive_params
 from ._patches import PatchedParameter, is_injected, patch_for, patched_reader
+from ._patches.inventory import patch_inventory as _apply_patch_table
 
 log = logging.getLogger(__name__)
 
@@ -186,6 +187,9 @@ class CdaWebservice(DataProvider):
         from ._inventory_builder import build_inventory
         root = build_inventory(root=root)
         return root
+
+    def patch_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
+        return _apply_patch_table(root, datetime.now(tz=timezone.utc))
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get product time range.

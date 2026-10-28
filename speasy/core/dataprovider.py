@@ -167,6 +167,11 @@ class DataProvider:
         """Override this method to add private inventory items that are not fetched from the public inventory source."""
         return root
 
+    def patch_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
+        """Override this method to fix the inventory every time one is loaded, built locally or downloaded
+        from the proxy. Must be idempotent: it also runs on an already patched tree."""
+        return root
+
     def _update_private_inventory(self, root: SpeasyIndex):
         return self.build_private_inventory(root)
 
@@ -180,6 +185,7 @@ class DataProvider:
                 if self.provider_name in tree.__dict__:
                     tree.__dict__[self.provider_name].clear()
                 tree.__dict__[self.provider_name] = new_inventory
+            tree.__dict__[self.provider_name] = self.patch_inventory(tree.__dict__[self.provider_name])
             self._update_private_inventory(tree.__dict__[self.provider_name])
             self.flat_inventory.clear()
             self.flat_inventory.update(tree.__dict__[self.provider_name])
