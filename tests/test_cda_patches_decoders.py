@@ -151,3 +151,15 @@ class EpochPlusSamplingRateTest(unittest.TestCase):
         cdf = _epoch_cdf(epoch, np.zeros((2, 4), dtype=np.float32))
         cdf.add_variable('rate', values=np.array([256, 256], dtype=np.int32))
         self.assertIsNone(EpochPlusSamplingRate(rate='rate', rate_hz=4096).decode(cdf, 'wave'))
+
+
+class EpochPlusSamplingRateAnyRateTest(unittest.TestCase):
+    def test_no_rate_keeps_every_record_at_its_own_rate(self):
+        epoch = T0 + np.arange(2) * np.timedelta64(1, 's')
+        cdf = _epoch_cdf(epoch, np.zeros((2, 4), dtype=np.float32))
+        cdf.add_variable('rate', values=np.array([256, 4096], dtype=np.float32))
+        result = EpochPlusSamplingRate(rate='rate').decode(cdf, 'wave')
+        self.assertEqual(len(result), 8)
+        self.assertEqual(result.time[1] - result.time[0], _ns(1e9 / 256))
+        self.assertEqual(result.time[5] - result.time[4], _ns(round(1e9 / 4096)))
+        self.assertEqual(result.time[4], epoch[1])

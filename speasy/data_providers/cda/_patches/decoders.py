@@ -102,15 +102,18 @@ class EpochPlusOffsets:
 
 @dataclass(frozen=True)
 class EpochPlusSamplingRate:
-    """Only records sampled at `rate_hz` are kept, sample k of a record is at epoch + k / rate_hz."""
+    """Sample k of a record is at epoch + k / rate. With `rate_hz` only records sampled at that rate are kept
+    (products split per rate), with None every record is kept and uses its own `rate` value."""
     rate: str
-    rate_hz: float
+    rate_hz: Optional[float] = None
     sample_axis: int = 1
     epoch: str = "Epoch"
 
     def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
-        keep = cdf[self.rate].values.reshape(-1) == self.rate_hz
+        rates = cdf[self.rate].values.reshape(-1)
+        keep = np.ones(rates.shape, dtype=bool) if self.rate_hz is None else rates == self.rate_hz
         n_samples = cdf[variable].shape[self.sample_axis]
-        offsets = _offsets_as_timedelta(np.arange(n_samples), 1e9 / self.rate_hz)
+        periods_ns = 1e9 / rates[keep].astype(np.float64)
+        offsets = _offsets_as_timedelta(np.arange(n_samples) * periods_ns.reshape(-1, 1), 1.0)
         times = _time_values(cdf[self.epoch]).reshape(-1)[keep].reshape(-1, 1) + offsets
         return _build(cdf, variable, times, self.sample_axis, records=keep)

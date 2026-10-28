@@ -56,7 +56,6 @@ PSP_FIELDS = (
 
 _SOLO_RPW = 'https://cdaweb.gsfc.nasa.gov/pub/data/solar-orbiter/rpw/science/l2'
 _MASTERS = 'https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS'
-_TDS_RATE_HZ = 262137.5
 _TDS_KINDS = {'RSWF': 'rapid', 'TSWF': 'regular'}
 _TDS_BANDS = {'B': 'magnetic', 'E': 'electric'}
 
@@ -80,8 +79,8 @@ def _solo_tds_electric(kind: str) -> tuple[PatchedParameter, ...]:
 
 
 def _solo_tds_magnetic(kind: str) -> tuple[PatchedParameter, ...]:
-    """The -B files carry no EPOCH_OFFSET: samples are evenly spaced at the (constant) TDS rate."""
-    decoder = EpochPlusSamplingRate(rate='SAMPLING_RATE', rate_hz=_TDS_RATE_HZ)
+    """The -B files carry no EPOCH_OFFSET: each snapshot's samples are evenly spaced at its own SAMPLING_RATE."""
+    decoder = EpochPlusSamplingRate(rate='SAMPLING_RATE')
     return (PatchedParameter(f'SOLO_L2_RPW-TDS-SURV-{kind}-B', 'B', 'B', decoder, {'UNITS': 'nT'}),)
 
 
