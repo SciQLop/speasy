@@ -54,8 +54,42 @@ PSP_FIELDS = (
         'SWEAP_Counts')))
 )
 
-PATCHES: tuple[PatchedParameter, ...] = PSP_FIELDS
-INJECTED: tuple[InjectedDataset, ...] = ()
+_SOLO_RPW = 'https://cdaweb.gsfc.nasa.gov/pub/data/solar-orbiter/rpw/science/l2'
+_MASTERS = 'https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS'
+_TDS_RATE_HZ = 262137.5
+_TDS_KINDS = {'RSWF': 'rapid', 'TSWF': 'regular'}
+_TDS_BANDS = {'B': 'magnetic', 'E': 'electric'}
+
+
+def _solo_tds_dataset(kind: str, band: str) -> InjectedDataset:
+    folder = f'tds-surv-{kind.lower()}-{band.lower()}'
+    return InjectedDataset(
+        id=f'SOLO_L2_RPW-TDS-SURV-{kind}-{band}', sibling_of='SOLO_L2_RPW-TDS-SURV-HIST2D',
+        filenaming=f'solo_l2_rpw-{folder}_%Y%m%d_%Q.cdf', url=f'{_SOLO_RPW}/{folder}', subdividedby='%Y',
+        mastercdf=f'{_MASTERS}/solo_l2_rpw-{folder}_00000000_v01.cdf', start_date='2020-06-15 00:00:00',
+        description=f'Solar Orbiter, Level 2, Radio and Plasma Waves, Time Domain Sampler, {_TDS_KINDS[kind]} '
+                    f'waveform snapshots, {_TDS_BANDS[band]} component, survey - M.Maksimovic (CNRS, LIRA '
+                    f'Observatoire de Paris-PSL)')
+
+
+def _solo_tds_electric(kind: str) -> tuple[PatchedParameter, ...]:
+    dataset = f'SOLO_L2_RPW-TDS-SURV-{kind}-E'
+    decoder = EpochPlusOffsets(offsets='EPOCH_OFFSET', ns_per_unit=1.0, sample_axis=2)
+    return tuple(PatchedParameter(dataset, name, name, decoder, {'UNITS': units, 'spz_shape': 3})
+                 for name, units in (('WAVEFORM_DATA', 'V/m'), ('WAVEFORM_DATA_VOLTAGE', 'V')))
+
+
+def _solo_tds_magnetic(kind: str) -> tuple[PatchedParameter, ...]:
+    """The -B files carry no EPOCH_OFFSET: samples are evenly spaced at the (constant) TDS rate."""
+    decoder = EpochPlusSamplingRate(rate='SAMPLING_RATE', rate_hz=_TDS_RATE_HZ)
+    return (PatchedParameter(f'SOLO_L2_RPW-TDS-SURV-{kind}-B', 'B', 'B', decoder, {'UNITS': 'nT'}),)
+
+
+SOLO_RPW_TDS = tuple(p for kind in _TDS_KINDS for p in _solo_tds_electric(kind) + _solo_tds_magnetic(kind))
+
+PATCHES: tuple[PatchedParameter, ...] = PSP_FIELDS + SOLO_RPW_TDS
+INJECTED: tuple[InjectedDataset, ...] = tuple(
+    _solo_tds_dataset(kind, band) for kind in _TDS_KINDS for band in _TDS_BANDS)
 
 
 def patch_for(dataset: str, name: str) -> Optional[PatchedParameter]:

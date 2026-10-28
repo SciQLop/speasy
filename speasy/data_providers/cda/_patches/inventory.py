@@ -6,6 +6,7 @@ from typing import Dict, Iterator, Tuple
 
 from speasy.core import fix_name
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
+from speasy.data_providers.cda._inventory_builder._xml_catalogs_parser import alias_rules
 
 from . import table
 from .table import InjectedDataset, PatchedParameter
@@ -29,11 +30,12 @@ def _datasets_by_uid(root: SpeasyIndex) -> Dict[str, _Located]:
 
 def _injected_meta(entry: InjectedDataset, now: datetime) -> dict:
     meta = {key: value for key, value in asdict(entry).items() if key not in ('id', 'sibling_of')}
-    return {**meta, 'stop_date': now.isoformat()}
+    return {**meta, 'serviceprovider_ID': entry.id, 'stop_date': now.isoformat()}
 
 
 def _inject_dataset(parent: SpeasyIndex, entry: InjectedDataset, now: datetime):
-    dataset = parent.__dict__.setdefault(fix_name(entry.id), DatasetIndex(entry.id, 'cda', entry.id))
+    name = fix_name(alias_rules(entry.id))
+    dataset = parent.__dict__.setdefault(name, DatasetIndex(name, 'cda', entry.id))
     dataset.__dict__.update(_injected_meta(entry, now))
 
 

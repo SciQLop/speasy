@@ -66,6 +66,12 @@ class InventoryPatch(unittest.TestCase):
                          ('new_%Y%m%d_v01.cdf', 'https://x/new', 'yearly', 'new_00000000_v01.cdf'))
         self.assertEqual((injected.start_date, injected.description), ('2020-04-15T00:00:00Z', 'an injected dataset'))
 
+    def test_injected_dataset_looks_like_a_real_one(self):
+        hyphenated = InjectedDataset('NEW-DS', 'OLD_DS', 'f', 'u', '%Y', 'm', '2020-01-01T00:00:00Z', 'd')
+        injected = _patched(injected=(hyphenated,)).Mission.NEW_DS
+        self.assertEqual((injected.spz_name(), injected.spz_uid(), injected.serviceprovider_ID),
+                         ('NEW_DS', 'NEW-DS', 'NEW-DS'))
+
     def test_injected_stop_date_is_now(self):
         self.assertEqual(_patched().Mission.NEW_DS.stop_date, NOW.isoformat())
 
