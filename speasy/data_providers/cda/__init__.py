@@ -9,7 +9,7 @@ __version__ = '0.1.0'
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 from packaging.version import Version
 
 from speasy.core import AllowedKwargs, EnsureUTCDateTime, make_utc_datetime
@@ -28,6 +28,7 @@ from speasy.core.requests_scheduling import SplitLargeRequests
 from speasy.core.direct_archive_downloader import first_file, get_product as direct_archive_get_product
 from speasy.products.variable import SpeasyVariable
 from ._direct_archive import to_direct_archive_params
+from ._patches import PatchedParameter, is_injected, patch_for, patched_reader
 
 log = logging.getLogger(__name__)
 
@@ -68,31 +69,69 @@ def _codec_can_read(file_url: str, codec: str, variable: str) -> bool:
         return False
 
 
-def _codec_can_read_archive(archive_params: Dict, variable: str, start_time: datetime,
-                            stop_time: datetime) -> bool:
+def _archive_can_read(archive_params: Dict, can_read: Callable[[str], bool], start_time: datetime,
+                      stop_time: datetime) -> bool:
     """Can this product be read from the first file the archive serves for that range?
 
     Asks a real file rather than looking at what get_data() returned: an empty result only means
-    the interval holds no data, while a file the codec can't get the variable out of is a property
+    the interval holds no data, while a file the reader can't get the variable out of is a property
     of the dataset. The retention window gives a dataset that later becomes readable another try.
     """
-    codec = archive_params['codec']
-    if get_codec(codec) is None:
-        log.warning(f"No {codec} codec available, switching to web service")
-        return False
     sample_file = first_file(start_time=start_time, stop_time=stop_time, **archive_params)
     if sample_file is None:
         return False
     try:
-        return _codec_can_read(sample_file, codec, variable)
+        return can_read(sample_file)
     except IOError as e:
-        log.warning(f"Failed to probe {sample_file} with the {codec} codec, switching to web service: {e}")
+        log.warning(f"Failed to probe {sample_file}, switching to web service: {e}")
         return False
+
+
+def _codec_can_read_archive(archive_params: Dict, variable: str, start_time: datetime,
+                            stop_time: datetime) -> bool:
+    codec = archive_params['codec']
+    if get_codec(codec) is None:
+        log.warning(f"No {codec} codec available, switching to web service")
+        return False
+    return _archive_can_read(archive_params, lambda file_url: _codec_can_read(file_url, codec, variable),
+                             start_time, stop_time)
+
+
+def _patch_can_read(file_url: str, entry: PatchedParameter) -> bool:
+    try:
+        return patched_reader(entry)(file_url, entry.variable) is not None
+    except Exception as e:
+        if is_injected(entry.dataset):
+            raise CdaWebException(f"{entry.dataset} is only served from files, and {file_url} can't be read: "
+                                  f"{type(e).__name__}: {e}. Retry later, or report it to the speasy "
+                                  f"developers if it persists.") from e
+        log.warning(f"The {entry.dataset} patch failed on {file_url}, switching to web service: "
+                    f"{type(e).__name__}: {e}")
+        return False
+
+
+def _patched_archive_params(dataset: DatasetIndex, entry: PatchedParameter, start_time: datetime,
+                            stop_time: datetime) -> Optional[Dict]:
+    """A table-patched product is read from files even when CDAWeb marks it virtual.
+
+    Injected datasets have no web service to fall back to, so they keep the archive even when no file
+    covers the range: that range just holds no data.
+    """
+    params = to_direct_archive_params(file_naming=dataset.filenaming, subdivided_by=dataset.subdividedby,
+                                      url=dataset.url)
+    if params is None:
+        return None
+    params = {**params, 'file_reader': patched_reader(entry)}
+    readable = _archive_can_read(params, lambda file_url: _patch_can_read(file_url, entry), start_time, stop_time)
+    return params if readable or is_injected(entry.dataset) else None
 
 
 def _archive_params_for(dataset: DatasetIndex, product_index: ParameterIndex, variable: str,
                         start_time: datetime, stop_time: datetime) -> Optional[Dict]:
     """Direct archive parameters when this product can really be served from files, None otherwise."""
+    entry = patch_for(dataset.spz_uid(), product_index.spz_name())
+    if entry is not None:
+        return _patched_archive_params(dataset, entry, start_time, stop_time)
     if _is_virtual(dataset, product_index):
         return None
     params = to_direct_archive_params(file_naming=dataset.filenaming, subdivided_by=dataset.subdividedby,
