@@ -138,16 +138,18 @@ class FileAccess(unittest.TestCase):
         self.assertIsNotNone(f)
         self.assertIn('<dataCenter name="AMDA_Webservice"', f.read(100))
 
-    @data(
-        ('https://hephaistos.lpp.polytechnique.fr/data/', re.compile(r'\w+\.webm'), 'plasmaSpeaker1.webm'),
-        ('http://solarorbiter.irap.omp.eu/tests/L1/20121117/', re.compile('.*\.cdf'),
-         'solo_L1_swa-pas-3d_20121117_V01.cdf')
-    )
-    @unpack
-    def test_list_remote_files(self, url, file_regex, sample):
-        flist = list_files(url=url, file_regex=file_regex, force_refresh=True)
-        self.assertGreaterEqual(len(flist), 0)
-        self.assertIn(sample, flist)
+    def test_list_remote_files(self):
+        flist = list_files(url='https://hephaistos.lpp.polytechnique.fr/data/', file_regex=re.compile(r'\w+\.webm'),
+                           force_refresh=True)
+        self.assertIn('plasmaSpeaker1.webm', flist)
+
+    def test_list_remote_files_with_absolute_single_quoted_hrefs(self):
+        listing = MagicMock(ok=True, text="<a href='/tests/L1/20121117/solo_L1_swa-pas-3d_20121117_V01.cdf'>x</a>"
+                                          "<a href='/tests/L1/20121117/readme.txt'>y</a>")
+        with patch("speasy.core.any_files.http.get", return_value=listing):
+            flist = list_files(url='http://absolute-hrefs.invalid/tests/L1/20121117/', file_regex=r'.*\.cdf',
+                               force_refresh=True)
+        self.assertEqual(['solo_L1_swa-pas-3d_20121117_V01.cdf'], flist)
 
     def test_list_remote_files_with_rewrite_rules(self):
         if 'SPEASY_CORE_HTTP_REWRITE_RULES' not in os.environ:
