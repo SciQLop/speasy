@@ -60,15 +60,19 @@ _TDS_KINDS = {'RSWF': 'rapid', 'TSWF': 'regular'}
 _TDS_BANDS = {'B': 'magnetic', 'E': 'electric'}
 
 
-def _solo_tds_dataset(kind: str, band: str) -> InjectedDataset:
-    folder = f'tds-surv-{kind.lower()}-{band.lower()}'
+def _solo_rpw_dataset(id: str, folder: str, description: str) -> InjectedDataset:
     return InjectedDataset(
-        id=f'SOLO_L2_RPW-TDS-SURV-{kind}-{band}', sibling_of='SOLO_L2_RPW-TDS-SURV-HIST2D',
+        id=id, sibling_of='SOLO_L2_RPW-TDS-SURV-HIST2D',
         filenaming=f'solo_l2_rpw-{folder}_%Y%m%d_%Q.cdf', url=f'{_SOLO_RPW}/{folder}', subdividedby='%Y',
         mastercdf=f'{_MASTERS}/solo_l2_rpw-{folder}_00000000_v01.cdf', start_date='2020-06-15 00:00:00',
-        description=f'Solar Orbiter, Level 2, Radio and Plasma Waves, Time Domain Sampler, {_TDS_KINDS[kind]} '
-                    f'waveform snapshots, {_TDS_BANDS[band]} component, survey - M.Maksimovic (CNRS, LIRA '
+        description=f'Solar Orbiter, Level 2, Radio and Plasma Waves, {description} - M.Maksimovic (CNRS, LIRA '
                     f'Observatoire de Paris-PSL)')
+
+
+def _solo_tds_dataset(kind: str, band: str) -> InjectedDataset:
+    return _solo_rpw_dataset(
+        f'SOLO_L2_RPW-TDS-SURV-{kind}-{band}', f'tds-surv-{kind.lower()}-{band.lower()}',
+        f'Time Domain Sampler, {_TDS_KINDS[kind]} waveform snapshots, {_TDS_BANDS[band]} component, survey')
 
 
 def _solo_tds_electric(kind: str) -> tuple[PatchedParameter, ...]:
@@ -86,9 +90,33 @@ def _solo_tds_magnetic(kind: str) -> tuple[PatchedParameter, ...]:
 
 SOLO_RPW_TDS = tuple(p for kind in _TDS_KINDS for p in _solo_tds_electric(kind) + _solo_tds_magnetic(kind))
 
-PATCHES: tuple[PatchedParameter, ...] = PSP_FIELDS + SOLO_RPW_TDS
-INJECTED: tuple[InjectedDataset, ...] = tuple(
-    _solo_tds_dataset(kind, band) for kind in _TDS_KINDS for band in _TDS_BANDS)
+_LFR_RATES_HZ = {'F0': 24576, 'F1': 4096, 'F2': 256}
+_LFR_SWF = {  # band: (sample axis, variables)
+    'E': (1, ('VDC', 'EDC', 'EAC')),
+    'B': (2, ('B', 'B_RTN')),
+}
+
+
+def _solo_lfr_dataset(band: str) -> InjectedDataset:
+    return _solo_rpw_dataset(f'SOLO_L2_RPW-LFR-SURV-SWF-{band}', f'lfr-surv-swf-{band.lower()}',
+                             f'Low Frequency Receiver, waveform snapshots, {_TDS_BANDS[band]} component, survey')
+
+
+def _solo_lfr_split(band: str) -> tuple[PatchedParameter, ...]:
+    """Each snapshot is sampled at one of the LFR rates; `<variable>_F0/_F1/_F2` keep the snapshots of one rate."""
+    sample_axis, variables = _LFR_SWF[band]
+    return tuple(
+        PatchedParameter(f'SOLO_L2_RPW-LFR-SURV-SWF-{band}', f'{variable}_{name}', variable,
+                         EpochPlusSamplingRate(rate='SAMPLING_RATE', rate_hz=rate_hz, sample_axis=sample_axis))
+        for variable in variables for name, rate_hz in _LFR_RATES_HZ.items())
+
+
+SOLO_RPW_LFR = tuple(p for band in _LFR_SWF for p in _solo_lfr_split(band))
+
+PATCHES: tuple[PatchedParameter, ...] = PSP_FIELDS + SOLO_RPW_TDS + SOLO_RPW_LFR
+INJECTED: tuple[InjectedDataset, ...] = (
+    tuple(_solo_tds_dataset(kind, band) for kind in _TDS_KINDS for band in _TDS_BANDS)
+    + tuple(_solo_lfr_dataset(band) for band in _LFR_SWF))
 
 
 def patch_for(dataset: str, name: str) -> Optional[PatchedParameter]:

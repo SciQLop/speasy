@@ -71,5 +71,46 @@ class SoloTdsSnapshots(unittest.TestCase):
         self.assertEqual(var.values.shape, (239 * 16384, 3))
 
 
+LFR_RATES_HZ = {'F0': 24576, 'F1': 4096, 'F2': 256}
+LFR_SAMPLES = 2048
+IN_DAY_SNAPSHOTS = 1944  # a 1945th snapshot of the file starts on 2021-01-02
+
+
+def _snapshot_centers(var, rate_hz: int) -> np.ndarray:
+    starts = var.time.reshape(-1, LFR_SAMPLES)[:, 0]
+    return starts + np.timedelta64(round((LFR_SAMPLES - 1) / 2 * 1e9 / rate_hz), 'ns')
+
+
+def _nearest_offsets_ns(centers: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    return np.array([np.abs(reference - c).min() for c in centers]).astype('timedelta64[ns]').astype('int64')
+
+
+@unittest.skipUnless(os.environ.get('SPEASY_LONG_TESTS'), "the 2021-01-01 LFR SWF files are 159 MB and 254 MB")
+class SoloLfrSnapshots(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.vdc = {f: spz.get_data(f'cda/SOLO_L2_RPW-LFR-SURV-SWF-E/VDC_{f}', '2021-01-01', '2021-01-02')
+                   for f in LFR_RATES_HZ}
+
+    def test_lfr_rates_share_centers(self):
+        centers = {f: _snapshot_centers(v, LFR_RATES_HZ[f]) for f, v in self.vdc.items()}
+        for faster in ('F0', 'F1'):
+            offsets = _nearest_offsets_ns(centers['F2'], centers[faster])
+            self.assertGreaterEqual(np.mean(np.abs(offsets) < 10e6), 0.99, faster)
+
+    def test_lfr_f2_spacing(self):
+        steps = np.diff(self.vdc['F2'].time.reshape(-1, LFR_SAMPLES), axis=1).astype('int64')
+        self.assertLessEqual(np.abs(steps - 1e9 / 256).max(), 1.0)
+
+    def test_lfr_swf_e_shapes(self):
+        self.assertEqual({f: v.values.shape for f, v in self.vdc.items()}, {f: (IN_DAY_SNAPSHOTS * LFR_SAMPLES, 3) for f in self.vdc})
+
+    def test_lfr_swf_b_is_channel_first(self):
+        var = spz.get_data('cda/SOLO_L2_RPW-LFR-SURV-SWF-B/B_F2', '2021-01-01', '2021-01-02')
+        self.assertEqual(var.values.shape, (IN_DAY_SNAPSHOTS * LFR_SAMPLES, 3))
+        self.assertLessEqual(np.abs(np.diff(var.time.reshape(-1, LFR_SAMPLES), axis=1).astype('int64')
+                                    - 1e9 / 256).max(), 1.0)
+
+
 if __name__ == '__main__':
     unittest.main()
