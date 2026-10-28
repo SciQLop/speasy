@@ -109,6 +109,32 @@ class InventoryPatch(unittest.TestCase):
         self.assertEqual(to_dict(_patched(patches=(orphan,), injected=()), version=2), to_dict(_tree(), version=2))
 
 
+class SoloLfrInventory(unittest.TestCase):
+    EXPECTED = {'SOLO_L2_RPW-LFR-SURV-SWF-E': {f'{v}_{f}' for v in ('VDC', 'EDC', 'EAC') for f in ('F0', 'F1', 'F2')},
+                'SOLO_L2_RPW-LFR-SURV-SWF-B': {f'{v}_{f}' for v in ('B', 'B_RTN') for f in ('F0', 'F1', 'F2')}}
+
+    def setUp(self):
+        sibling = table.INJECTED[0].sibling_of
+        root = SpeasyIndex('cda', 'cda', 'cda')
+        mission = make_inventory_node(root, SpeasyIndex, 'Solar_Orbiter', 'cda', 'Solar_Orbiter')
+        make_inventory_node(mission, DatasetIndex, sibling, 'cda', sibling,
+                            start_date='2020-06-15T00:00:00Z', stop_date='2025-01-01T00:00:00Z')
+        self.mission = patch_inventory(root, NOW).Solar_Orbiter
+
+    def test_datasets_hold_exactly_the_split_products(self):
+        names = {id: {p.spz_name() for p in getattr(self.mission, id.replace('-', '_')).__dict__.values()
+                      if isinstance(p, ParameterIndex)} for id in self.EXPECTED}
+        self.assertEqual(names, self.EXPECTED)
+
+    def test_products_are_three_component_with_units(self):
+        for id, names in self.EXPECTED.items():
+            dataset = getattr(self.mission, id.replace('-', '_'))
+            for name in names:
+                param = getattr(dataset, name)
+                self.assertEqual(param.spz_shape, 3, name)
+                self.assertIn(param.UNITS, ('V', 'nT'), name)
+
+
 class _Marking(DataProvider):
     NAME = 'patchhook'
 

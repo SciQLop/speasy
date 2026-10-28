@@ -91,9 +91,9 @@ def _solo_tds_magnetic(kind: str) -> tuple[PatchedParameter, ...]:
 SOLO_RPW_TDS = tuple(p for kind in _TDS_KINDS for p in _solo_tds_electric(kind) + _solo_tds_magnetic(kind))
 
 _LFR_RATES_HZ = {'F0': 24576, 'F1': 4096, 'F2': 256}
-_LFR_SWF = {  # band: (sample axis, variables)
-    'E': (1, ('VDC', 'EDC', 'EAC')),
-    'B': (2, ('B', 'B_RTN')),
+_LFR_SWF = {  # band: (sample axis, {variable: units})
+    'E': (1, {'VDC': 'V', 'EDC': 'V', 'EAC': 'V'}),
+    'B': (2, {'B': 'nT', 'B_RTN': 'nT'}),
 }
 
 
@@ -107,8 +107,9 @@ def _solo_lfr_split(band: str) -> tuple[PatchedParameter, ...]:
     sample_axis, variables = _LFR_SWF[band]
     return tuple(
         PatchedParameter(f'SOLO_L2_RPW-LFR-SURV-SWF-{band}', f'{variable}_{name}', variable,
-                         EpochPlusSamplingRate(rate='SAMPLING_RATE', rate_hz=rate_hz, sample_axis=sample_axis))
-        for variable in variables for name, rate_hz in _LFR_RATES_HZ.items())
+                         EpochPlusSamplingRate(rate='SAMPLING_RATE', rate_hz=rate_hz, sample_axis=sample_axis),
+                         {'UNITS': units, 'spz_shape': 3})
+        for variable, units in variables.items() for name, rate_hz in _LFR_RATES_HZ.items())
 
 
 SOLO_RPW_LFR = tuple(p for band in _LFR_SWF for p in _solo_lfr_split(band))
