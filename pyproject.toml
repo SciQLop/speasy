@@ -77,6 +77,11 @@ dev = [
     "cogapp",
     "pyftpdlib",
 ]
+wasm = [
+    "pytest-pyodide; python_version >= '3.14'",
+    # must match the pyodide distribution version in .github/workflows/wasm_tests.yml
+    "pyodide-py==314.0.7; python_version >= '3.14'",
+]
 docs = [
     "sphinx!=5.2.0.post0",
     "sphinx-rtd-theme",
