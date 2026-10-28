@@ -89,32 +89,32 @@ Catalogs and TimeTables
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Downloading Catalogs and TimeTables from `AMDA <https://amda.irap.omp.eu/>`_ is similar to Parameters. For example let's
-assume you want to download the first available catalog:
+assume you want to download the MMS 2019 plasma regions catalog:
 
     >>> from speasy import amda
-    >>> first_catalog_index=amda.list_catalogs()[0]
-    >>> print(first_catalog_index)
+    >>> mms_catalog_index=next(c for c in amda.list_catalogs() if c.name == "model_regions_plasmas_mms_2019")
+    >>> print(mms_catalog_index)
     <CatalogIndex: model_regions_plasmas_mms_2019>
-    >>> first_catalog=amda.get_catalog(first_catalog_index)
-    >>> first_catalog
+    >>> mms_catalog=amda.get_catalog(mms_catalog_index)
+    >>> mms_catalog
     <Catalog: model_regions_plasmas_mms_2019>
-    >>> len(first_catalog)
+    >>> len(mms_catalog)
     12691
-    >>> print(first_catalog[1])
+    >>> print(mms_catalog[1])
     <Event: 2019-01-01T00:24:04+00:00 -> 2019-01-01T00:24:04+00:00 | {'classes': '1'}>
 
 Exactly the same with a TimeTable:
 
     >>> from speasy import amda
-    >>> first_timetable_index=amda.list_timetables()[0]
-    >>> print(first_timetable_index)
+    >>> fte_timetable_index=next(t for t in amda.list_timetables() if t.name == "FTE_c1")
+    >>> print(fte_timetable_index)
     <TimetableIndex: FTE_c1>
-    >>> first_timetable=amda.get_timetable(first_timetable_index)
-    >>> first_timetable
+    >>> fte_timetable=amda.get_timetable(fte_timetable_index)
+    >>> fte_timetable
     <TimeTable: FTE_c1>
-    >>> len(first_timetable)
+    >>> len(fte_timetable)
     782
-    >>> print(first_timetable[1])
+    >>> print(fte_timetable[1])
     <DateTimeRange: 2001-02-02T17:29:29+00:00 -> 2001-02-02T17:29:30+00:00>
 
 

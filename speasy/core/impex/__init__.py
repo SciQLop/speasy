@@ -785,8 +785,8 @@ class ImpexProvider(DataProvider):
         >>> amda_catalogs = spz.amda.list_catalogs()
         >>> len(amda_catalogs) > 0
         True
-        >>> amda_catalogs[0]
-        <CatalogIndex: model_regions_plasmas_mms_2019>
+        >>> [c for c in amda_catalogs if c.name == "model_regions_plasmas_mms_2019"]
+        [<CatalogIndex: model_regions_plasmas_mms_2019>]
 
         """
         return list(filter(is_not_user_product, flat_inventories.__dict__[self.provider_name].catalogs.values()))
