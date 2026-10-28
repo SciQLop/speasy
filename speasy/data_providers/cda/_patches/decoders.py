@@ -5,6 +5,7 @@ from typing import Optional
 import numpy as np
 import pycdfpp
 
+from speasy.core.data_containers import fill_value_mask
 from speasy.core.codecs.bundled_codecs.istp import _fix_attributes_types
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
 
@@ -17,13 +18,10 @@ def _attributes(variable: pycdfpp.Variable) -> dict:
     return _fix_attributes_types({name: variable.attributes[name][0] for name in variable.attributes})
 
 
-def _fill_value(variable: pycdfpp.Variable):
-    return variable.attributes['FILLVAL'][0][0] if 'FILLVAL' in variable.attributes else None
-
-
-def _fill_to_nan(values: np.ndarray, fill) -> np.ndarray:
+def _fill_to_nan(values: np.ndarray, meta: dict) -> np.ndarray:
     as_float = values.astype(values.dtype if values.dtype.kind == 'f' else np.float64)
-    return as_float if fill is None else np.where(values == fill, np.nan, as_float)
+    mask = fill_value_mask(values, meta)
+    return as_float if mask is None else np.where(mask, np.nan, as_float)
 
 
 def _samples_first(values: np.ndarray, sample_axis: int) -> np.ndarray:
@@ -52,10 +50,11 @@ def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, rec
         return None
     time = times.reshape(-1)
     _check_increasing(time, name)
-    values = _fill_to_nan(values, _fill_value(variable))
+    meta = _attributes(variable)
+    values = _fill_to_nan(values, meta)
     columns = _labels(cdf, variable, 1 if values.ndim == 1 else values.shape[1])
     return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
-                          values=DataContainer(values=values, meta=_attributes(variable), name=name),
+                          values=DataContainer(values=values, meta=meta, name=name),
                           columns=columns)
 
 
