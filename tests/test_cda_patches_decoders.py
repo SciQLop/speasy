@@ -68,6 +68,14 @@ class TimeMatrixTest(unittest.TestCase):
         np.testing.assert_array_equal(result.time, time[:, :2].reshape(-1))
         np.testing.assert_array_equal(result.values.reshape(-1), values[:, :2].reshape(-1))
 
+    def test_samples_above_time_valid_max_are_kept(self):
+        time = T0 + np.arange(8).reshape(2, 4) * np.timedelta64(1, 'ms')
+        cdf = pycdfpp.CDF()
+        cdf.add_variable('time', values=_tt2000(time), data_type=pycdfpp.DataType.CDF_TIME_TT2000,
+                         attributes={'VALIDMAX': [pycdfpp.to_tt2000(datetime(2019, 12, 31))]})
+        _add_data(cdf, 'wave', np.arange(8, dtype=np.float32).reshape(2, 4))
+        self.assertEqual(len(TimeMatrix(time='time').decode(cdf, 'wave')), 8)
+
     def test_zero_records_returns_none(self):
         cdf = pycdfpp.CDF()
         _add_time(cdf, 'time', np.zeros((0, 4), dtype='datetime64[ns]'))

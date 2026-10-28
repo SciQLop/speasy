@@ -66,25 +66,23 @@ def _offsets_as_timedelta(offsets: np.ndarray, ns_per_unit: float) -> np.ndarray
     return np.rint(offsets * ns_per_unit).astype('int64').astype('timedelta64[ns]')
 
 
-def _valid_time_mask(variable: pycdfpp.Variable, times: np.ndarray) -> np.ndarray:
-    """Padding samples carry an undeclared sentinel (PSP TDS uses -999999999), outside VALIDMIN/VALIDMAX."""
-    mask = np.ones(times.shape, dtype=bool)
-    if 'VALIDMIN' in variable.attributes:
-        mask &= times >= _time_values(variable.attributes['VALIDMIN'][0])[0]
-    if 'VALIDMAX' in variable.attributes:
-        mask &= times <= _time_values(variable.attributes['VALIDMAX'][0])[0]
-    return mask
+def _not_padding_mask(variable: pycdfpp.Variable, times: np.ndarray) -> np.ndarray:
+    """Padding samples carry an undeclared sentinel (PSP TDS uses -999999999), below VALIDMIN.
+    VALIDMAX is deliberately ignored: a too early VALIDMAX would silently drop real data."""
+    if 'VALIDMIN' not in variable.attributes:
+        return np.ones(times.shape, dtype=bool)
+    return times >= _time_values(variable.attributes['VALIDMIN'][0])[0]
 
 
 @dataclass(frozen=True)
 class TimeMatrix:
     """Every sample has its own timestamp, stored in a 2D TT2000 variable shaped like the data.
-    Samples whose timestamp is outside the time variable's VALIDMIN/VALIDMAX are padding and dropped."""
+    Samples whose timestamp is below the time variable's VALIDMIN are padding and dropped."""
     time: str
 
     def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
         times = _time_values(cdf[self.time])
-        valid = _valid_time_mask(cdf[self.time], times.reshape(-1))
+        valid = _not_padding_mask(cdf[self.time], times.reshape(-1))
         return _build(cdf, variable, times, sample_axis=1, valid=valid)
 
 
