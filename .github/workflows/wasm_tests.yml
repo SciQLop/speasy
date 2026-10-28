@@ -84,11 +84,11 @@ jobs:
         enable-cache: true
 
     - name: Install the locked test runner (pytest-pyodide, pyodide-py)
-      run: uv sync --locked --only-group wasm --python 3.14
+      run: uv sync --locked --no-build --only-group wasm --python 3.14
 
     - name: Run tests
       run: |
-        uv run --locked --only-group wasm --python 3.14 python -m pytest -vra \
+        uv run --locked --no-build --only-group wasm --python 3.14 python -m pytest -vra \
           --dist-dir=./pyodide-dist/ \
           --runner=selenium \
           --rt=chrome \
