@@ -42,13 +42,17 @@ def _check_increasing(time: np.ndarray, variable: str):
                          f"order, this layout can't be decoded as a single time series")
 
 
-def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, records=slice(None)) -> Optional[SpeasyVariable]:
-    """times is (n, N), one row per kept record, `records` selects those records in the data variable."""
+def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, records=slice(None),
+           valid=None) -> Optional[SpeasyVariable]:
+    """times is (n, N), one row per kept record, `records` selects those records in the data variable,
+    `valid` optionally selects samples in the flattened series."""
     variable = cdf[name]
     values = _samples_first(variable.values[records], sample_axis)
+    time = times.reshape(-1)
+    if valid is not None:
+        values, time = values[valid], time[valid]
     if values.shape[0] == 0:
         return None
-    time = times.reshape(-1)
     _check_increasing(time, name)
     meta = _attributes(variable)
     values = _fill_to_nan(values, meta)
@@ -62,13 +66,26 @@ def _offsets_as_timedelta(offsets: np.ndarray, ns_per_unit: float) -> np.ndarray
     return np.rint(offsets * ns_per_unit).astype('int64').astype('timedelta64[ns]')
 
 
+def _valid_time_mask(variable: pycdfpp.Variable, times: np.ndarray) -> np.ndarray:
+    """Padding samples carry an undeclared sentinel (PSP TDS uses -999999999), outside VALIDMIN/VALIDMAX."""
+    mask = np.ones(times.shape, dtype=bool)
+    if 'VALIDMIN' in variable.attributes:
+        mask &= times >= _time_values(variable.attributes['VALIDMIN'][0])[0]
+    if 'VALIDMAX' in variable.attributes:
+        mask &= times <= _time_values(variable.attributes['VALIDMAX'][0])[0]
+    return mask
+
+
 @dataclass(frozen=True)
 class TimeMatrix:
-    """Every sample has its own timestamp, stored in a 2D TT2000 variable shaped like the data."""
+    """Every sample has its own timestamp, stored in a 2D TT2000 variable shaped like the data.
+    Samples whose timestamp is outside the time variable's VALIDMIN/VALIDMAX are padding and dropped."""
     time: str
 
     def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
-        return _build(cdf, variable, _time_values(cdf[self.time]), sample_axis=1)
+        times = _time_values(cdf[self.time])
+        valid = _valid_time_mask(cdf[self.time], times.reshape(-1))
+        return _build(cdf, variable, times, sample_axis=1, valid=valid)
 
 
 @dataclass(frozen=True)

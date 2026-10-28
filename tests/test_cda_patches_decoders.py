@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 
 import numpy as np
 import pycdfpp
@@ -54,6 +55,18 @@ class TimeMatrixTest(unittest.TestCase):
         _add_data(cdf, 'wave', np.zeros((2, 4), dtype=np.float32))
         with self.assertRaisesRegex(ValueError, "not increasing"):
             TimeMatrix(time='time').decode(cdf, 'wave')
+
+    def test_samples_outside_time_valid_range_are_dropped(self):
+        time = T0 + np.arange(8).reshape(2, 4) * np.timedelta64(1, 'ms')
+        time[:, 2:] = np.datetime64('1999-12-31T23:59:59', 'ns')
+        values = np.arange(8, dtype=np.float32).reshape(2, 4)
+        cdf = pycdfpp.CDF()
+        cdf.add_variable('time', values=_tt2000(time), data_type=pycdfpp.DataType.CDF_TIME_TT2000,
+                         attributes={'VALIDMIN': [pycdfpp.to_tt2000(datetime(2019, 12, 31))]})
+        _add_data(cdf, 'wave', values)
+        result = TimeMatrix(time='time').decode(cdf, 'wave')
+        np.testing.assert_array_equal(result.time, time[:, :2].reshape(-1))
+        np.testing.assert_array_equal(result.values.reshape(-1), values[:, :2].reshape(-1))
 
     def test_zero_records_returns_none(self):
         cdf = pycdfpp.CDF()
