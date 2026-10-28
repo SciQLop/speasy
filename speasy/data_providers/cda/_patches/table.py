@@ -114,7 +114,35 @@ def _solo_lfr_split(band: str) -> tuple[PatchedParameter, ...]:
 
 SOLO_RPW_LFR = tuple(p for band in _LFR_SWF for p in _solo_lfr_split(band))
 
-PATCHES: tuple[PatchedParameter, ...] = PSP_FIELDS + SOLO_RPW_TDS + SOLO_RPW_LFR
+_RBSP_WFR = ('BuSamples', 'BvSamples', 'BwSamples', 'EuSamples', 'EvSamples', 'EwSamples')
+_RBSP_WFR_DATASETS = tuple(f'RBSP-{probe}_WFR-WAVEFORM{kind}_EMFISIS-L2'
+                           for probe in 'AB' for kind in ('', '-CONTINUOUS-BURST'))
+_RBSP_HFR_DATASETS = tuple(f'RBSP-{probe}_HFR-WAVEFORM_EMFISIS-L2' for probe in 'AB')
+_TRACERS = {'TS1_L2_MSC_BAC': 'ts1_l2_bac_tscs', 'TS2_L2_MSC_BAC': 'ts2_l2_bac_tscs'}
+
+
+def _bucket_waveforms(datasets: tuple[str, ...], names: tuple[str, ...], decoder: EpochPlusOffsets,
+                      variable: Optional[str] = None, components: int = 1) -> tuple[PatchedParameter, ...]:
+    """One decoder for every `name` of every dataset; `variable` is the file variable when it differs from `name`."""
+    return tuple(PatchedParameter(dataset, name, variable or name, decoder, {'spz_shape': components})
+                 for dataset in datasets for name in names)
+
+
+RBSP_EMFISIS = (
+    _bucket_waveforms(_RBSP_WFR_DATASETS, _RBSP_WFR, EpochPlusOffsets(offsets='timeOffsets', ns_per_unit=1.0))
+    # Data files hold `HFRsamples` and `timeOffsets`; `HFRsamples_spec` and `timeOffsets_extended` exist only in the master.
+    + _bucket_waveforms(_RBSP_HFR_DATASETS, ('HFRsamples_spec',),
+                        EpochPlusOffsets(offsets='timeOffsets', ns_per_unit=1.0), variable='HFRsamples')
+)
+
+TRACERS_BAC = tuple(p for dataset, name in _TRACERS.items() for p in _bucket_waveforms(
+    (dataset,), (name,), EpochPlusOffsets(offsets='EpochOffset', ns_per_unit=1.0), components=3))
+
+VOYAGER_PWS = _bucket_waveforms(('VG1_PWS_WF', 'VG2_PWS_WF'), ('Waveform',),
+                                EpochPlusOffsets(offsets='timeOffsets', ns_per_unit=1000.0))
+
+PATCHES: tuple[PatchedParameter, ...] = (
+    PSP_FIELDS + SOLO_RPW_TDS + SOLO_RPW_LFR + RBSP_EMFISIS + TRACERS_BAC + VOYAGER_PWS)
 INJECTED: tuple[InjectedDataset, ...] = (
     tuple(_solo_tds_dataset(kind, band) for kind in _TDS_KINDS for band in _TDS_BANDS)
     + tuple(_solo_lfr_dataset(band) for band in _LFR_SWF))

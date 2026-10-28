@@ -112,5 +112,52 @@ class SoloLfrSnapshots(unittest.TestCase):
                                     - 1e9 / 256).max(), 1.0)
 
 
+RBSP = 'https://cdaweb.gsfc.nasa.gov/pub/data/rbsp'
+RBSP_WFR_A = f"{RBSP}/rbspa/l2/emfisis/wfr/waveform/2014/rbsp-a_wfr-waveform_emfisis-l2_20140101_v1.3.6.cdf"
+
+TS1_BAC = 'https://cdaweb.gsfc.nasa.gov/pub/data/tracers/tracers1/msc_searchcoil/l2/bac/2025/ts1_l2_msc_bac_20250926_v1.3.0.cdf'
+VG1_WF = 'https://cdaweb.gsfc.nasa.gov/pub/data/voyager/voyager1/wave_spectra_pws/waveform_cdf/1980/vg1_pws_wf_1980011515_v1.0.cdf'
+
+
+def _samples_in(url: str, start: str, stop: str) -> int:
+    """Samples of a bucket file (epoch + offsets) inside [start, stop), counted straight from the raw file."""
+    with any_loc_open(url, cache_remote_files=True) as f:
+        cdf = pycdfpp.load(f.read())
+    offsets = np.rint(cdf['EpochOffset' if 'EpochOffset' in cdf else 'timeOffsets'].values.ravel()
+                      * (1 if 'EpochOffset' in cdf else 1000)).astype('int64').astype('timedelta64[ns]')
+    times = pycdfpp.to_datetime64(cdf['Epoch']).reshape(-1, 1) + offsets
+    return int(((times >= np.datetime64(start)) & (times < np.datetime64(stop))).sum())
+
+
+class BucketWaveforms(unittest.TestCase):
+    def test_rbsp_wfr(self):
+        var = spz.get_data('cda/RBSP-A_WFR-WAVEFORM_EMFISIS-L2/BuSamples', '2014-01-01', '2014-01-02')
+        self.assertEqual(var.values.shape, (96 * 16384, 1))
+        offsets_ns = np.rint(_raw_values(RBSP_WFR_A, 'timeOffsets').ravel()).astype('int64')
+        steps = np.diff(var.time.reshape(96, -1), axis=1).astype('int64')
+        np.testing.assert_array_equal(steps, np.broadcast_to(np.diff(offsets_ns), steps.shape))
+
+    def test_rbsp_hfr_is_served_from_hfrsamples(self):
+        var = spz.get_data('cda/RBSP-A_HFR-WAVEFORM_EMFISIS-L2/HFRsamples_spec', '2012-09-01T21', '2012-09-01T22')
+        self.assertGreater(len(var), 0)
+        self.assertEqual(len(var) % 32768, 0)
+
+    def test_ts1_bac(self):
+        var = spz.get_data('cda/TS1_L2_MSC_BAC/ts1_l2_bac_tscs', '2025-09-26T01:54', '2025-09-26T02:13')
+        self.assertEqual(var.values.shape, (len(var.time), 3))
+        self.assertEqual(len(var), _samples_in(TS1_BAC, '2025-09-26T01:54', '2025-09-26T02:13'))
+        self.assertGreater(len(var), 1024)
+
+    def test_vg1_waveform(self):
+        var = spz.get_data('cda/VG1_PWS_WF/Waveform', '1980-01-15T15:00', '1980-01-15T16:00')
+        self.assertEqual(var.values.shape, (len(var.time), 1))
+        self.assertEqual(len(var), _samples_in(VG1_WF, '1980-01-15T15:00', '1980-01-15T16:00'))
+        steps = np.diff(var.time).astype('int64')
+        in_bucket = steps[steps < 1_000_000]
+        self.assertLessEqual(np.abs(in_bucket - 34722).max(), 100)  # the file stores offsets with 6 digits
+        self.assertEqual(var.values.dtype.kind, 'f')  # FILLVAL -128 can become NaN; this file holds none
+        self.assertFalse((var.values == -128).any())
+
+
 if __name__ == '__main__':
     unittest.main()
