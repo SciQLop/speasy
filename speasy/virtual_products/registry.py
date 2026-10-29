@@ -3,7 +3,7 @@
 import difflib
 import threading
 import warnings
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 from ..core.algorithms import fix_name
 from ..core.dataprovider import register_provider
@@ -12,10 +12,10 @@ from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
 
-_callbacks: Dict[str, Callable] = {}
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
 _MAX_DEPTH = 128
+_registration_lock = threading.Lock()
 
 
 class _Resolution(threading.local):
@@ -65,14 +65,11 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
         raise VirtualProductTypeError(f"Virtual product 'virtual/{product_uid}': "
                                       f"{getattr(callback, '__qualname__', callback)} returned "
                                       f"{type(result).__name__}, expected SpeasyVariable or None")
-    if result is not None and (labels is not None or meta is not None):
-        result = result.copy()
-        if labels is not None:
-            result._SpeasyVariable__columns = list(labels)
-        if meta is not None:
-            # keys are uppercased to match ISTP convention (e.g. "units" -> "UNITS")
-            node_meta = {k.upper(): v for k, v in meta.items()}
-            result.meta.update(node_meta)
+    if result is not None and labels is not None:
+        result = result.with_labels(labels)
+    if result is not None and meta is not None:
+        # keys are uppercased to match ISTP convention (e.g. "units" -> "UNITS")
+        result = result.with_meta({k.upper(): v for k, v in meta.items()})
     return result
 
 
@@ -102,13 +99,19 @@ def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None,
     Internal — use register_virtual_product() for the public API.
     Returns the tree leaf, a VirtualProduct wrapping callback.
     """
-    if product_uid in _callbacks:
-        previous = _callbacks[product_uid]
+    with _registration_lock:
+        return _register_locked(product_uid, callback, meta, labels)
+
+
+def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
+                     labels: Optional[list]) -> VirtualProduct:
+    previous = _flat_inventory.parameters.get(product_uid)
+    if previous is not None:
+        previous = previous.__spz_callback__
         warnings.warn(f"Re-registering 'virtual/{product_uid}': "
                       f"{getattr(previous, '__qualname__', previous)} is replaced by "
                       f"{getattr(callback, '__qualname__', callback)}",
-                      stacklevel=3)
-    _callbacks[product_uid] = callback
+                      stacklevel=4)
 
     *folders, leaf = [fix_name(seg) for seg in product_uid.split('/')]
     parent = _root
@@ -118,7 +121,7 @@ def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None,
     if isinstance(existing, VirtualProduct) and existing.spz_uid() != product_uid:
         warnings.warn(f"'virtual/{product_uid}' and 'virtual/{existing.spz_uid()}' share the tree name "
                       f"'{leaf}': the tree now shows 'virtual/{product_uid}' only",
-                      stacklevel=3)
+                      stacklevel=4)
     node = make_inventory_node(parent, VirtualProduct, leaf, 'virtual', product_uid,
                                extra_args={"callback": callback, "labels": labels},
                                force=True, **(meta or {}))
@@ -172,17 +175,21 @@ class _VirtualProvider:
     provider_name = NAME
 
     def get_data(self, product_uid: str, start_time, stop_time, **kwargs):
-        callback = _callbacks.get(product_uid)
-        if callback is None:
-            message = f"Unknown virtual product 'virtual/{product_uid}'"
-            close_uids = difflib.get_close_matches(product_uid, _callbacks.keys(), n=3)
-            if close_uids:
-                message += ". Did you mean " + ", ".join(f"'virtual/{uid}'" for uid in close_uids) + "?"
-            raise UnknownVirtualProduct(message)
+        # One lookup: the node holds the callback, labels and meta of a single registration.
         node = _flat_inventory.parameters.get(product_uid)
-        labels = node.__spz_labels__ if node is not None else None
-        meta = node.__spz_meta__ if node is not None else None
-        return _call_checked(product_uid, callback, start_time, stop_time, labels=labels, meta=meta)
+        if node is None:
+            raise UnknownVirtualProduct(_unknown_product_message(product_uid))
+        return node(start_time, stop_time)
+
+
+def _unknown_product_message(product_uid: str) -> str:
+    with _registration_lock:
+        known_uids = list(_flat_inventory.parameters)
+    message = f"Unknown virtual product 'virtual/{product_uid}'"
+    close_uids = difflib.get_close_matches(product_uid, known_uids, n=3)
+    if close_uids:
+        message += ". Did you mean " + ", ".join(f"'virtual/{uid}'" for uid in close_uids) + "?"
+    return message
 
 
 def _init_virtual_provider():
