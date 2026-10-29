@@ -367,16 +367,31 @@ class VirtualProductRobustness(unittest.TestCase):
             a(_START, _STOP)
         self.assertIn("virtual/a -> virtual/b -> virtual/a", str(ctx.exception))
 
-    def test_finite_self_composition_works(self):
-        one_day = timedelta(days=1)
+    def test_self_request_at_another_time_raises_at_once(self):
+        calls = []
 
         def previous_day(start_time, stop_time):
-            if start_time <= _START - 3 * one_day:
-                return _hourly_ramp(start_time, stop_time)
-            return spz.get_data("virtual/c", start_time - one_day, stop_time - one_day)
+            calls.append(start_time)
+            return spz.get_data("virtual/c", start_time - timedelta(days=1), stop_time - timedelta(days=1))
 
         register_virtual_product("virtual/c", previous_day)
-        self.assertIsInstance(spz.get_data("virtual/c", _START, _STOP), SpeasyVariable)
+        with self.assertRaisesRegex(registry.VirtualProductCycleError,
+                                    r"virtual/c -> virtual/c.*call its function directly"):
+            spz.get_data("virtual/c", _START, _STOP)
+        self.assertEqual(len(calls), 1)
+
+    def test_indirect_request_at_another_time_raises_at_once(self):
+        register_virtual_product("virtual/a", lambda s, e: spz.get_data("virtual/b", s, e))
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s - timedelta(days=1),
+                                                                          e - timedelta(days=1)))
+        with self.assertRaisesRegex(registry.VirtualProductCycleError, "virtual/a -> virtual/b -> virtual/a"):
+            spz.get_data("virtual/a", _START, _STOP)
+
+    def test_a_product_may_be_requested_twice_side_by_side(self):
+        register_virtual_product("virtual/a", _hourly_ramp)
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e)
+                                 + spz.get_data("virtual/a", s, e))
+        self.assertIsInstance(spz.get_data("virtual/b", _START, _STOP), SpeasyVariable)
 
 
 def _run_concurrently(*workers):
