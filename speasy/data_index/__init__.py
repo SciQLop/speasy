@@ -67,7 +67,9 @@ def _product_path(product) -> str:
 
 
 def _declares_options(provider: type) -> bool:
-    return provider.request_options.__func__ is not DataProvider.request_options.__func__
+    # a registered provider needn't be a DataProvider (e.g. the virtual products one): get_data is all it must have
+    declared = getattr(provider, "request_options", None)
+    return declared is not None and declared.__func__ is not DataProvider.request_options.__func__
 
 
 def _options(provider: type, kwargs: dict) -> dict:

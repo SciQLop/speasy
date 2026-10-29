@@ -100,6 +100,27 @@ class ProviderWithoutRequestOptions(ParityTestCase):
         self.assertEqual(len(self.server.calls), 1)
 
 
+class _BareProvider:
+    """A provider that isn't a DataProvider at all, like the virtual products one: get_data is all it has."""
+    NAME = 'bareprovider'
+
+    def get_data(self, product, start_time, stop_time, **kwargs):
+        raise AssertionError("never started in these tests")
+
+
+class ProviderNotADataProvider(ParityTestCase):
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.dict(dataprovider._PROVIDER_CLASSES, {'bareprovider': _BareProvider})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_its_data_is_stored_and_served(self):
+        self.index.get_data('bareprovider/x', _utc(2023, 1, 1), _utc(2023, 1, 2))
+        self.index.get_data('bareprovider/x', _utc(2023, 1, 1), _utc(2023, 1, 2))
+        self.assertEqual(len(self.server.calls), 1)
+
+
 class TimetableWithARange(ParityTestCase):
     def setUp(self):
         super().setUp()
