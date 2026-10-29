@@ -84,6 +84,27 @@ class TimeMatrixTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not increasing"):
             TimeMatrix(time='time').decode(cdf, 'wave')
 
+    def test_nested_bucket_is_not_a_tail_overlap(self):
+        ms = np.timedelta64(1, 'ms')
+        time = np.stack([T0 + np.arange(0, 50, 10) * ms, T0 + np.arange(15, 20) * ms, T0 + np.arange(50, 55) * ms])
+        cdf = pycdfpp.CDF()
+        _add_time(cdf, 'time', time)
+        _add_data(cdf, 'wave', np.zeros((3, 5), dtype=np.float32))
+        with self.assertRaisesRegex(ValueError, "not increasing"):
+            TimeMatrix(time='time').decode(cdf, 'wave')
+
+    def test_overlap_is_cut_at_the_first_valid_sample_of_the_next_bucket(self):
+        ms = np.timedelta64(1, 'ms')
+        time = np.stack([T0 + np.arange(0, 4) * ms, T0 + np.arange(2, 6) * ms])
+        time[1, 0] = np.datetime64('1999-12-31T23:59:59', 'ns')
+        cdf = pycdfpp.CDF()
+        cdf.add_variable('time', values=_tt2000(time), data_type=pycdfpp.DataType.CDF_TIME_TT2000,
+                         attributes={'VALIDMIN': [pycdfpp.to_tt2000(datetime(2019, 12, 31))]})
+        _add_data(cdf, 'wave', np.arange(8, dtype=np.float32).reshape(2, 4))
+        result = TimeMatrix(time='time').decode(cdf, 'wave')
+        np.testing.assert_array_equal(result.time, T0 + np.arange(6) * ms)
+        np.testing.assert_array_equal(result.values.reshape(-1), [0, 1, 2, 5, 6, 7])
+
     def test_samples_outside_time_valid_range_are_dropped(self):
         time = T0 + np.arange(8).reshape(2, 4) * np.timedelta64(1, 'ms')
         time[:, 2:] = np.datetime64('1999-12-31T23:59:59', 'ns')
@@ -179,6 +200,16 @@ class EpochPlusSamplingRateTest(unittest.TestCase):
         step = np.timedelta64(int(1e9 / 256), 'ns')
         self.assertEqual(result.time[1] - result.time[0], step)
         self.assertEqual(result.time[4], epoch[2])
+
+    def test_overlap_between_same_rate_records_is_cut_other_rate_is_untouched(self):
+        ms = np.timedelta64(1, 'ms')
+        cdf = _epoch_cdf(T0 + np.array([0, 1, 5, 6]) * ms, np.arange(16, dtype=np.float32).reshape(4, 4))
+        cdf.add_variable('rate', values=np.array([256, 4096, 256, 4096], dtype=np.int32))
+        slow = EpochPlusSamplingRate(rate='rate', rate_hz=256).decode(cdf, 'wave')
+        fast = EpochPlusSamplingRate(rate='rate', rate_hz=4096).decode(cdf, 'wave')
+        np.testing.assert_array_equal(slow.values.reshape(-1), [0, 1, 8, 9, 10, 11])
+        self.assertEqual(slow.time[2], T0 + 5 * ms)
+        np.testing.assert_array_equal(fast.values.reshape(-1), [4, 5, 6, 7, 12, 13, 14, 15])
 
     def test_no_record_at_rate_returns_none(self):
         epoch = T0 + np.arange(2) * np.timedelta64(1, 's')

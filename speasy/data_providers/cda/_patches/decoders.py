@@ -9,6 +9,9 @@ from speasy.core.data_containers import fill_value_mask
 from speasy.core.codecs.bundled_codecs.istp import _fix_attributes_types
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
 
+_FAR_FUTURE = np.datetime64(np.iinfo(np.int64).max, 'ns')
+_FAR_PAST = np.datetime64(np.iinfo(np.int64).min + 1, 'ns')
+
 
 def _time_values(variable: pycdfpp.Variable) -> np.ndarray:
     return pycdfpp.to_datetime64(variable)
@@ -42,29 +45,29 @@ def _check_increasing(time: np.ndarray, variable: str):
                          f"order, this layout can't be decoded as a single time series")
 
 
-_FAR_FUTURE = np.datetime64(np.iinfo(np.int64).max, 'ns')
-
-
 def _not_cut_by_next_bucket(times: np.ndarray, valid: np.ndarray) -> np.ndarray:
     """Same rule as speasy's `merge`: where a bucket's tail overlaps the next one, the next bucket wins.
-    A next bucket that doesn't start after this one is out of order, not a tail overlap: nothing is cut,
-    so `_check_increasing` rejects it. `times` and `valid` are (n, N); a bucket without valid sample never cuts."""
-    firsts = np.where(valid.any(axis=1), times[np.arange(len(times)), valid.argmax(axis=1)], _FAR_FUTURE)
-    cuts = np.append(np.where(firsts[1:] > firsts[:-1], firsts[1:], _FAR_FUTURE), _FAR_FUTURE)
+    Only a true tail overlap is cut: the next bucket starts after this one and ends no earlier. Anything else
+    (out of order, nested, same start) is left alone so `_check_increasing` rejects it.
+    `times` and `valid` are (n, N); a bucket without valid sample never cuts and is never a cutter."""
+    firsts = np.where(valid, times, _FAR_FUTURE).min(axis=1)
+    lasts = np.where(valid, times, _FAR_PAST).max(axis=1)
+    is_tail_overlap = (firsts[1:] > firsts[:-1]) & (lasts[1:] >= lasts[:-1])
+    cuts = np.append(np.where(is_tail_overlap, firsts[1:], _FAR_FUTURE), _FAR_FUTURE)
     return times < cuts.reshape(-1, 1)
 
 
 def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, records=slice(None),
            valid=None) -> Optional[SpeasyVariable]:
     """times is (n, N), one row per kept record, `records` selects those records in the data variable,
-    `valid` optionally selects samples in the flattened series."""
+    `valid` is an optional (n, N) mask of the samples to keep."""
     variable = cdf[name]
     values = _samples_first(variable.values[records], sample_axis)
     time = times.reshape(-1)
     if values.shape[0] == 0:
         return None
-    padding_free = np.ones(times.shape, dtype=bool) if valid is None else valid.reshape(times.shape)
-    kept = (padding_free & _not_cut_by_next_bucket(times, padding_free)).reshape(-1)
+    valid = np.ones(times.shape, dtype=bool) if valid is None else valid
+    kept = (valid & _not_cut_by_next_bucket(times, valid)).reshape(-1)
     values, time = values[kept], time[kept]
     if values.shape[0] == 0:
         return None
@@ -97,7 +100,7 @@ class TimeMatrix:
 
     def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
         times = _time_values(cdf[self.time])
-        valid = _not_padding_mask(cdf[self.time], times.reshape(-1))
+        valid = _not_padding_mask(cdf[self.time], times)
         return _build(cdf, variable, times, sample_axis=1, valid=valid)
 
 
