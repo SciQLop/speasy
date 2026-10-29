@@ -196,6 +196,45 @@ class SpeasyVariable(SpeasyProduct):
             columns=deepcopy(self.columns),
         )
 
+    def with_labels(self, labels: List[str]) -> "SpeasyVariable":
+        """Builds a SpeasyVariable with new column names, sharing this variable's axes and values
+
+        Parameters
+        ----------
+        labels : List[str]
+            new column names
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable with the given column names, without copying the data
+        """
+        return SpeasyVariable(axes=list(self.__axes), values=self.__shared_values(meta={}), columns=labels)
+
+    def with_meta(self, meta: Dict) -> "SpeasyVariable":
+        """Builds a SpeasyVariable whose meta-data is this variable's, updated with meta, sharing axes and values
+
+        Parameters
+        ----------
+        meta : Dict
+            meta-data entries to add or replace
+
+        Returns
+        -------
+        SpeasyVariable
+            a SpeasyVariable with the merged meta-data, without copying the data
+        """
+        return SpeasyVariable(axes=list(self.__axes), values=self.__shared_values(meta), columns=self.columns)
+
+    def __shared_values(self, meta: Dict) -> DataContainer:
+        # A new container over the same array: the data is shared, the meta-data dict is not.
+        return DataContainer(
+            values=self.__values_container.values,
+            meta={**self.__values_container.meta, **meta},
+            name=self.__values_container.name,
+            is_time_dependent=self.__values_container.is_time_dependent,
+        )
+
     def filter_columns(self, columns: List[str]) -> "SpeasyVariable":
         """Builds a SpeasyVariable with only selected columns
 
@@ -659,11 +698,12 @@ class SpeasyVariable(SpeasyProduct):
         to_dataframe: exports a SpeasyVariable to a pandas DataFrame
         to_astropy_table: exports a SpeasyVariable to an astropy.Table object
         """
-        if df.index.dtype == np.dtype("datetime64[ns]"):
-            time = np.array(df.index)
+        if isinstance(df.index, pds.DatetimeIndex):
+            index = df.index if df.index.tz is None else df.index.tz_convert(None)
+            time = index.values.astype("datetime64[ns]")
         elif hasattr(df.index[0], "timestamp"):
             time = np.array(
-                [np.datetime64(d.timestamp() * 1e9, "ns") for d in df.index]
+                [np.datetime64(round(d.timestamp() * 1e9), "ns") for d in df.index]
             )
         else:
             raise ValueError(
