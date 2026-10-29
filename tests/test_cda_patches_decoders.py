@@ -47,9 +47,37 @@ class TimeMatrixTest(unittest.TestCase):
         np.testing.assert_array_equal(result.time, time.reshape(-1))
         np.testing.assert_array_equal(result.values.reshape(-1), values.reshape(-1))
 
-    def test_overlapping_buckets_raise(self):
+    def test_tail_overlap_is_cut_and_the_next_bucket_wins(self):
         time = np.stack([T0 + np.arange(4) * np.timedelta64(1, 'ms'),
                          T0 + np.arange(2, 6) * np.timedelta64(1, 'ms')])
+        cdf = pycdfpp.CDF()
+        _add_time(cdf, 'time', time)
+        _add_data(cdf, 'wave', np.arange(8, dtype=np.float32).reshape(2, 4))
+        result = TimeMatrix(time='time').decode(cdf, 'wave')
+        np.testing.assert_array_equal(result.time, T0 + np.arange(6) * np.timedelta64(1, 'ms'))
+        np.testing.assert_array_equal(result.values.reshape(-1), [0, 1, 4, 5, 6, 7])
+
+    def test_non_overlapping_buckets_are_unchanged(self):
+        time = np.stack([T0 + np.arange(4) * np.timedelta64(1, 'ms'),
+                         T0 + np.arange(10, 14) * np.timedelta64(1, 'ms')])
+        cdf = pycdfpp.CDF()
+        _add_time(cdf, 'time', time)
+        _add_data(cdf, 'wave', np.arange(8, dtype=np.float32).reshape(2, 4))
+        result = TimeMatrix(time='time').decode(cdf, 'wave')
+        np.testing.assert_array_equal(result.time, time.reshape(-1))
+        np.testing.assert_array_equal(result.values.reshape(-1), np.arange(8))
+
+    def test_out_of_order_buckets_raise(self):
+        time = np.stack([T0 + np.arange(10, 14) * np.timedelta64(1, 'ms'),
+                         T0 + np.arange(0, 4) * np.timedelta64(1, 'ms')])
+        cdf = pycdfpp.CDF()
+        _add_time(cdf, 'time', time)
+        _add_data(cdf, 'wave', np.zeros((2, 4), dtype=np.float32))
+        with self.assertRaisesRegex(ValueError, "not increasing"):
+            TimeMatrix(time='time').decode(cdf, 'wave')
+
+    def test_bucket_starting_with_the_previous_one_raises(self):
+        time = np.stack([T0 + np.arange(4) * np.timedelta64(1, 'ms')] * 2)
         cdf = pycdfpp.CDF()
         _add_time(cdf, 'time', time)
         _add_data(cdf, 'wave', np.zeros((2, 4), dtype=np.float32))

@@ -122,7 +122,7 @@ class PatchedReadPath(unittest.TestCase):
 
     def test_unordered_file_error_names_dataset_and_file(self):
         day = np.datetime64('2020-01-01')
-        _write_day(self.folder, day, time=day + np.array([[0, 1], [1, 2]]) * MS)
+        _write_day(self.folder, day, time=day + np.array([[2, 3], [0, 1]]) * MS)
         url = f'file://{self.folder}/test_20200101_v01.cdf'
         with self.assertRaisesRegex(ValueError, f"{DATASET}.*{url}"):
             patched_reader(ENTRY)(url, 'wave')

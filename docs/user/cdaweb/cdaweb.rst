@@ -112,6 +112,9 @@ The SolO RPW LFR files mix three sampling rates, so each variable is split into 
 ``<variable>_F0`` (24576 Hz), ``<variable>_F1`` (4096 Hz) and ``<variable>_F2`` (256 Hz), for example
 ``VDC_F2``. The unsplit variable is not exposed.
 
+When the tail of a bucket overlaps the start of the next one, the overlapping samples are cut like speasy's
+``merge`` does between files: the later bucket wins.
+
 The SolO RPW waveform datasets are missing from CDAWeb's own inventory, so Speasy adds them, and they now appear
 in ``spz.inventories.tree.cda``. They can only be read from files: if the archive can't be reached, ``get_data()``
 raises an error instead of falling back to the web service.

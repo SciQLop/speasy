@@ -42,6 +42,18 @@ def _check_increasing(time: np.ndarray, variable: str):
                          f"order, this layout can't be decoded as a single time series")
 
 
+_FAR_FUTURE = np.datetime64(np.iinfo(np.int64).max, 'ns')
+
+
+def _not_cut_by_next_bucket(times: np.ndarray, valid: np.ndarray) -> np.ndarray:
+    """Same rule as speasy's `merge`: where a bucket's tail overlaps the next one, the next bucket wins.
+    A next bucket that doesn't start after this one is out of order, not a tail overlap: nothing is cut,
+    so `_check_increasing` rejects it. `times` and `valid` are (n, N); a bucket without valid sample never cuts."""
+    firsts = np.where(valid.any(axis=1), times[np.arange(len(times)), valid.argmax(axis=1)], _FAR_FUTURE)
+    cuts = np.append(np.where(firsts[1:] > firsts[:-1], firsts[1:], _FAR_FUTURE), _FAR_FUTURE)
+    return times < cuts.reshape(-1, 1)
+
+
 def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, records=slice(None),
            valid=None) -> Optional[SpeasyVariable]:
     """times is (n, N), one row per kept record, `records` selects those records in the data variable,
@@ -51,8 +63,9 @@ def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, rec
     time = times.reshape(-1)
     if values.shape[0] == 0:
         return None
-    if valid is not None:
-        values, time = values[valid], time[valid]
+    padding_free = np.ones(times.shape, dtype=bool) if valid is None else valid.reshape(times.shape)
+    kept = (padding_free & _not_cut_by_next_bucket(times, padding_free)).reshape(-1)
+    values, time = values[kept], time[kept]
     if values.shape[0] == 0:
         return None
     _check_increasing(time, name)
