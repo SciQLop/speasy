@@ -475,6 +475,35 @@ class ASpeasyVariable(unittest.TestCase):
         self.assertListEqual(var1.time.tolist(), var2.time.tolist())
         self.assertListEqual(var1.values.tolist(), var2.values.tolist())
 
+    @data(None, "UTC", "Europe/Paris")
+    def test_from_dataframe_accepts_a_microsecond_index(self, tz):
+        index = pds.DatetimeIndex(["2016-10-10T00:00:00.000001", "2016-10-10T01:00:00"]).tz_localize(tz)
+        var = from_dataframe(pds.DataFrame({"v": [1., 2.]}, index=index.as_unit("us")))
+        expected = index.tz_convert(None) if tz else index
+        self.assertListEqual(var.time.tolist(), expected.as_unit("ns").values.tolist())
+
+    def test_with_labels_returns_a_new_variable_sharing_the_data(self):
+        var = make_simple_var_2cols(1., 10., 1.)
+        labeled = var.with_labels(["a", "b"])
+        self.assertListEqual(labeled.columns, ["a", "b"])
+        self.assertListEqual(var.columns, ["x", "y"])
+        self.assertTrue(np.shares_memory(labeled.values, var.values))
+        self.assertTrue(np.shares_memory(labeled.time, var.time))
+
+    def test_variables_derived_with_labels_or_meta_do_not_share_meta(self):
+        var = make_simple_var(1., 10., 1., meta={"UNITS": "nT"})
+        var.with_labels(["a"]).meta["UNITS"] = "km"
+        var.with_meta({}).meta["UNITS"] = "km"
+        self.assertEqual(var.meta, {"UNITS": "nT"})
+
+    def test_with_meta_merges_into_a_new_variable_sharing_the_data(self):
+        var = make_simple_var(1., 10., 1., meta={"UNITS": "nT", "FIELDNAM": "b"})
+        tagged = var.with_meta({"UNITS": "km"})
+        self.assertEqual(tagged.meta, {"UNITS": "km", "FIELDNAM": "b"})
+        self.assertEqual(var.meta, {"UNITS": "nT", "FIELDNAM": "b"})
+        self.assertTrue(np.shares_memory(tagged.values, var.values))
+        self.assertListEqual(tagged.columns, var.columns)
+
     @data(
         ({"UNITS": "nT"}, astropy.units.nT),
         ({"PARAMETER_UNITS": "not a unit"}, None),
