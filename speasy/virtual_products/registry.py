@@ -14,12 +14,15 @@ from ..products.variable import SpeasyVariable
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
-_MAX_DEPTH = 128
 _registration_lock = threading.Lock()
 
 
 class _Resolution(threading.local):
-    """Paths of the virtual products being computed, outermost first; one list per thread."""
+    """Paths of the virtual products being computed, outermost first.
+
+    One list per thread: a request made from a thread the callback starts itself begins a new
+    chain, so a cycle going through such a thread is not detected.
+    """
 
     def __init__(self):
         self.chain = []
@@ -53,11 +56,11 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
     virtual products requesting each other endlessly.
     """
     chain = _resolution.chain
-    chain.append(f"virtual/{product_uid}")
+    path = f"virtual/{product_uid}"
+    if path in chain:
+        raise VirtualProductCycleError(_cycle_message(chain + [path]))
+    chain.append(path)
     try:
-        if len(chain) > _MAX_DEPTH:
-            raise VirtualProductCycleError(f"Virtual product chain deeper than {_MAX_DEPTH} levels, "
-                                           f"probably a cycle: {' -> '.join(chain)}")
         result = callback(start_time, stop_time)
     finally:
         chain.pop()
@@ -71,6 +74,11 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
         # keys are uppercased to match ISTP convention (e.g. "units" -> "UNITS")
         result = result.with_meta({k.upper(): v for k, v in meta.items()})
     return result
+
+
+def _cycle_message(chain: list) -> str:
+    return (f"Virtual product requested by itself: {' -> '.join(chain)}. A virtual product can't request "
+            f"itself, even for another time range; to reuse its computation, call its function directly.")
 
 
 class VirtualProduct(ParameterIndex):
@@ -159,7 +167,7 @@ class VirtualProductTypeError(TypeError):
 
 
 class VirtualProductCycleError(RecursionError):
-    """Raised when virtual products request each other more than _MAX_DEPTH levels deep, usually a cycle."""
+    """Raised when a virtual product requests itself, directly or through other virtual products."""
 
 
 @register_provider

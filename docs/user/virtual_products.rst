@@ -98,6 +98,9 @@ Good to know
   Its message suggests the closest registered paths, if any.
 - If the function returns anything other than a ``SpeasyVariable`` or ``None``, calling the product
   or :func:`speasy.get_data` raises ``VirtualProductTypeError``, a ``TypeError`` naming the function.
-- A virtual product may request other virtual products. If these requests nest more than 128 levels
-  deep, usually because two products request each other, ``VirtualProductCycleError``, a
-  ``RecursionError``, is raised; its message shows the chain of products.
+- A virtual product may request other virtual products, but never itself, not even for another time
+  range and not even through other products. Such a request raises ``VirtualProductCycleError``, a
+  ``RecursionError``, whose message shows the chain of products. To reuse a product's computation,
+  call its function directly.
+- This check follows the requests made in one thread. If your function starts its own threads and
+  requests virtual products from them, a product requesting itself through them is not detected.
