@@ -13,6 +13,10 @@ def register():
     @register_virtual_product("virtual/plugin_test/dummy")
     def dummy(start_time, stop_time):
         return None
+
+
+def register_broken():
+    raise RuntimeError("broken on purpose")
 '''
 
 
@@ -45,6 +49,14 @@ class VirtualProductEntryPoints(unittest.TestCase):
             assert node.spz_uid() == "plugin_test/dummy", node.spz_uid()
         """)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_broken_plugin_does_not_break_import(self):
+        result = _run_with_plugin("fakevp = fakevp:register\nbroken = fakevp:register_broken", """
+            import speasy as spz
+            spz.inventories.tree.virtual.plugin_test.dummy
+        """)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Failed to load plugin broken", result.stderr)
 
 
 if __name__ == "__main__":
