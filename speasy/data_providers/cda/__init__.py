@@ -100,12 +100,12 @@ def _codec_can_read_archive(archive_params: Dict, variable: str, start_time: dat
 
 def _patch_can_read(file_url: str, entry: PatchedParameter) -> bool:
     try:
-        return patched_reader(entry)(file_url, entry.variable) is not None
+        patched_reader(entry)(file_url, entry.variable)
+        return True
     except Exception as e:
         if is_injected(entry.dataset):
             raise CdaWebException(f"{entry.dataset} is only served from files, and {file_url} can't be read: "
-                                  f"{type(e).__name__}: {e}. Retry later, or report it to the speasy "
-                                  f"developers if it persists.") from e
+                                  f"{e}") from e
         log.warning(f"The {entry.dataset} patch failed on {file_url}, switching to web service: "
                     f"{type(e).__name__}: {e}")
         return False

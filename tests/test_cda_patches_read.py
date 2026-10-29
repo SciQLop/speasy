@@ -9,7 +9,7 @@ import pycdfpp
 from speasy.core.direct_archive_downloader import get_product
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex
 from speasy.data_providers.cda import CdaWebException, _archive_params_for
-from speasy.data_providers.cda._patches import table
+from speasy.data_providers.cda._patches import reader, table
 from speasy.data_providers.cda._patches.decoders import TimeMatrix
 from speasy.data_providers.cda._patches.reader import patched_reader
 from speasy.data_providers.cda._patches.table import InjectedDataset, PatchedParameter
@@ -126,6 +126,50 @@ class PatchedReadPath(unittest.TestCase):
         url = f'file://{self.folder}/test_20200101_v01.cdf'
         with self.assertRaisesRegex(ValueError, f"{DATASET}.*{url}"):
             patched_reader(ENTRY)(url, 'wave')
+
+    def test_empty_first_file_still_reads_flat(self):
+        day = np.datetime64('2020-01-01')
+        _write_day(self.folder, day, n_records=0)
+        second = _write_day(self.folder, day + np.timedelta64(1, 'D'))
+        v = _read(self.folder, _utc(2020, 1, 1), _utc(2020, 1, 3))
+        np.testing.assert_array_equal(v.time, second)
+
+    def test_decode_error_on_patched_dataset_suggests_api(self):
+        day = np.datetime64('2020-01-01')
+        _write_day(self.folder, day, time=day + np.array([[2, 3], [0, 1]]) * MS)
+        url = f'file://{self.folder}/test_20200101_v01.cdf'
+        with self.assertRaisesRegex(ValueError, "method='API'") as ctx:
+            patched_reader(ENTRY)(url, 'wave')
+        self.assertNotIn('Retry', str(ctx.exception))
+
+    def test_decode_error_on_injected_dataset_asks_for_a_report(self):
+        day = np.datetime64('2020-01-01')
+        _write_day(self.folder, day, time=day + np.array([[2, 3], [0, 1]]) * MS)
+        url = f'file://{self.folder}/test_20200101_v01.cdf'
+        injected = InjectedDataset(DATASET, 'OTHER', 'test_%Y%m%d_v01.cdf', f'file://{self.folder}', 'None',
+                                   'master.cdf', '2020-01-01', 'd')
+        with mock.patch.object(table, 'INJECTED', (injected,)):
+            with self.assertRaisesRegex(ValueError, "report it to the speasy developers") as ctx:
+                patched_reader(ENTRY)(url, 'wave')
+        self.assertNotIn("method='API'", str(ctx.exception))
+
+    def test_transient_error_says_retry(self):
+        with mock.patch.object(reader, '_load', side_effect=OSError('connection reset')):
+            with self.assertRaisesRegex(OSError, "connection reset.*Retry later"):
+                patched_reader(ENTRY)('file:///nowhere.cdf', 'wave')
+
+    def test_decoder_is_part_of_the_cache_key(self):
+        day = np.datetime64('2020-01-01')
+        time = _write_day(self.folder, day)
+        path = f'{self.folder}/test_20200101_v01.cdf'
+        url = f'file://{path}'
+        first = reader._read_patched(url, DATASET, 'wave', TimeMatrix(time='time'))
+        cdf = pycdfpp.load(path)
+        cdf.add_variable('other_time', values=pycdfpp.to_tt2000((time + MS).reshape(3, 4).astype('datetime64[ns]')),
+                         data_type=pycdfpp.DataType.CDF_TIME_TT2000)
+        pycdfpp.save(cdf, path)
+        second = reader._read_patched(url, DATASET, 'wave', TimeMatrix(time='other_time'))
+        self.assertEqual(second.time[0] - first.time[0], np.timedelta64(1, 'ms'))
 
     def test_no_file_reads_none(self):
         self.assertIsNone(patched_reader(ENTRY)(None, 'wave'))

@@ -1,6 +1,6 @@
 """Decoders turning bucket waveform CDF layouts (one record holds N samples) into flat 1D time series."""
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import pycdfpp
@@ -135,3 +135,6 @@ class EpochPlusSamplingRate:
         offsets = _offsets_as_timedelta(np.arange(n_samples) * periods_ns.reshape(-1, 1), 1.0)
         times = _time_values(cdf[self.epoch]).reshape(-1)[keep].reshape(-1, 1) + offsets
         return _build(cdf, variable, times, self.sample_axis, records=keep)
+
+
+Decoder = Union[TimeMatrix, EpochPlusOffsets, EpochPlusSamplingRate]

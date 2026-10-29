@@ -1,8 +1,8 @@
 """Static table of CDAWeb dataset patches, consulted at read and inventory-load time."""
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional
 
-from .decoders import EpochPlusOffsets, EpochPlusSamplingRate, TimeMatrix
+from .decoders import Decoder, EpochPlusOffsets, EpochPlusSamplingRate, TimeMatrix
 
 
 @dataclass(frozen=True)
@@ -11,7 +11,7 @@ class PatchedParameter:
     dataset: str
     name: str
     variable: str
-    decoder: Union[TimeMatrix, EpochPlusOffsets, EpochPlusSamplingRate]
+    decoder: Decoder
     meta: Mapping[str, Any] = field(default_factory=dict)
 
 

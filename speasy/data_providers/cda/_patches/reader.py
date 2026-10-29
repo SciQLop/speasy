@@ -9,7 +9,8 @@ from speasy.core.cache import CacheCall
 from speasy.core.direct_archive_downloader.direct_archive_downloader import FileLoaderCallable
 from speasy.products import SpeasyVariable
 
-from .table import PatchedParameter, patch_for
+from .decoders import Decoder
+from .table import PatchedParameter, is_injected
 
 
 def _load(url: str) -> pycdfpp.CDF:
@@ -17,21 +18,29 @@ def _load(url: str) -> pycdfpp.CDF:
         return pycdfpp.load(f.read())
 
 
+def _how_to_fix(dataset: str, error: Exception) -> str:
+    if isinstance(error, OSError):
+        return "Retry later."
+    if is_injected(dataset):
+        return "This file can't be decoded, please report it to the speasy developers."
+    return "Use method='API' to get CDAWeb's web-service version (bucketed shape), and report it to the speasy developers."
+
+
 # Its own cache rather than _read_cdf's, so a flat result is never mixed with an old bucketed one.
-# Keyed on plain strings: the entry's meta dict would make an unstable key.
+# The decoder is part of the key: editing a table entry must not serve results decoded the old way.
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
-def _read_patched(url: str, dataset: str, name: str) -> Optional[SpeasyVariable]:
-    entry = patch_for(dataset, name)
+def _read_patched(url: str, dataset: str, variable: str, decoder: Decoder) -> Optional[SpeasyVariable]:
     try:
-        return entry.decoder.decode(_load(url), entry.variable)
-    except ValueError as e:
-        raise ValueError(f"{dataset}, file {url}: {e}") from e
+        return decoder.decode(_load(url), variable)
+    except Exception as e:
+        raise (OSError if isinstance(e, OSError) else ValueError)(
+            f"{dataset}, file {url}: {e}. {_how_to_fix(dataset, e)}") from e
 
 
 def patched_reader(entry: PatchedParameter) -> FileLoaderCallable:
     def read(url: Optional[str], variable: str, **kwargs) -> Optional[SpeasyVariable]:
         if url is None:
             return None
-        return _read_patched(url, entry.dataset, entry.name, **kwargs)
+        return _read_patched(url, entry.dataset, entry.variable, entry.decoder, **kwargs)
 
     return read

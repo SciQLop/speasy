@@ -42,6 +42,14 @@ def _first_index_in(decoded, var) -> int:
     return index
 
 
+def _holds_nothing_for(entry, url: str) -> bool:
+    """No record at all, or, for a product split per rate, no record at its rate."""
+    cdf = _load(url)
+    rate_hz = getattr(entry.decoder, 'rate_hz', None)
+    no_record = cdf[entry.variable].shape[0] == 0
+    return no_record or (rate_hz is not None and not np.any(cdf[entry.decoder.rate].values == rate_hz))
+
+
 @unittest.skipUnless(os.environ.get('SPEASY_LONG_TESTS'), "downloads one file per patched dataset, some over 100 MB")
 @ddt
 class EveryPatchOnARandomFile(unittest.TestCase):
@@ -55,8 +63,8 @@ class EveryPatchOnARandomFile(unittest.TestCase):
             with self.subTest(product=entry.name):
                 msg = f"seed {SEED}, file {url}, product {entry.name}"
                 decoded = patched_reader(entry)(url, entry.variable)
-                if decoded is None and _load(url)[entry.variable].shape[0] == 0:
-                    self.skipTest(f"{url} holds no record of {entry.variable}")
+                if decoded is None and _holds_nothing_for(entry, url):
+                    self.skipTest(f"{url} holds no sample of {entry.name}")
                 self.assertIsNotNone(decoded, msg)
                 start_index = len(decoded) // 2
                 start = decoded.time[start_index]
