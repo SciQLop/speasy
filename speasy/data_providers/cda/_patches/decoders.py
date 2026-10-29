@@ -49,6 +49,8 @@ def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, rec
     variable = cdf[name]
     values = _samples_first(variable.values[records], sample_axis)
     time = times.reshape(-1)
+    if values.shape[0] == 0:
+        return None
     if valid is not None:
         values, time = values[valid], time[valid]
     if values.shape[0] == 0:

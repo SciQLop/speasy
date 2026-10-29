@@ -82,6 +82,12 @@ class TimeMatrixTest(unittest.TestCase):
         _add_data(cdf, 'wave', np.zeros((0, 4), dtype=np.float32))
         self.assertIsNone(TimeMatrix(time='time').decode(cdf, 'wave'))
 
+    def test_data_variable_without_records_returns_none(self):
+        cdf = pycdfpp.CDF()
+        _add_time(cdf, 'time', T0 + np.arange(4).reshape(1, 4) * _ns(10))
+        _add_data(cdf, 'wave', np.zeros((0, 4), dtype=np.float32))
+        self.assertIsNone(TimeMatrix(time='time').decode(cdf, 'wave'))
+
 
 @ddt
 class EpochPlusOffsetsTest(unittest.TestCase):

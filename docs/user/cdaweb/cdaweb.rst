@@ -89,3 +89,34 @@ You can also set the default method globally:
 
     >>> import speasy as spz
     >>> spz.config.cdaweb.preferred_access_method.set('BEST')
+
+Waveform datasets
+-----------------
+
+Some CDAWeb files store waveforms as buckets: one record holds a snapshot of thousands of samples under a single
+timestamp. Speasy reads these files itself, so that the product is a flat time series with **one timestamp per
+sample**. This applies to the ``FILE`` method (and so to ``BEST``) only; the products keep their names.
+
+The patched families are:
+
+- Parker Solar Probe FIELDS: the ``DFB_DBM`` burst products (``VAC``, ``VDC``, ``DVAC``, ``DVDC``, ``SCM``) and
+  ``TDS_WF``. Their patched products end with ``_f``, e.g. ``psp_fld_l2_dfb_dbm_vac1_f``.
+- Solar Orbiter RPW: the TDS snapshots ``SOLO_L2_RPW-TDS-SURV-RSWF-B/E`` and ``-TSWF-B/E``, and the LFR snapshots
+  ``SOLO_L2_RPW-LFR-SURV-SWF-B/E``.
+- Van Allen Probes A and B, EMFISIS: the waveform receiver (WFR, including the continuous burst) and the high
+  frequency receiver (HFR) waveforms.
+- TRACERS TS1 and TS2: the search coil magnetometer (MSC) burst waveforms.
+- Voyager 1 and 2: the plasma wave system (PWS) waveforms.
+
+The SolO RPW LFR files mix three sampling rates, so each variable is split into one product per rate:
+``<variable>_F0`` (24576 Hz), ``<variable>_F1`` (4096 Hz) and ``<variable>_F2`` (256 Hz), for example
+``VDC_F2``. The unsplit variable is not exposed.
+
+The SolO RPW waveform datasets are missing from CDAWeb's own inventory, so Speasy adds them, and they now appear
+in ``spz.inventories.tree.cda``. They can only be read from files: if the archive can't be reached, ``get_data()``
+raises an error instead of falling back to the web service.
+
+    >>> import speasy as spz
+    >>> rswf_e = spz.get_data('cda/SOLO_L2_RPW-TDS-SURV-RSWF-E/WAVEFORM_DATA', '2021-01-01', '2021-01-02')  # doctest: +SKIP
+    >>> rswf_e.values.shape  # doctest: +SKIP
+    (1167360, 3)
