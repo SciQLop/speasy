@@ -1,4 +1,7 @@
+import sys
+import threading
 import unittest
+import warnings
 from datetime import datetime, timedelta, timezone
 from functools import reduce
 
@@ -45,7 +48,6 @@ def _mag_divided_offset(start_time, stop_time):
 
 def _reset_registry():
     """Leave no registered product behind: tests share the module level registry."""
-    registry._callbacks.clear()
     registry._root.clear()
     registry._flat_inventory.clear()
 
@@ -375,6 +377,57 @@ class VirtualProductRobustness(unittest.TestCase):
 
         register_virtual_product("virtual/c", previous_day)
         self.assertIsInstance(spz.get_data("virtual/c", _START, _STOP), SpeasyVariable)
+
+
+def _run_concurrently(*workers):
+    """Start the workers together, switching threads as often as possible to expose races."""
+    barrier = threading.Barrier(len(workers))
+    threads = [threading.Thread(target=lambda w=w: (barrier.wait(), w())) for w in workers]
+    previous_interval = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+    finally:
+        sys.setswitchinterval(previous_interval)
+
+
+class VirtualProductConcurrency(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+    def test_get_data_never_mixes_two_registrations(self):
+        def tagged(tag):
+            return lambda s, e: _hourly_ramp(s, e).with_meta({"CALLBACK": tag})
+
+        register_virtual_product("virtual/x", tagged("1"), meta={"registration": "1"})
+        mixed = []
+
+        def re_register():
+            for i in range(2000):
+                tag = str(i % 2)
+                register_virtual_product("virtual/x", tagged(tag), meta={"registration": tag})
+
+        def fetch():
+            for _ in range(2000):
+                meta = spz.get_data("virtual/x", _START, _STOP).meta
+                if meta["CALLBACK"] != meta["REGISTRATION"]:
+                    mixed.append(meta)
+
+        _run_concurrently(re_register, fetch)
+        self.assertEqual(mixed, [])
+
+    def test_concurrent_registrations_under_a_new_folder_all_land_in_the_tree(self):
+        for _ in range(50):
+            _reset_registry()
+            _run_concurrently(*[lambda i=i: register_virtual_product(f"virtual/shared/deep/p{i}", _hourly_ramp)
+                                for i in range(8)])
+            leaves = spz.inventories.tree.virtual.shared.deep.__dict__
+            self.assertEqual({f"p{i}" for i in range(8)} - leaves.keys(), set())
 
 
 @ddt
