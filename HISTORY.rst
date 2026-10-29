@@ -41,6 +41,10 @@ New features:
 * Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
   URL in ``url_pattern`` or ``master_file``. Folder listing (``use_file_list``, ``random`` splits) and
   the file cache work as for HTTP.
+* CDAWeb waveform datasets stored as buckets (PSP FIELDS burst, SolO RPW TDS and LFR, Van Allen Probes
+  EMFISIS, TRACERS TS1/TS2 MSC, Voyager PWS) are served as flat time series with one timestamp per sample.
+  SolO RPW LFR variables are split per sampling rate (``<variable>_F0``, ``_F1``, ``_F2``), and the SolO RPW
+  waveform datasets missing from CDAWeb's inventory are added to it.
 
 1.9.1 (2026-10-06)
 ------------------

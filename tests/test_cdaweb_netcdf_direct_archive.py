@@ -13,12 +13,12 @@ so what these tests mostly pin down is that each of those cases falls back to th
 import os
 import tempfile
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from ddt import data, ddt
 
 from speasy.core.codecs import get_codec
+from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex
 from speasy.data_providers.cda import _archive_params_for, _codec_can_read
 from speasy.data_providers.cda._direct_archive import to_direct_archive_params
 
@@ -50,13 +50,14 @@ class TestFileFormatSelectsCodec(unittest.TestCase):
                                                    url='https://cdaweb.gsfc.nasa.gov/pub/data/somewhere'))
 
 
-def _regular_parameter():
-    return SimpleNamespace()
+def _regular_parameter(**meta):
+    return ParameterIndex(name='DENSITY', provider='cda', uid='PROBE/DENSITY', meta=meta)
 
 
 def _cdaweb_dataset(url: str, file_naming: str = 'probe_%Y%m%d_v01.nc', subdivided_by: str = 'None',
                     master_cdf: str = 'https://cdaweb.gsfc.nasa.gov/pub/software/cdawlib/0MASTERS/probe.cdf'):
-    return SimpleNamespace(filenaming=file_naming, subdividedby=subdivided_by, url=url, mastercdf=master_cdf)
+    return DatasetIndex(name='PROBE', provider='cda', uid='PROBE',
+                        meta=dict(filenaming=file_naming, subdividedby=subdivided_by, url=url, mastercdf=master_cdf))
 
 
 class TestCdfDatasetsAreServedWithoutProbing(unittest.TestCase):
@@ -71,7 +72,7 @@ class TestCdfDatasetsAreServedWithoutProbing(unittest.TestCase):
     def test_virtual_parameters_are_never_served_from_files(self):
         self.assertIsNone(_archive_params_for(_cdaweb_dataset(url='https://cdaweb.gsfc.nasa.gov/pub/data/probe',
                                                               file_naming='probe_%Y%m%d_%Q.cdf'),
-                                              SimpleNamespace(VIRTUAL='TRUE'), 'DENSITY',
+                                              _regular_parameter(VIRTUAL='TRUE'), 'DENSITY',
                                               '2020-01-02', '2020-01-03'))
 
 

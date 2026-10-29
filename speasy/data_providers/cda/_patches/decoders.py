@@ -1,0 +1,140 @@
+"""Decoders turning bucket waveform CDF layouts (one record holds N samples) into flat 1D time series."""
+from dataclasses import dataclass
+from typing import Optional, Union
+
+import numpy as np
+import pycdfpp
+
+from speasy.core.data_containers import fill_value_mask
+from speasy.core.codecs.bundled_codecs.istp import _fix_attributes_types
+from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
+
+_FAR_FUTURE = np.datetime64(np.iinfo(np.int64).max, 'ns')
+_FAR_PAST = np.datetime64(np.iinfo(np.int64).min + 1, 'ns')
+
+
+def _time_values(variable: pycdfpp.Variable) -> np.ndarray:
+    return pycdfpp.to_datetime64(variable)
+
+
+def _attributes(variable: pycdfpp.Variable) -> dict:
+    return _fix_attributes_types({name: variable.attributes[name][0] for name in variable.attributes})
+
+
+def _fill_to_nan(values: np.ndarray, meta: dict) -> np.ndarray:
+    as_float = values.astype(values.dtype if values.dtype.kind == 'f' else np.float64)
+    mask = fill_value_mask(values, meta)
+    return as_float if mask is None else np.where(mask, np.nan, as_float)
+
+
+def _samples_first(values: np.ndarray, sample_axis: int) -> np.ndarray:
+    """(n, ..., N, ...) -> (n*N, ...): the sample axis is merged into the record axis."""
+    moved = np.moveaxis(values, sample_axis, 1)
+    return moved.reshape(-1, *moved.shape[2:])
+
+
+def _labels(cdf: pycdfpp.CDF, variable: pycdfpp.Variable, width: int) -> list:
+    pointer = variable.attributes['LABL_PTR_1'][0] if 'LABL_PTR_1' in variable.attributes else ''
+    labels = cdf[pointer].values_encoded.ravel().tolist() if pointer in cdf else []
+    return labels if len(labels) == width else [f"component_{i}" for i in range(width)]
+
+
+def _check_increasing(time: np.ndarray, variable: str):
+    if np.any(np.diff(time) <= np.timedelta64(0, 'ns')):
+        raise ValueError(f"The flattened time axis of {variable} is not increasing: buckets overlap or are out of "
+                         f"order, this layout can't be decoded as a single time series")
+
+
+def _not_cut_by_next_bucket(times: np.ndarray, valid: np.ndarray) -> np.ndarray:
+    """Same rule as speasy's `merge`: where a bucket's tail overlaps the next one, the next bucket wins.
+    Only a true tail overlap is cut: the next bucket starts after this one and ends no earlier. Anything else
+    (out of order, nested, same start) is left alone so `_check_increasing` rejects it.
+    `times` and `valid` are (n, N); a bucket without valid sample never cuts and is never a cutter."""
+    firsts = np.where(valid, times, _FAR_FUTURE).min(axis=1)
+    lasts = np.where(valid, times, _FAR_PAST).max(axis=1)
+    is_tail_overlap = (firsts[1:] > firsts[:-1]) & (lasts[1:] >= lasts[:-1])
+    cuts = np.append(np.where(is_tail_overlap, firsts[1:], _FAR_FUTURE), _FAR_FUTURE)
+    return times < cuts.reshape(-1, 1)
+
+
+def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, sample_axis: int, records=slice(None),
+           valid=None) -> Optional[SpeasyVariable]:
+    """times is (n, N), one row per kept record, `records` selects those records in the data variable,
+    `valid` is an optional (n, N) mask of the samples to keep."""
+    variable = cdf[name]
+    values = _samples_first(variable.values[records], sample_axis)
+    time = times.reshape(-1)
+    if values.shape[0] == 0:
+        return None
+    valid = np.ones(times.shape, dtype=bool) if valid is None else valid
+    kept = (valid & _not_cut_by_next_bucket(times, valid)).reshape(-1)
+    values, time = values[kept], time[kept]
+    if values.shape[0] == 0:
+        return None
+    _check_increasing(time, name)
+    meta = _attributes(variable)
+    values = _fill_to_nan(values, meta)
+    columns = _labels(cdf, variable, 1 if values.ndim == 1 else values.shape[1])
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                          values=DataContainer(values=values, meta=meta, name=name),
+                          columns=columns)
+
+
+def _offsets_as_timedelta(offsets: np.ndarray, ns_per_unit: float) -> np.ndarray:
+    return np.rint(offsets * ns_per_unit).astype('int64').astype('timedelta64[ns]')
+
+
+def _not_padding_mask(variable: pycdfpp.Variable, times: np.ndarray) -> np.ndarray:
+    """Padding samples carry an undeclared sentinel (PSP TDS uses -999999999), below VALIDMIN.
+    VALIDMAX is deliberately ignored: a too early VALIDMAX would silently drop real data."""
+    if 'VALIDMIN' not in variable.attributes:
+        return np.ones(times.shape, dtype=bool)
+    return times >= _time_values(variable.attributes['VALIDMIN'][0])[0]
+
+
+@dataclass(frozen=True)
+class TimeMatrix:
+    """Every sample has its own timestamp, stored in a 2D TT2000 variable shaped like the data.
+    Samples whose timestamp is below the time variable's VALIDMIN are padding and dropped."""
+    time: str
+
+    def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
+        times = _time_values(cdf[self.time])
+        valid = _not_padding_mask(cdf[self.time], times)
+        return _build(cdf, variable, times, sample_axis=1, valid=valid)
+
+
+@dataclass(frozen=True)
+class EpochPlusOffsets:
+    """sample time = record epoch + offset, offsets are (1, N) or (n, N) in units of `ns_per_unit` nanoseconds."""
+    offsets: str
+    ns_per_unit: float
+    sample_axis: int = 1
+    epoch: str = "Epoch"
+
+    def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
+        offsets = _offsets_as_timedelta(cdf[self.offsets].values, self.ns_per_unit)
+        times = _time_values(cdf[self.epoch]).reshape(-1, 1) + offsets
+        return _build(cdf, variable, times, self.sample_axis)
+
+
+@dataclass(frozen=True)
+class EpochPlusSamplingRate:
+    """Sample k of a record is at epoch + k / rate. With `rate_hz` only records sampled at that rate are kept
+    (products split per rate), with None every record is kept and uses its own `rate` value."""
+    rate: str
+    rate_hz: Optional[float] = None
+    sample_axis: int = 1
+    epoch: str = "Epoch"
+
+    def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
+        rates = cdf[self.rate].values.reshape(-1)
+        keep = np.ones(rates.shape, dtype=bool) if self.rate_hz is None else rates == self.rate_hz
+        n_samples = cdf[variable].shape[self.sample_axis]
+        periods_ns = 1e9 / rates[keep].astype(np.float64)
+        offsets = _offsets_as_timedelta(np.arange(n_samples) * periods_ns.reshape(-1, 1), 1.0)
+        times = _time_values(cdf[self.epoch]).reshape(-1)[keep].reshape(-1, 1) + offsets
+        return _build(cdf, variable, times, self.sample_axis, records=keep)
+
+
+Decoder = Union[TimeMatrix, EpochPlusOffsets, EpochPlusSamplingRate]
