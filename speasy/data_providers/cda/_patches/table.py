@@ -118,7 +118,6 @@ _RBSP_WFR = ('BuSamples', 'BvSamples', 'BwSamples', 'EuSamples', 'EvSamples', 'E
 _RBSP_WFR_DATASETS = tuple(f'RBSP-{probe}_WFR-WAVEFORM{kind}_EMFISIS-L2'
                            for probe in 'AB' for kind in ('', '-CONTINUOUS-BURST'))
 _RBSP_HFR_DATASETS = tuple(f'RBSP-{probe}_HFR-WAVEFORM_EMFISIS-L2' for probe in 'AB')
-_TRACERS = {'TS1_L2_MSC_BAC': 'ts1_l2_bac_tscs', 'TS2_L2_MSC_BAC': 'ts2_l2_bac_tscs'}
 
 
 def _bucket_waveforms(datasets: tuple[str, ...], names: tuple[str, ...], decoder: EpochPlusOffsets,
@@ -135,8 +134,11 @@ RBSP_EMFISIS = (
                         EpochPlusOffsets(offsets='timeOffsets', ns_per_unit=1.0), variable='HFRsamples')
 )
 
-TRACERS_BAC = tuple(p for dataset, name in _TRACERS.items() for p in _bucket_waveforms(
-    (dataset,), (name,), EpochPlusOffsets(offsets='EpochOffset', ns_per_unit=1.0), components=3))
+_TRACERS_OFFSETS = EpochPlusOffsets(offsets='EpochOffset', ns_per_unit=1.0)
+TRACERS_BAC = (
+    _bucket_waveforms(('TS1_L2_MSC_BAC',), ('ts1_l2_bac_tscs', 'ts1_l2_bac_fac'), _TRACERS_OFFSETS, components=3)
+    + _bucket_waveforms(('TS2_L2_MSC_BAC',), ('ts2_l2_bac_tscs', 'ts2_l2_bac_fac'), _TRACERS_OFFSETS, components=3)
+)
 
 VOYAGER_PWS = _bucket_waveforms(('VG1_PWS_WF', 'VG2_PWS_WF'), ('Waveform',),
                                 EpochPlusOffsets(offsets='timeOffsets', ns_per_unit=1000.0))

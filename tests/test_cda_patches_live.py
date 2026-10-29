@@ -148,6 +148,11 @@ class BucketWaveforms(unittest.TestCase):
         self.assertEqual(len(var), _samples_in(TS1_BAC, '2025-09-26T01:54', '2025-09-26T02:13'))
         self.assertGreater(len(var), 1024)
 
+    def test_ts1_bac_fac(self):
+        var = spz.get_data('cda/TS1_L2_MSC_BAC/ts1_l2_bac_fac', '2025-09-26T01:54', '2025-09-26T02:13')
+        self.assertEqual(var.values.shape, (len(var.time), 3))
+        self.assertEqual(len(var), _samples_in(TS1_BAC, '2025-09-26T01:54', '2025-09-26T02:13'))
+
     def test_vg1_waveform(self):
         var = spz.get_data('cda/VG1_PWS_WF/Waveform', '1980-01-15T15:00', '1980-01-15T16:00')
         self.assertEqual(var.values.shape, (len(var.time), 1))
