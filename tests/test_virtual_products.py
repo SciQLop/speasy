@@ -1,0 +1,407 @@
+import unittest
+from datetime import datetime, timedelta, timezone
+from functools import reduce
+
+import numpy as np
+from ddt import data, ddt, unpack
+
+import speasy as spz
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.time import make_utc_datetime64
+from speasy.products.variable import (DataContainer, SpeasyVariable,
+                                      VariableTimeAxis)
+from speasy.virtual_products import register_virtual_product, registry
+
+_START = datetime(2016, 10, 10, tzinfo=timezone.utc)
+_STOP = datetime(2016, 10, 11, tzinfo=timezone.utc)
+
+
+def _hourly_ramp(start_time, stop_time):
+    """Stands in for a user callback: one point per hour over the requested window."""
+    time = np.arange(make_utc_datetime64(start_time), make_utc_datetime64(stop_time),
+                     np.timedelta64(1, 'h'))
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                          values=DataContainer(values=np.arange(len(time), dtype=float), meta=None),
+                          columns=["Values"])
+
+def _hourly_ramp_labeled(start_time, stop_time):
+    """Callback that explicitly names its columns."""
+    time = np.arange(
+            make_utc_datetime64(start_time), make_utc_datetime64(stop_time),
+            np.timedelta64(1, 'h'))
+    return SpeasyVariable(
+        axes=[VariableTimeAxis(values=time)
+            ],
+        values=DataContainer(values=np.zeros((len(time), 3), dtype=float), meta=None),
+        columns=["Fx", "Fy", "Fz"]
+    )
+
+def _mag_divided_offset(start_time, stop_time):
+    ace_mag = spz.get_data("amda/imf", start_time, stop_time)
+    if ace_mag is None:
+        return None
+    return ace_mag / 3 + 50
+
+
+def _reset_registry():
+    """Leave no registered product behind: tests share the module level registry."""
+    registry._callbacks.clear()
+    registry._root.clear()
+    registry._flat_inventory.clear()
+
+
+class VirtualProviderRegistration(unittest.TestCase):
+    def test_virtual_provider_is_registered(self):
+        self.assertIn("virtual", spz.list_providers())
+
+
+
+def _tree_node(path):
+    """Resolve 'virtual/a/b' to spz.inventories.tree.virtual.a.b at runtime."""
+    return reduce(getattr, path.split('/'), spz.inventories.tree)
+
+
+_VP_PATHS = ["virtual/test/hourly_ramp", "virtual/test/mag_divided_offset"]
+
+
+class VirtualProductWithVP(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+        self.registered_nodes = {
+            "virtual/test/hourly_ramp":
+                register_virtual_product("virtual/test/hourly_ramp", _hourly_ramp),
+            "virtual/test/mag_divided_offset":
+                register_virtual_product("virtual/test/mag_divided_offset", _mag_divided_offset),
+        }
+
+@ddt
+class VirtualProductGetData(VirtualProductWithVP):
+
+    @data(*_VP_PATHS)
+    def test_get_data_returns_product(self, path):
+        var = spz.get_data(path, _START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+        self.assertGreater(len(var), 0)
+
+    @data(*_VP_PATHS)
+    def test_values_inside_time_window(self, path):
+        var = spz.get_data(path, _START, _STOP)
+        self.assertGreaterEqual(var.time[0], make_utc_datetime64(_START))
+        self.assertLessEqual(var.time[-1], make_utc_datetime64(_STOP))
+
+    @data(*_VP_PATHS)
+    def test_tree_node_or_path_are_equivalent(self, path):
+        by_path = spz.get_data(path, _START, _STOP)
+        by_node = spz.get_data(_tree_node(path), _START, _STOP)
+        self.assertEqual(len(by_path), len(by_node))
+
+    def test_get_data_does_not_collapse_double_slash(self):
+        with self.assertRaises(registry.UnknownVirtualProduct):
+            spz.get_data("virtual/test//hourly_ramp", _START, _STOP)
+
+    def test_get_data_does_not_strip_trailing_slash(self):
+        with self.assertRaises(registry.UnknownVirtualProduct):
+            spz.get_data("virtual/test/hourly_ramp/", _START, _STOP)
+
+    def test_get_data_with_spaces_in_path(self):
+        register_virtual_product("virtual/my product/beta", _hourly_ramp)
+        var = spz.get_data("virtual/my product/beta", _START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+
+@ddt
+class VirtualProductInventory(VirtualProductWithVP):
+
+    def test_virtual_branch_exists(self):
+        self.assertIsInstance(spz.inventories.tree.virtual, SpeasyIndex)
+
+    @data(*_VP_PATHS)
+    def test_product_appears_in_tree(self, path):
+        self.assertIsInstance(_tree_node(path), ParameterIndex)
+
+    @data(*_VP_PATHS)
+    def test_leaf_carries_the_full_uid(self, path):
+        uid = path.removeprefix("virtual/")
+        self.assertEqual(_tree_node(path).spz_uid(), uid)
+
+    def test_deep_path_digs_every_folder(self):
+        register_virtual_product("virtual/test/deep/hourly_ramp", _hourly_ramp)
+        self.assertIsInstance(spz.inventories.tree.virtual.test.deep.hourly_ramp, ParameterIndex)
+
+    @data(*_VP_PATHS)
+    def test_product_appears_in_flat_inventory(self, path):
+        uid = path.removeprefix("virtual/")
+        node = spz.inventories.flat_inventories.virtual.parameters[uid]
+        self.assertIs(node, _tree_node(path))
+
+    @data(*_VP_PATHS)
+    def test_register_returns_the_tree_leaf(self, path):
+        self.assertIs(self.registered_nodes[path], _tree_node(path))
+
+    @data(*_VP_PATHS)
+    def test_tree_leaf_is_callable(self, path):
+        var = _tree_node(path)(_START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+
+    @data(*_VP_PATHS)
+    def test_tree_leaf_is_a_virtual_product(self, path):
+        self.assertIsInstance(_tree_node(path), registry.VirtualProduct)
+
+
+@ddt
+class VirtualProductPath(unittest.TestCase):
+    def test_strips_the_provider_prefix(self):
+        self.assertEqual(registry._path_to_uid("virtual/plasma/beta"), "plasma/beta")
+
+    def test_keeps_a_single_segment_uid(self):
+        self.assertEqual(registry._path_to_uid("virtual/beta"), "beta")
+
+    @data("plasma/beta",           # missing 'virtual/' prefix
+          "amda/imf_gsm",          # bad provider name
+          "virtual",               # no uid at all
+          "virtual/",              # empty uid
+          "",
+          "   ")
+    def test_rejects_malformed_path(self, path):
+        with self.assertRaises(ValueError):
+            registry._path_to_uid(path)
+
+    @data(None, 42, ["virtual", "beta"])
+    def test_rejects_non_string_path(self, path):
+        with self.assertRaises(TypeError):
+            registry._path_to_uid(path)
+
+    def test_collapses_double_slashes(self):
+        self.assertEqual(registry._path_to_uid("virtual/plasma//beta"), "plasma/beta")
+
+    def test_strips_trailing_slash(self):
+        self.assertEqual(registry._path_to_uid("virtual/plasma/beta/"), "plasma/beta")
+
+    def test_fix_name_on_segment_with_spaces(self):
+        self.assertEqual(registry._path_to_uid("virtual/inventory test/beta"), "inventory test/beta")
+
+    def test_fix_name_on_segment_with_special_chars(self):
+        self.assertEqual(registry._path_to_uid("virtual/inventory test # hello/2"), "inventory test # hello/2")
+
+    def test_combined_double_slash_and_special_chars(self):
+        self.assertEqual(registry._path_to_uid("virtual/some//inventory test/beta"), "some/inventory test/beta")
+
+
+class VirtualProductObject(unittest.TestCase):
+    def setUp(self):
+        self.product = registry.VirtualProduct(name="dummy", provider="virtual",
+                                               uid="test/dummy", callback=_hourly_ramp)
+
+    def test_product_forwards_the_call(self):
+        var = self.product(_START, _STOP)
+        self.assertIsInstance(var, SpeasyVariable)
+        self.assertGreater(len(var), 0)
+
+    def test_product_is_an_inventory_node(self):
+        self.assertIsInstance(self.product, ParameterIndex)
+        self.assertEqual(self.product.spz_uid(), "test/dummy")
+        self.assertEqual(self.product.spz_provider(), "virtual")
+
+
+class VirtualProductRegistration(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+    def test_returns_the_tree_leaf(self):
+        beta = register_virtual_product("virtual/plasma/beta", _hourly_ramp)
+        self.assertIs(beta, spz.inventories.tree.virtual.plasma.beta)
+
+    def test_direct_form_rejects_malformed_path(self):
+        with self.assertRaises(ValueError):
+            register_virtual_product("plasma/beta", _hourly_ramp)
+
+    def test_decorator_form_rejects_malformed_path(self):
+        with self.assertRaises(ValueError):
+            register_virtual_product("plasma/beta")
+
+    def test_direct_form_sets_meta_on_the_tree_leaf(self):
+        register_virtual_product("virtual/plasma/beta", _hourly_ramp, meta={"units": "nT"})
+        self.assertEqual(spz.inventories.tree.virtual.plasma.beta.units, "nT")
+
+    def test_decorator_form_sets_meta_on_the_tree_leaf(self):
+        @register_virtual_product("virtual/plasma/beta", meta={"units": "nT"})
+        def beta(start_time, stop_time):
+            return _hourly_ramp(start_time, stop_time)
+
+        self.assertEqual(beta.units, "nT")
+
+    def test_without_labels_mag_columns_are_generic(self):
+        register_virtual_product("virtual/plasma/mag", _mag_divided_offset)
+        var = spz.get_data("virtual/plasma/mag", _START, _STOP)
+        self.assertEqual(var.columns, ["column_0", "column_1", "column_2"])
+
+    def test_with_labels_mag_columns_are_overridden(self):
+        register_virtual_product("virtual/plasma/mag", _mag_divided_offset,
+                                 labels=["bx", "by", "bz"])
+        var = spz.get_data("virtual/plasma/mag", _START, _STOP)
+        self.assertEqual(var.columns, ["bx", "by", "bz"])
+
+    def test_without_labels_own_columns_are_preserved(self):
+        register_virtual_product("virtual/plasma/f", _hourly_ramp_labeled)
+        var = spz.get_data("virtual/plasma/f", _START, _STOP)
+        self.assertEqual(var.columns, ["Fx", "Fy", "Fz"])
+
+    def test_with_labels_own_columns_are_overridden(self):
+        register_virtual_product("virtual/plasma/f", _hourly_ramp_labeled,
+                                 labels=["bx", "by", "bz"])
+        var = spz.get_data("virtual/plasma/f", _START, _STOP)
+        self.assertEqual(var.columns, ["bx", "by", "bz"])
+
+
+@ddt
+class VirtualProductPublicNames(unittest.TestCase):
+    @data("register_virtual_product", "UnknownVirtualProduct", "VirtualProductTypeError",
+          "VirtualProductCycleError")
+    def test_name_is_importable_from_the_package(self, name):
+        self.assertIs(getattr(spz.virtual_products, name), getattr(registry, name))
+
+
+class VirtualProductDecorator(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+        @register_virtual_product("virtual/plasma/beta")
+        def beta(start_time, stop_time):
+            return _hourly_ramp(start_time, stop_time)
+
+        self.beta = beta
+
+    def test_decorated_name_is_the_tree_leaf(self):
+        self.assertIs(self.beta, spz.inventories.tree.virtual.plasma.beta)
+
+    def test_decorated_name_stays_callable(self):
+        self.assertIsInstance(self.beta(_START, _STOP), SpeasyVariable)
+
+    def test_decorated_name_is_accepted_by_get_data(self):
+        self.assertIsInstance(spz.get_data(self.beta, _START, _STOP), SpeasyVariable)
+
+
+class VirtualProductRobustness(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+    def test_last_registration_wins(self):
+        calls = []
+        register_virtual_product("virtual/x", lambda s, e: calls.append("first"))
+        register_virtual_product("virtual/x", lambda s, e: calls.append("second"))
+        spz.get_data("virtual/x", _START, _STOP)
+        spz.inventories.tree.virtual.x(_START, _STOP)
+        self.assertEqual(calls, ["second", "second"])
+
+    def test_re_registration_warns(self):
+        register_virtual_product("virtual/x", _hourly_ramp)
+        with self.assertWarnsRegex(UserWarning, "virtual/x"):
+            register_virtual_product("virtual/x", _hourly_ramp)
+
+    def test_tree_name_collision_warns_naming_both_paths(self):
+        register_virtual_product("virtual/B field", _hourly_ramp)
+        with self.assertWarns(UserWarning) as ctx:
+            register_virtual_product("virtual/B-field", _hourly_ramp)
+        message = str(ctx.warning)
+        self.assertIn("virtual/B field", message)
+        self.assertIn("virtual/B-field", message)
+
+    def test_tree_name_collision_keeps_both_products_by_path(self):
+        calls = []
+        register_virtual_product("virtual/B field", lambda s, e: calls.append("space"))
+        register_virtual_product("virtual/B-field", lambda s, e: calls.append("dash"))
+        spz.get_data("virtual/B field", _START, _STOP)
+        spz.get_data("virtual/B-field", _START, _STOP)
+        self.assertEqual(calls, ["space", "dash"])
+
+    def test_wrong_return_type_raises(self):
+        def returns_array(start_time, stop_time):
+            return np.zeros(3)
+
+        register_virtual_product("virtual/bad", returns_array)
+        with self.assertRaises(registry.VirtualProductTypeError) as ctx:
+            spz.get_data("virtual/bad", _START, _STOP)
+        self.assertIn("ndarray", str(ctx.exception))
+        self.assertIn("returns_array", str(ctx.exception))
+
+    def test_direct_call_checks_return_type(self):
+        def returns_array(start_time, stop_time):
+            return np.zeros(3)
+
+        bad = register_virtual_product("virtual/bad", returns_array)
+        with self.assertRaises(registry.VirtualProductTypeError) as ctx:
+            bad(_START, _STOP)
+        self.assertIn("ndarray", str(ctx.exception))
+        self.assertIn("returns_array", str(ctx.exception))
+
+    def test_none_return_is_accepted(self):
+        register_virtual_product("virtual/empty", lambda s, e: None)
+        self.assertIsNone(spz.get_data("virtual/empty", _START, _STOP))
+
+    def test_unknown_path_raises_unknown_virtual_product(self):
+        with self.assertRaises(registry.UnknownVirtualProduct):
+            spz.get_data("virtual/nope", _START, _STOP)
+
+    def test_unknown_path_suggests_close_paths(self):
+        register_virtual_product("virtual/plasma/beta", _hourly_ramp)
+        with self.assertRaises(registry.UnknownVirtualProduct) as ctx:
+            spz.get_data("virtual/plasma/bet", _START, _STOP)
+        self.assertIn("'virtual/plasma/beta'", str(ctx.exception))
+
+    def test_composition_without_cycle_works(self):
+        register_virtual_product("virtual/a", _hourly_ramp)
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
+        self.assertIsInstance(spz.get_data("virtual/b", _START, _STOP), SpeasyVariable)
+
+    def test_cycle_raises_virtual_product_cycle_error(self):
+        register_virtual_product("virtual/a", lambda s, e: spz.get_data("virtual/b", s, e))
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
+        with self.assertRaises(registry.VirtualProductCycleError):
+            spz.get_data("virtual/a", _START, _STOP)
+
+    def test_cycle_message_names_the_chain_on_direct_call(self):
+        a = register_virtual_product("virtual/a", lambda s, e: spz.get_data("virtual/b", s, e))
+        register_virtual_product("virtual/b", lambda s, e: spz.get_data("virtual/a", s, e))
+        with self.assertRaises(registry.VirtualProductCycleError) as ctx:
+            a(_START, _STOP)
+        self.assertIn("virtual/a -> virtual/b -> virtual/a", str(ctx.exception))
+
+    def test_finite_self_composition_works(self):
+        one_day = timedelta(days=1)
+
+        def previous_day(start_time, stop_time):
+            if start_time <= _START - 3 * one_day:
+                return _hourly_ramp(start_time, stop_time)
+            return spz.get_data("virtual/c", start_time - one_day, stop_time - one_day)
+
+        register_virtual_product("virtual/c", previous_day)
+        self.assertIsInstance(spz.get_data("virtual/c", _START, _STOP), SpeasyVariable)
+
+
+@ddt
+class VirtualProductPlots(VirtualProductWithVP):
+
+    def setUp(self):
+        super().setUp()
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            self.skipTest("Can't import matplotlib")
+
+    @data(*_VP_PATHS)
+    def test_product_is_plottable(self, path):
+        import matplotlib.pyplot as plt
+        var = spz.get_data(path, _START, _STOP)
+        plt.close('all')
+        ax = var.plot()
+        self.assertIsNotNone(ax)
+
+    def test_plot_shows_units(self):
+        import matplotlib.pyplot as plt
+        var = spz.get_data("virtual/test/mag_divided_offset", _START, _STOP)
+        plt.close('all')
+        ax = var.plot()
+        self.assertIn(var.unit, ax.get_ylabel())
+
+
+if __name__ == '__main__':
+    unittest.main()
