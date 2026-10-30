@@ -1,15 +1,13 @@
 import io
 import logging
-import os
 import tarfile
 from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
 from typing import Optional, Tuple, Dict
 
 import numpy as np
-from astroquery.utils.tap.core import TapPlus
 
-from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime
+from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime, tap
 from speasy.core.codecs import get_codec, CodecInterface
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS, register_provider
@@ -54,7 +52,7 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
 
 
 def register_dataset(instruments, datasets, dataset):
-    meta = {cname: dataset[cname] for cname in dataset.colnames}
+    meta = dict(dataset)
     meta['stop_date'] = meta.pop('end_date')
     name = fix_name(meta['dataset_id'])
     node = make_inventory_node(instruments[dataset['instruments']], DatasetIndex, name=name,
@@ -64,7 +62,7 @@ def register_dataset(instruments, datasets, dataset):
 
 
 def register_observatory(missions, observatories, observatory):
-    meta = {cname: observatory[cname] for cname in observatory.colnames}
+    meta = dict(observatory)
     name = meta.pop('name')
     node = make_inventory_node(missions[observatory['mission_name']], SpeasyIndex,
                                name=fix_name(name),
@@ -75,7 +73,7 @@ def register_observatory(missions, observatories, observatory):
 
 
 def register_mission(inventory_tree, missions, mission):
-    meta = {cname: mission[cname] for cname in mission.colnames}
+    meta = dict(mission)
     name = meta.pop('name')
     node = make_inventory_node(inventory_tree, SpeasyIndex, name=fix_name(name),
                                provider="csa",
@@ -84,7 +82,7 @@ def register_mission(inventory_tree, missions, mission):
 
 
 def register_instrument(observatories, instruments, instrument):
-    meta = {cname: instrument[cname] for cname in instrument.colnames}
+    meta = dict(instrument)
     name = meta.pop('name')
     node = make_inventory_node(observatories.get(instrument['observatories'], observatories['MULTIPLE']),
                                SpeasyIndex, name=fix_name(name),
@@ -96,7 +94,7 @@ def register_instrument(observatories, instruments, instrument):
 def register_param(datasets, parameter):
     parent_dataset = datasets.get(parameter["dataset_id"], None)
     if parent_dataset is not None:
-        meta = {cname: parameter[cname] for cname in parameter.colnames}
+        meta = dict(parameter)
         meta['dataset'] = parameter["dataset_id"]
         meta['start_date'] = parent_dataset.start_date
         meta['stop_date'] = parent_dataset.stop_date
@@ -107,22 +105,21 @@ def register_param(datasets, parameter):
 
 
 def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-tap/tap/"):
-    CSA = TapPlus(url=tapurl)
-    missions_req = CSA.launch_job_async("SELECT * FROM csa.v_mission")
-    observatories_req = CSA.launch_job_async("SELECT * FROM csa.v_observatory")
-    instruments_req = CSA.launch_job_async("SELECT * FROM csa.v_instrument")
-    datasets_req = CSA.launch_job_async(
+    missions_req = tap.query(tapurl, "SELECT * FROM csa.v_mission")
+    observatories_req = tap.query(tapurl, "SELECT * FROM csa.v_observatory")
+    instruments_req = tap.query(tapurl, "SELECT * FROM csa.v_instrument")
+    datasets_req = tap.query(tapurl,
         "SELECT * FROM csa.v_dataset WHERE  dataset_id like '%GRMB' OR (is_cef='true' AND is_istp='true')")
-    parameters_req = CSA.launch_job_async("SELECT * FROM csa.v_parameter WHERE data_type='Data' AND value_type<>'CHAR'")
+    parameters_req = tap.query(tapurl, "SELECT * FROM csa.v_parameter WHERE data_type='Data' AND value_type<>'CHAR'")
     missions = {}
     observatories = {}
     instruments = {}
     datasets = {}
-    list(map(lambda m: register_mission(root, missions, m), missions_req.get_results()))
-    list(map(lambda o: register_observatory(missions, observatories, o), observatories_req.get_results()))
-    list(map(lambda i: register_instrument(observatories, instruments, i), instruments_req.get_results()))
-    list(map(lambda d: register_dataset(instruments, datasets, d), datasets_req.get_results()))
-    list(map(lambda p: register_param(datasets, p), parameters_req.get_results()))
+    list(map(lambda m: register_mission(root, missions, m), missions_req))
+    list(map(lambda o: register_observatory(missions, observatories, o), observatories_req))
+    list(map(lambda i: register_instrument(observatories, instruments, i), instruments_req))
+    list(map(lambda d: register_dataset(instruments, datasets, d), datasets_req))
+    list(map(lambda p: register_param(datasets, p), parameters_req))
 
     return root
 
@@ -154,10 +151,6 @@ class CsaWebservice(DataProvider):
 
     @staticmethod
     def is_server_up():
-        if os.environ.get("HTTP_PROXY", None) is not None:
-            log.warning("CSA webservice does not support proxy servers, disabling CSA provider")
-            log.warning("See https://github.com/astropy/astroquery/issues/3228")
-            return False
         return is_server_up(url=CsaWebservice.BASE_URL)
 
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:

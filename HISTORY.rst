@@ -43,6 +43,10 @@ Bug fixes:
   too: once the 12 h listing cache had expired, every request listed the folders again, which fails
   offline. With an expired cache, a cached CDAWeb request now makes no network request at all, where
   it made one listing plus a ``HEAD`` request per file.
+* CSA works behind an HTTP proxy (``HTTP_PROXY``). It used to be disabled there because of an astroquery
+  bug (astropy/astroquery#3228). Its inventory is now fetched with speasy's own small TAP client
+  (``speasy.core.tap``), so ``astroquery`` is no longer a dependency, along with the 14 packages only it
+  pulled in. In the CSA inventory, empty fields are now ``None`` instead of ``''``.
 
 New features:
 
