@@ -115,11 +115,16 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     observatories = {}
     instruments = {}
     datasets = {}
-    list(map(lambda m: register_mission(root, missions, m), missions_req))
-    list(map(lambda o: register_observatory(missions, observatories, o), observatories_req))
-    list(map(lambda i: register_instrument(observatories, instruments, i), instruments_req))
-    list(map(lambda d: register_dataset(instruments, datasets, d), datasets_req))
-    list(map(lambda p: register_param(datasets, p), parameters_req))
+    for mission in missions_req:
+        register_mission(root, missions, mission)
+    for observatory in observatories_req:
+        register_observatory(missions, observatories, observatory)
+    for instrument in instruments_req:
+        register_instrument(observatories, instruments, instrument)
+    for dataset in datasets_req:
+        register_dataset(instruments, datasets, dataset)
+    for parameter in parameters_req:
+        register_param(datasets, parameter)
 
     return root
 
