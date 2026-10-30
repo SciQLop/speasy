@@ -27,12 +27,11 @@ class BundledProviders(unittest.TestCase):
 
 
 class CsaServerCheck(unittest.TestCase):
-    def test_csa_reports_down_behind_an_http_proxy(self):
+    def test_csa_checks_its_url_behind_an_http_proxy(self):
         with patch.dict(os.environ, {"HTTP_PROXY": "http://proxy.example:3128"}), \
-                patch("speasy.data_providers.csa.is_server_up") as check, \
-                self.assertLogs("speasy.data_providers.csa", "WARNING"):
-            self.assertFalse(rd._is_server_up(CsaWebservice))
-        check.assert_not_called()
+                patch("speasy.data_providers.csa.is_server_up", return_value=True) as check:
+            self.assertTrue(rd._is_server_up(CsaWebservice))
+        check.assert_called_once_with(url=CsaWebservice.BASE_URL)
 
     def test_csa_checks_its_url_without_a_proxy(self):
         with patch.dict(os.environ), patch("speasy.data_providers.csa.is_server_up", return_value=True) as check:
