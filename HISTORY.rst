@@ -78,6 +78,10 @@ New features:
   sampling for CDPP 3DView, and the output format, restricted period and template inputs for AMDA. It
   works without starting the provider. ``speasy.core.dataprovider.provider_class(name)`` gives the
   class registered under a provider name or alias.
+* CDAWeb waveform datasets stored as buckets (PSP FIELDS burst, SolO RPW TDS and LFR, Van Allen Probes
+  EMFISIS, TRACERS TS1/TS2 MSC, Voyager PWS) are served as flat time series with one timestamp per sample.
+  SolO RPW LFR variables are split per sampling rate (``<variable>_F0``, ``_F1``, ``_F2``), and the SolO RPW
+  waveform datasets missing from CDAWeb's inventory are added to it.
 
 1.9.1 (2026-10-06)
 ------------------
