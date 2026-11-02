@@ -1,9 +1,13 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
 import difflib
+import logging
+import os
 import threading
 import warnings
 from typing import Callable, Optional
+from speasy.config import core as cfg
+import appdirs
 
 from ..core.algorithms import fix_name
 from ..core.dataprovider import register_provider
@@ -16,6 +20,9 @@ _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
 _registration_lock = threading.Lock()
 
+__USER_VP_DIR__ = f'{appdirs.user_data_dir("speasy", "LPP")}/virtual_products'
+
+log = logging.getLogger(__name__)
 
 class _Resolution(threading.local):
     """Paths of the virtual products being computed, outermost first.
@@ -29,6 +36,36 @@ class _Resolution(threading.local):
 
 
 _resolution = _Resolution()
+
+def _list_dir_abs(path: str):
+    return [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.py')]
+
+def _load_vp(path: str):
+    if path.endswith('.py'):
+        try:
+            with open(path) as codec_file:
+                exec(codec_file.read())
+        except Exception:
+            log.warning(f"Failed to load virtual product file {path}", exc_info=True)
+
+
+def user_vp_dir():
+    """Get the user virtual products directory, any virtual product placed in this directory will be automatically registered
+
+    Returns
+    -------
+    str
+        The user virtual products directory
+    """
+    return __USER_VP_DIR__
+
+
+def load_extra_vp():
+    if os.path.exists(user_vp_dir()):
+        list(map(_load_vp, _list_dir_abs(user_vp_dir())))
+    for path in cfg.user_vp_extra_dirs.get():
+        if os.path.exists(path):
+            list(map(_load_vp, _list_dir_abs(path)))
 
 
 def _path_to_uid(path: str) -> str:
