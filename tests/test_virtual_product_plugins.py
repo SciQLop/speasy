@@ -5,6 +5,10 @@ import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest import mock
+
+from speasy.virtual_products import registry
+from tests.test_virtual_products import _reset_registry
 
 _PLUGIN_PACKAGE = '''
 def register():
@@ -57,6 +61,29 @@ class VirtualProductEntryPoints(unittest.TestCase):
         """)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Failed to load plugin broken", result.stderr)
+
+
+_USER_VP_FILE = '''
+from speasy.virtual_products import register_virtual_product
+
+
+@register_virtual_product("virtual/user_dir_test/beta")
+def beta(start_time, stop_time):
+    return None
+'''
+
+
+class VirtualProductUserDirs(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+
+    def test_a_vp_file_in_an_extra_dir_is_registered(self):
+        with tempfile.TemporaryDirectory() as vp_dir:
+            Path(vp_dir, "beta.py").write_text(_USER_VP_FILE)
+            with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
+                with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
+                    registry.load_extra_vp()
+        self.assertIn("user_dir_test/beta", registry._flat_inventory.parameters)
 
 
 if __name__ == "__main__":
