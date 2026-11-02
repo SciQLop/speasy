@@ -21,9 +21,9 @@ def load_plugins(group: str) -> None:
     disabled = core_cfg.disabled_plugins.get()
     for ep in entry_points(group=group):
         if ep.name in disabled or f"{group}.{ep.name}" in disabled:
-            log.info(f"Skipping disabled plugin {ep.name} ({ep.value})")
+            log.info(f"Skipping disabled {group} plugin {ep.name} ({ep.value})")
             continue
         try:
             ep.load()()
         except Exception:
-            log.warning(f"Failed to load plugin {ep.name} ({ep.value})", exc_info=True)
+            log.warning(f"Failed to load {group} plugin {ep.name} ({ep.value})", exc_info=True)

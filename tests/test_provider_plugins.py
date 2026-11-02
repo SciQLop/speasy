@@ -79,7 +79,7 @@ class ProviderEntryPoints(unittest.TestCase):
             assert "fakeprov" in dir(spz), dir(spz)
         """)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Failed to load plugin broken", result.stderr)
+        self.assertIn("Failed to load speasy.providers plugin broken", result.stderr)
 
 
 class ProviderPluginEdgeCases(unittest.TestCase):
