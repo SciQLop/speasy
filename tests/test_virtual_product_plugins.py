@@ -61,7 +61,7 @@ class VirtualProductEntryPoints(unittest.TestCase):
             spz.inventories.tree.virtual.plugin_test.dummy
         """)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Failed to load plugin broken", result.stderr)
+        self.assertIn("Failed to load speasy.virtual_products plugin broken", result.stderr)
 
 
 _USER_VP_UID = "user_dir_test/beta"
