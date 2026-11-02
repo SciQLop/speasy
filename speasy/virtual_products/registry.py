@@ -43,8 +43,8 @@ def _list_dir_abs(path: str):
 def _load_vp(path: str):
     if path.endswith('.py'):
         try:
-            with open(path) as codec_file:
-                exec(codec_file.read())
+            with open(path) as vp_file:
+                exec(compile(vp_file.read(), path, "exec"))
         except Exception:
             log.warning(f"Failed to load virtual product file {path}", exc_info=True)
 
