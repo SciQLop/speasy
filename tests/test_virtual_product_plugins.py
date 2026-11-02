@@ -3,6 +3,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import traceback
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -97,6 +98,17 @@ class VirtualProductUserDirs(unittest.TestCase):
                         registry.load_extra_vp()
         self.assertTrue(any("a_broken.py" in line for line in captured.output))
         self.assertIn(_USER_VP_UID, registry._flat_inventory.parameters)
+
+    def test_the_traceback_points_to_the_broken_vp_file(self):
+        with tempfile.TemporaryDirectory() as vp_dir:
+            broken = Path(vp_dir, "a_broken.py")
+            broken.write_text("raise RuntimeError('this vp file is broken')\n")
+            with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
+                with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
+                    with self.assertLogs("speasy.virtual_products.registry", level="WARNING") as captured:
+                        registry.load_extra_vp()
+        _, _, tb = captured.records[0].exc_info
+        self.assertEqual(traceback.extract_tb(tb)[-1].filename, str(broken))
 
 
 if __name__ == "__main__":
