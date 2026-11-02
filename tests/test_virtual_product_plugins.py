@@ -76,6 +76,14 @@ def beta(start_time, stop_time):
 '''
 
 
+def _run_with_user_dir(vp_source, script):
+    with tempfile.TemporaryDirectory() as vp_dir:
+        Path(vp_dir, "user_vp.py").write_text(vp_source)
+        env = {**os.environ, "SPEASY_SKIP_INIT_PROVIDERS": "1", "SPEASY_CORE_USER_VP_EXTRA_DIRS": vp_dir}
+        return subprocess.run([sys.executable, "-c", textwrap.dedent(script)], env=env,
+                              capture_output=True, text=True, timeout=600)
+
+
 class VirtualProductUserDirs(unittest.TestCase):
     def setUp(self):
         self.addCleanup(_reset_registry)
@@ -109,6 +117,14 @@ class VirtualProductUserDirs(unittest.TestCase):
                         registry.load_extra_vp()
         _, _, tb = captured.records[0].exc_info
         self.assertEqual(traceback.extract_tb(tb)[-1].filename, str(broken))
+
+    def test_import_speasy_loads_the_user_vp_files(self):
+        result = _run_with_user_dir(_USER_VP_FILE, f"""
+            import speasy as spz
+            node = spz.inventories.tree.virtual.user_dir_test.beta
+            assert node.spz_uid() == "{_USER_VP_UID}", node.spz_uid()
+        """)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
