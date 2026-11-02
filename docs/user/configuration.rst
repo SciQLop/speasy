@@ -74,6 +74,10 @@ Other core entries
    * - ``user_codecs_extra_dirs`` / ``SPEASY_CORE_USER_CODECS_EXTRA_DIRS``
      - *(empty)*
      - Comma-separated list of extra directories to scan for user-defined codecs.
+   * - ``user_vp_extra_dirs`` / ``SPEASY_CORE_USER_VP_EXTRA_DIRS``
+     - *(empty)*
+     - Comma-separated list of extra directories to scan for user-defined virtual products
+       (see :doc:`virtual_products`).
 
 .. _proxy_section:
 
