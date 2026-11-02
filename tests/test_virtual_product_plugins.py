@@ -63,11 +63,13 @@ class VirtualProductEntryPoints(unittest.TestCase):
         self.assertIn("Failed to load plugin broken", result.stderr)
 
 
-_USER_VP_FILE = '''
+_USER_VP_UID = "user_dir_test/beta"
+
+_USER_VP_FILE = f'''
 from speasy.virtual_products import register_virtual_product
 
 
-@register_virtual_product("virtual/user_dir_test/beta")
+@register_virtual_product("virtual/{_USER_VP_UID}")
 def beta(start_time, stop_time):
     return None
 '''
@@ -83,7 +85,18 @@ class VirtualProductUserDirs(unittest.TestCase):
             with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
                 with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
                     registry.load_extra_vp()
-        self.assertIn("user_dir_test/beta", registry._flat_inventory.parameters)
+        self.assertIn(_USER_VP_UID, registry._flat_inventory.parameters)
+
+    def test_a_broken_vp_file_is_skipped_and_the_valid_one_still_loads(self):
+        with tempfile.TemporaryDirectory() as vp_dir:
+            Path(vp_dir, "a_broken.py").write_text("raise RuntimeError('this vp file is broken')\n")
+            Path(vp_dir, "beta.py").write_text(_USER_VP_FILE)
+            with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
+                with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
+                    with self.assertLogs("speasy.virtual_products.registry", level="WARNING") as captured:
+                        registry.load_extra_vp()
+        self.assertTrue(any("a_broken.py" in line for line in captured.output))
+        self.assertIn(_USER_VP_UID, registry._flat_inventory.parameters)
 
 
 if __name__ == "__main__":
