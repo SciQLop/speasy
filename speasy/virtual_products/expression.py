@@ -35,6 +35,27 @@ _BINARY_SYMBOLS = {
     np.power: "**",
 }
 
+_PRECEDENCE_LEVEL = {
+    np.add: 1,
+    np.subtract: 1,
+    np.multiply: 2,
+    np.divide: 2,
+    np.power: 3,
+}
+
+
+def _precedence(node):
+    """How tightly a node binds; leaves and constants bind tighter than any operator."""
+    if isinstance(node, Op):
+        return _PRECEDENCE_LEVEL[node.ufunc]
+    return max(_PRECEDENCE_LEVEL.values()) + 1
+
+
+def _operand_repr(node, precedence):
+    """repr of an operand, parenthesized when it binds less tightly than its operator."""
+    text = repr(node)
+    return f"({text})" if _precedence(node) < precedence else text
+
 
 @dataclass(frozen=True, eq=False)
 class Op:
@@ -43,8 +64,9 @@ class Op:
     operands: Tuple["Node", ...]
 
     def __repr__(self):
-        left, right = self.operands
-        return f"{left!r} {_BINARY_SYMBOLS[self.ufunc]} {right!r}"
+        precedence = _PRECEDENCE_LEVEL[self.ufunc]
+        left, right = (_operand_repr(operand, precedence) for operand in self.operands)
+        return f"{left} {_BINARY_SYMBOLS[self.ufunc]} {right}"
 
 
 Node = Union[Leaf, Const, Op]
