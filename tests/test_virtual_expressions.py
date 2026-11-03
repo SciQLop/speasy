@@ -67,3 +67,8 @@ class TestRepr(unittest.TestCase):
         n = Leaf("amda/mms1_dis_ni")
         op = Op(np.multiply, (self.const, Op(np.add, (self.leaf, n))))
         self.assertEqual(repr(op), "10 * (cda/mms1_fgm_b_gse_srvy_l2 + amda/mms1_dis_ni)")
+
+    def test_same_precedence_right_operand_is_parenthesized(self):
+        n = Leaf("amda/mms1_dis_ni")
+        op = Op(np.subtract, (self.leaf, Op(np.subtract, (n, self.leaf))))
+        self.assertEqual(repr(op), "cda/mms1_fgm_b_gse_srvy_l2 - (amda/mms1_dis_ni - cda/mms1_fgm_b_gse_srvy_l2)")

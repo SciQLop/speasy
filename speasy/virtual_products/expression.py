@@ -51,10 +51,13 @@ def _precedence(node):
     return max(_PRECEDENCE_LEVEL.values()) + 1
 
 
-def _operand_repr(node, precedence):
-    """repr of an operand, parenthesized when it binds less tightly than its operator."""
+def _operand_repr(node, precedence, parenthesize_equal):
+    """repr of an operand, parenthesized when it binds less tightly than its operator,
+    or exactly as tightly when parenthesize_equal is set."""
     text = repr(node)
-    return f"({text})" if _precedence(node) < precedence else text
+    weaker = _precedence(node) < precedence
+    equal = parenthesize_equal and _precedence(node) == precedence
+    return f"({text})" if weaker or equal else text
 
 
 @dataclass(frozen=True, eq=False)
@@ -65,7 +68,9 @@ class Op:
 
     def __repr__(self):
         precedence = _PRECEDENCE_LEVEL[self.ufunc]
-        left, right = (_operand_repr(operand, precedence) for operand in self.operands)
+        left_operand, right_operand = self.operands
+        left = _operand_repr(left_operand, precedence, parenthesize_equal=False)
+        right = _operand_repr(right_operand, precedence, parenthesize_equal=True)
         return f"{left} {_BINARY_SYMBOLS[self.ufunc]} {right}"
 
 
