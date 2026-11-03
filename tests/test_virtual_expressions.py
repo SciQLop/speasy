@@ -2,6 +2,7 @@ import dataclasses
 import unittest
 
 import numpy as np
+from ddt import data, ddt, unpack
 
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.virtual_products.expression import Const, Leaf, Op
@@ -39,6 +40,7 @@ class TestNodes(unittest.TestCase):
             op.ufunc = np.add
 
 
+@ddt
 class TestRepr(unittest.TestCase):
     def setUp(self):
         self.leaf = Leaf(ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
@@ -53,3 +55,10 @@ class TestRepr(unittest.TestCase):
 
     def test_const_is_the_value(self):
         self.assertEqual(repr(self.const), "10")
+
+    @data((np.add, "+"), (np.subtract, "-"), (np.multiply, "*"),
+          (np.divide, "/"), (np.power, "**"))
+    @unpack
+    def test_binary_op_is_infix(self, ufunc, symbol):
+        op = Op(ufunc, (self.const, self.leaf))
+        self.assertEqual(repr(op), f"10 {symbol} cda/mms1_fgm_b_gse_srvy_l2")

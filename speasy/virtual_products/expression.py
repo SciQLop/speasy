@@ -27,11 +27,24 @@ class Const:
         return repr(self.value)
 
 
+_BINARY_SYMBOLS = {
+    np.add: "+",
+    np.subtract: "-",
+    np.multiply: "*",
+    np.divide: "/",
+    np.power: "**",
+}
+
+
 @dataclass(frozen=True, eq=False)
 class Op:
     """Elementwise application of a numpy ufunc to its operands."""
     ufunc: np.ufunc
     operands: Tuple["Node", ...]
+
+    def __repr__(self):
+        left, right = self.operands
+        return f"{left!r} {_BINARY_SYMBOLS[self.ufunc]} {right!r}"
 
 
 Node = Union[Leaf, Const, Op]
