@@ -62,3 +62,8 @@ class TestRepr(unittest.TestCase):
     def test_binary_op_is_infix(self, ufunc, symbol):
         op = Op(ufunc, (self.const, self.leaf))
         self.assertEqual(repr(op), f"10 {symbol} cda/mms1_fgm_b_gse_srvy_l2")
+
+    def test_lower_precedence_operand_is_parenthesized(self):
+        n = Leaf("amda/mms1_dis_ni")
+        op = Op(np.multiply, (self.const, Op(np.add, (self.leaf, n))))
+        self.assertEqual(repr(op), "10 * (cda/mms1_fgm_b_gse_srvy_l2 + amda/mms1_dis_ni)")
