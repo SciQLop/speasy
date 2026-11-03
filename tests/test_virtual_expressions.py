@@ -80,3 +80,28 @@ class TestRepr(unittest.TestCase):
     def test_power_right_operand_is_not_parenthesized(self):
         op = Op(np.power, (self.leaf, Op(np.power, (Const(2), Const(3)))))
         self.assertEqual(repr(op), "cda/mms1_fgm_b_gse_srvy_l2 ** 2 ** 3")
+
+    def test_negative_is_prefix(self):
+        op = Op(np.negative, (self.leaf,))
+        self.assertEqual(repr(op), "-cda/mms1_fgm_b_gse_srvy_l2")
+
+    def test_absolute_is_a_call(self):
+        op = Op(np.absolute, (self.leaf,))
+        self.assertEqual(repr(op), "abs(cda/mms1_fgm_b_gse_srvy_l2)")
+
+    def test_unary_parentheses_follow_python(self):
+        b, n = Leaf("cda/b"), Leaf("amda/n")
+        neg_b = Op(np.negative, (b,))
+        cases = [
+            (Op(np.negative, (Op(np.add, (b, n)),)), "-(cda/b + amda/n)"),
+            (Op(np.multiply, (self.const, neg_b)), "10 * -cda/b"),
+            (Op(np.power, (neg_b, Const(2))), "(-cda/b) ** 2"),
+            (Op(np.negative, (Op(np.power, (b, Const(2))),)), "-cda/b ** 2"),
+            (Op(np.negative, (neg_b,)), "--cda/b"),
+            (Op(np.power, (b, neg_b)), "cda/b ** (-cda/b)"),
+            (Op(np.absolute, (Op(np.add, (b, n)),)), "abs(cda/b + amda/n)"),
+            (Op(np.power, (Op(np.absolute, (b,)), Const(2))), "abs(cda/b) ** 2"),
+        ]
+        for op, expected in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(repr(op), expected)
