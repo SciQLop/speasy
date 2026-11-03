@@ -9,7 +9,8 @@ from speasy.virtual_products.expression import Const, Leaf, Op
 
 class TestNodes(unittest.TestCase):
     def setUp(self):
-        self.index = ParameterIndex(name="b", provider="cda", uid="b")
+        self.index = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                    uid="mms1_fgm_b_gse_srvy_l2")
         self.leaf = Leaf(self.index)
         self.const = Const(10)
 
@@ -36,3 +37,19 @@ class TestNodes(unittest.TestCase):
         op = Op(np.multiply, (self.const, self.leaf))
         with self.assertRaises(dataclasses.FrozenInstanceError):
             op.ufunc = np.add
+
+
+class TestRepr(unittest.TestCase):
+    def setUp(self):
+        self.leaf = Leaf(ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                        uid="mms1_fgm_b_gse_srvy_l2"))
+        self.const = Const(10)
+
+    def test_leaf_is_provider_slash_uid(self):
+        self.assertEqual(repr(self.leaf), "cda/mms1_fgm_b_gse_srvy_l2")
+
+    def test_leaf_of_a_path_string_is_the_string(self):
+        self.assertEqual(repr(Leaf("amda/mms1_dis_ni")), "amda/mms1_dis_ni")
+
+    def test_const_is_the_value(self):
+        self.assertEqual(repr(self.const), "10")
