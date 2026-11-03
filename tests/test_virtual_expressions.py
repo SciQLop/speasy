@@ -72,3 +72,11 @@ class TestRepr(unittest.TestCase):
         n = Leaf("amda/mms1_dis_ni")
         op = Op(np.subtract, (self.leaf, Op(np.subtract, (n, self.leaf))))
         self.assertEqual(repr(op), "cda/mms1_fgm_b_gse_srvy_l2 - (amda/mms1_dis_ni - cda/mms1_fgm_b_gse_srvy_l2)")
+
+    def test_power_left_operand_is_parenthesized(self):
+        op = Op(np.power, (Op(np.power, (self.leaf, Const(2))), Const(3)))
+        self.assertEqual(repr(op), "(cda/mms1_fgm_b_gse_srvy_l2 ** 2) ** 3")
+
+    def test_power_right_operand_is_not_parenthesized(self):
+        op = Op(np.power, (self.leaf, Op(np.power, (Const(2), Const(3)))))
+        self.assertEqual(repr(op), "cda/mms1_fgm_b_gse_srvy_l2 ** 2 ** 3")
