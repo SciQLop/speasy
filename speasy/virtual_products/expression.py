@@ -68,9 +68,11 @@ class Op:
 
     def __repr__(self):
         precedence = _PRECEDENCE_LEVEL[self.ufunc]
+        # ** groups right to left: a ** b ** c means a ** (b ** c)
+        right_associative = self.ufunc is np.power
         left_operand, right_operand = self.operands
-        left = _operand_repr(left_operand, precedence, parenthesize_equal=False)
-        right = _operand_repr(right_operand, precedence, parenthesize_equal=True)
+        left = _operand_repr(left_operand, precedence, parenthesize_equal=right_associative)
+        right = _operand_repr(right_operand, precedence, parenthesize_equal=not right_associative)
         return f"{left} {_BINARY_SYMBOLS[self.ufunc]} {right}"
 
 
