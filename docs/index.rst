@@ -72,13 +72,13 @@ What do you want to do?
         Read :doc:`user/concepts`, then pick your archive in :doc:`user/data_providers`.
 
     .. grid-item-card:: 📈 Analyse it
-        :link: user/numpy
+        :link: user/speasy_variable
         :link-type: doc
 
-        Your data is in a ``SpeasyVariable``. You want to compute, resample, filter or plot it.
+        Your data is in a ``SpeasyVariable``. You want to select, compute, resample, filter or plot it.
 
-        See :doc:`user/numpy`, :doc:`user/scipy` and :doc:`user/plotting`, or browse the
-        :doc:`examples <examples/index>`.
+        Start with :doc:`user/speasy_variable`, then :doc:`user/numpy`, :doc:`user/scipy` and
+        :doc:`user/plotting`, or browse the :doc:`examples <examples/index>`.
 
     .. grid-item-card:: 🗄️ Keep and share a study's data
         :link: user/data_index
@@ -142,6 +142,7 @@ Its development is supported by the `CDPP <http://www.cdpp.eu/>`__.
 
    installation
    user/concepts
+   user/speasy_variable
 
 .. toctree::
    :hidden:
