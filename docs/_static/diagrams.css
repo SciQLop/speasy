@@ -7,10 +7,11 @@
     --d-line: var(--color-background-border);
     --d-panel: var(--color-background-secondary);
     --d-blue: #2563eb;
-    --d-blue-soft: #dbeafe;
-    --d-green-soft: #d1fae5;
-    --d-orange: #d97706;
-    --d-orange-soft: #fde68a;
+    --d-time: #bfdbfe;
+    --d-val: #bbf7d0;
+    --d-axis: #ddd6fe;
+    --d-hl: #fdba74;
+    --d-row: #fde68a;
     display: block;
     max-width: 100%;
     height: auto;
@@ -19,34 +20,51 @@
 }
 
 body[data-theme="dark"] .spz-diagram {
-    --d-blue-soft: #1e3a5f;
-    --d-green-soft: #14432f;
-    --d-orange-soft: #7c4a03;
     --d-blue: #93c5fd;
+    --d-time: #1e3a6e;
+    --d-val: #14532d;
+    --d-axis: #3f2a78;
+    --d-hl: #c2410c;
+    --d-row: #a16207;
 }
 
 @media (prefers-color-scheme: dark) {
     body:not([data-theme="light"]) .spz-diagram {
-        --d-blue-soft: #1e3a5f;
-        --d-green-soft: #14432f;
-        --d-orange-soft: #7c4a03;
         --d-blue: #93c5fd;
+        --d-time: #1e3a6e;
+        --d-val: #14532d;
+        --d-axis: #3f2a78;
+        --d-hl: #c2410c;
+        --d-row: #a16207;
     }
 }
 
-.spz-diagram rect { stroke: var(--d-line); stroke-width: 1; }
-.spz-diagram .d-time { fill: var(--d-blue-soft); }
-.spz-diagram .d-time-thin { fill: none; }
-.spz-diagram .d-val { fill: var(--d-green-soft); }
-.spz-diagram .d-axis { fill: var(--d-panel); }
-.spz-diagram .d-card { fill: var(--d-panel); rx: 8; }
-.spz-diagram .d-hl { fill: var(--d-orange-soft); stroke: var(--d-orange); stroke-width: 1.5; }
+.spz-diagram rect, .spz-diagram polygon {
+    stroke: var(--d-fg);
+    stroke-opacity: 0.45;
+    stroke-width: 0.75;
+    stroke-linejoin: round;
+}
+
+.spz-diagram .d-time { fill: var(--d-time); }
+.spz-diagram .d-val { fill: var(--d-val); }
+.spz-diagram .d-axis { fill: var(--d-axis); }
+.spz-diagram .d-hl { fill: var(--d-hl); }
+.spz-diagram .d-row { fill: var(--d-row); }
+.spz-diagram .d-dim { fill: var(--d-panel); stroke-opacity: 0.2; }
+.spz-diagram .d-card { fill: var(--d-panel); stroke: var(--d-line); stroke-opacity: 1; rx: 8; }
+
+/* Light from the top-left: the top faces are lighter, the side faces darker. */
+.spz-diagram .d-lit { fill: #fff; fill-opacity: 0.35; stroke: none; }
+.spz-diagram .d-shade { fill: #000; fill-opacity: 0.2; stroke: none; }
+
+.spz-diagram .d-arrow { stroke: var(--d-muted); stroke-width: 1.5; }
+.spz-diagram .d-arrowhead { fill: var(--d-muted); stroke: none; }
 
 .spz-diagram text { font-size: 13px; fill: var(--d-fg); }
 .spz-diagram .d-strong { font-weight: 600; }
 .spz-diagram .d-muted { fill: var(--d-muted); font-size: 12px; }
-.spz-diagram .d-mono, .spz-diagram .d-code { font-family: var(--font-stack--monospace); font-size: 12px; }
-.spz-diagram .d-code { fill: var(--d-blue); font-weight: 600; }
+.spz-diagram .d-code { font-family: var(--font-stack--monospace); font-size: 12px; fill: var(--d-blue); font-weight: 600; }
 
 /* A sequential ramp for the spectrogram cells, readable in both modes. */
 .spz-diagram .d-heat0 { fill: #1e1b4b; }
