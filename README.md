@@ -384,19 +384,34 @@ spz.get_data("virtual/ace/b_magnitude", "2016-6-2", "2016-6-5").plot();
 ### Keep a study's data
 
 Inside a `DataIndex` block, `get_data` stores what it downloads in a folder.
-Next time, the same calls are served from that folder, even offline:
+Next time, the same calls are served from that folder, even offline.
+Export it as one file, and a colleague gets exactly the same data:
 
 <!--[[[cog
 run_in_tmp_dir("""
 import speasy as spz
-with spz.DataIndex("my_study"):
-    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
+
+with spz.DataIndex("my_study") as study:
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # downloaded, kept in my_study/
+study.export_data("my_study.tar")                                # one file to send
+
+# On your colleague's machine:
+with spz.DataIndex("their_copy") as copy:
+    copy.import_data("my_study.tar")
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # read from their_copy/, no download
 """)
 ]]]-->
 ```python
 import speasy as spz
-with spz.DataIndex("my_study"):
-    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
+
+with spz.DataIndex("my_study") as study:
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # downloaded, kept in my_study/
+study.export_data("my_study.tar")                                # one file to send
+
+# On your colleague's machine:
+with spz.DataIndex("their_copy") as copy:
+    copy.import_data("my_study.tar")
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # read from their_copy/, no download
 ```
 <!--[[[end]]]-->
 
