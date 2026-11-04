@@ -1,0 +1,57 @@
+/* Inline SVG diagrams drawn by docs/_variable_diagrams.py. Colours come from Furo's variables,
+   so the diagrams follow its light and dark modes. */
+
+.spz-diagram {
+    --d-fg: var(--color-foreground-primary);
+    --d-muted: var(--color-foreground-secondary);
+    --d-line: var(--color-background-border);
+    --d-panel: var(--color-background-secondary);
+    --d-blue: #2563eb;
+    --d-blue-soft: #dbeafe;
+    --d-green-soft: #d1fae5;
+    --d-orange: #d97706;
+    --d-orange-soft: #fde68a;
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5rem auto;
+    font-family: var(--font-stack);
+}
+
+body[data-theme="dark"] .spz-diagram {
+    --d-blue-soft: #1e3a5f;
+    --d-green-soft: #14432f;
+    --d-orange-soft: #7c4a03;
+    --d-blue: #93c5fd;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .spz-diagram {
+        --d-blue-soft: #1e3a5f;
+        --d-green-soft: #14432f;
+        --d-orange-soft: #7c4a03;
+        --d-blue: #93c5fd;
+    }
+}
+
+.spz-diagram rect { stroke: var(--d-line); stroke-width: 1; }
+.spz-diagram .d-time { fill: var(--d-blue-soft); }
+.spz-diagram .d-time-thin { fill: none; }
+.spz-diagram .d-val { fill: var(--d-green-soft); }
+.spz-diagram .d-axis { fill: var(--d-panel); }
+.spz-diagram .d-card { fill: var(--d-panel); rx: 8; }
+.spz-diagram .d-hl { fill: var(--d-orange-soft); stroke: var(--d-orange); stroke-width: 1.5; }
+
+.spz-diagram text { font-size: 13px; fill: var(--d-fg); }
+.spz-diagram .d-strong { font-weight: 600; }
+.spz-diagram .d-muted { fill: var(--d-muted); font-size: 12px; }
+.spz-diagram .d-mono, .spz-diagram .d-code { font-family: var(--font-stack--monospace); font-size: 12px; }
+.spz-diagram .d-code { fill: var(--d-blue); font-weight: 600; }
+
+/* A sequential ramp for the spectrogram cells, readable in both modes. */
+.spz-diagram .d-heat0 { fill: #1e1b4b; }
+.spz-diagram .d-heat1 { fill: #3b2a8f; }
+.spz-diagram .d-heat2 { fill: #2563eb; }
+.spz-diagram .d-heat3 { fill: #0d9488; }
+.spz-diagram .d-heat4 { fill: #84cc16; }
+.spz-diagram .d-heat5 { fill: #facc15; }
