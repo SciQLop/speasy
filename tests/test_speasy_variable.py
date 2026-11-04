@@ -780,6 +780,10 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
         self.assertTrue(np.allclose(var.values, np.linalg.norm(self.vector.values, axis=1).reshape(-1, 1)))
         self.assertTrue(np.allclose(var, np.linalg.norm(self.vector, axis=1)))
 
+    def test_ufunc_result_name_shows_plain_arguments(self):
+        var = np.power(self.var, 2)
+        self.assertEqual(var.name, f"power({self.var.name}, 2)")
+
     @data(np.sum, np.mean, np.std, np.var, np.max, np.min)
     def test_functions_that_reduce_ndim_on_axis1(self, func):
         for var in (self.spectro, self.var3d):

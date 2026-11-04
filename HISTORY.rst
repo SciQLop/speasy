@@ -7,6 +7,8 @@ Unreleased
 
 Bug fixes:
 
+* The name of a numpy result showed ``<built-in function input>`` for each plain argument:
+  ``np.power(b, 2)`` was named ``power(b, <built-in function input>)``. It is now ``power(b, 2)``.
 * CDPP 3DView: when its list of coordinate frames could not be fetched, ``get_data`` silently replaced
   the requested frame by ``J2000``. With 3DView down but the proxy or the local cache still serving
   data, a ``GSE`` request could return ``J2000`` positions. The requested frame is now always kept.
