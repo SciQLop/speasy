@@ -1,12 +1,25 @@
 import dataclasses
 import operator
 import unittest
+from unittest import mock
 
 import numpy as np
 from ddt import data, ddt, unpack
 
 from speasy.core.inventory.indexes import ParameterIndex
-from speasy.virtual_products.expression import Const, Leaf, Op
+from speasy.virtual_products.expression import Const, Leaf, Op, evaluate
+from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
+
+_T0 = np.datetime64("2016-10-10T00:00", "ns")
+
+
+def _make_variable(values):
+    """Synthetic SpeasyVariable: the given values, one point per hour from _T0."""
+    values = np.asarray(values, dtype=float)
+    time = _T0 + np.arange(len(values)) * np.timedelta64(1, "h")
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                          values=DataContainer(values=values, meta=None),
+                          columns=["Values"])
 
 
 class TestNodes(unittest.TestCase):
@@ -147,3 +160,17 @@ class TestOperators(unittest.TestCase):
     def test_index_is_still_unhashable(self):
         with self.assertRaises(TypeError):
             hash(self.index)
+
+
+class TestEvaluate(unittest.TestCase):
+    def setUp(self):
+        self.index = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                    uid="mms1_fgm_b_gse_srvy_l2")
+
+    def test_ten_times_a_product(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=b) as get_data:
+            result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
+        get_data.assert_called_once_with(self.index, "2016-10-10", "2016-10-11")
+        np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
+        np.testing.assert_array_equal(result.time, b.time)
