@@ -1,4 +1,5 @@
 import dataclasses
+import operator
 import unittest
 
 import numpy as np
@@ -105,3 +106,44 @@ class TestRepr(unittest.TestCase):
         for op, expected in cases:
             with self.subTest(expected=expected):
                 self.assertEqual(repr(op), expected)
+
+
+_OPERATORS = ((operator.add, np.add), (operator.sub, np.subtract),
+              (operator.mul, np.multiply), (operator.truediv, np.divide))
+
+
+@ddt
+class TestOperators(unittest.TestCase):
+    """Nodes (Leaf, Const, Op) are dataclasses with eq=False: == compares identity,
+    so two Op built separately are never equal. Tests compare fields instead."""
+
+    def setUp(self):
+        self.index = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                    uid="mms1_fgm_b_gse_srvy_l2")
+
+    @data(*_OPERATORS)
+    @unpack
+    def test_index_on_the_left_builds_an_op(self, python_op, ufunc):
+        op = python_op(self.index, 10)
+        self.assertIs(op.ufunc, ufunc)
+        leaf, const = op.operands
+        self.assertIs(leaf.index, self.index)
+        self.assertEqual(const.value, 10)
+
+    @data(*_OPERATORS)
+    @unpack
+    def test_index_on_the_right_builds_an_op(self, python_op, ufunc):
+        op = python_op(10, self.index)
+        self.assertIs(op.ufunc, ufunc)
+        const, leaf = op.operands
+        self.assertEqual(const.value, 10)
+        self.assertIs(leaf.index, self.index)
+
+    def test_index_equality_is_unchanged(self):
+        same = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                              uid="mms1_fgm_b_gse_srvy_l2")
+        self.assertIs(self.index == same, True)
+
+    def test_index_is_still_unhashable(self):
+        with self.assertRaises(TypeError):
+            hash(self.index)
