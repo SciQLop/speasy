@@ -4,7 +4,7 @@ from typing import Tuple, Union
 
 import numpy as np
 
-from speasy.core.inventory.indexes import SpeasyIndex
+from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 
 
 @dataclass(frozen=True, eq=False)
@@ -89,3 +89,20 @@ class Op:
 
 
 Node = Union[Leaf, Const, Op]
+
+
+def _as_node(operand):
+    """Wrap one operand into a node, or None if it cannot be part of an expression."""
+    if isinstance(operand, ParameterIndex):
+        return Leaf(operand)
+    if isinstance(operand, (int, float)):
+        return Const(operand)
+    return None
+
+
+def make_op(ufunc, left, right):
+    """Op for `left <ufunc> right`, or NotImplemented if an operand is not supported."""
+    left_node, right_node = _as_node(left), _as_node(right)
+    if left_node is None or right_node is None:
+        return NotImplemented
+    return Op(ufunc, (left_node, right_node))
