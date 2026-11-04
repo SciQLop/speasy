@@ -1,39 +1,56 @@
 """Sphinx extension: ``.. variable-diagram:: <name>`` draws the inline SVG diagrams of user/speasy_variable.rst.
 
-They are inline, not images, so they take their colours from the theme (see _static/diagrams.css) and follow
-its light and dark modes."""
+Arrays are drawn as extruded blocks, in the spirit of Scipp's ``sc.show`` (https://scipp.github.io): the shape
+and the alignment of the blocks tell which axis labels which dimension. They are inline, not images, so they
+take their colours from the theme (see _static/diagrams.css) and follow its light and dark modes."""
 from docutils import nodes
 from docutils.parsers.rst import Directive
 
-ROW_H, COL_W, TIME_W = 26, 64, 150
+
+def _pts(*xy):
+    return " ".join(f"{x:.1f},{y:.1f}" for x, y in xy)
+
+
+def poly(cls, *xy):
+    return f'<polygon points="{_pts(*xy)}" class="{cls}"/>'
 
 
 def rect(x, y, w, h, cls):
-    return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" class="{cls}"/>'
+    return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" class="{cls}"/>'
 
 
-def text(x, y, s, cls="d-text", anchor="start"):
-    return f'<text x="{x}" y="{y}" class="{cls}" text-anchor="{anchor}">{s}</text>'
+def text(x, y, s, cls, anchor="middle", rotate=None):
+    turn = f' transform="rotate({rotate} {x:.1f} {y:.1f})"' if rotate is not None else ""
+    return f'<text x="{x:.1f}" y="{y:.1f}" class="{cls}" text-anchor="{anchor}"{turn}>{s}</text>'
 
 
-TIMES = ["2016-06-02T00:00:15", "2016-06-02T00:00:31", "2016-06-02T00:00:47", "⋮", "2016-06-04T23:59:59"]
-VALUES = [["4.04", "0.93", "0.47"], ["4.07", "0.92", "0.42"], ["4.11", "0.95", "0.51"], ["⋮", "⋮", "⋮"],
-          ["-0.15", "-5.14", "2.35"]]
-
-
-def grid(x0, y0, rows, cols, row_cls=lambda r: "", cell_cls=lambda r, c: "", values=None, times=None):
+def block(x, y, rows, cols, cw, ch, cls, layers=1, depth=7):
+    """A rows x cols x layers block whose front face has its top-left corner at (x, y).
+    ``cls(r, c)`` gives the class of each cell; the top and side faces repeat the edge cells."""
+    ox, oy = depth, -depth * 0.75
+    w, h = cols * cw, rows * ch
     out = []
-    if times:
-        for r in range(rows):
-            out.append(rect(x0, y0 + r * ROW_H, TIME_W, ROW_H, "d-time " + row_cls(r)))
-            out.append(text(x0 + TIME_W / 2, y0 + r * ROW_H + 17, times[r], "d-mono", "middle"))
-        x0 += TIME_W + 8
-    for r in range(rows):
+    for l in range(layers):
         for c in range(cols):
-            out.append(rect(x0 + c * COL_W, y0 + r * ROW_H, COL_W, ROW_H, "d-val " + row_cls(r) + " " + cell_cls(r, c)))
-            if values:
-                out.append(text(x0 + c * COL_W + COL_W / 2, y0 + r * ROW_H + 17, values[r][c], "d-mono", "middle"))
-    return out, x0
+            x0, y0 = x + c * cw + l * ox, y + l * oy
+            out.append(poly(cls(0, c), (x0, y0), (x0 + cw, y0), (x0 + cw + ox, y0 + oy), (x0 + ox, y0 + oy)))
+        for r in range(rows):
+            x0, y0 = x + w + l * ox, y + r * ch + l * oy
+            out.append(poly(cls(r, cols - 1), (x0, y0), (x0 + ox, y0 + oy), (x0 + ox, y0 + ch + oy), (x0, y0 + ch)))
+    dx, dy = layers * ox, layers * oy
+    out.append(poly("d-lit", (x, y), (x + w, y), (x + w + dx, y + dy), (x + dx, y + dy)))
+    out.append(poly("d-shade", (x + w, y), (x + w + dx, y + dy), (x + w + dx, y + h + dy), (x + w, y + h)))
+    out += [rect(x + c * cw, y + r * ch, cw, ch, cls(r, c)) for r in range(rows) for c in range(cols)]
+    return out
+
+
+def labelled(x, y, code, note):
+    return [text(x, y, code, "d-code"), text(x, y + 18, note, "d-muted")]
+
+
+def arrow(x, y0, y1):
+    return [f'<line x1="{x}" y1="{y0}" x2="{x}" y2="{y1 - 6}" class="d-arrow"/>',
+            poly("d-arrowhead", (x - 5, y1 - 7), (x + 5, y1 - 7), (x, y1))]
 
 
 def svg(w, h, body, label):
@@ -42,81 +59,92 @@ def svg(w, h, body, label):
 
 
 def anatomy():
-    body = []
-    y0 = 52
-    cells, vx = grid(10, y0, 5, 3, values=VALUES, times=TIMES)
-    body += cells
-    for c, name in enumerate(["bx", "by", "bz"]):
-        body.append(text(vx + c * COL_W + COL_W / 2, y0 - 10, name, "d-strong", "middle"))
-    body.append(text(vx + 1.5 * COL_W, 22, "columns", "d-muted", "middle"))
-    body.append(text(10 + TIME_W / 2, y0 - 10, "time", "d-strong", "middle"))
-    bottom = y0 + 5 * ROW_H
-    body.append(text(10 + TIME_W / 2, bottom + 24, "var.time", "d-code", "middle"))
-    body.append(text(10 + TIME_W / 2, bottom + 42, "datetime64[ns], UTC", "d-muted", "middle"))
-    body.append(text(vx + 1.5 * COL_W, bottom + 24, "var.values", "d-code", "middle"))
-    body.append(text(vx + 1.5 * COL_W, bottom + 42, "numpy array, shape (N, 3)", "d-muted", "middle"))
-    cx = vx + 3 * COL_W + 30
-    body.append(rect(cx, y0 - 20, 250, 5 * ROW_H + 20, "d-card"))
+    rows, ch, y0 = 8, 18, 56
+    tx, vx, cw = 70, 170, 36
+    bottom = y0 + rows * ch
+    row = lambda base: (lambda r, c: f"{base} d-row" if r == 2 else base)
+    body = block(tx, y0, rows, 1, 22, ch, row("d-time"))
+    body += block(vx, y0, rows, 3, cw, ch, row("d-val"))
+    body += [text(vx + c * cw + cw / 2 + 4, y0 - 12, name, "d-strong") for c, name in enumerate(["bx", "by", "bz"])]
+    body.append(text(tx - 10, y0 + rows * ch / 2, "time", "d-strong", rotate=-90))
+    body.append(text(vx + 3 * cw + 20, y0 + 2 * ch + 13, "← one row per time", "d-muted", "start"))
+    body += labelled(tx + 11, bottom + 26, "var.time", "datetime64[ns], UTC")
+    body += labelled(vx + 1.5 * cw, bottom + 26, "var.values", "numpy array, shape (N, 3)")
+    cx = 440
+    body.append(rect(cx, y0 - 10, 240, rows * ch + 10, "d-card"))
     lines = [("var.name", "imf"), ("var.unit", "nT"), ("var.columns", "['bx', 'by', 'bz']"),
              ("var.fill_value", "nan"), ("var.meta", "CATDESC, FILLVAL, …")]
     for i, (k, v) in enumerate(lines):
-        body.append(text(cx + 14, y0 + 4 + i * 26, k, "d-code"))
-        body.append(text(cx + 236, y0 + 4 + i * 26, v, "d-muted", "end"))
-    return svg(cx + 262, bottom + 54, body, "A SpeasyVariable: a time axis, a values array with named columns, and metadata")
+        body.append(text(cx + 14, y0 + 16 + i * 27, k, "d-code", "start"))
+        body.append(text(cx + 226, y0 + 16 + i * 27, v, "d-muted", "end"))
+    return svg(cx + 250, bottom + 54, body, "A SpeasyVariable: a time axis, a values array with named columns, and metadata")
 
 
-def slicing():
-    body = []
-    panels = [
-        ('var["2016-06-03":"2016-06-04"]', "rows inside a time range", lambda r: "d-hl" if r in (1, 2) else "",
-         lambda r, c: ""),
-        ('var["bx"]', "one or more columns", lambda r: "", lambda r, c: "d-hl" if c == 0 else ""),
-        ("var[var.values[:, 2] > 0]", "rows where a test is true", lambda r: "d-hl" if r in (0, 3, 4) else "",
-         lambda r, c: ""),
-    ]
-    pw = 3 * COL_W + 60
-    for i, (code, caption, rows, cells) in enumerate(panels):
-        x = 10 + i * (pw + 20)
-        body.append(rect(x, 10, 40, 5 * ROW_H, "d-time-thin"))
-        for r in range(5):
-            body.append(rect(x, 10 + r * ROW_H, 40, ROW_H, "d-time " + rows(r)))
-        g, _ = grid(x + 48, 10, 5, 3, row_cls=rows, cell_cls=cells)
-        body += g
-        body.append(text(x + pw / 2, 5 * ROW_H + 34, code, "d-code", "middle"))
-        body.append(text(x + pw / 2, 5 * ROW_H + 52, caption, "d-muted", "middle"))
-    return svg(3 * pw + 50, 5 * ROW_H + 62, body, "Three ways to select data: a time range, columns, or a boolean mask")
+HEAT = [[1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1, 0], [1, 2, 4, 5, 5, 4, 3, 2, 1, 1, 0, 0], [2, 3, 4, 5, 4, 3, 2, 2, 1, 0, 0, 0],
+        [1, 3, 5, 5, 4, 3, 2, 1, 1, 1, 0, 0], [1, 2, 3, 4, 5, 4, 3, 2, 1, 0, 0, 0], [0, 1, 2, 4, 5, 5, 4, 2, 1, 1, 0, 0],
+        [0, 1, 3, 4, 5, 4, 3, 2, 1, 0, 0, 0], [1, 2, 3, 5, 5, 4, 2, 1, 1, 0, 0, 0]]
 
 
 def spectrogram():
+    rows, ch, cw, cols, y0 = 8, 18, 16, 12, 40
+    tx, vx, ex = 50, 110, 370
+    bottom = y0 + rows * ch
+    body = block(tx, y0, rows, 1, 22, ch, lambda r, c: "d-time")
+    body += block(vx, y0, rows, cols, cw, ch, lambda r, c: f"d-heat{HEAT[r][c]}")
+    body += block(ex, y0, rows, cols, cw, ch, lambda r, c: "d-axis")
+    body.append(text(tx - 10, y0 + rows * ch / 2, "time", "d-strong", rotate=-90))
+    body.append(text(vx + cols * cw / 2, y0 - 14, "energy channel →", "d-strong"))
+    body.append(text(ex + cols * cw / 2, y0 - 14, "energy of each channel", "d-strong"))
+    body += labelled(tx + 11, bottom + 26, "var.time", "(N,)")
+    body += labelled(vx + cols * cw / 2, bottom + 26, "var.values", "shape (N, 32)")
+    body += labelled(ex + cols * cw / 2, bottom + 26, "var.axes[1].values", "(N, 32), or (32,) when fixed")
+    return svg(ex + cols * cw + 40, bottom + 54, body,
+               "A spectrogram: values per time and energy channel, next to the energy axis with the same shape")
+
+
+def distribution():
+    rows, ch, cw, cols, layers, y0 = 8, 16, 16, 8, 6, 64
+    tx, vx = 50, 110
+    bottom = y0 + rows * ch
+    body = block(tx, y0, rows, 1, 22, ch, lambda r, c: "d-time")
+    body += block(vx, y0, rows, cols, cw, ch, lambda r, c: "d-val", layers=layers, depth=10)
+    body.append(text(tx - 10, y0 + rows * ch / 2, "time", "d-strong", rotate=-90))
+    body.append(text(vx + cols * cw / 2, bottom + 18, "energy", "d-strong"))
+    side_x, side_y = vx + cols * cw + layers * 5 + 12, y0 + rows * ch + layers * -3.75 + 4
+    body.append(text(side_x, side_y, "angle", "d-strong", "start", rotate=-37))
+    lx = 360
+    for i, (code, note) in enumerate([("var.values", "shape (N, 32, 16)"), ("var.axes[0]", "time"),
+                                      ("var.axes[1]", "energy of each channel"), ("var.axes[2]", "angle of each sector")]):
+        body.append(text(lx, y0 + 6 + i * 30, code, "d-code", "start"))
+        body.append(text(lx + 100, y0 + 6 + i * 30, note, "d-muted", "start"))
+    return svg(640, bottom + 34, body, "A 3D variable: one axis per dimension of the values")
+
+
+def slicing():
+    rows, ch, tw, cw = 8, 14, 16, 26
+    top, gap = 20, 44
+    src_bottom = top + rows * ch
+    res_top = src_bottom + gap
+    panels = [
+        ('var["2016-06-03":"2016-06-04"]', "rows inside a time range", {2, 3, 4, 5}, {0, 1, 2}),
+        ('var["bx"]', "one or more columns", set(range(rows)), {0}),
+        ("var[var.values[:, 2] > 0]", "rows where a test is true", {0, 3, 4, 6}, {0, 1, 2}),
+    ]
     body = []
-    y0, n_e, cw = 40, 8, 34
-    x_time = 10
-    for r in range(5):
-        body.append(rect(x_time, y0 + r * ROW_H, 40, ROW_H, "d-time"))
-    body.append(text(x_time + 20, y0 - 10, "time", "d-strong", "middle"))
-    xv = x_time + 48
-    levels = [[1, 2, 4, 5, 4, 3, 2, 1], [1, 3, 5, 5, 4, 2, 1, 1], [2, 4, 5, 4, 3, 2, 1, 0],
-              [1, 2, 3, 5, 5, 3, 2, 1], [0, 1, 3, 4, 5, 4, 2, 1]]
-    for r in range(5):
-        for c in range(n_e):
-            body.append(rect(xv + c * cw, y0 + r * ROW_H, cw, ROW_H, f"d-heat{levels[r][c]}"))
-    body.append(text(xv + n_e * cw / 2, y0 - 10, "energy channels", "d-strong", "middle"))
-    xe = xv + n_e * cw + 30
-    for r in range(5):
-        for c in range(4):
-            body.append(rect(xe + c * 44, y0 + r * ROW_H, 44, ROW_H, "d-axis"))
-            body.append(text(xe + c * 44 + 22, y0 + r * ROW_H + 17, ["6.5", "8.5", "11.2", "…"][c] if r != 3 else "⋮",
-                             "d-mono", "middle"))
-    body.append(text(xe + 88, y0 - 10, "energy of each channel (eV)", "d-strong", "middle"))
-    bottom = y0 + 5 * ROW_H
-    body.append(text(xv + n_e * cw / 2, bottom + 24, "var.values", "d-code", "middle"))
-    body.append(text(xv + n_e * cw / 2, bottom + 42, "shape (N, 32)", "d-muted", "middle"))
-    body.append(text(xe + 88, bottom + 24, "var.axes[1].values", "d-code", "middle"))
-    body.append(text(xe + 88, bottom + 42, "shape (N, 32): may change with time", "d-muted", "middle"))
-    return svg(xe + 190, bottom + 52, body, "A spectrogram: values per time and energy channel, with an energy axis")
+    for i, (code, caption, kept_rows, kept_cols) in enumerate(panels):
+        px = 66 + i * 240
+        centre = px + (tw + 8 + 3 * cw) / 2
+        body += block(px, top, rows, 1, tw, ch, lambda r, c: "d-time" if r in kept_rows else "d-dim", depth=5)
+        body += block(px + tw + 8, top, rows, 3, cw, ch,
+                      lambda r, c: "d-hl" if r in kept_rows and c in kept_cols else "d-dim", depth=5)
+        body += arrow(centre, src_bottom + 8, res_top - 6)
+        body += block(px, res_top, len(kept_rows), 1, tw, ch, lambda r, c: "d-time", depth=5)
+        body += block(px + tw + 8, res_top, len(kept_rows), len(kept_cols), cw, ch, lambda r, c: "d-hl", depth=5)
+        body += labelled(centre, res_top + rows * ch + 26, code, caption)
+    return svg(720, res_top + rows * ch + 54, body, "Three ways to select data: a time range, columns, or a boolean mask")
 
 
-DIAGRAMS = {"anatomy": anatomy, "slicing": slicing, "spectrogram": spectrogram}
+DIAGRAMS = {"anatomy": anatomy, "slicing": slicing, "spectrogram": spectrogram, "distribution": distribution}
 
 
 class VariableDiagram(Directive):

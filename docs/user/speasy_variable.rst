@@ -70,6 +70,10 @@ difference and draws a spectrogram with the right energies either way.
 Variables with even more dimensions, like full particle distributions, work the same way: one axis
 per dimension of the values.
 
+.. variable-diagram:: distribution
+
+The first axis is always the time, so selecting by time works the same whatever the shape.
+
 Selecting data
 --------------
 
