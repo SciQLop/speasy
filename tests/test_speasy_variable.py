@@ -3,7 +3,11 @@
 
 """Tests for `SpeasyVariable` class."""
 
+import os
+import time
 import unittest
+from contextlib import contextmanager
+from datetime import datetime
 
 import astropy.table
 import astropy.units
@@ -16,6 +20,21 @@ from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableAxis, VariableTimeAxis,
                                       from_dataframe, from_dictionary, merge,
                                       to_dataframe, to_dictionary)
+
+
+@contextmanager
+def local_timezone(name):
+    previous = os.environ.get("TZ")
+    os.environ["TZ"] = name
+    time.tzset()
+    try:
+        yield
+    finally:
+        if previous is None:
+            del os.environ["TZ"]
+        else:
+            os.environ["TZ"] = previous
+        time.tzset()
 
 
 def epoch_to_datetime64_s(epoch):
@@ -215,6 +234,24 @@ class SpeasyVariableSlice(unittest.TestCase):
         ref = ctor(2., 10.)
         self.assertListEqual(var[epoch_to_datetime64_s(
             2.):].values.squeeze().tolist(), ref.values.squeeze().tolist())
+
+    def test_with_strings(self):
+        var = make_simple_var(0., 10.)
+        ref = make_simple_var(2., 4.)
+        self.assertListEqual(var["1970-01-01T00:00:02":"1970-01-01T00:00:04"].values.squeeze().tolist(),
+                             ref.values.squeeze().tolist())
+
+    def test_naive_datetimes_are_utc_whatever_the_local_timezone(self):
+        var = make_simple_var(0., 10.)
+        ref = make_simple_var(2., 4.)
+        with local_timezone("Europe/Paris"):
+            sliced = var[datetime(1970, 1, 1, 0, 0, 2):datetime(1970, 1, 1, 0, 0, 4)]
+        self.assertListEqual(sliced.values.squeeze().tolist(), ref.values.squeeze().tolist())
+
+    def test_unsupported_slice_bounds_raise_instead_of_returning_everything(self):
+        var = make_simple_var(0., 10.)
+        with self.assertRaisesRegex(TypeError, "Can't slice a SpeasyVariable with"):
+            var[[1]:[2]]
 
     def test_view_should_modify_it_source(self):
         var = make_simple_var(1., 10., 1., 1.)
