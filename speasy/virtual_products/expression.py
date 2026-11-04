@@ -4,6 +4,7 @@ from typing import Tuple, Union
 
 import numpy as np
 
+import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
 
 
@@ -106,3 +107,15 @@ def make_op(ufunc, left, right):
     if left_node is None or right_node is None:
         return NotImplemented
     return Op(ufunc, (left_node, right_node))
+
+
+def evaluate(node, start, stop):
+    """Compute an expression tree over [start, stop]: fetch the leaves, apply the ufuncs."""
+    if isinstance(node, Leaf):
+        return spz.get_data(node.index, start, stop)
+    if isinstance(node, Const):
+        return node.value
+    if isinstance(node, Op):
+        operands = [evaluate(operand, start, stop) for operand in node.operands]
+        return node.ufunc(*operands)
+    raise TypeError(f"Cannot evaluate {node!r}: not an expression node")
