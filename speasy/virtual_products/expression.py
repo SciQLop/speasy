@@ -139,6 +139,18 @@ def bind(indexes, variables):
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
 
 
+def walk(node, data):
+    """Compute an expression tree from the already fetched data."""
+    if isinstance(node, Leaf):
+        return data[_leaf_key(node.index)]
+    if isinstance(node, Const):
+        return node.value
+    if isinstance(node, Op):
+        operands = [walk(operand, data) for operand in node.operands]
+        return node.ufunc(*operands)
+    raise TypeError(f"Cannot walk {node!r}: not an expression node")
+
+
 def evaluate(node, start, stop):
     """Compute an expression tree over [start, stop]: fetch the leaves, apply the ufuncs."""
     if isinstance(node, Leaf):
