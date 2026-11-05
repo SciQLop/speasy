@@ -225,9 +225,9 @@ class TestEvaluate(unittest.TestCase):
 
     def test_ten_times_a_product(self):
         b = _make_variable([1, 2, 3])
-        with mock.patch("speasy.get_data", return_value=b) as get_data:
+        with mock.patch("speasy.get_data", return_value=[b]) as get_data:
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
-        get_data.assert_called_once_with(self.index, "2016-10-10", "2016-10-11")
+        get_data.assert_called_once_with([self.index], "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
 
@@ -246,7 +246,7 @@ class TestRegisteredExpression(unittest.TestCase):
         # provider and into evaluate_expression; only the inner fetch of B is
         # faked so it doesnt try a network  access.
         with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
-            fake_spz.get_data.return_value = b
+            fake_spz.get_data.return_value = [b]
             result = spz.get_data("virtual/test/mag_10", "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
