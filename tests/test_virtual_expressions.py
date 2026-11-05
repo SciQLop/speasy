@@ -10,7 +10,7 @@ from ddt import data, ddt, unpack
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.virtual_products import register_virtual_product
-from speasy.virtual_products.expression import Const, Leaf, Op, bind, collect, evaluate, fetch
+from speasy.virtual_products.expression import Const, Leaf, Op, bind, collect, evaluate, fetch, walk
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
@@ -207,6 +207,15 @@ class TestBind(unittest.TestCase):
         b, n = _make_variable([1, 2, 3]), _make_variable([4, 5, 6])
         self.assertEqual(bind([b_index, n_index], [b, n]),
                          {("cda", "b"): b, ("amda", "n"): n})
+
+
+class TestWalk(unittest.TestCase):
+    def test_ten_times_a_product(self):
+        index = ParameterIndex(name="b", provider="cda", uid="b")
+        b = _make_variable([1, 2, 3])
+        result = walk(10 * index, {("cda", "b"): b})
+        np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
+        np.testing.assert_array_equal(result.time, b.time)
 
 
 class TestEvaluate(unittest.TestCase):
