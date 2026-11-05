@@ -208,6 +208,12 @@ class TestBind(unittest.TestCase):
         self.assertEqual(bind([b_index, n_index], [b, n]),
                          {("cda", "b"): b, ("amda", "n"): n})
 
+    def test_a_product_without_data_gives_none(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 2, 3])
+        self.assertIsNone(bind([b_index, n_index], [b, None]))
+
 
 class TestWalk(unittest.TestCase):
     def test_ten_times_a_product(self):
@@ -236,6 +242,11 @@ class TestEvaluate(unittest.TestCase):
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         self.assertEqual(result.name, "10 * cda/mms1_fgm_b_gse_srvy_l2")
+
+    def test_a_product_without_data_gives_none(self):
+        with mock.patch("speasy.get_data", return_value=[None]):
+            result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
+        self.assertIsNone(result)
 
 
 class TestRegisteredExpression(unittest.TestCase):
