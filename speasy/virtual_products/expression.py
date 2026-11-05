@@ -135,7 +135,9 @@ def fetch(indexes, start, stop):
 
 
 def bind(indexes, variables):
-    """Map each product's key to its data."""
+    """Map each product's key to its data, or None if a product has no data."""
+    if any(variable is None for variable in variables):
+        return None
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
 
 
@@ -161,6 +163,8 @@ def evaluate(node, start, stop):
     indexes = collect(node)
     variables = fetch(indexes, start, stop)
     data = bind(indexes, variables)
+    if data is None:
+        return None
     result = walk(node, data)
     named = finalise(result, node)
     return named
