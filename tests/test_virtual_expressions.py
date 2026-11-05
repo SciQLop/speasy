@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 import operator
 import unittest
@@ -9,7 +10,7 @@ from ddt import data, ddt, unpack
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.virtual_products import register_virtual_product
-from speasy.virtual_products.expression import Const, Leaf, Op, evaluate
+from speasy.virtual_products.expression import Const, Leaf, Op, collect, evaluate
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
@@ -163,6 +164,29 @@ class TestOperators(unittest.TestCase):
     def test_index_is_still_unhashable(self):
         with self.assertRaises(TypeError):
             hash(self.index)
+
+
+class TestCollect(unittest.TestCase):
+    def setUp(self):
+        self.index = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                    uid="mms1_fgm_b_gse_srvy_l2")
+
+    def test_ten_times_a_product_gives_that_product(self):
+        self.assertEqual(collect(10 * self.index), [self.index])
+
+    def test_same_product_twice_gives_one_leaf(self):
+        self.assertEqual(collect(self.index + self.index), [self.index])
+
+    def test_nested_expression_gives_one_leaf(self):
+        leaf = Leaf(self.index)
+        ten_times = Op(np.multiply, (Const(10), leaf))
+        expression = Op(np.add, (ten_times, leaf))
+        self.assertEqual(collect(expression), [self.index])
+
+    def test_same_provider_and_uid_is_the_same_product(self):
+        renamed = copy.copy(self.index)
+        renamed.__spz_name__ = "another_name"
+        self.assertEqual(collect(self.index + renamed), [self.index])
 
 
 class TestEvaluate(unittest.TestCase):
