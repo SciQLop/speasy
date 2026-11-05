@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Speasy ("Space Physics made EASY") is a Python library providing a unified API for accessing 70+ space physics missions and 65,000+ data products from multiple web services (AMDA, CDAWeb, CSA, SSCWeb, CDPP 3DView). Built with flit, requires Python >=3.10.
+Speasy ("Space Physics made EASY") is a Python library providing a unified API for accessing 70+ space physics missions and 65,000+ data products from multiple web services (AMDA, CDAWeb, CSA, SSCWeb, CDPP 3DView). Built with hatchling, requires Python >=3.10.
 
 ## Common Commands
 
@@ -44,11 +44,11 @@ uv run --with build python -m build --sdist --wheel
 
 - **`core/dataprovider.py`** — `DataProvider` base class with `get_data()`, `update_inventory()`, `build_inventory()`
 - **`core/requests_scheduling/request_dispatch.py`** — central dispatch routing products to providers
-- **`data_providers/`** — six provider implementations: `amda`, `cda`, `csa`, `ssc`, `generic_archive`, `cdpp3dview`
+- **`data_providers/`** — eight provider implementations: `amda`, `cda`, `csa`, `ssc`, `generic_archive`, `cdpp3dview`, `hapi`, `uiowa_eph_tool`
 - **`products/variable.py`** — `SpeasyVariable`, the main time-series container (~1000 lines, supports numpy ops, pandas conversion, plotting)
 - **`products/`** — also contains `Catalog`, `Event`, `Dataset`, `TimeTable`
-- **`core/cache/`** — disk caching via `diskcache`, request-level and provider-level caches, concurrent request deduplication
-- **`core/codecs/`** — plugin architecture for format decoders (CDF/ISTP, HAPI CSV)
+- **`core/cache/`** — disk caching via `pysciqlop-cache` (legacy `diskcache` caches are migrated), request-level and provider-level caches, concurrent request deduplication
+- **`core/codecs/`** — plugin architecture for format decoders (ISTP CDF and NetCDF, HAPI CSV and binary)
 - **`inventories/`** — hierarchical (`data_tree.<provider>.<category>.<product>`) and flat inventory trees
 - **`config/`** — env vars + INI file (`~/.config/speasy/config.ini`)
 
