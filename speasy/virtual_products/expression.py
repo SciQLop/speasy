@@ -152,12 +152,8 @@ def walk(node, data):
 
 
 def evaluate(node, start, stop):
-    """Compute an expression tree over [start, stop]: fetch the leaves, apply the ufuncs."""
-    if isinstance(node, Leaf):
-        return spz.get_data(node.index, start, stop)
-    if isinstance(node, Const):
-        return node.value
-    if isinstance(node, Op):
-        operands = [evaluate(operand, start, stop) for operand in node.operands]
-        return node.ufunc(*operands)
-    raise TypeError(f"Cannot evaluate {node!r}: not an expression node")
+    """Compute an expression tree over [start, stop]: fetch its products, then walk it."""
+    indexes = collect(node)
+    variables = fetch(indexes, start, stop)
+    data = bind(indexes, variables)
+    return walk(node, data)
