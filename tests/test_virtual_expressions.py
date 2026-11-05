@@ -6,9 +6,12 @@ from unittest import mock
 import numpy as np
 from ddt import data, ddt, unpack
 
+import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
+from speasy.virtual_products import register_virtual_product
 from speasy.virtual_products.expression import Const, Leaf, Op, evaluate
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
+from tests.test_virtual_products import _reset_registry
 
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
 
@@ -172,5 +175,25 @@ class TestEvaluate(unittest.TestCase):
         with mock.patch("speasy.get_data", return_value=b) as get_data:
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         get_data.assert_called_once_with(self.index, "2016-10-10", "2016-10-11")
+        np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
+        np.testing.assert_array_equal(result.time, b.time)
+
+
+class TestRegisteredExpression(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(_reset_registry)
+        self.index = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                    uid="mms1_fgm_b_gse_srvy_l2")
+
+    def test_get_data_serves_a_registered_expression(self):
+        b = _make_variable([1, 2, 3])
+        register_virtual_product("virtual/test/mag_10", 10 * self.index)
+        # Patch only the 'spz' imported by expression.py and not speasy.get_data itself:
+        # the outer get_data below stays real so it routes to the virtual
+        # provider and into evaluate_expression; only the inner fetch of B is
+        # faked so it doesnt try a network  access.
+        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+            fake_spz.get_data.return_value = b
+            result = spz.get_data("virtual/test/mag_10", "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
