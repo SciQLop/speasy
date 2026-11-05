@@ -4,6 +4,7 @@
 from . import registry  # noqa: F401
 from .registry import load_extra_vp, register_virtual_product  # noqa: F401
 from .registry import UnknownVirtualProduct, VirtualProductCycleError, VirtualProductTypeError  # noqa: F401
+from .expression import TimeAxisMismatch  # noqa: F401
 
 from ..core.plugins import load_plugins
 

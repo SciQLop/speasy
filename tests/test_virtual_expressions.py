@@ -10,7 +10,8 @@ from ddt import data, ddt, unpack
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.virtual_products import register_virtual_product
-from speasy.virtual_products.expression import Const, Leaf, Op, bind, collect, evaluate, fetch, walk
+from speasy.virtual_products.expression import (Const, Leaf, Op, TimeAxisMismatch, bind, collect, evaluate,
+                                                 fetch, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
@@ -222,6 +223,27 @@ class TestWalk(unittest.TestCase):
         result = walk(10 * index, {("cda", "b"): b})
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
+
+    def test_different_time_axes_raise(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        data = {("cda", "b"): _make_variable([1, 2, 3]), ("amda", "n"): _make_variable([4, 5])}
+        with self.assertRaises(TimeAxisMismatch):
+            walk(b_index + n_index, data)
+
+    def test_time_axis_mismatch_message(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        data = {("cda", "b"): _make_variable([1, 2, 3]), ("amda", "n"): _make_variable([4, 5])}
+        with self.assertRaises(TimeAxisMismatch) as caught:
+            walk(b_index + n_index, data)
+        self.assertEqual(str(caught.exception),
+                         "cannot combine\n"
+                         "  'cda/b'   (3600 s, 3 points)\n"
+                         "  'amda/n'  (3600 s, 2 points)\n"
+                         "in expression 'cda/b + amda/n'.\n"
+                         "Add an explicit directive, e.g.:\n"
+                         '  b, n = speasy.virtual_products.resample([B, N], "1s")')
 
 
 class TestEvaluate(unittest.TestCase):
