@@ -803,6 +803,10 @@ class TestSpeasyVariableNumpyInterface(unittest.TestCase):
         var = np.exp(self.var)
         self.assertTrue(np.all(var.values == np.exp(self.var.values)))
 
+    def test_ufunc_result_name_shows_a_scalar_operand(self):
+        result = np.multiply(10, self.var)
+        self.assertEqual(result.name, f"multiply(10, {self.var.name})")
+
     def test_ufunc_inplace(self):
         values = self.var.values.copy()
         self.var += 1
