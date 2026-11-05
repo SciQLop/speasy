@@ -129,6 +129,11 @@ def collect(node):
     raise TypeError(f"Cannot collect {node!r}: not an expression node")
 
 
+def fetch(indexes, start, stop):
+    """The data of all the given products, in the same order, from one get_data call."""
+    return spz.get_data(indexes, start, stop)
+
+
 def evaluate(node, start, stop):
     """Compute an expression tree over [start, stop]: fetch the leaves, apply the ufuncs."""
     if isinstance(node, Leaf):
