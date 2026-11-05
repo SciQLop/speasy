@@ -109,6 +109,26 @@ def make_op(ufunc, left, right):
     return Op(ufunc, (left_node, right_node))
 
 
+def _leaf_key(index):
+    """What identifies a product: two indexes with the same key are the same data."""
+    return index.spz_provider(), index.spz_uid()
+
+
+def collect(node):
+    """The indexes of the products an expression needs, in reading order."""
+    if isinstance(node, Leaf):
+        return [node.index]
+    if isinstance(node, Const):
+        return []
+    if isinstance(node, Op):
+        indexes = {}
+        for operand in node.operands:
+            for index in collect(operand):
+                indexes.setdefault(_leaf_key(index), index)
+        return list(indexes.values())
+    raise TypeError(f"Cannot collect {node!r}: not an expression node")
+
+
 def evaluate(node, start, stop):
     """Compute an expression tree over [start, stop]: fetch the leaves, apply the ufuncs."""
     if isinstance(node, Leaf):
