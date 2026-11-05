@@ -134,6 +134,11 @@ def fetch(indexes, start, stop):
     return spz.get_data(indexes, start, stop)
 
 
+def bind(indexes, variables):
+    """Map each product's key to its data."""
+    return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
+
+
 def evaluate(node, start, stop):
     """Compute an expression tree over [start, stop]: fetch the leaves, apply the ufuncs."""
     if isinstance(node, Leaf):

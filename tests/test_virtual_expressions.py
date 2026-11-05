@@ -10,7 +10,7 @@ from ddt import data, ddt, unpack
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
 from speasy.virtual_products import register_virtual_product
-from speasy.virtual_products.expression import Const, Leaf, Op, collect, evaluate, fetch
+from speasy.virtual_products.expression import Const, Leaf, Op, bind, collect, evaluate, fetch
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
@@ -198,6 +198,15 @@ class TestFetch(unittest.TestCase):
             result = fetch([b_index, n_index], "2016-10-10", "2016-10-11")
         get_data.assert_called_once_with([b_index, n_index], "2016-10-10", "2016-10-11")
         self.assertEqual(result, [b, n])
+
+
+class TestBind(unittest.TestCase):
+    def test_maps_each_product_key_to_its_data(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b, n = _make_variable([1, 2, 3]), _make_variable([4, 5, 6])
+        self.assertEqual(bind([b_index, n_index], [b, n]),
+                         {("cda", "b"): b, ("amda", "n"): n})
 
 
 class TestEvaluate(unittest.TestCase):
