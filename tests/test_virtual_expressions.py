@@ -231,6 +231,12 @@ class TestEvaluate(unittest.TestCase):
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
 
+    def test_result_is_named_after_the_expression(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
+        self.assertEqual(result.name, "10 * cda/mms1_fgm_b_gse_srvy_l2")
+
 
 class TestRegisteredExpression(unittest.TestCase):
     def setUp(self):

@@ -151,9 +151,16 @@ def walk(node, data):
     raise TypeError(f"Cannot walk {node!r}: not an expression node")
 
 
+def finalise(result, node):
+    """Name the result after the expression that computed it."""
+    return result.copy(name=repr(node))
+
+
 def evaluate(node, start, stop):
     """Compute an expression tree over [start, stop]: fetch its products, then walk it."""
     indexes = collect(node)
     variables = fetch(indexes, start, stop)
     data = bind(indexes, variables)
-    return walk(node, data)
+    result = walk(node, data)
+    named = finalise(result, node)
+    return named
