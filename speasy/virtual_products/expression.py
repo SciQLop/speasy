@@ -6,6 +6,7 @@ import numpy as np
 
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.products.variable import SpeasyVariable, same_time_axis
 
 
 @dataclass(frozen=True, eq=False)
@@ -92,6 +93,10 @@ class Op:
 Node = Union[Leaf, Const, Op]
 
 
+class TimeAxisMismatch(ValueError):
+    """Raised when operands with different time axes are combined without a directive."""
+
+
 def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
     if isinstance(operand, ParameterIndex):
@@ -141,6 +146,28 @@ def bind(indexes, variables):
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
 
 
+def _cadence(variable):
+    """The time between two samples, as a readable string: '16 Hz' or '4.5 s'."""
+    seconds = np.median(np.diff(variable.time) / np.timedelta64(1, "s"))
+    if seconds < 1:
+        return f"{1 / seconds:g} Hz"
+    return f"{seconds:g} s"
+
+
+def _time_axis_mismatch_message(node, data):
+    """Name each product of the expression, its cadence and size, and the directive to add."""
+    indexes = collect(node)
+    names = [f"'{Leaf(index)!r}'" for index in indexes]
+    width = max(len(name) for name in names)
+    products = []
+    for name, index in zip(names, indexes):
+        variable = data[_leaf_key(index)]
+        products.append(f"  {name:<{width}}  ({_cadence(variable)}, {len(variable.time)} points)\n")
+    return (f"cannot combine\n{''.join(products)}in expression '{node!r}'.\n"
+            "Add an explicit directive, e.g.:\n"
+            '  b, n = speasy.virtual_products.resample([B, N], "1s")')
+
+
 def walk(node, data):
     """Compute an expression tree from the already fetched data."""
     if isinstance(node, Leaf):
@@ -149,6 +176,9 @@ def walk(node, data):
         return node.value
     if isinstance(node, Op):
         operands = [walk(operand, data) for operand in node.operands]
+        variables = [operand for operand in operands if isinstance(operand, SpeasyVariable)]
+        if not same_time_axis(variables):
+            raise TimeAxisMismatch(_time_axis_mismatch_message(node, data))
         return node.ufunc(*operands)
     raise TypeError(f"Cannot walk {node!r}: not an expression node")
 
