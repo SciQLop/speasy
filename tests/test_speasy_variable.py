@@ -19,7 +19,7 @@ from speasy.core import epoch_to_datetime64
 from speasy.products.variable import (DataContainer, SpeasyVariable,
                                       VariableAxis, VariableTimeAxis,
                                       from_dataframe, from_dictionary, merge,
-                                      to_dataframe, to_dictionary)
+                                      same_time_axis, to_dataframe, to_dictionary)
 
 
 @contextmanager
@@ -912,6 +912,11 @@ class DataContainerNumpyInterface(unittest.TestCase):
         self.assertTrue(np.all(r.values == np.sum(self.dc.values, axis=1)))
         self.assertIsInstance(r, DataContainer)
         self.assertEqual(r.shape, (self.dc.shape[0], self.dc.shape[2]))
+
+
+class SameTimeAxis(unittest.TestCase):
+    def test_different_lengths_are_not_the_same_axis(self):
+        self.assertFalse(same_time_axis([make_simple_var(1., 10., 1., 10.), make_simple_var(1., 5., 1., 10.)]))
 
 
 class SpeasyVariableCompare(unittest.TestCase):
