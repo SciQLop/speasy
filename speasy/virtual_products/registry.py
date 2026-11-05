@@ -5,7 +5,7 @@ import logging
 import os
 import threading
 import warnings
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from speasy.config import core as cfg
 import appdirs
 
@@ -15,6 +15,7 @@ from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
+from .expression import Const, Leaf, Node, Op, evaluate
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
@@ -174,12 +175,22 @@ def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
     return node
 
 
-def register_virtual_product(path: str, *args: Callable, meta: Optional[dict] = None,
+def _as_callback(product: Union[Callable, Node]) -> Callable:
+    """An expression becomes the callback(start_time, stop_time) that evaluates it; a function is kept."""
+    if isinstance(product, (Leaf, Const, Op)):
+        def evaluate_expression(start_time, stop_time):
+            return evaluate(product, start_time, stop_time)
+        return evaluate_expression
+    return product
+
+
+def register_virtual_product(path: str, *args: Union[Callable, Node], meta: Optional[dict] = None,
                               labels: Optional[list] = None):
     """Serve a callback(start_time, stop_time) as the product at path, e.g. 'virtual/plasma/beta'.
 
-    Two call forms:
+    Three call forms:
     - register_virtual_product(path, callback) registers callback and returns the tree leaf;
+    - register_virtual_product(path, expression) does the same for an expression, e.g. 10 * B;
     - @register_virtual_product(path) does the same as a decorator.
     The tree leaf stays callable and can be passed straight to speasy.get_data().
     meta, if given, becomes attributes of the tree leaf: meta={"units": "nT"} gives leaf.units.
@@ -187,7 +198,7 @@ def register_virtual_product(path: str, *args: Callable, meta: Optional[dict] = 
     """
     uid = _path_to_uid(path)
     if args:
-        return _register(uid, args[0], meta, labels)
+        return _register(uid, _as_callback(args[0]), meta, labels)
 
     def decorator(callback: Callable) -> VirtualProduct:
         return _register(uid, callback, meta, labels)
