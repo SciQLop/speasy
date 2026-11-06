@@ -272,21 +272,21 @@ Same as the provided magnitude? True
 run("""
 import speasy as spz
 ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
-print(type(ace_mag.to_dataframe()))
-print(type(ace_mag.to_dataarray()))
-print(type(ace_mag.to_astropy_table()))
+print(type(ace_mag.to_dataframe()).__name__)
+print(type(ace_mag.to_dataarray()).__name__)
+print(type(ace_mag.to_astropy_table()).__name__)
 """)
 ]]]-->
 ```python
 import speasy as spz
 ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
-print(type(ace_mag.to_dataframe()))
-print(type(ace_mag.to_dataarray()))
-print(type(ace_mag.to_astropy_table()))
+print(type(ace_mag.to_dataframe()).__name__)
+print(type(ace_mag.to_dataarray()).__name__)
+print(type(ace_mag.to_astropy_table()).__name__)
 ```
-<class 'pandas.DataFrame'>
-<class 'xarray.core.dataarray.DataArray'>
-<class 'astropy.table.table.Table'>
+DataFrame
+DataArray
+Table
 <!--[[[end]]]-->
 
 ### Resample one product onto another
