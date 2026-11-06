@@ -53,12 +53,15 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
     'sphinx_gallery.load_style',
+    'sphinx_design',
+    'sphinx_copybutton',
     'sphinx_codeautolink',
     'sphinxcontrib.apidoc',
     'nbsphinx',
     'numpydoc',
     '_generate_cdpp3dview_frames_table',
-    '_generate_uiowaephtool_table']
+    '_generate_uiowaephtool_table',
+    '_variable_diagrams']
 
 apidoc_module_dir = '../speasy'
 apidoc_output_dir = 'dev'
@@ -156,7 +159,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'speasy.common*']
 numpydoc_show_class_members = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -166,7 +168,15 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'furo'
+html_title = 'Speasy'
+html_logo = '../logo/logo_speasy.svg'
+html_theme_options = {
+    'source_repository': 'https://github.com/SciQLop/speasy/',
+    'source_branch': 'main',
+    'source_directory': 'docs/',
+    'sidebar_hide_name': True,
+}
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the

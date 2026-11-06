@@ -7,6 +7,14 @@ Unreleased
 
 Bug fixes:
 
+* The name of a numpy result showed ``<built-in function input>`` for each plain argument:
+  ``np.power(b, 2)`` was named ``power(b, <built-in function input>)``. It is now ``power(b, 2)``.
+* Slicing a variable by time:
+
+  * ``var["2016-06-03":"2016-06-04"]`` silently returned the whole variable; strings now work, like in ``get_data``;
+  * a naive ``datetime`` was read in the computer's local time zone, so in Paris ``var[datetime(2016, 6, 3):]``
+    started at 22:00 the day before. Naive datetimes are UTC, like everywhere else in Speasy;
+  * any other kind of bound raises ``TypeError`` instead of being ignored.
 * CDPP 3DView: when its list of coordinate frames could not be fetched, ``get_data`` silently replaced
   the requested frame by ``J2000``. With 3DView down but the proxy or the local cache still serving
   data, a ``GSE`` request could return ``J2000`` positions. The requested frame is now always kept.

@@ -1,187 +1,178 @@
 <h1 align="center">
 <img src="https://raw.githubusercontent.com/SciQLop/speasy/main/logo/logo_speasy.svg" width="300">
-</h1><br>
+</h1>
 
-# Space Physics made EASY
+<p align="center"><b>Space Physics made EASY: one function for in-situ space physics data.</b></p>
 
-[![Chat on Matrix](https://img.shields.io/matrix/speasy:matrix.org)](https://matrix.to/#/#speasy:matrix.org)
-[![image](https://img.shields.io/pypi/v/speasy.svg)](https://pypi.org/project/speasy)
-[![image](https://github.com/SciQLop/speasy/workflows/Tests/badge.svg)](https://github.com/SciQLop/speasy/actions?query=workflow%3A%22Tests%22)
-[![Documentation Status](https://readthedocs.org/projects/speasy/badge/?version=latest)](https://speasy.readthedocs.io/en/latest/?badge=latest)
-[![Coverage Status](https://codecov.io/gh/SciQLop/speasy/coverage.svg?branch=main)](https://codecov.io/gh/SciQLop/speasy/branch/main)
-[![CodeQL](https://github.com/SciQLop/speasy/actions/workflows/codeql.yml/badge.svg)](https://github.com/SciQLop/speasy/actions/workflows/codeql.yml)
-[![Zenodo DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg)](https://doi.org/10.5281/zenodo.4118780)
-[![Discover on MyBinder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples)
-[![Discover on Google Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SciQLop/speasy)
-[![Speasy proxy uptime (30 days)](https://img.shields.io/uptimerobot/ratio/m792771930-24b7f89c03d5090a13462b70)](http://sciqlop.lpp.polytechnique.fr/cache)
-
-Speasy is a free and open-source Python package that makes it easy to find and load space physics data from a variety of
-data sources, whether it is online and public such as [CDAWEB](https://cdaweb.gsfc.nasa.gov/index.html/) and [AMDA](https://amda.cdpp.eu/),
-or any described archive, local or remote.
-Finding and loading data is where any science project starts. It would seem easy a priori but, considering the
-diverse array of missions and instruments available nowadays, it proves to be one of the major bottlenecks,
-especially for students and newcomers.
-Speasy solves this problem by providing a **single, easy-to-use interface to over 70 space missions and 65,000 products**.
-
-![Speasy architecture: many data sources, one get_data(product, start, stop) call, several SpeasyVariable shapes](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/docs/_static/architecture.png)
-
-Don't want to write code? See our graphical interface [SciQLop](https://github.com/SciQLop/SciQLop).
-
-## Main features
-
--   Simple and intuitive API (`spz.get_data(...)` to get them all)
--   Speasy variables are like Pandas DataFrames with seamless conversion to/from them (as long as the shape is compatible)
--   Speasy variables support numpy operations, [see numpy operations example below](#numpy-operations)
--   Speasy variables filtering and resampling capabilities, [see resampling example below](#resampling)
--   Also supports Catalogs, TimeTables, Events, and multi-variable Datasets
--   Local cache to avoid redundant downloads, backed by [pysciqlop-cache](https://pypi.org/project/pysciqlop-cache/) (see [notes for users upgrading from an older Speasy](https://speasy.readthedocs.io/en/latest/user/configuration.html#migrating-an-older-cache))
--   Uses the SciQLOP ultra fast community cache server (see [configuration](https://speasy.readthedocs.io/en/latest/user/configuration.html#proxy-section) to tune or disable it)
--   Full support of [AMDA](https://amda.cdpp.eu/) API
--   Can retrieve time-series from [AMDA](https://amda.cdpp.eu/) (analysis server at IRAP/CDPP),
-    [CDAWeb](https://cdaweb.gsfc.nasa.gov/) (NASA/GSFC archive),
-    [CSA](https://csa.esac.esa.int/csa-web/) (ESA Cluster archive) and
-    [SSCWeb](https://sscweb.gsfc.nasa.gov/) (NASA orbit/trajectory service);
-    see the [data providers documentation](https://speasy.readthedocs.io/en/stable/user/data_providers.html) for more.
--   Support data access from any local or remote archives described by YAML file.
--   Also available as [Speasy.jl](https://github.com/SciQLop/Speasy.jl) for Julia users
-
-## Help us improve Speasy!
-
-We want Speasy to be the best possible tool for space physics research. You can help us by:
-
-- Answering our user survey [here](https://docs.google.com/forms/d/e/1FAIpQLScV12kvETk8jc4Zc4sIsHiteMHRVo5I8DiSAE8RyVdVkUaxJA/viewform?usp=sf_link).
-- Reporting bugs or requesting features [here](https://github.com/SciQLop/speasy/issues/new).
-- Creating or participating in discussions [here](https://github.com/SciQLop/speasy/discussions).
-
-Your feedback is essential to making Speasy a better tool for everyone.
-
-## Quickstart
-### Installation
-
-Speasy requires **Python 3.10 or newer**. We recommend installing it with pip inside a virtual environment
-([more details here](https://speasy.readthedocs.io/en/stable/installation.html), conda works too):
-
-``` console
-$ python3 -m venv .venv
-$ source .venv/bin/activate
-$ python -m pip install speasy
-# or, without a virtual environment:
-$ python -m pip install --user speasy
-```
-
-Troubleshooting: your first `get_data` calls need internet access (data is then cached locally);
-if you are behind a proxy or firewall, see the [configuration page](https://speasy.readthedocs.io/en/stable/user/configuration.html).
+<p align="center">
+<a href="https://pypi.org/project/speasy"><img src="https://img.shields.io/pypi/v/speasy.svg" alt="PyPI"></a>
+<a href="https://github.com/SciQLop/speasy/actions?query=workflow%3A%22Tests%22"><img src="https://github.com/SciQLop/speasy/workflows/Tests/badge.svg" alt="Tests"></a>
+<a href="https://speasy.readthedocs.io/en/latest/?badge=latest"><img src="https://readthedocs.org/projects/speasy/badge/?version=latest" alt="Documentation"></a>
+<a href="https://doi.org/10.5281/zenodo.4118780"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4118780.svg" alt="DOI"></a>
+<a href="https://matrix.to/#/#speasy:matrix.org"><img src="https://img.shields.io/matrix/speasy:matrix.org" alt="Chat on Matrix"></a>
+<a href="https://mybinder.org/v2/gh/SciQLop/speasy/main?labpath=docs/examples"><img src="https://mybinder.org/badge_logo.svg" alt="Try on MyBinder"></a>
+</p>
 
 <!--[[[cog
 # This file is the source: everything below between a cog marker comment and its matching end
 # marker is generated by running `make readme` (cogapp, https://cog.readthedocs.io), which
 # executes the Python shown in the visible fenced code blocks for real (live network calls to
-# AMDA/CDA/SSC) and writes its actual output back in place. Never hand-edit a generated region;
+# AMDA/CDA/SSC/HAPI) and writes its actual output back in place. Never hand-edit a generated region;
 # edit the run("""...""") source strings below instead and regenerate. `make readme-check`
 # verifies in CI that this file matches what regenerating it would produce.
 import os
+import tempfile
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-README_IMG_DIR = "README_files"
+README_IMG_DIR = os.path.abspath("README_files")
 README_RAW_BASE_URL = "https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main"
 
 def run(code):
     print(f"```python\n{code.strip()}\n```")
     exec(compile(code, "<readme>", "exec"), globals())
 
+def run_in_tmp_dir(code):
+    # Examples that create folders run in a throwaway directory, so `make readme` leaves no files behind.
+    cwd = os.getcwd()
+    with tempfile.TemporaryDirectory() as tmp:
+        os.chdir(tmp)
+        try:
+            run(code)
+        finally:
+            os.chdir(cwd)
+
 def save_and_show(name, alt):
     plt.savefig(os.path.join(README_IMG_DIR, name), bbox_inches="tight")
     plt.close("all")
-    print(f"![{alt}]({README_RAW_BASE_URL}/{README_IMG_DIR}/{name})")
+    print(f"![{alt}]({README_RAW_BASE_URL}/README_files/{name})")
 ]]]-->
 <!--[[[end]]]-->
-
-### Examples
-#### Simple request
-
-This simple code example shows how easy it is to get data using Speasy. The code imports the Speasy package and defines a variable named ace_mag. This variable stores the data for the ACE IMF (interplanetary magnetic field) product, for the time period from June 2, 2016 to June 5, 2016. The code then uses the Speasy plot() function to plot the data.
 
 <!--[[[cog
 run("""
 import speasy as spz
-ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
 ace_mag.plot();
 """)
-save_and_show("ace_mag.png", "ACE IMF")
+save_and_show("ace_mag.png", "ACE interplanetary magnetic field")
 ]]]-->
 ```python
 import speasy as spz
-ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
+ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
 ace_mag.plot();
 ```
-![ACE IMF](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/ace_mag.png)
+![ACE interplanetary magnetic field](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/ace_mag.png)
 <!--[[[end]]]-->
 
-#### Using the dynamic inventory
+That's it. Three lines, and you have three days of ACE magnetic field data, with time, units and labels.
+The same call works for tens of thousands of products from many data centers.
 
-Where `amda` is the data provider and `imf` is the product ID.
+![Many data sources, one get_data(product, start, stop) call, one SpeasyVariable that converts to numpy, pandas, xarray and astropy](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/docs/_static/overview.svg)
 
-Using the dynamic inventory produces the same result as the previous example, but lets you discover available data
-through tab-completion in IPython, Jupyter notebooks, or any Python environment that supports it.
+## Why Speasy
 
-You can discover product ids by browsing `spz.inventories.tree.<provider>` (e.g. `spz.inventories.tree.amda`)
-with tab-completion, or programmatically via `spz.inventories.flat_inventories.<provider>`.
-See the [concepts page](https://speasy.readthedocs.io/en/latest/user/concepts.html) for more details.
+- **One call for many archives.** [AMDA](https://amda.cdpp.eu/), [CDAWeb](https://cdaweb.gsfc.nasa.gov/),
+  ESA's [Cluster Science Archive](https://csa.esac.esa.int/csa-web/), [SSCWeb](https://sscweb.gsfc.nasa.gov/),
+  [CDPP 3DView](http://3dview.cdpp.eu/), the U. Iowa ephemeris tool, every server of the
+  [HAPI](https://hapi-server.org/) server list, and your own archives described in a YAML file.
+  See the [data providers page](https://speasy.readthedocs.io/en/latest/user/data_providers.html).
+- **Find data by tab-completion.** Browse `spz.inventories.tree.<provider>` in IPython or Jupyter, down to each product.
+- **Fast on the second request.** Data is cached on your disk, and a community cache server speeds up the first one.
+- **Reproducible studies.** A [`DataIndex`](https://speasy.readthedocs.io/en/latest/user/data_index.html) keeps exactly
+  the data a study used. It never expires, works offline, and exports as a single file to share with a colleague.
+- **Fits the tools you already use.** Numpy functions work directly on Speasy variables, and they convert to
+  pandas, xarray and astropy.
+- **Your own products.** Register a Python function as a
+  [virtual product](https://speasy.readthedocs.io/en/latest/user/virtual_products.html), and use it like any other product.
+- **Also from the shell, and from Julia.** A [`speasy` command](https://speasy.readthedocs.io/en/latest/user/cli.html)
+  downloads, converts and pre-fetches data. [Speasy.jl](https://github.com/SciQLop/Speasy.jl) brings the same API to Julia.
+
+Prefer clicking to coding? [SciQLop](https://github.com/SciQLop/SciQLop) is a graphical interface built on Speasy.
+
+## Installation
+
+Speasy needs **Python 3.10 or newer**:
+
+```console
+$ python -m pip install speasy
+```
+
+Or try the command line without installing anything, with [uv](https://docs.astral.sh/uv/):
+
+```console
+$ uvx speasy get amda/imf 2018-06-01 2018-06-02
+```
+
+The first request for some data needs internet access; after that, it comes from the local cache.
+Behind a proxy or a firewall? See the [configuration page](https://speasy.readthedocs.io/en/latest/user/configuration.html).
+
+## Examples
+
+### Browse instead of typing ids
+
+Every provider is a tree you can explore with tab-completion. This is the same product as above:
 
 <!--[[[cog
 run("""
 import speasy as spz
 amda_tree = spz.inventories.data_tree.amda
 ace_mag = spz.get_data(amda_tree.Parameters.ACE.MFI.ace_imf_all.imf, "2016-6-2", "2016-6-5")
-ace_mag.plot();
 """)
-save_and_show("ace_mag_dynamic_inventory.png", "ACE IMF")
 ]]]-->
 ```python
 import speasy as spz
 amda_tree = spz.inventories.data_tree.amda
 ace_mag = spz.get_data(amda_tree.Parameters.ACE.MFI.ace_imf_all.imf, "2016-6-2", "2016-6-5")
-ace_mag.plot();
 ```
-![ACE IMF](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/ace_mag_dynamic_inventory.png)
 <!--[[[end]]]-->
 
-#### Plotting multiple time series on a single figure
+### Any HAPI server
 
-This code example shows how to use Speasy to plot multiple time series of space physics data from the **MMS1** spacecraft on a single figure, with a shared x-axis. The code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then creates a figure with six subplots, arranged in a single column. Next, it defines a list of products and axes to plot. Finally, it iterates over the list of products and axes, plotting each product on the corresponding axis. The code uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the data for each product, and the [replace_fillval_by_nan()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.SpeasyVariable.replace_fillval_by_nan) function to replace any fill values (placeholders for missing data) with NaNs.
-The products plotted here include magnetic field measurements from the FGM (fluxgate magnetometer)
-instrument, expressed in GSE (a geocentric coordinate frame).
+The Dst index during the May 2024 geomagnetic storm, from the World Data Center in Kyoto:
 
-Note: Speasy may transparently fall back between access methods (direct archive, web service, community cache);
-messages such as "switching to web service" are informational, not errors.
+<!--[[[cog
+run("""
+import speasy as spz
+dst = spz.get_data("hapi/wdc_kyoto_hapi/hour_dst/dstValue", "2024-05-09", "2024-05-14")
+dst.plot();
+""")
+save_and_show("dst_may_2024.png", "Dst index, May 2024 storm")
+]]]-->
+```python
+import speasy as spz
+dst = spz.get_data("hapi/wdc_kyoto_hapi/hour_dst/dstValue", "2024-05-09", "2024-05-14")
+dst.plot();
+```
+![Dst index, May 2024 storm](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/dst_may_2024.png)
+<!--[[[end]]]-->
+
+### Several instruments on one figure
+
+Magnetic field, electron and ion data from MMS1, on a shared time axis:
 
 <!--[[[cog
 run("""
 import speasy as spz
 import matplotlib.pyplot as plt
 
+mms1 = spz.inventories.tree.cda.MMS.MMS1
 fig = plt.figure(figsize=(8, 16), layout="constrained")
-gs = fig.add_gridspec(6, hspace=0, wspace=0)
-axes = gs.subplots(sharex=True)
+axes = fig.add_gridspec(6, hspace=0).subplots(sharex=True)
 
 plots = [
-    (spz.inventories.tree.cda.MMS.MMS1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gse_srvy_l2_clean, axes[0]),
-    (spz.inventories.tree.cda.MMS.MMS1.SCM.MMS1_SCM_SRVY_L2_SCSRVY.mms1_scm_acb_gse_scsrvy_srvy_l2 , axes[1]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_bulkv_gse_fast, axes[2]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_temppara_fast, axes[3]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_tempperp_fast, axes[3]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_energyspectr_omni_fast, axes[4]),
-    (spz.inventories.tree.cda.MMS.MMS1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_energyspectr_omni_fast, axes[5])
+    (mms1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gse_srvy_l2_clean, axes[0]),
+    (mms1.SCM.MMS1_SCM_SRVY_L2_SCSRVY.mms1_scm_acb_gse_scsrvy_srvy_l2, axes[1]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_bulkv_gse_fast, axes[2]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_temppara_fast, axes[3]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_tempperp_fast, axes[3]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_energyspectr_omni_fast, axes[4]),
+    (mms1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_energyspectr_omni_fast, axes[5]),
 ]
 
-def plot_product(product, ax):
-    values = spz.get_data(product, "2019-01-02T15", "2019-01-02T22")
-    values.replace_fillval_by_nan().plot(ax=ax)
-
-for p in plots:
-    plot_product(p[0], p[1])
+for product, ax in plots:
+    spz.get_data(product, "2019-01-02T15", "2019-01-02T22").replace_fillval_by_nan().plot(ax=ax)
 """)
 save_and_show("mms1_multi_timeseries.png", "MMS1 multiple time series")
 ]]]-->
@@ -189,35 +180,29 @@ save_and_show("mms1_multi_timeseries.png", "MMS1 multiple time series")
 import speasy as spz
 import matplotlib.pyplot as plt
 
+mms1 = spz.inventories.tree.cda.MMS.MMS1
 fig = plt.figure(figsize=(8, 16), layout="constrained")
-gs = fig.add_gridspec(6, hspace=0, wspace=0)
-axes = gs.subplots(sharex=True)
+axes = fig.add_gridspec(6, hspace=0).subplots(sharex=True)
 
 plots = [
-    (spz.inventories.tree.cda.MMS.MMS1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gse_srvy_l2_clean, axes[0]),
-    (spz.inventories.tree.cda.MMS.MMS1.SCM.MMS1_SCM_SRVY_L2_SCSRVY.mms1_scm_acb_gse_scsrvy_srvy_l2 , axes[1]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_bulkv_gse_fast, axes[2]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_temppara_fast, axes[3]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_tempperp_fast, axes[3]),
-    (spz.inventories.tree.cda.MMS.MMS1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_energyspectr_omni_fast, axes[4]),
-    (spz.inventories.tree.cda.MMS.MMS1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_energyspectr_omni_fast, axes[5])
+    (mms1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gse_srvy_l2_clean, axes[0]),
+    (mms1.SCM.MMS1_SCM_SRVY_L2_SCSRVY.mms1_scm_acb_gse_scsrvy_srvy_l2, axes[1]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_bulkv_gse_fast, axes[2]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_temppara_fast, axes[3]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_tempperp_fast, axes[3]),
+    (mms1.DES.MMS1_FPI_FAST_L2_DES_MOMS.mms1_des_energyspectr_omni_fast, axes[4]),
+    (mms1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_energyspectr_omni_fast, axes[5]),
 ]
 
-def plot_product(product, ax):
-    values = spz.get_data(product, "2019-01-02T15", "2019-01-02T22")
-    values.replace_fillval_by_nan().plot(ax=ax)
-
-for p in plots:
-    plot_product(p[0], p[1])
+for product, ax in plots:
+    spz.get_data(product, "2019-01-02T15", "2019-01-02T22").replace_fillval_by_nan().plot(ax=ax)
 ```
 ![MMS1 multiple time series](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/mms1_multi_timeseries.png)
 <!--[[[end]]]-->
 
-#### Requesting multiple products and intervals at once
+### Many products, many intervals, one call
 
-More complex requests like this one are supported:
-
-The result is a list per product, each holding one variable per requested interval.
+The result holds one list per product, with one variable per interval:
 
 <!--[[[cog
 run("""
@@ -247,73 +232,90 @@ data = spz.get_data(products, intervals)
 ```
 <!--[[[end]]]-->
 
-#### Numpy operations
+### Numpy works directly
 
-Speasy variables support numpy operations, as shown in this example. The code imports the Speasy package and the NumPy library, and uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the magnetic field data for the MMS1 spacecraft for the time period from January 1, 2017 to January 1, 2017. The code then uses the NumPy [sqrt()](https://numpy.org/doc/stable/reference/generated/numpy.sqrt.html) and [sum()](https://numpy.org/doc/stable/reference/generated/numpy.sum.html) functions to compute the norm of the magnetic field vector. Finally, the code uses the NumPy [allclose()](https://numpy.org/doc/stable/reference/generated/numpy.allclose.html) function to check if the computed norm is close to the provided total magnetic field norm (Bt) values.
+Compute the field magnitude yourself, and check it against the one MMS provides:
 
 <!--[[[cog
 run("""
 import speasy as spz
 import numpy as np
-mms1_products = spz.inventories.tree.cda.MMS.MMS1
-b = spz.get_data(mms1_products.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2, '2017-01-01T02:00:00', '2017-01-01T02:00:15')
-b.replace_fillval_by_nan(inplace=True)  # replace fill values by NaN
+mms1 = spz.inventories.tree.cda.MMS.MMS1
+b = spz.get_data(mms1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2, "2017-01-01T02:00:00", "2017-01-01T02:00:15")
+b.replace_fillval_by_nan(inplace=True)
 bt = b["Bt"]
 b = b["Bx GSM", "By GSM", "Bz GSM"]
 computed_norm = np.sqrt(np.sum(b ** 2, axis=1))
-print(f"Type of b: {type(b)}")
 print(f"Type of computed_norm: {type(computed_norm)}")
-print(f"Type of bt: {type(bt)}")
-print("Is the computed norm close to the provided total magnetic field norm?", bool(np.allclose(computed_norm, bt)))
+print("Same as the provided magnitude?", bool(np.allclose(computed_norm, bt)))
 """)
 ]]]-->
 ```python
 import speasy as spz
 import numpy as np
-mms1_products = spz.inventories.tree.cda.MMS.MMS1
-b = spz.get_data(mms1_products.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2, '2017-01-01T02:00:00', '2017-01-01T02:00:15')
-b.replace_fillval_by_nan(inplace=True)  # replace fill values by NaN
+mms1 = spz.inventories.tree.cda.MMS.MMS1
+b = spz.get_data(mms1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2, "2017-01-01T02:00:00", "2017-01-01T02:00:15")
+b.replace_fillval_by_nan(inplace=True)
 bt = b["Bt"]
 b = b["Bx GSM", "By GSM", "Bz GSM"]
 computed_norm = np.sqrt(np.sum(b ** 2, axis=1))
-print(f"Type of b: {type(b)}")
 print(f"Type of computed_norm: {type(computed_norm)}")
-print(f"Type of bt: {type(bt)}")
-print("Is the computed norm close to the provided total magnetic field norm?", bool(np.allclose(computed_norm, bt)))
+print("Same as the provided magnitude?", bool(np.allclose(computed_norm, bt)))
 ```
-Type of b: <class 'speasy.products.variable.SpeasyVariable'>
 Type of computed_norm: <class 'speasy.products.variable.SpeasyVariable'>
-Type of bt: <class 'speasy.products.variable.SpeasyVariable'>
-Is the computed norm close to the provided total magnetic field norm? True
+Same as the provided magnitude? True
 <!--[[[end]]]-->
 
-#### Resampling
+### Convert to pandas, xarray or astropy
 
-Speasy provides a simple way to filter and resample data. In this example, the code imports the Speasy package and the [Matplotlib](https://matplotlib.org/stable/) plotting library. It then uses the Speasy [get_data()](https://speasy.readthedocs.io/en/latest/dev/speasy.html#speasy.get_data) function to load the magnetic field and temperature data for the MMS1 spacecraft for the time period from January 1, 2017 to January 1, 2017. The code then uses the Speasy [interpolate()](https://speasy.readthedocs.io/en/latest/dev/speasy.signal.resampling.html#speasy.signal.resampling.interpolate) function to interpolate the temperature data to match the magnetic field data sampling rate. Finally, the code plots the magnetic field and temperature data on the same figure.
+<!--[[[cog
+run("""
+import speasy as spz
+ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
+print(type(ace_mag.to_dataframe()).__name__)
+print(type(ace_mag.to_dataarray()).__name__)
+print(type(ace_mag.to_astropy_table()).__name__)
+""")
+]]]-->
+```python
+import speasy as spz
+ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")
+print(type(ace_mag.to_dataframe()).__name__)
+print(type(ace_mag.to_dataarray()).__name__)
+print(type(ace_mag.to_astropy_table()).__name__)
+```
+DataFrame
+DataArray
+Table
+<!--[[[end]]]-->
+
+### Resample one product onto another
+
+Interpolate ion temperatures onto the magnetic field timestamps:
 
 <!--[[[cog
 run("""
 import speasy as spz
 from speasy.signal.resampling import interpolate
 import matplotlib.pyplot as plt
-mms1_products = spz.inventories.tree.cda.MMS.MMS1
+mms1 = spz.inventories.tree.cda.MMS.MMS1
 
 b, Tperp, Tpara = spz.get_data(
-        [
-            mms1_products.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2,
-            mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_tempperp_fast,
-            mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_temppara_fast
-        ],
-        '2017-01-01T02:00:00',
-        '2017-01-01T02:00:15'
-    )
+    [
+        mms1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2,
+        mms1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_tempperp_fast,
+        mms1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_temppara_fast,
+    ],
+    "2017-01-01T02:00:00",
+    "2017-01-01T02:00:15",
+)
 
 Tperp_interp, Tpara_interp = interpolate(b, [Tperp, Tpara])
 
 plt.figure()
 ax = b.plot()
-plt.plot(Tperp_interp.time, Tperp_interp.values, marker='+')
-plt.plot(Tpara_interp.time, Tpara_interp.values, marker='+')
+plt.plot(Tperp_interp.time, Tperp_interp.values, marker="+")
+plt.plot(Tpara_interp.time, Tpara_interp.values, marker="+")
 plt.tight_layout()
 """)
 save_and_show("resampling.png", "Resampling")
@@ -322,44 +324,119 @@ save_and_show("resampling.png", "Resampling")
 import speasy as spz
 from speasy.signal.resampling import interpolate
 import matplotlib.pyplot as plt
-mms1_products = spz.inventories.tree.cda.MMS.MMS1
+mms1 = spz.inventories.tree.cda.MMS.MMS1
 
 b, Tperp, Tpara = spz.get_data(
-        [
-            mms1_products.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2,
-            mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_tempperp_fast,
-            mms1_products.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_temppara_fast
-        ],
-        '2017-01-01T02:00:00',
-        '2017-01-01T02:00:15'
-    )
+    [
+        mms1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gsm_srvy_l2,
+        mms1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_tempperp_fast,
+        mms1.DIS.MMS1_FPI_FAST_L2_DIS_MOMS.mms1_dis_temppara_fast,
+    ],
+    "2017-01-01T02:00:00",
+    "2017-01-01T02:00:15",
+)
 
 Tperp_interp, Tpara_interp = interpolate(b, [Tperp, Tpara])
 
 plt.figure()
 ax = b.plot()
-plt.plot(Tperp_interp.time, Tperp_interp.values, marker='+')
-plt.plot(Tpara_interp.time, Tpara_interp.values, marker='+')
+plt.plot(Tperp_interp.time, Tperp_interp.values, marker="+")
+plt.plot(Tpara_interp.time, Tpara_interp.values, marker="+")
 plt.tight_layout()
 ```
 ![Resampling](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/resampling.png)
 <!--[[[end]]]-->
 
-## Documentation and examples
+### Your own products
 
-Check out [Speasy documentation](https://speasy.readthedocs.io/en/stable/) and [examples](https://speasy.readthedocs.io/en/latest/examples/index.html).
+A virtual product is a Python function that Speasy serves like any other product:
 
-## Caveats
+<!--[[[cog
+run("""
+import numpy as np
+import speasy as spz
+from speasy.virtual_products import register_virtual_product
 
--   Speasy is not a plotting package.
-    basic plotting capabilities are here for illustration purposes and making quick-and-dirty plots.
-    It is not meant to produce publication ready figures, prefer using Matplotlib directly for example.
+@register_virtual_product("virtual/ace/b_magnitude", meta={"units": "nT"}, labels=["|B|"])
+def ace_b_magnitude(start, stop):
+    b = spz.get_data("amda/imf", start, stop)
+    return np.sqrt(np.sum(b ** 2, axis=1))
 
-## Credits
+spz.get_data("virtual/ace/b_magnitude", "2016-6-2", "2016-6-5").plot();
+""")
+save_and_show("virtual_product.png", "ACE field magnitude, from a virtual product")
+]]]-->
+```python
+import numpy as np
+import speasy as spz
+from speasy.virtual_products import register_virtual_product
 
+@register_virtual_product("virtual/ace/b_magnitude", meta={"units": "nT"}, labels=["|B|"])
+def ace_b_magnitude(start, stop):
+    b = spz.get_data("amda/imf", start, stop)
+    return np.sqrt(np.sum(b ** 2, axis=1))
+
+spz.get_data("virtual/ace/b_magnitude", "2016-6-2", "2016-6-5").plot();
+```
+![ACE field magnitude, from a virtual product](https://raw.githubusercontent.com/SciQLop/speasy/refs/heads/main/README_files/virtual_product.png)
+<!--[[[end]]]-->
+
+### Keep a study's data
+
+Inside a `DataIndex` block, `get_data` stores what it downloads in a folder.
+Next time, the same calls are served from that folder, even offline.
+Export it as one file, and a colleague gets exactly the same data:
+
+<!--[[[cog
+run_in_tmp_dir("""
+import speasy as spz
+
+with spz.DataIndex("my_study") as study:
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # downloaded, kept in my_study/
+study.export_data("my_study.tar")                                # one file to send
+
+# On your colleague's machine:
+with spz.DataIndex("their_copy") as copy:
+    copy.import_data("my_study.tar")
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # read from their_copy/, no download
+""")
+]]]-->
+```python
+import speasy as spz
+
+with spz.DataIndex("my_study") as study:
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # downloaded, kept in my_study/
+study.export_data("my_study.tar")                                # one file to send
+
+# On your colleague's machine:
+with spz.DataIndex("their_copy") as copy:
+    copy.import_data("my_study.tar")
+    ace_mag = spz.get_data("amda/imf", "2016-6-2", "2016-6-5")  # read from their_copy/, no download
+```
+<!--[[[end]]]-->
+
+## Documentation
+
+The [documentation](https://speasy.readthedocs.io/en/latest/) covers each data provider, configuration,
+the command line, and has a gallery of [examples](https://speasy.readthedocs.io/en/latest/examples/index.html).
+Speasy's plots are meant for quick looks; for publication figures, use Matplotlib directly,
+or [SciQLop](https://github.com/SciQLop/SciQLop) for interactive exploration.
+
+## Help us improve Speasy
+
+- Tell us how you use Speasy in our [user survey](https://docs.google.com/forms/d/e/1FAIpQLScV12kvETk8jc4Zc4sIsHiteMHRVo5I8DiSAE8RyVdVkUaxJA/viewform?usp=sf_link).
+- Report bugs or request features in the [issues](https://github.com/SciQLop/speasy/issues/new).
+- Ask questions in the [discussions](https://github.com/SciQLop/speasy/discussions) or on [Matrix](https://matrix.to/#/#speasy:matrix.org).
+- Want to add a data provider? See the [contributing guide](https://github.com/SciQLop/speasy/blob/main/CONTRIBUTING.rst).
+
+## Citing Speasy
+
+If Speasy helped your research, please cite it. GitHub's "Cite this repository" button, on the right of this page,
+gives a ready-made reference from [CITATION.cff](CITATION.cff). Every release also has a
+[Zenodo DOI](https://doi.org/10.5281/zenodo.4118780).
+
+## Thanks
+
+Speasy only exists thanks to the data centers and teams who produce, archive and serve the data,
+and to the HAPI community for a shared standard.
 The development of Speasy is supported by the [CDPP](http://www.cdpp.eu/).
-
-This package was created with
-[Cookiecutter](https://github.com/audreyr/cookiecutter) and the
-[audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage)
-project template.

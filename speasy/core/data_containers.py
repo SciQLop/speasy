@@ -1,11 +1,13 @@
 import logging
 from copy import deepcopy, copy
-from datetime import datetime, timezone
+from datetime import datetime
 from sys import getsizeof
 from typing import Dict, List, Optional, Protocol, TypeVar, Union, Any
 
 import astropy.units
 import numpy as np
+
+from .time import make_utc_datetime64
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +63,7 @@ def fill_value_mask(values: np.ndarray, meta: Dict) -> Optional[np.ndarray]:
 def _name(input_p: Any) -> str:
     if hasattr(input_p, "name"):
         return input_p.name
-    return str(input)
+    return str(input_p)
 
 
 def np_build_result_name(func, *args, **kwargs):
@@ -82,15 +84,15 @@ def _data_container(input_p: Any) -> 'DataContainer' or None:
 def _to_index(key, time):
     if key is None:
         return None
-    if type(key) in (int, np.int64, np.int32, np.uint64, np.uint32):
+    if isinstance(key, (int, np.integer)):
         return key
     if isinstance(key, float):
+        # kept apart from make_utc_datetime64, which rounds epochs to microseconds
         return np.searchsorted(time, np.datetime64(int(key * 1e9), 'ns'), side='left')
-    if isinstance(key, datetime):
-        without_tz = key.astimezone(timezone.utc).replace(tzinfo=None)
-        return np.searchsorted(time, np.datetime64(without_tz, 'ns'), side='left')
-    if isinstance(key, np.datetime64):
-        return np.searchsorted(time, key, side='left')
+    if isinstance(key, (str, datetime, np.datetime64)):
+        return np.searchsorted(time, make_utc_datetime64(key).astype('datetime64[ns]'), side='left')
+    raise TypeError(f"Can't slice a SpeasyVariable with {key!r}: use row indexes, or times as a string, "
+                    f"a datetime, a numpy datetime64 or seconds since 1970")
 
 
 T = TypeVar("T")  # keep until we drop python 3.11 support

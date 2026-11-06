@@ -37,7 +37,7 @@ Product types
 -------------
 
 Most calls to :func:`speasy.get_data` return a :class:`~speasy.products.variable.SpeasyVariable`, a
-single time series (see :doc:`plotting`, :doc:`numpy` and :doc:`scipy` for what you can do with one). A few other product
+single time series. :doc:`speasy_variable` shows what it holds and what you can do with it. A few other product
 types exist for specific use cases:
 
 - :class:`~speasy.products.catalog.Event` — a time interval (like a ``DateTimeRange``) with attached metadata.
