@@ -241,6 +241,7 @@ class SpeasyVariableSlice(unittest.TestCase):
         self.assertListEqual(var["1970-01-01T00:00:02":"1970-01-01T00:00:04"].values.squeeze().tolist(),
                              ref.values.squeeze().tolist())
 
+    @unittest.skipUnless(hasattr(time, "tzset"), "changing the local timezone needs time.tzset, Unix only")
     def test_naive_datetimes_are_utc_whatever_the_local_timezone(self):
         var = make_simple_var(0., 10.)
         ref = make_simple_var(2., 4.)
