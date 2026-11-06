@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Tuple, Union
 
 import numpy as np
+import pandas as pds
 
 import speasy as spz
 from speasy.core.inventory.indexes import ExpressionOperators, ParameterIndex, SpeasyIndex
@@ -90,7 +91,18 @@ class Op(ExpressionOperators):
         return f"{left} {_BINARY_SYMBOLS[self.ufunc]} {right}"
 
 
-Node = Union[Leaf, Const, Op]
+@dataclass(frozen=True, eq=False)
+class Resample:
+    """Directive: compute the operand on a regular time grid of step dt."""
+    operand: "Node"
+    dt: np.timedelta64
+
+    def __repr__(self):
+        seconds = self.dt / np.timedelta64(1, "s")
+        return f"resample({self.operand!r}, {seconds:g}s)"
+
+
+Node = Union[Leaf, Const, Op, Resample]
 
 
 class TimeAxisMismatch(ValueError):
@@ -114,6 +126,17 @@ def make_op(ufunc, left, right):
     if left_node is None or right_node is None:
         return NotImplemented
     return Op(ufunc, (left_node, right_node))
+
+
+def parse_dt(dt):
+    """The time step as a duration: '1s' gives np.timedelta64(1, 's')."""
+    return pds.Timedelta(dt).to_timedelta64()
+
+
+def resample(products, dt):
+    """One Resample node per product, all with the same time step."""
+    step = parse_dt(dt)
+    return [Resample(_as_node(product), step) for product in products]
 
 
 def _leaf_key(index):
