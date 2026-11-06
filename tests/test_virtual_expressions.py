@@ -9,9 +9,9 @@ from ddt import data, ddt, unpack
 
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
-from speasy.virtual_products import register_virtual_product
-from speasy.virtual_products.expression import (Const, Leaf, Op, TimeAxisMismatch, bind, collect, evaluate,
-                                                 fetch, walk)
+from speasy.virtual_products import register_virtual_product, resample
+from speasy.virtual_products.expression import (Const, Leaf, Op, Resample, TimeAxisMismatch, bind, collect,
+                                                 evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
@@ -309,3 +309,31 @@ class TestRegisteredExpression(unittest.TestCase):
             result = spz.get_data("virtual/test/mag_10", "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
+
+
+@ddt
+class TestResample(unittest.TestCase):
+    @data(("1s", np.timedelta64(1, "s")), ("100ms", np.timedelta64(100, "ms")))
+    @unpack
+    def test_string_becomes_a_timedelta(self, text, expected):
+        self.assertEqual(parse_dt(text), expected)
+
+    def test_invalid_value_raises(self):
+        with self.assertRaises(ValueError):
+            parse_dt("not a duration")
+
+    def test_repr_names_the_operand_and_the_step(self):
+        leaf = Leaf(ParameterIndex(name="b", provider="cda", uid="b"))
+        node = Resample(leaf, parse_dt("1s"))
+        self.assertEqual(repr(node), "resample(cda/b, 1s)")
+
+    def test_resample_gives_one_node_per_product(self):
+        b = ParameterIndex(name="b", provider="cda", uid="b")
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        b1s, n1s = resample([b, n], "1s")
+        self.assertIsInstance(b1s, Resample)
+        self.assertIsInstance(n1s, Resample)
+        self.assertIs(b1s.operand.index, b)
+        self.assertIs(n1s.operand.index, n)
+        self.assertEqual(b1s.dt, np.timedelta64(1, "s"))
+        self.assertEqual(n1s.dt, np.timedelta64(1, "s"))
