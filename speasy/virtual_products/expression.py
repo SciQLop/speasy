@@ -92,7 +92,7 @@ class Op(ExpressionOperators):
 
 
 @dataclass(frozen=True, eq=False)
-class Resample:
+class Resample(ExpressionOperators):
     """Directive: compute the operand on a regular time grid of step dt."""
     operand: "Node"
     dt: np.timedelta64
@@ -111,7 +111,7 @@ class TimeAxisMismatch(ValueError):
 
 def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
-    if isinstance(operand, Op):
+    if isinstance(operand, (Op, Resample)):
         return operand
     if isinstance(operand, ParameterIndex):
         return Leaf(operand)
@@ -150,6 +150,8 @@ def collect(node):
         return [node.index]
     if isinstance(node, Const):
         return []
+    if isinstance(node, Resample):
+        return collect(node.operand)
     if isinstance(node, Op):
         indexes = {}
         for operand in node.operands:
