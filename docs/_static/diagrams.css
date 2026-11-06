@@ -52,7 +52,7 @@ body[data-theme="dark"] .spz-diagram {
 .spz-diagram .d-hl { fill: var(--d-hl); }
 .spz-diagram .d-row { fill: var(--d-row); }
 .spz-diagram .d-dim { fill: var(--d-panel); stroke-opacity: 0.2; }
-.spz-diagram .d-card { fill: var(--d-panel); stroke: var(--d-line); stroke-opacity: 1; rx: 8; }
+.spz-diagram .d-card { fill: var(--d-panel); stroke: var(--d-line); stroke-opacity: 1; rx: 8px; }
 
 /* Light from the top-left: the top faces are lighter, the side faces darker. */
 .spz-diagram .d-lit { fill: #fff; fill-opacity: 0.35; stroke: none; }
