@@ -18,10 +18,10 @@ from tests.test_virtual_products import _reset_registry
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
 
 
-def _make_variable(values):
-    """Synthetic SpeasyVariable: the given values, one point per hour from _T0."""
+def _make_variable(values, start=_T0):
+    """Synthetic SpeasyVariable: the given values, one point per hour from start."""
     values = np.asarray(values, dtype=float)
-    time = _T0 + np.arange(len(values)) * np.timedelta64(1, "h")
+    time = start + np.arange(len(values)) * np.timedelta64(1, "h")
     return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
                           values=DataContainer(values=values, meta=None),
                           columns=["Values"])
@@ -244,7 +244,7 @@ class TestWalk(unittest.TestCase):
     def test_ten_times_a_product(self):
         index = ParameterIndex(name="b", provider="cda", uid="b")
         b = _make_variable([1, 2, 3])
-        result = walk(10 * index, {("cda", "b"): b})
+        result = walk(10 * index, {("cda", "b"): b}, _T0, _T0 + np.timedelta64(3, "h"))
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
 
@@ -253,14 +253,14 @@ class TestWalk(unittest.TestCase):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
         data = {("cda", "b"): _make_variable([1, 2, 3]), ("amda", "n"): _make_variable([4, 5])}
         with self.assertRaises(TimeAxisMismatch):
-            walk(b_index + n_index, data)
+            walk(b_index + n_index, data, _T0, _T0 + np.timedelta64(3, "h"))
 
     def test_time_axis_mismatch_message(self):
         b_index = ParameterIndex(name="b", provider="cda", uid="b")
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
         data = {("cda", "b"): _make_variable([1, 2, 3]), ("amda", "n"): _make_variable([4, 5])}
         with self.assertRaises(TimeAxisMismatch) as caught:
-            walk(b_index + n_index, data)
+            walk(b_index + n_index, data, _T0, _T0 + np.timedelta64(3, "h"))
         self.assertEqual(str(caught.exception),
                          "cannot combine\n"
                          "  'cda/b'   (3600 s, 3 points)\n"
@@ -268,6 +268,20 @@ class TestWalk(unittest.TestCase):
                          "in expression 'cda/b + amda/n'.\n"
                          "Add an explicit directive, e.g.:\n"
                          '  b, n = speasy.virtual_products.resample([B, N], "1s")')
+
+    def test_variables_with_different_starts_share_one_grid(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        late_start = _T0 + np.timedelta64(30, "m")
+        data = {("cda", "b"): _make_variable([1, 2, 3, 4]),
+                ("amda", "n"): _make_variable([1, 2, 3, 4], start=late_start)}
+        b1h, n1h = resample([b_index, n_index], "1h")
+        start, stop = _T0, _T0 + np.timedelta64(3, "h")
+        grid = _T0 + np.arange(3) * np.timedelta64(1, "h")
+        np.testing.assert_array_equal(walk(b1h, data, start, stop).time, grid)
+        np.testing.assert_array_equal(walk(n1h, data, start, stop).time, grid)
+        np.testing.assert_allclose(walk(b1h, data, start, stop).values, [[1.], [2.], [3.]])
+        np.testing.assert_allclose(walk(n1h, data, start, stop).values, [[1.], [1.5], [2.5]])
 
 
 class TestEvaluate(unittest.TestCase):
