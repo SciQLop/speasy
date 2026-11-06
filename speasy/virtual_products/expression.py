@@ -8,6 +8,7 @@ import pandas as pds
 import speasy as spz
 from speasy.core.inventory.indexes import ExpressionOperators, ParameterIndex, SpeasyIndex
 from speasy.products.variable import SpeasyVariable, same_time_axis
+from speasy.signal import resampling
 
 
 @dataclass(frozen=True, eq=False)
@@ -195,14 +196,18 @@ def _time_axis_mismatch_message(node, data):
             '  b, n = speasy.virtual_products.resample([B, N], "1s")')
 
 
-def walk(node, data):
+def walk(node, data, start, stop):
     """Compute an expression tree from the already fetched data."""
     if isinstance(node, Leaf):
         return data[_leaf_key(node.index)]
     if isinstance(node, Const):
         return node.value
+    if isinstance(node, Resample):
+        variable = walk(node.operand, data, start, stop)
+        grid = resampling.generate_time_vector(start, stop, node.dt)
+        return resampling.interpolate(grid, variable)
     if isinstance(node, Op):
-        operands = [walk(operand, data) for operand in node.operands]
+        operands = [walk(operand, data, start, stop) for operand in node.operands]
         variables = [operand for operand in operands if isinstance(operand, SpeasyVariable)]
         if not same_time_axis(variables):
             raise TimeAxisMismatch(_time_axis_mismatch_message(node, data))
@@ -222,6 +227,6 @@ def evaluate(node, start, stop):
     data = bind(indexes, variables)
     if data is None:
         return None
-    result = walk(node, data)
+    result = walk(node, data, start, stop)
     named = finalise(result, node)
     return named
