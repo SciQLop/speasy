@@ -157,6 +157,26 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(const.value, 10)
         self.assertIs(leaf.index, self.index)
 
+    @data(*_OPERATORS)
+    @unpack
+    def test_node_on_the_left_builds_an_op(self, python_op, ufunc):
+        op_node = 10 * self.index  # Op(np.multiply, (Const(10), Leaf(B)))
+        op = python_op(op_node, self.index)  # e.g. 10 * B + B
+        self.assertIs(op.ufunc, ufunc)
+        left, right = op.operands
+        self.assertIs(left, op_node)  # the existing node is kept as is
+        self.assertIs(right.index, self.index)
+
+    @data(*_OPERATORS)
+    @unpack
+    def test_node_on_the_right_builds_an_op(self, python_op, ufunc):
+        op_node = 10 * self.index  # Op(np.multiply, (Const(10), Leaf(B)))
+        op = python_op(2, op_node)  # e.g. 2 + 10 * B
+        self.assertIs(op.ufunc, ufunc)
+        const, right = op.operands
+        self.assertEqual(const.value, 2)
+        self.assertIs(right, op_node)  # the existing node is kept as is
+
     def test_index_equality_is_unchanged(self):
         same = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
                               uid="mms1_fgm_b_gse_srvy_l2")

@@ -5,7 +5,7 @@ from typing import Tuple, Union
 import numpy as np
 
 import speasy as spz
-from speasy.core.inventory.indexes import ParameterIndex, SpeasyIndex
+from speasy.core.inventory.indexes import ExpressionOperators, ParameterIndex, SpeasyIndex
 from speasy.products.variable import SpeasyVariable, same_time_axis
 
 
@@ -68,7 +68,7 @@ def _operand_repr(node, precedence, parenthesize_equal):
 
 
 @dataclass(frozen=True, eq=False)
-class Op:
+class Op(ExpressionOperators):
     """Elementwise application of a numpy ufunc to its operands."""
     ufunc: np.ufunc
     operands: Tuple["Node", ...]
@@ -99,6 +99,8 @@ class TimeAxisMismatch(ValueError):
 
 def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
+    if isinstance(operand, Op):
+        return operand
     if isinstance(operand, ParameterIndex):
         return Leaf(operand)
     if isinstance(operand, (int, float)):
