@@ -209,6 +209,10 @@ class TestCollect(unittest.TestCase):
         renamed.__spz_name__ = "another_name"
         self.assertEqual(collect(self.index + renamed), [self.index])
 
+    def test_goes_through_a_resample_directive(self):
+        [b1s] = resample([self.index], "1s")
+        self.assertEqual(collect(b1s), [self.index])
+
 
 class TestFetch(unittest.TestCase):
     def test_asks_for_all_products_in_one_call(self):
@@ -337,3 +341,12 @@ class TestResample(unittest.TestCase):
         self.assertIs(n1s.operand.index, n)
         self.assertEqual(b1s.dt, np.timedelta64(1, "s"))
         self.assertEqual(n1s.dt, np.timedelta64(1, "s"))
+
+    def test_resample_nodes_combine_in_an_expression(self):
+        b = ParameterIndex(name="b", provider="cda", uid="b")
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        b1s, n1s = resample([b, n], "1s")
+        op = 10 * b1s / n1s
+        self.assertIs(op.operands[0].operands[1], b1s)
+        self.assertIs(op.operands[1], n1s)
+        self.assertEqual(repr(op), "10 * resample(cda/b, 1s) / resample(amda/n, 1s)")
