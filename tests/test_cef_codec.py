@@ -227,8 +227,9 @@ class CefRegistration(unittest.TestCase):
         self.assertIs(get_codec("application/x-cef"), codec)
 
     def test_read_only(self):
+        codec, variables = get_codec("cef"), [load(SCALAR, "density")]
         with self.assertRaises(NotImplementedError):
-            get_codec("cef").save_variables([load(SCALAR, "density")])
+            codec.save_variables(variables)
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ Format: ESA DS-QMW-TN-0010 "CEF: Cluster Exchange Format", version 2.0, with the
 metadata dictionary (https://www.cosmos.esa.int/web/csa/documentation).
 """
 import io
-from typing import AnyStr, List, Mapping, Optional, Union
+from typing import AnyStr, List, Mapping
 
 import cefast
 import numpy as np
@@ -24,7 +24,7 @@ _TIMES = ("ISO_TIME", "ISO_TIME_RANGE")
 _NOT_AN_AXIS = ("CHAR",) + _TIMES
 
 
-def _load_file(file: Union[Buffer, str, io.IOBase], cache_remote_files: bool) -> Optional[cefast.CEF]:
+def _load_file(file: Buffer | str | io.IOBase, cache_remote_files: bool) -> cefast.CEF | None:
     kind, content = _resolve_url_type(file, cache_remote_files=cache_remote_files)
     if content is None:
         return None
@@ -49,7 +49,7 @@ def _record_times(time_variable: cefast.Variable) -> np.ndarray:
     return times
 
 
-def _names(cef: cefast.CEF, value) -> Optional[list]:
+def _names(cef: cefast.CEF, value) -> list | None:
     """LABEL_i and REPRESENTATION_i give the names themselves, or the name of a fixed variable holding them."""
     if isinstance(value, str) and value in cef and cef[value].is_nrv:
         return cef[value].values.tolist()
@@ -67,14 +67,14 @@ def _columns(cef: cefast.CEF, variable: cefast.Variable, values: np.ndarray) -> 
                 [f"component_{i}" for i in range(width)])
 
 
-def _depends(variable: cefast.Variable, ndim: int) -> List[Optional[str]]:
+def _depends(variable: cefast.Variable, ndim: int) -> List[str | None]:
     """DEPEND_1 … up to the last one given: axes are positional, so a gap before a later DEPEND still needs one."""
     depends = [variable.attributes.get(f"DEPEND_{dim}") for dim in range(1, ndim)]
     given = [dim for dim, depend in enumerate(depends) if depend is not None]
     return depends[:given[-1] + 1] if given else []
 
 
-def _axis(cef: cefast.CEF, depend: Optional[str], owner: str, dim: int, size: int, keep: np.ndarray) -> VariableAxis:
+def _axis(cef: cefast.CEF, depend: str | None, owner: str, dim: int, size: int, keep: np.ndarray) -> VariableAxis:
     if depend in cef and cef[depend].value_type not in _NOT_AN_AXIS:
         support = cef[depend]
         return VariableAxis(values=support.values if support.is_nrv else support.values[keep], meta=_meta(support),
@@ -82,7 +82,7 @@ def _axis(cef: cefast.CEF, depend: Optional[str], owner: str, dim: int, size: in
     return VariableAxis(values=np.arange(size), name=f"{owner}_index_{dim}")
 
 
-def _time_series(cef: cefast.CEF, name: AnyStr) -> Optional[SpeasyVariable]:
+def _time_series(cef: cefast.CEF, name: AnyStr) -> SpeasyVariable | None:
     variable = cef.get(name)
     time_name = variable.attributes.get("DEPEND_0") if variable is not None else None
     if time_name is None or time_name not in cef or variable.is_nrv or cef[time_name].value_type not in _TIMES:
@@ -104,24 +104,24 @@ def _time_series(cef: cefast.CEF, name: AnyStr) -> Optional[SpeasyVariable]:
 class Cef(CodecInterface):
     """Read-only codec for CEF 2.0 files, the text format of the Cluster Science Archive. Uses CEFast."""
 
-    def load_variables(self, variables: List[AnyStr], file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
-                       **kwargs) -> Optional[Mapping[AnyStr, Optional[SpeasyVariable]]]:
+    def load_variables(self, variables: List[AnyStr], file: Buffer | str | io.IOBase, cache_remote_files=True,
+                       **kwargs) -> Mapping[AnyStr, SpeasyVariable | None] | None:
         cef = _load_file(file, cache_remote_files)
         if cef is None:
             return None
         return {name: _time_series(cef, name) for name in variables}
 
-    def load_variable(self, variable: AnyStr, file: Union[Buffer, str, io.IOBase], cache_remote_files=True,
-                      **kwargs) -> Optional[SpeasyVariable]:
+    def load_variable(self, variable: AnyStr, file: Buffer | str | io.IOBase, cache_remote_files=True,
+                      **kwargs) -> SpeasyVariable | None:
         loaded = self.load_variables([variable], file, cache_remote_files)
         return loaded[variable] if loaded is not None else None
 
-    def list_variables(self, file: Union[Buffer, str, io.IOBase]) -> List[str]:
+    def list_variables(self, file: Buffer | str | io.IOBase) -> List[str]:
         cef = _load_file(file, cache_remote_files=True)
         return [name for name, variable in cef.items() if "DEPEND_0" in variable.attributes and not variable.is_nrv]
 
-    def save_variables(self, variables: List[SpeasyVariable], file: Optional[Union[str, io.IOBase]] = None,
-                       **kwargs) -> Union[bool, Buffer]:
+    def save_variables(self, variables: List[SpeasyVariable], file: str | io.IOBase | None = None,
+                       **kwargs) -> bool | Buffer:
         raise NotImplementedError("Speasy reads CEF files but can't write them")
 
     @property
