@@ -75,7 +75,7 @@ def _depends(variable: cefast.Variable, ndim: int) -> List[Optional[str]]:
 
 
 def _axis(cef: cefast.CEF, depend: Optional[str], owner: str, dim: int, size: int, keep: np.ndarray) -> VariableAxis:
-    if depend is not None and depend in cef and cef[depend].value_type not in _NOT_AN_AXIS:
+    if depend in cef and cef[depend].value_type not in _NOT_AN_AXIS:
         support = cef[depend]
         return VariableAxis(values=support.values if support.is_nrv else support.values[keep], meta=_meta(support),
                             name=depend, is_time_dependent=not support.is_nrv)

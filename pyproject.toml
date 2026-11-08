@@ -34,7 +34,7 @@ classifiers = [
 dependencies = ['PyYAML',
  'appdirs',
  'astropy',
- 'cefast>=0.2.0',
+ 'cefast>=0.2.1',
  'cyclopts>=4.25',
  'diskcache',
  'pysciqlop-cache>=0.3.0,<0.4; sys_platform != "emscripten"',
