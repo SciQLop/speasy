@@ -83,8 +83,9 @@ class CSADeliveryFormat(unittest.TestCase):
         self.assertEqual(delivery_format(SimpleNamespace(), "CDF_ISTP"), "CDF_ISTP")
 
     def test_unknown_format_says_which_ones_exist(self):
+        dataset = SimpleNamespace(is_istp=True)
         with self.assertRaisesRegex(ValueError, "CEF.*CDF_ISTP"):
-            delivery_format(SimpleNamespace(is_istp=True), "NETCDF")
+            delivery_format(dataset, "NETCDF")
 
 
 class CSAEachFormatHasItsOwnCacheAndProxyRequest(unittest.TestCase):
