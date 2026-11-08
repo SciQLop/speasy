@@ -307,6 +307,14 @@ amda = ConfigSection("AMDA",
                          "default": "CDF_ISTP"}
                      )
 
+csa = ConfigSection("CSA",
+                    output_format={
+                        "default": "CEF",
+                        "description": """File format requested to CSA: CEF or CDF_ISTP. CSA serves every dataset as CEF
+and only some as CDF_ISTP, those without CDF_ISTP are always read as CEF. CEF downloads are about twice as fast,
+CSA converts to CDF_ISTP on each request. Each format keeps its own cache entries."""}
+                    )
+
 archive = ConfigSection("ARCHIVE",
                         extra_inventory_lookup_dirs={"default": "",
                                                      "description": """A comma separated list of directory path Archive provider will scann for YAML inventory files.""",

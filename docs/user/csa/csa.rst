@@ -5,13 +5,15 @@ Cluster Science Archive (CSA)
    :maxdepth: 1
 
 The `Cluster Science Archive (CSA) <https://csa.esac.esa.int/csa-web/>`_ provides access to all science and support data
-from the Cluster (2000–2024) and Double Star (2004–2008) missions. Its integration into Speasy exposes all the CSA's public CEF datasets. Those that follow the
+from the Cluster (2000–2024) and Double Star (2004–2008) missions. Its integration into Speasy exposes all the CSA's public datasets.
+CSA stores them as CEF (Cluster Exchange Format) files, and Speasy downloads them as CEF by default, read with
+`CEFast <https://github.com/SciQLop/CEFast>`_. The datasets that follow the
 `ISTP <https://spdf.gsfc.nasa.gov/istp_guide/>`_ (International Solar-Terrestrial Physics) conventions — the bulk of
-the Cluster/Double Star science data — are downloaded as `CDF <https://cdf.gsfc.nasa.gov/>`_ (Common Data Format)
-files. The others, such as the auxiliary datasets (L-star, magnetic footprints, wave spectra), are downloaded as CEF
-(Cluster Exchange Format) files, read with `CEFast <https://github.com/SciQLop/CEFast>`_. Both give the same
-``SpeasyVariable``: time axis, support axes (``DEPEND_1``, ``DEPEND_2``…), column names (``LABEL_1``), units and fill
-values.
+the Cluster/Double Star science data — can also be downloaded as `CDF <https://cdf.gsfc.nasa.gov/>`_ (Common Data
+Format) files, which CSA converts on each request, about twice as slowly. Both give the same ``SpeasyVariable``: time
+axis, support axes (``DEPEND_1``, ``DEPEND_2``…), column names (``LABEL_1``), units and fill values. Only some metadata
+names differ. To get CDF where CSA has it, set ``spz.config.csa.output_format.set("CDF_ISTP")``, or pass
+``output_format="CDF_ISTP"`` to one request.
 
 Basics: Getting data from CSA module
 ------------------------------------

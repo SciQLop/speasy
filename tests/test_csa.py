@@ -3,13 +3,15 @@ import os
 import sys
 import tarfile
 import unittest
+from datetime import datetime
 from types import SimpleNamespace
 
 import numpy as np
 
 import speasy as spz
 from speasy.core.codecs import get_codec
-from speasy.data_providers.csa import _download_variable, _load_variable, delivery_format
+from speasy.data_providers.csa import (_download_variable, _load_variable, cache_entry_name, delivery_format,
+                                       get_parameter_args)
 
 sys.path.insert(0, os.path.dirname(__file__))
 from test_cef_codec import SCALAR  # noqa: E402
@@ -62,14 +64,44 @@ class CSADatasetsOfSeveralInstruments(unittest.TestCase):
 
 
 class CSADeliveryFormat(unittest.TestCase):
-    def test_cdf_istp_where_csa_has_it(self):
-        self.assertEqual(delivery_format(SimpleNamespace(is_istp=True)), "CDF_ISTP")
+    def test_cef_by_default(self):
+        self.assertEqual(spz.config.csa.output_format.default, "CEF")
 
-    def test_cef_for_the_datasets_only_served_as_cef(self):
-        self.assertEqual(delivery_format(SimpleNamespace(is_istp=False)), "CEF")
+    def test_cef_when_asked(self):
+        self.assertEqual(delivery_format(SimpleNamespace(is_istp=True), "CEF"), "CEF")
+
+    def test_cdf_istp_when_asked_and_csa_has_it(self):
+        self.assertEqual(delivery_format(SimpleNamespace(is_istp=True), "CDF_ISTP"), "CDF_ISTP")
+
+    def test_case_does_not_matter(self):
+        self.assertEqual(delivery_format(SimpleNamespace(is_istp=True), "cdf_istp"), "CDF_ISTP")
+
+    def test_cef_when_csa_only_has_cef(self):
+        self.assertEqual(delivery_format(SimpleNamespace(is_istp=False), "CDF_ISTP"), "CEF")
 
     def test_cdf_istp_for_inventories_older_than_the_flag(self):
-        self.assertEqual(delivery_format(SimpleNamespace()), "CDF_ISTP")
+        self.assertEqual(delivery_format(SimpleNamespace(), "CDF_ISTP"), "CDF_ISTP")
+
+    def test_unknown_format_says_which_ones_exist(self):
+        with self.assertRaisesRegex(ValueError, "CEF.*CDF_ISTP"):
+            delivery_format(SimpleNamespace(is_istp=True), "NETCDF")
+
+
+class CSAEachFormatHasItsOwnCacheAndProxyRequest(unittest.TestCase):
+    def test_cdf_istp_keeps_the_cache_entries_written_before_cef_support(self):
+        self.assertEqual(cache_entry_name("csa", "DS/VAR", "2005", output_format="CDF_ISTP"), "csa/DS/VAR/2005")
+
+    def test_cef_has_its_own_cache_entries(self):
+        self.assertEqual(cache_entry_name("csa", "DS/VAR", "2005", output_format="CEF"), "csa/DS/VAR-cef/2005")
+
+    def test_the_data_index_stores_the_format_asked(self):
+        from speasy.data_providers.csa import CsaWebservice
+        self.assertEqual(CsaWebservice.request_options(output_format="cef"), {"output_format": "CEF"})
+        self.assertEqual(CsaWebservice.request_options(), {})
+
+    def test_the_proxy_is_asked_for_the_same_format(self):
+        args = get_parameter_args(datetime(2005, 1, 1), datetime(2005, 1, 2), "DS/VAR", output_format="CEF")
+        self.assertEqual(args["output_format"], "CEF")
 
 
 def _csa_like_archive(content: bytes) -> io.BytesIO:
@@ -117,11 +149,32 @@ class CSALiveCef(unittest.TestCase):
         self.assertEqual(len(v), 120)
         self.assertEqual(v.unit, "unitless")
 
-    def test_cdf_istp_product_still_reads(self):
+    def test_cef_by_default_even_where_csa_has_cdf_istp(self):
         v = spz.get_data("csa/C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN", "2005-01-01T00:00:00",
                          "2005-01-01T02:00:00", disable_cache=True)
         self.assertEqual(v.values.shape, (1737, 3))
         self.assertListEqual(v.columns, ["Bx", "By", "Bz"])
+        self.assertIn("PARAMETER_TYPE", v.meta)  # a CEF attribute
+
+    def test_cdf_istp_on_request(self):
+        v = spz.get_data("csa/C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN", "2005-01-01T00:00:00",
+                         "2005-01-01T02:00:00", disable_cache=True, output_format="CDF_ISTP")
+        self.assertEqual(v.values.shape, (1737, 3))
+        self.assertNotIn("PARAMETER_TYPE", v.meta)
+
+    def test_cdf_istp_from_the_config(self):
+        os.environ[spz.config.csa.output_format.env_var_name] = "CDF_ISTP"
+        try:
+            v = spz.get_data("csa/C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN", "2005-01-01T00:00:00",
+                             "2005-01-01T02:00:00", disable_cache=True)
+        finally:
+            os.environ.pop(spz.config.csa.output_format.env_var_name)
+        self.assertNotIn("PARAMETER_TYPE", v.meta)
+
+    def test_cef_only_product_with_cdf_istp_asked(self):
+        v = spz.get_data("csa/C1_CP_AUX_LSTAR/Lstar_value__C1_CP_AUX_LSTAR", "2005-01-01T00:00:00",
+                         "2005-01-01T02:00:00", disable_cache=True, output_format="CDF_ISTP")
+        self.assertEqual(len(v), 120)
 
     def test_cef_and_cdf_istp_give_the_same_variable(self):
         args = ("https://csa.esac.esa.int/csa-sl-tap/data", "C1_CP_FGM_SPIN", "B_vec_xyz_gse__C1_CP_FGM_SPIN",
