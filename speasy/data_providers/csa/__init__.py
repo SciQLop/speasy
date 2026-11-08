@@ -2,7 +2,6 @@ import io
 import logging
 import tarfile
 from datetime import datetime, timedelta
-from tempfile import TemporaryDirectory
 from typing import Optional, Tuple, Dict
 
 import numpy as np
@@ -51,11 +50,23 @@ def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, s
     return parts[0], parts[1]
 
 
-def register_dataset(instruments, datasets, dataset):
+def _instruments_group(observatories, instruments, names: str):
+    """A dataset made by several instruments goes under one node named after all of them, placed under their
+    common observatory, or under MULTIPLE when they span several."""
+    key = ", ".join(sorted(name.strip() for name in names.split(",")))
+    if key not in instruments:
+        homes = {getattr(instruments.get(name), 'observatories', 'MULTIPLE') for name in key.split(", ")}
+        register_instrument(observatories, instruments,
+                            {'name': key, 'observatories': homes.pop() if len(homes) == 1 else 'MULTIPLE'})
+    return instruments[key]
+
+
+def register_dataset(observatories, instruments, datasets, dataset):
     meta = dict(dataset)
     meta['stop_date'] = meta.pop('end_date')
     name = fix_name(meta['dataset_id'])
-    node = make_inventory_node(instruments[dataset['instruments']], DatasetIndex, name=name,
+    parent = instruments.get(dataset['instruments']) or _instruments_group(observatories, instruments, dataset['instruments'])
+    node = make_inventory_node(parent, DatasetIndex, name=name,
                                provider="csa",
                                uid=meta['dataset_id'], **_only_primitive_types(meta))
     datasets[meta['dataset_id']] = node
@@ -108,8 +119,7 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     missions_req = tap.query(tapurl, "SELECT * FROM csa.v_mission")
     observatories_req = tap.query(tapurl, "SELECT * FROM csa.v_observatory")
     instruments_req = tap.query(tapurl, "SELECT * FROM csa.v_instrument")
-    datasets_req = tap.query(tapurl,
-        "SELECT * FROM csa.v_dataset WHERE  dataset_id like '%GRMB' OR (is_cef='true' AND is_istp='true')")
+    datasets_req = tap.query(tapurl, "SELECT * FROM csa.v_dataset WHERE dataset_id like '%GRMB' OR is_cef='true'")
     parameters_req = tap.query(tapurl, "SELECT * FROM csa.v_parameter WHERE data_type='Data' AND value_type<>'CHAR'")
     missions = {}
     observatories = {}
@@ -122,21 +132,45 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     for instrument in instruments_req:
         register_instrument(observatories, instruments, instrument)
     for dataset in datasets_req:
-        register_dataset(instruments, datasets, dataset)
+        register_dataset(observatories, instruments, datasets, dataset)
     for parameter in parameters_req:
         register_param(datasets, parameter)
 
     return root
 
 
-def _load_variable(archive: io.BytesIO, variable: str, cdf_codec: CodecInterface) -> Optional[SpeasyVariable]:
+# CSA serves every dataset as CEF and some of them as CDF_ISTP too: those keep CDF_ISTP, as before CEF support.
+_CODECS = {"CDF_ISTP": "application/x-cdf", "CEF": "application/x-cef"}
+
+
+def delivery_format(dataset: DatasetIndex) -> str:
+    # inventories built before the CEF codec carry no is_istp flag, and list only CDF_ISTP datasets
+    return "CDF_ISTP" if getattr(dataset, "is_istp", True) else "CEF"
+
+
+def _load_variable(archive: io.IOBase, variable: str, codec: CodecInterface) -> Optional[SpeasyVariable]:
     with tarfile.open(fileobj=archive) as tar:
-        tarname = tar.getnames()
-        if len(tarname):
-            with TemporaryDirectory() as tmp_dir:
-                tar.extractall(tmp_dir)
-                return cdf_codec.load_variable(file=f"{tmp_dir}/{tarname[0]}", variable=variable)
-    return None
+        member = next((member for member in tar.getmembers() if member.isfile()), None)
+        if member is None:
+            return None
+        return codec.load_variable(file=tar.extractfile(member).read(), variable=variable)
+
+
+def _download_variable(url: str, dataset: str, variable: str, start_time: datetime, stop_time: datetime,
+                       delivery_format: str, extra_http_headers: Optional[Dict[str, str]] = None) \
+        -> Optional[SpeasyVariable]:
+    # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
+    archive = any_files.any_loc_open(
+        build_url(base=url, parameters={
+            "RETRIEVAL_TYPE": "product",
+            "DATASET_ID": dataset,
+            "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "DELIVERY_FORMAT": delivery_format,
+            "DELIVERY_INTERVAL": "all"
+        }),
+        headers=dict(extra_http_headers or {}))
+    return _load_variable(archive, variable, get_codec(_CODECS[delivery_format]))
 
 
 def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
@@ -152,7 +186,6 @@ class CsaWebservice(DataProvider):
     def __init__(self):
         DataProvider.__init__(self)
         self.__url = f"{self.BASE_URL}/csa-sl-tap/data"
-        self._cdf_codec = get_codec("application/x-cdf")
 
     @staticmethod
     def is_server_up():
@@ -167,27 +200,12 @@ class CsaWebservice(DataProvider):
                      dataset: str, variable: str,
                      start_time: datetime, stop_time: datetime, extra_http_headers: Dict[str, str] or None = None) -> \
             Optional[SpeasyVariable]:
-
-        # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
         ds_range = self._dataset_range(dataset)
         if not ds_range.intersect(DateTimeRange(start_time, stop_time)):
             log.warning(f"You are requesting {dataset}/{variable} outside of its definition range {ds_range}")
             return None
-        headers = {}
-        if extra_http_headers is not None:
-            headers.update(extra_http_headers)
-        return _load_variable(
-            any_files.any_loc_open(
-                build_url(base=self.__url, parameters={
-                    "RETRIEVAL_TYPE": "product",
-                    "DATASET_ID": dataset,
-                    "START_DATE": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                    "END_DATE": stop_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                    "DELIVERY_FORMAT": "CDF_ISTP",
-                    "DELIVERY_INTERVAL": "all"
-                }),
-                headers=headers),
-            variable, cdf_codec=self._cdf_codec)
+        return _download_variable(self.__url, dataset, variable, start_time, stop_time,
+                                  delivery_format(self.flat_inventory.datasets[dataset]), extra_http_headers)
 
     @staticmethod
     def build_inventory(root: SpeasyIndex):
