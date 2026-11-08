@@ -1,6 +1,11 @@
 name: wasm_tests.yml
 on: [push, pull_request]
 
+# a new push to the same PR or branch cancels the run it makes obsolete; main keeps a run per commit
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   build-wheel:
     runs-on: ubuntu-latest
