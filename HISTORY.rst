@@ -5,6 +5,15 @@ History
 Unreleased
 ----------
 
+New features:
+
+* A CEF (Cluster Exchange Format) codec, built on `CEFast <https://github.com/SciQLop/CEFast>`_:
+  ``get_codec("cef")`` reads CEF 2.0 files, with their support axes (``DEPEND_i``), column names (``LABEL_i`` or
+  ``REPRESENTATION_i``), units and fill values. CEF attributes are also given their ISTP names (``DISPLAY_TYPE``,
+  ``VAR_TYPE``, ``SI_conversion``), so plots work as for CDF files.
+* CSA: the 1081 datasets the archive only serves as CEF are now listed and readable (auxiliary data, magnetic
+  footprints, L-star, MAARBLE wave products…). Datasets also served as CDF are still read from CDF.
+
 Bug fixes:
 
 * CDPP 3DView: when its list of coordinate frames could not be fetched, ``get_data`` silently replaced
