@@ -8,3 +8,4 @@ except ImportError:  # pragma: no cover - platform-specific (WASM has no netCDF4
     pass
 from .hapi.csv import HapiCsv  # noqa: F401
 from .hapi.binary import HapiBinary  # noqa: F401
+from .cef import Cef  # noqa: F401
