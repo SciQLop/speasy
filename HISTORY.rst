@@ -12,7 +12,11 @@ New features:
   ``REPRESENTATION_i``), units and fill values. CEF attributes are also given their ISTP names (``DISPLAY_TYPE``,
   ``VAR_TYPE``, ``SI_conversion``), so plots work as for CDF files.
 * CSA: the 1081 datasets the archive only serves as CEF are now listed and readable (auxiliary data, magnetic
-  footprints, L-star, MAARBLE wave products…). Datasets also served as CDF are still read from CDF.
+  footprints, L-star, MAARBLE wave products…).
+* CSA: data is downloaded as CEF by default, about twice as fast as CDF, which CSA converts on each request.
+  ``spz.config.csa.output_format`` or ``output_format="CDF_ISTP"`` on a request switches back to CDF for the datasets
+  CSA serves as CDF. Each format keeps its own cache entries: data cached from CDF before is downloaded again as CEF.
+  CSA requests skip proxies older than 0.27.0, whose speasy can't take the format.
 
 Bug fixes:
 

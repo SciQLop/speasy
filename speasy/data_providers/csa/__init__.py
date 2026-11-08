@@ -4,6 +4,8 @@ import tarfile
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Dict
 
+from packaging.version import Version
+
 import numpy as np
 
 from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime, tap
@@ -15,6 +17,7 @@ from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import ParameterIndex, DatasetIndex, SpeasyIndex, make_inventory_node
 from speasy.core.proxy import Proxyfiable, GetProduct, PROXY_ALLOWED_KWARGS
 from speasy.core.requests_scheduling import SplitLargeRequests
+from speasy.config import csa as csa_cfg
 from speasy.core.url_utils import build_url
 from speasy.products.variable import SpeasyVariable
 
@@ -139,13 +142,25 @@ def build_inventory(root: SpeasyIndex, tapurl="https://csa.esac.esa.int/csa-sl-t
     return root
 
 
-# CSA serves every dataset as CEF and some of them as CDF_ISTP too: those keep CDF_ISTP, as before CEF support.
-_CODECS = {"CDF_ISTP": "application/x-cdf", "CEF": "application/x-cef"}
+_CODECS = {"CEF": "application/x-cef", "CDF_ISTP": "application/x-cdf"}
+
+# simplify: speasy skips older proxies for CSA, their speasy rejects output_format. Lower it once they're gone.
+CSA_MIN_PROXY_VERSION = Version("0.27.0")
 
 
-def delivery_format(dataset: DatasetIndex) -> str:
+def delivery_format(dataset: DatasetIndex, requested: str) -> str:
+    """CSA serves every dataset as CEF, and some of them as CDF_ISTP too."""
+    requested = requested.upper()
+    if requested not in _CODECS:
+        raise ValueError(f"CSA can't deliver {requested}, choose one of {', '.join(_CODECS)}")
     # inventories built before the CEF codec carry no is_istp flag, and list only CDF_ISTP datasets
-    return "CDF_ISTP" if getattr(dataset, "is_istp", True) else "CEF"
+    return requested if requested == "CEF" or getattr(dataset, "is_istp", True) else "CEF"
+
+
+def cache_entry_name(prefix: str, product: str, start_time: str, output_format: str, **kwargs) -> str:
+    # CDF_ISTP keeps the entries cached before CEF support
+    suffix = "" if output_format == "CDF_ISTP" else "-cef"
+    return f"{prefix}/{product}{suffix}/{start_time}"
 
 
 def _load_variable(archive: io.IOBase, variable: str, codec: CodecInterface) -> Optional[SpeasyVariable]:
@@ -173,15 +188,20 @@ def _download_variable(url: str, dataset: str, variable: str, start_time: dateti
     return _load_variable(archive, variable, get_codec(_CODECS[delivery_format]))
 
 
-def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, **kwargs):
+def get_parameter_args(start_time: datetime, stop_time: datetime, product: str, output_format: str, **kwargs):
     return {'path': f"csa/{product}", 'start_time': f'{start_time.isoformat()}',
-            'stop_time': f'{stop_time.isoformat()}'}
+            'stop_time': f'{stop_time.isoformat()}', 'output_format': output_format}
 
 
 @register_provider
 class CsaWebservice(DataProvider):
     NAME = 'csa'
     BASE_URL = "https://csa.esac.esa.int"
+
+    @classmethod
+    def request_options(cls, output_format: Optional[str] = None, **kwargs) -> dict:
+        # only what the caller passed counts, the config default differs between machines (same rule as AMDA)
+        return {} if output_format is None else {'output_format': output_format.upper()}
 
     def __init__(self):
         DataProvider.__init__(self)
@@ -198,14 +218,14 @@ class CsaWebservice(DataProvider):
 
     def _dl_variable(self,
                      dataset: str, variable: str,
-                     start_time: datetime, stop_time: datetime, extra_http_headers: Dict[str, str] or None = None) -> \
-            Optional[SpeasyVariable]:
+                     start_time: datetime, stop_time: datetime, output_format: str,
+                     extra_http_headers: Dict[str, str] or None = None) -> Optional[SpeasyVariable]:
         ds_range = self._dataset_range(dataset)
         if not ds_range.intersect(DateTimeRange(start_time, stop_time)):
             log.warning(f"You are requesting {dataset}/{variable} outside of its definition range {ds_range}")
             return None
-        return _download_variable(self.__url, dataset, variable, start_time, stop_time,
-                                  delivery_format(self.flat_inventory.datasets[dataset]), extra_http_headers)
+        return _download_variable(self.__url, dataset, variable, start_time, stop_time, output_format,
+                                  extra_http_headers)
 
     @staticmethod
     def build_inventory(root: SpeasyIndex):
@@ -273,17 +293,25 @@ class CsaWebservice(DataProvider):
         dataset, _ = to_dataset_and_variable(product)
         return self.flat_inventory.datasets[dataset].date_last_update
 
-    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS)
+    def get_data(self, product, start_time: datetime, stop_time: datetime, output_format: Optional[str] = None,
+                 **kwargs) -> Optional[SpeasyVariable]:
+        """output_format: CEF or CDF_ISTP, defaults to speasy.config.csa.output_format. Datasets CSA doesn't serve
+        as CDF_ISTP are read as CEF."""
+        dataset, _ = to_dataset_and_variable(product)
+        output_format = delivery_format(self.flat_inventory.datasets[dataset], output_format or csa_cfg.output_format())
+        return self._get_data(product, start_time, stop_time, output_format=output_format, **kwargs)
+
+    @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format'])
     @EnsureUTCDateTime()
     @ParameterRangeCheck()
-    @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update)
+    @Cacheable(prefix="csa", fragment_hours=lambda x: 12, version=product_last_update, entry_name=cache_entry_name)
     @SplitLargeRequests(threshold=lambda x: timedelta(days=7))
-    @Proxyfiable(GetProduct, get_parameter_args)
-    def get_data(self, product, start_time: datetime, stop_time: datetime,
-                 extra_http_headers: Dict[str, str] or None = None):
+    @Proxyfiable(GetProduct, get_parameter_args, min_version=CSA_MIN_PROXY_VERSION)
+    def _get_data(self, product, start_time: datetime, stop_time: datetime, output_format: str,
+                  extra_http_headers: Dict[str, str] or None = None):
         dataset, variable = to_dataset_and_variable(product)
-        return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset,
-                                 variable=variable, extra_http_headers=extra_http_headers)
+        return self._dl_variable(start_time=start_time, stop_time=stop_time, dataset=dataset, variable=variable,
+                                 output_format=output_format, extra_http_headers=extra_http_headers)
 
     def get_variable(self, dataset: str, variable: str, start_time: datetime or str, stop_time: datetime or str,
                      **kwargs) -> \
