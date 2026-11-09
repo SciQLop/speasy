@@ -389,6 +389,46 @@ class TestEvaluate(unittest.TestCase):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         self.assertEqual(result.meta, {"CATDESC": "B field"})
 
+    def test_result_drops_units_when_operands_disagree(self):
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 2, 3], meta={"UNITS": "nT"})
+        n = _make_variable([2, 4, 8], meta={"UNITS": "cm-3"})
+        with mock.patch("speasy.get_data", return_value=[b, n]):
+            result = evaluate(self.index / n_index, "2016-10-10", "2016-10-11")
+        self.assertNotIn("UNITS", result.meta)
+
+    def test_result_units(self):
+        b = self.index
+        b2 = ParameterIndex(name="b2", provider="amda", uid="b2")
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        units = {b.spz_uid(): "nT", b2.spz_uid(): "nT", n.spz_uid(): "cm-3"}
+
+        def get_data(indexes, start, stop):
+            return [_make_variable([1, 2, 4], meta={"UNITS": units[index.spz_uid()]}) for index in indexes]
+
+        cases = [
+            (b + b2, "nT"),
+            (b - b2, "nT"),
+            (b + 1, "nT"),
+            (10 * b, "nT"),
+            (b * 10, "nT"),
+            (b / 10, "nT"),
+            (Op(np.negative, (Leaf(b),)), "nT"),
+            (Op(np.absolute, (Leaf(b),)), "nT"),
+            (resample([n], "1h")[0], "cm-3"),
+            (interpolate(b, [n])[0], "cm-3"),
+            (10 / b, None),
+            (b * b2, None),
+            (b / b2, None),
+            (b + n, None),
+            (Op(np.power, (Leaf(b), Const(2))), None),
+        ]
+        for expression, expected in cases:
+            with self.subTest(expression=expression):
+                with mock.patch("speasy.get_data", side_effect=get_data):
+                    result = evaluate(expression, "2016-10-10", "2016-10-10T02:00")
+                self.assertEqual(result.meta.get("UNITS"), expected)
+
 
 class TestRegisteredExpression(unittest.TestCase):
     def setUp(self):

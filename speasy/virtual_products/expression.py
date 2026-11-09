@@ -250,14 +250,39 @@ def walk(node, data, start, stop):
     raise TypeError(f"Cannot walk {node!r}: not an expression node")
 
 
+_UNIT_PRESERVING_UFUNCS = (np.add, np.subtract, np.negative, np.absolute)
+
+
+def _is_scaling(node):
+    """True for 10 * B, B * 10 or B / 10: a constant factor leaves the unit unchanged."""
+    left, right = node.operands
+    if node.ufunc is np.multiply:
+        return isinstance(left, Const) or isinstance(right, Const)
+    return node.ufunc is np.divide and isinstance(right, Const)
+
+
+def _units(node, data):
+    """The unit of a node's values, or None when it can't be stated without unit algebra."""
+    if isinstance(node, Leaf):
+        return data[_leaf_key(node.index)].meta.get("UNITS")
+    if isinstance(node, (Resample, Interpolate)):
+        return _units(node.operand, data)
+    if isinstance(node, Op) and (node.ufunc in _UNIT_PRESERVING_UFUNCS or _is_scaling(node)):
+        units = {_units(operand, data) for operand in node.operands if not isinstance(operand, Const)}
+        return units.pop() if len(units) == 1 else None
+    return None
+
+
 _STALE_METADATA = ("FILLVAL", "VALIDMIN", "VALIDMAX")
 
 
-def finalise(result, node, name=None):
+def finalise(result, node, data, name=None):
     """Name the result and drop the metadata that no longer describes its values."""
     final = result.copy(name=name or repr(node))
     for key in _STALE_METADATA:
         final.meta.pop(key, None)
+    if _units(node, data) is None:
+        final.meta.pop("UNITS", None)
     return final
 
 
@@ -269,5 +294,5 @@ def evaluate(node, start, stop, name=None):
     if data is None:
         return None
     result = walk(node, data, start, stop)
-    named = finalise(result, node, name)
+    named = finalise(result, node, data, name)
     return named
