@@ -15,7 +15,7 @@ from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
-from .expression import Const, Leaf, Node, Op, evaluate
+from .expression import Node, evaluate
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
@@ -177,7 +177,7 @@ def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
 
 def _as_callback(product: Union[Callable, Node], name: str) -> Callable:
     """An expression becomes the callback(start_time, stop_time) that evaluates it; a function is kept."""
-    if isinstance(product, (Leaf, Const, Op)):
+    if isinstance(product, Node):
         def evaluate_expression(start_time, stop_time):
             return evaluate(product, start_time, stop_time, name=name)
         return evaluate_expression
