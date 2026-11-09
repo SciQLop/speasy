@@ -140,7 +140,9 @@ def make_op(ufunc, *operands):
 
 
 def parse_dt(dt):
-    """The time step as a duration: '1s' gives np.timedelta64(1, 's')."""
+    """The time step as a duration: a number is in seconds, '1s' gives np.timedelta64(1, 's')."""
+    if isinstance(dt, (int, float)):
+        return pds.Timedelta(seconds=dt).to_timedelta64()
     return pds.Timedelta(dt).to_timedelta64()
 
 
