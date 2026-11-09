@@ -416,6 +416,28 @@ class TestRegisteredExpression(unittest.TestCase):
             np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
             self.assertEqual(result.name, "virtual/test/ratio")
 
+    def test_a_lone_resample_can_be_registered(self):
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        [b_1h] = resample([self.index], "1h")
+        register_virtual_product("virtual/test/b_1h", b_1h)
+        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+            fake_spz.get_data.return_value = [b]
+            result = spz.get_data("virtual/test/b_1h", "2016-10-10", "2016-10-10T02:00")
+        np.testing.assert_allclose(result.values, [[1.], [6.]])
+        self.assertEqual(result.name, "virtual/test/b_1h")
+
+    def test_a_lone_interpolate_can_be_registered(self):
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        n = _make_variable([2, 4, 8])
+        [n_on_b] = interpolate(self.index, [n_index])
+        register_virtual_product("virtual/test/n_on_b", n_on_b)
+        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+            fake_spz.get_data.return_value = [b, n]
+            result = spz.get_data("virtual/test/n_on_b", "2016-10-10", "2016-10-10T02:00")
+        np.testing.assert_allclose(result.values, [[2.], [3.], [4.], [6.]])
+        self.assertEqual(result.name, "virtual/test/n_on_b")
+
 
 @ddt
 class TestResample(unittest.TestCase):
