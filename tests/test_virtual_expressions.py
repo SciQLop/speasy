@@ -528,6 +528,13 @@ class TestResample(unittest.TestCase):
     def test_string_becomes_a_timedelta(self, text, expected):
         self.assertEqual(parse_dt(text), expected)
 
+    @data((1.5, np.timedelta64(1500, "ms")),
+          (2, np.timedelta64(2, "s")),
+          (np.timedelta64(1, "s"), np.timedelta64(1, "s")))
+    @unpack
+    def test_number_is_in_seconds_and_timedelta_is_accepted(self, dt, expected):
+        self.assertEqual(parse_dt(dt), expected)
+
     def test_invalid_value_raises(self):
         with self.assertRaises(ValueError):
             parse_dt("not a duration")
