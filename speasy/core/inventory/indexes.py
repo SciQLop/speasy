@@ -44,10 +44,10 @@ class SpeasyIndex:
         return f'<SpeasyIndex: {self.spz_name()}>'
 
 
-def _make_op(ufunc, left, right):
+def _make_op(ufunc, *operands):
     """Deferred import: this module is loaded before speasy.virtual_products."""
     from speasy.virtual_products.expression import make_op
-    return make_op(ufunc, left, right)
+    return make_op(ufunc, *operands)
 
 
 class ExpressionOperators:
@@ -76,6 +76,15 @@ class ExpressionOperators:
 
     def __rtruediv__(self, other):
         return _make_op(np.divide, other, self)
+
+    def __pow__(self, other):
+        return _make_op(np.power, self, other)
+
+    def __neg__(self):
+        return _make_op(np.negative, self)
+
+    def __abs__(self):
+        return _make_op(np.absolute, self)
 
 
 class TimetableIndex(SpeasyIndex):
