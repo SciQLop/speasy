@@ -250,9 +250,15 @@ def walk(node, data, start, stop):
     raise TypeError(f"Cannot walk {node!r}: not an expression node")
 
 
+_STALE_METADATA = ("FILLVAL", "VALIDMIN", "VALIDMAX")
+
+
 def finalise(result, node, name=None):
-    """Name the result after its registered name, or else after the expression."""
-    return result.copy(name=name or repr(node))
+    """Name the result and drop the metadata that no longer describes its values."""
+    final = result.copy(name=name or repr(node))
+    for key in _STALE_METADATA:
+        final.meta.pop(key, None)
+    return final
 
 
 def evaluate(node, start, stop, name=None):

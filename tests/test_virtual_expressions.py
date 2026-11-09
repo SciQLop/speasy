@@ -18,12 +18,12 @@ from tests.test_virtual_products import _reset_registry
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
 
 
-def _make_variable(values, start=_T0, step=np.timedelta64(1, "h")):
+def _make_variable(values, start=_T0, step=np.timedelta64(1, "h"), meta=None):
     """Synthetic SpeasyVariable: the given values, one point per step from start."""
     values = np.asarray(values, dtype=float)
     time = start + np.arange(len(values)) * step
     return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
-                          values=DataContainer(values=values, meta=None),
+                          values=DataContainer(values=values, meta=meta),
                           columns=["Values"])
 
 
@@ -381,6 +381,13 @@ class TestEvaluate(unittest.TestCase):
         get_data.assert_called_once_with([self.index, n_index], "2016-10-10", "2016-10-10T02:00")
         np.testing.assert_array_equal(result.time, b.time)
         np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
+
+    def test_result_drops_fill_and_valid_range_metadata(self):
+        b = _make_variable([1, 2, 3], meta={"CATDESC": "B field", "FILLVAL": -1e31,
+                                            "VALIDMIN": 0, "VALIDMAX": 100})
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
+        self.assertEqual(result.meta, {"CATDESC": "B field"})
 
 
 class TestRegisteredExpression(unittest.TestCase):
