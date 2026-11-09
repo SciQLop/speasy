@@ -402,6 +402,20 @@ class TestRegisteredExpression(unittest.TestCase):
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
 
+    def test_two_cadences_expression_is_served_under_its_name(self):
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        n = _make_variable([2, 4, 8])
+        b_30m, n_30m = resample([self.index, n_index], "30min")
+        product = register_virtual_product("virtual/test/ratio", 10 * b_30m / n_30m)
+        start, stop = "2016-10-10", "2016-10-10T02:00"
+        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+            fake_spz.get_data.return_value = [b, n]
+            results = [spz.get_data("virtual/test/ratio", start, stop), product(start, stop)]
+        for result in results:
+            np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
+            self.assertEqual(result.name, "virtual/test/ratio")
+
 
 @ddt
 class TestResample(unittest.TestCase):
