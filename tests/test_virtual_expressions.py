@@ -292,6 +292,25 @@ class TestWalk(unittest.TestCase):
         np.testing.assert_allclose(walk(b1h, data, start, stop).values, [[1.], [2.], [3.]])
         np.testing.assert_allclose(walk(n1h, data, start, stop).values, [[1.], [1.5], [2.5]])
 
+    def test_interpolate_puts_the_product_on_the_time_axis_of_the_reference(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([10, 20, 30], start=_T0 + np.timedelta64(30, "m"))
+        data = {("cda", "b"): b, ("amda", "n"): _make_variable([1, 2, 3, 4])}
+        [n_on_b] = interpolate(b_index, [n_index])
+        result = walk(n_on_b, data, _T0, _T0 + np.timedelta64(4, "h"))
+        np.testing.assert_array_equal(result.time, b.time)
+        np.testing.assert_allclose(result.values, [[1.5], [2.5], [3.5]])
+
+    def test_interpolated_product_combines_with_its_reference(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([10, 20, 30], start=_T0 + np.timedelta64(30, "m"))
+        data = {("cda", "b"): b, ("amda", "n"): _make_variable([1, 2, 3, 4])}
+        [n_on_b] = interpolate(b_index, [n_index])
+        result = walk(b_index + n_on_b, data, _T0, _T0 + np.timedelta64(4, "h"))
+        np.testing.assert_allclose(result.values, [[11.5], [22.5], [33.5]])
+
 
 class TestEvaluate(unittest.TestCase):
     def setUp(self):
@@ -389,3 +408,13 @@ class TestInterpolate(unittest.TestCase):
         n = ParameterIndex(name="n", provider="amda", uid="n")
         [n_on_b] = interpolate(b, [n])
         self.assertEqual(repr(n_on_b), "interpolate(cda/b, amda/n)")
+
+    def test_node_on_the_left_builds_an_op(self):
+        b = ParameterIndex(name="b", provider="cda", uid="b")
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        [n_on_b] = interpolate(b, [n])
+        op = n_on_b + b
+        self.assertIs(op.ufunc, np.add)
+        left, right = op.operands
+        self.assertIs(left, n_on_b)
+        self.assertIs(right.index, b)

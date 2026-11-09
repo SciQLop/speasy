@@ -229,6 +229,10 @@ def walk(node, data, start, stop):
         variable = walk(node.operand, data, start, stop)
         grid = resampling.generate_time_vector(start, stop, node.dt)
         return resampling.interpolate(grid, variable)
+    if isinstance(node, Interpolate):
+        reference = walk(node.ref, data, start, stop)
+        variable = walk(node.operand, data, start, stop)
+        return resampling.interpolate(reference, variable)
     if isinstance(node, Op):
         operands = [walk(operand, data, start, stop) for operand in node.operands]
         variables = [operand for operand in operands if isinstance(operand, SpeasyVariable)]
