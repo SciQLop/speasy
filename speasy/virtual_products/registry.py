@@ -175,11 +175,11 @@ def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
     return node
 
 
-def _as_callback(product: Union[Callable, Node]) -> Callable:
+def _as_callback(product: Union[Callable, Node], name: str) -> Callable:
     """An expression becomes the callback(start_time, stop_time) that evaluates it; a function is kept."""
     if isinstance(product, (Leaf, Const, Op)):
         def evaluate_expression(start_time, stop_time):
-            return evaluate(product, start_time, stop_time)
+            return evaluate(product, start_time, stop_time, name=name)
         return evaluate_expression
     return product
 
@@ -198,7 +198,7 @@ def register_virtual_product(path: str, *args: Union[Callable, Node], meta: Opti
     """
     uid = _path_to_uid(path)
     if args:
-        return _register(uid, _as_callback(args[0]), meta, labels)
+        return _register(uid, _as_callback(args[0], f"virtual/{uid}"), meta, labels)
 
     def decorator(callback: Callable) -> VirtualProduct:
         return _register(uid, callback, meta, labels)
