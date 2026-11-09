@@ -103,7 +103,17 @@ class Resample(ExpressionOperators):
         return f"resample({self.operand!r}, {seconds:g}s)"
 
 
-Node = Union[Leaf, Const, Op, Resample]
+@dataclass(frozen=True, eq=False)
+class Interpolate(ExpressionOperators):
+    """Directive: compute the operand on the time axis of ref."""
+    operand: "Node"
+    ref: "Node"
+
+    def __repr__(self):
+        return f"interpolate({self.ref!r}, {self.operand!r})"
+
+
+Node = Union[Leaf, Const, Op, Resample, Interpolate]
 
 
 class TimeAxisMismatch(ValueError):
@@ -112,7 +122,7 @@ class TimeAxisMismatch(ValueError):
 
 def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
-    if isinstance(operand, (Op, Resample)):
+    if isinstance(operand, (Op, Resample, Interpolate)):
         return operand
     if isinstance(operand, ParameterIndex):
         return Leaf(operand)
@@ -138,6 +148,12 @@ def resample(products, dt):
     """One Resample node per product, all with the same time step."""
     step = parse_dt(dt)
     return [Resample(_as_node(product), step) for product in products]
+
+
+def interpolate(ref, products):
+    """One Interpolate node per product, all on the time axis of ref."""
+    reference = _as_node(ref)
+    return [Interpolate(_as_node(product), reference) for product in products]
 
 
 def _leaf_key(index):
