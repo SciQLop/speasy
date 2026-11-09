@@ -18,10 +18,10 @@ from tests.test_virtual_products import _reset_registry
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
 
 
-def _make_variable(values, start=_T0):
-    """Synthetic SpeasyVariable: the given values, one point per hour from start."""
+def _make_variable(values, start=_T0, step=np.timedelta64(1, "h")):
+    """Synthetic SpeasyVariable: the given values, one point per step from start."""
     values = np.asarray(values, dtype=float)
-    time = start + np.arange(len(values)) * np.timedelta64(1, "h")
+    time = start + np.arange(len(values)) * step
     return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
                           values=DataContainer(values=values, meta=None),
                           columns=["Values"])
@@ -359,6 +359,28 @@ class TestEvaluate(unittest.TestCase):
         with mock.patch("speasy.get_data", return_value=[None]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         self.assertIsNone(result)
+
+    def test_two_cadences_with_resample(self):
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        n = _make_variable([2, 4, 8])
+        b_30m, n_30m = resample([self.index, n_index], "30min")
+        with mock.patch("speasy.get_data", return_value=[b, n]) as get_data:
+            result = evaluate(10 * b_30m / n_30m, "2016-10-10", "2016-10-10T02:00")
+        get_data.assert_called_once_with([self.index, n_index], "2016-10-10", "2016-10-10T02:00")
+        np.testing.assert_array_equal(result.time, b.time)
+        np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
+
+    def test_two_cadences_with_interpolate(self):
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        n = _make_variable([2, 4, 8])
+        [n_on_b] = interpolate(self.index, [n_index])
+        with mock.patch("speasy.get_data", return_value=[b, n]) as get_data:
+            result = evaluate(10 * self.index / n_on_b, "2016-10-10", "2016-10-10T02:00")
+        get_data.assert_called_once_with([self.index, n_index], "2016-10-10", "2016-10-10T02:00")
+        np.testing.assert_array_equal(result.time, b.time)
+        np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
 
 
 class TestRegisteredExpression(unittest.TestCase):
