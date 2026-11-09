@@ -12,7 +12,7 @@ from speasy.core.inventory.indexes import ParameterIndex
 from speasy.virtual_products import interpolate, register_virtual_product, resample
 from speasy.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
                                                  collect, evaluate, fetch, parse_dt, walk)
-from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
+from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
@@ -25,6 +25,15 @@ def _make_variable(values, start=_T0):
     return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
                           values=DataContainer(values=values, meta=None),
                           columns=["Values"])
+
+
+def _make_3d_variable():
+    """Synthetic 3-D SpeasyVariable: time x energy x angle."""
+    time = _T0 + np.arange(3) * np.timedelta64(1, "h")
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                VariableAxis(values=np.arange(4.), name="energy"),
+                                VariableAxis(values=np.arange(2.), name="angle")],
+                          values=DataContainer(values=np.ones((3, 4, 2)), meta=None))
 
 
 class TestNodes(unittest.TestCase):
@@ -310,6 +319,21 @@ class TestWalk(unittest.TestCase):
         [n_on_b] = interpolate(b_index, [n_index])
         result = walk(b_index + n_on_b, data, _T0, _T0 + np.timedelta64(4, "h"))
         np.testing.assert_allclose(result.values, [[11.5], [22.5], [33.5]])
+
+    def test_resampling_a_3d_variable_is_not_supported(self):
+        s_index = ParameterIndex(name="s", provider="cda", uid="s")
+        data = {("cda", "s"): _make_3d_variable()}
+        [s1h] = resample([s_index], "1h")
+        with self.assertRaisesRegex(ValueError, "not supported"):
+            walk(s1h, data, _T0, _T0 + np.timedelta64(3, "h"))
+
+    def test_interpolating_a_3d_variable_is_not_supported(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        s_index = ParameterIndex(name="s", provider="amda", uid="s")
+        data = {("cda", "b"): _make_variable([1, 2, 3]), ("amda", "s"): _make_3d_variable()}
+        [s_on_b] = interpolate(b_index, [s_index])
+        with self.assertRaisesRegex(ValueError, "not supported"):
+            walk(s_on_b, data, _T0, _T0 + np.timedelta64(3, "h"))
 
 
 class TestEvaluate(unittest.TestCase):

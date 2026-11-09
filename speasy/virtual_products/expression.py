@@ -219,6 +219,14 @@ def _time_axis_mismatch_message(node, data):
             '  b, n = speasy.virtual_products.resample([B, N], "1s")')
 
 
+def _interpolate_checked(ref, variable, node):
+    """Interpolate a variable on ref, refusing more than two dimensions with a clear error."""
+    ndim = variable.values.ndim
+    if ndim > 2:
+        raise ValueError(f"Cannot compute {node!r}: interpolating a {ndim}-D variable is not supported")
+    return resampling.interpolate(ref, variable)
+
+
 def walk(node, data, start, stop):
     """Compute an expression tree from the already fetched data."""
     if isinstance(node, Leaf):
@@ -228,11 +236,11 @@ def walk(node, data, start, stop):
     if isinstance(node, Resample):
         variable = walk(node.operand, data, start, stop)
         grid = resampling.generate_time_vector(start, stop, node.dt)
-        return resampling.interpolate(grid, variable)
+        return _interpolate_checked(grid, variable, node)
     if isinstance(node, Interpolate):
         reference = walk(node.ref, data, start, stop)
         variable = walk(node.operand, data, start, stop)
-        return resampling.interpolate(reference, variable)
+        return _interpolate_checked(reference, variable, node)
     if isinstance(node, Op):
         operands = [walk(operand, data, start, stop) for operand in node.operands]
         variables = [operand for operand in operands if isinstance(operand, SpeasyVariable)]
