@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pds
 
 import speasy as spz
-from speasy.core.inventory.indexes import ExpressionOperators, ParameterIndex, SpeasyIndex
+from speasy.core.inventory.indexes import ComponentIndex, ExpressionOperators, ParameterIndex, SpeasyIndex
 from speasy.products.variable import SpeasyVariable, same_time_axis
 from speasy.signal import resampling
 
@@ -124,7 +124,7 @@ def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
     if isinstance(operand, (Op, Resample, Interpolate)):
         return operand
-    if isinstance(operand, ParameterIndex):
+    if isinstance(operand, (ParameterIndex, ComponentIndex)):
         return Leaf(operand)
     if isinstance(operand, (int, float)):
         return Const(operand)
