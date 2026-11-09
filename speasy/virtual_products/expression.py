@@ -161,6 +161,15 @@ def _leaf_key(index):
     return index.spz_provider(), index.spz_uid()
 
 
+def _collect_all(nodes):
+    """The indexes needed by several nodes, without duplicates, in reading order."""
+    indexes = {}
+    for node in nodes:
+        for index in collect(node):
+            indexes.setdefault(_leaf_key(index), index)
+    return list(indexes.values())
+
+
 def collect(node):
     """The indexes of the products an expression needs, in reading order."""
     if isinstance(node, Leaf):
@@ -169,12 +178,10 @@ def collect(node):
         return []
     if isinstance(node, Resample):
         return collect(node.operand)
+    if isinstance(node, Interpolate):
+        return _collect_all((node.ref, node.operand))
     if isinstance(node, Op):
-        indexes = {}
-        for operand in node.operands:
-            for index in collect(operand):
-                indexes.setdefault(_leaf_key(index), index)
-        return list(indexes.values())
+        return _collect_all(node.operands)
     raise TypeError(f"Cannot collect {node!r}: not an expression node")
 
 

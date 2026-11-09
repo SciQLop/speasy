@@ -213,6 +213,15 @@ class TestCollect(unittest.TestCase):
         [b1s] = resample([self.index], "1s")
         self.assertEqual(collect(b1s), [self.index])
 
+    def test_interpolate_gives_the_reference_and_the_product(self):
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        [n_on_b] = interpolate(self.index, [n])
+        self.assertEqual(collect(n_on_b), [self.index, n])
+
+    def test_interpolate_on_itself_gives_one_leaf(self):
+        [b_on_b] = interpolate(self.index, [self.index])
+        self.assertEqual(collect(b_on_b), [self.index])
+
 
 class TestFetch(unittest.TestCase):
     def test_asks_for_all_products_in_one_call(self):
