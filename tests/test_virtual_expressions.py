@@ -186,6 +186,21 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(const.value, 2)
         self.assertIs(right, op_node)  # the existing node is kept as is
 
+    def test_power_builds_an_op(self):
+        op = self.index ** 2
+        self.assertIs(op.ufunc, np.power)
+        leaf, const = op.operands
+        self.assertIs(leaf.index, self.index)
+        self.assertEqual(const.value, 2)
+
+    @data((operator.neg, np.negative), (abs, np.absolute))
+    @unpack
+    def test_unary_operator_builds_an_op(self, python_op, ufunc):
+        op = python_op(self.index)
+        self.assertIs(op.ufunc, ufunc)
+        (leaf,) = op.operands
+        self.assertIs(leaf.index, self.index)
+
     def test_index_equality_is_unchanged(self):
         same = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
                               uid="mms1_fgm_b_gse_srvy_l2")
@@ -428,6 +443,19 @@ class TestEvaluate(unittest.TestCase):
                 with mock.patch("speasy.get_data", side_effect=get_data):
                     result = evaluate(expression, "2016-10-10", "2016-10-10T02:00")
                 self.assertEqual(result.meta.get("UNITS"), expected)
+
+    def test_power_negation_and_abs_values(self):
+        b = _make_variable([1, -2, 3])
+        cases = [
+            (self.index ** 2, [[1.], [4.], [9.]]),
+            (-self.index, [[-1.], [2.], [-3.]]),
+            (abs(self.index), [[1.], [2.], [3.]]),
+        ]
+        for expression, expected in cases:
+            with self.subTest(expression=expression):
+                with mock.patch("speasy.get_data", return_value=[b]):
+                    result = evaluate(expression, "2016-10-10", "2016-10-11")
+                np.testing.assert_array_equal(result.values, expected)
 
 
 class TestRegisteredExpression(unittest.TestCase):

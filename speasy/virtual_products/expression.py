@@ -131,12 +131,12 @@ def _as_node(operand):
     return None
 
 
-def make_op(ufunc, left, right):
-    """Op for `left <ufunc> right`, or NotImplemented if an operand is not supported."""
-    left_node, right_node = _as_node(left), _as_node(right)
-    if left_node is None or right_node is None:
+def make_op(ufunc, *operands):
+    """Op applying ufunc to its operands, or NotImplemented if one of them is not supported."""
+    nodes = tuple(_as_node(operand) for operand in operands)
+    if any(node is None for node in nodes):
         return NotImplemented
-    return Op(ufunc, (left_node, right_node))
+    return Op(ufunc, nodes)
 
 
 def parse_dt(dt):
