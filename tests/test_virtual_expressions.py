@@ -9,9 +9,9 @@ from ddt import data, ddt, unpack
 
 import speasy as spz
 from speasy.core.inventory.indexes import ParameterIndex
-from speasy.virtual_products import register_virtual_product, resample
-from speasy.virtual_products.expression import (Const, Leaf, Op, Resample, TimeAxisMismatch, bind, collect,
-                                                 evaluate, fetch, parse_dt, walk)
+from speasy.virtual_products import interpolate, register_virtual_product, resample
+from speasy.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
+                                                 collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableTimeAxis
 from tests.test_virtual_products import _reset_registry
 
@@ -364,3 +364,19 @@ class TestResample(unittest.TestCase):
         self.assertIs(op.operands[0].operands[1], b1s)
         self.assertIs(op.operands[1], n1s)
         self.assertEqual(repr(op), "10 * resample(cda/b, 1s) / resample(amda/n, 1s)")
+
+
+class TestInterpolate(unittest.TestCase):
+    def test_interpolate_gives_one_node_per_product(self):
+        b = ParameterIndex(name="b", provider="cda", uid="b")
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        [n_on_b] = interpolate(b, [n])
+        self.assertIsInstance(n_on_b, Interpolate)
+        self.assertIs(n_on_b.operand.index, n)
+        self.assertIs(n_on_b.ref.index, b)
+
+    def test_repr_names_the_reference_then_the_operand(self):
+        b = ParameterIndex(name="b", provider="cda", uid="b")
+        n = ParameterIndex(name="n", provider="amda", uid="n")
+        [n_on_b] = interpolate(b, [n])
+        self.assertEqual(repr(n_on_b), "interpolate(cda/b, amda/n)")
