@@ -8,7 +8,7 @@ import numpy as np
 from ddt import data, ddt, unpack
 
 import speasy as spz
-from speasy.core.inventory.indexes import ParameterIndex
+from speasy.core.inventory.indexes import ComponentIndex, ParameterIndex
 from speasy.virtual_products import interpolate, register_virtual_product, resample
 from speasy.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
                                                  collect, evaluate, fetch, parse_dt, walk)
@@ -202,13 +202,20 @@ class TestOperators(unittest.TestCase):
         self.assertIs(leaf.index, self.index)
 
     def test_index_equality_is_unchanged(self):
-        same = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
-                              uid="mms1_fgm_b_gse_srvy_l2")
+        same = type(self.index)(name=self.index.spz_name(), provider=self.index.spz_provider(),
+                                uid=self.index.spz_uid())
         self.assertIs(self.index == same, True)
 
     def test_index_is_still_unhashable(self):
         with self.assertRaises(TypeError):
             hash(self.index)
+
+
+class TestComponentOperators(TestOperators):
+    """Same operator behaviour on a single component of a parameter."""
+
+    def setUp(self):
+        self.index = ComponentIndex(name="bx", provider="amda", uid="bx")
 
 
 class TestCollect(unittest.TestCase):

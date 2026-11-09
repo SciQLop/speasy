@@ -103,7 +103,7 @@ class CatalogIndex(SpeasyIndex):
         return f'<CatalogIndex: {self.spz_name()}>'
 
 
-class ComponentIndex(SpeasyIndex):
+class ComponentIndex(ExpressionOperators, SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
 
