@@ -188,9 +188,9 @@ def collect(node):
     raise TypeError(f"Cannot collect {node!r}: not an expression node")
 
 
-def fetch(indexes, start, stop):
-    """The data of all the given products, in the same order, from one get_data call."""
-    return spz.get_data(indexes, start, stop)
+def fetch(indexes, start, stop, **kwargs):
+    """The data of all the given products, in the same order, from one get_data call with the given options."""
+    return spz.get_data(indexes, start, stop, **kwargs)
 
 
 def bind(indexes, variables):
@@ -289,10 +289,10 @@ def finalise(result, node, data, name=None):
     return final
 
 
-def evaluate(node, start, stop, name=None):
-    """Compute an expression tree over [start, stop]: fetch its products, then walk it."""
+def evaluate(node, start, stop, name=None, **kwargs):
+    """Compute an expression tree over [start, stop]: fetch its products with the given options, then walk it."""
     indexes = collect(node)
-    variables = fetch(indexes, start, stop)
+    variables = fetch(indexes, start, stop, **kwargs)
     data = bind(indexes, variables)
     if data is None:
         return None

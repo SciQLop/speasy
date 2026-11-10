@@ -281,6 +281,13 @@ class TestFetch(unittest.TestCase):
         get_data.assert_called_once_with([b_index, n_index], "2016-10-10", "2016-10-11")
         self.assertEqual(result, [b, n])
 
+    def test_passes_options_to_get_data(self):
+        b_index = ParameterIndex(name="b", provider="cda", uid="b")
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]) as get_data:
+            fetch([b_index], "2016-10-10", "2016-10-11", force_refresh=True)
+        get_data.assert_called_once_with([b_index], "2016-10-10", "2016-10-11", force_refresh=True)
+
 
 class TestBind(unittest.TestCase):
     def test_maps_each_product_key_to_its_data(self):
@@ -408,6 +415,12 @@ class TestEvaluate(unittest.TestCase):
         get_data.assert_called_once_with([self.index, "amda/mms1_dis_ni"], "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[3.], [6.], [11.]])
         self.assertEqual(result.name, "cda/mms1_fgm_b_gse_srvy_l2 + amda/mms1_dis_ni")
+
+    def test_passes_options_to_get_data(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]) as get_data:
+            evaluate(10 * self.index, "2016-10-10", "2016-10-11", force_refresh=True)
+        get_data.assert_called_once_with([self.index], "2016-10-10", "2016-10-11", force_refresh=True)
 
     def test_two_cadences_with_resample(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
