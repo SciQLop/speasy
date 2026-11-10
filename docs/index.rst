@@ -165,6 +165,7 @@ Its development is supported by the `CDPP <http://www.cdpp.eu/>`__.
 
    user/data_index
    user/virtual_products
+   user/virtual_expressions
    user/cli
    user/configuration
 
