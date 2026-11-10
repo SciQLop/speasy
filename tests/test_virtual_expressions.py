@@ -13,6 +13,7 @@ from speasy.virtual_products import interpolate, register_virtual_product, resam
 from speasy.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
                                                  collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
+from speasy.signal import resampling
 from tests.test_virtual_products import _reset_registry
 
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
@@ -637,3 +638,22 @@ class TestInterpolate(unittest.TestCase):
         left, right = op.operands
         self.assertIs(left, n_on_b)
         self.assertIs(right.index, b)
+
+
+@unittest.skipIf(spz.config.core.disabled_providers.get().intersection({"cda", "amda"}),
+                 "cda or amda provider not available")
+class TestNetworkIntegration(unittest.TestCase):
+    def test_expression_over_cda_and_amda_products(self):
+        self.addCleanup(_reset_registry)
+        tree = spz.inventories.tree
+        b_index = tree.cda.MMS.MMS1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gse_srvy_l2
+        n_index = tree.amda.Parameters.MMS.MMS1.FPI.fast_mode.mms1_fpi_dismoms.mms1_dis_ni
+        start, stop = "2016-10-10T12:00", "2016-10-10T12:10"
+        b_1s, n_1s = resample([b_index, n_index], "1s")
+        register_virtual_product("virtual/test/ratio", 10 * b_1s / n_1s)
+        result = spz.get_data("virtual/test/ratio", start, stop)
+        self.assertEqual(result.values.shape, (600, 4))
+        self.assertEqual(result.name, "virtual/test/ratio")
+        b, n = spz.get_data([b_index, n_index], start, stop)
+        expected = 10 * resampling.interpolate(result.time, b).values / resampling.interpolate(result.time, n).values
+        np.testing.assert_allclose(result.values, expected)
