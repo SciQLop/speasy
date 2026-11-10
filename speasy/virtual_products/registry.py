@@ -6,7 +6,7 @@ import logging
 import os
 import threading
 import warnings
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 from speasy.config import core as cfg
 import appdirs
 
@@ -176,7 +176,7 @@ def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
     return node
 
 
-def _as_callback(product: Union[Callable, Node], name: str) -> Callable:
+def _as_callback(product: Callable | Node, name: str) -> Callable:
     """The callback to store: an expression receives the request options, a function never sees them."""
     if isinstance(product, Node):
         def evaluate_expression(start_time, stop_time, **kwargs):
@@ -189,7 +189,7 @@ def _as_callback(product: Union[Callable, Node], name: str) -> Callable:
     return without_options
 
 
-def register_virtual_product(path: str, *args: Union[Callable, Node], meta: Optional[dict] = None,
+def register_virtual_product(path: str, *args: Callable | Node, meta: Optional[dict] = None,
                               labels: Optional[list] = None):
     """Serve a callback(start_time, stop_time) as the product at path, e.g. 'virtual/plasma/beta'.
 

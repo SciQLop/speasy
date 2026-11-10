@@ -15,7 +15,7 @@ from speasy.signal import resampling
 @dataclass(frozen=True, eq=False)
 class Leaf:
     """A product to fetch: an inventory node or a 'provider/uid' path string."""
-    index: Union[SpeasyIndex, str]
+    index: SpeasyIndex | str
 
     def __repr__(self):
         if isinstance(self.index, str):
@@ -26,7 +26,7 @@ class Leaf:
 @dataclass(frozen=True, eq=False)
 class Const:
     """A Python scalar, e.g. the 10 in 10 * B."""
-    value: Union[int, float]
+    value: int | float
 
     def __repr__(self):
         return repr(self.value)
