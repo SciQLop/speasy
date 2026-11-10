@@ -186,6 +186,15 @@ class TestOperators(unittest.TestCase):
         self.assertEqual(const.value, 2)
         self.assertIs(right, op_node)  # the existing node is kept as is
 
+    @data(*_OPERATORS)
+    @unpack
+    def test_string_on_the_right_builds_a_leaf(self, python_op, ufunc):
+        op = python_op(self.index, "amda/mms1_dis_ni")  # e.g. B + "amda/mms1_dis_ni"
+        self.assertIs(op.ufunc, ufunc)
+        index_leaf, string_leaf = op.operands
+        self.assertIs(index_leaf.index, self.index)
+        self.assertEqual(string_leaf.index, "amda/mms1_dis_ni")  # the path is kept as is
+
     def test_power_builds_an_op(self):
         op = self.index ** 2
         self.assertIs(op.ufunc, np.power)
@@ -252,6 +261,14 @@ class TestCollect(unittest.TestCase):
     def test_interpolate_on_itself_gives_one_leaf(self):
         [b_on_b] = interpolate(self.index, [self.index])
         self.assertEqual(collect(b_on_b), [self.index])
+
+    def test_string_leaf_is_collected_as_is(self):
+        expression = self.index + "amda/mms1_dis_ni"
+        self.assertEqual(collect(expression), [self.index, "amda/mms1_dis_ni"])
+
+    def test_string_naming_a_product_of_the_expression_gives_one_leaf(self):
+        expression = self.index + "cda/mms1_fgm_b_gse_srvy_l2"
+        self.assertEqual(collect(expression), [self.index])
 
 
 class TestFetch(unittest.TestCase):
@@ -381,6 +398,16 @@ class TestEvaluate(unittest.TestCase):
         with mock.patch("speasy.get_data", return_value=[None]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         self.assertIsNone(result)
+
+    def test_string_leaf_is_fetched_and_computed(self):
+        b = _make_variable([1, 2, 3])
+        n = _make_variable([2, 4, 8])
+        expression = self.index + "amda/mms1_dis_ni"
+        with mock.patch("speasy.get_data", return_value=[b, n]) as get_data:
+            result = evaluate(expression, "2016-10-10", "2016-10-11")
+        get_data.assert_called_once_with([self.index, "amda/mms1_dis_ni"], "2016-10-10", "2016-10-11")
+        np.testing.assert_array_equal(result.values, [[3.], [6.], [11.]])
+        self.assertEqual(result.name, "cda/mms1_fgm_b_gse_srvy_l2 + amda/mms1_dis_ni")
 
     def test_two_cadences_with_resample(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
