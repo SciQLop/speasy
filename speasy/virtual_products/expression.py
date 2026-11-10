@@ -7,6 +7,7 @@ import pandas as pds
 
 import speasy as spz
 from speasy.core.inventory.indexes import ComponentIndex, ExpressionOperators, ParameterIndex, SpeasyIndex
+from speasy.core.requests_scheduling.request_dispatch import provider_and_product
 from speasy.products.variable import SpeasyVariable, same_time_axis
 from speasy.signal import resampling
 
@@ -124,7 +125,7 @@ def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
     if isinstance(operand, (Op, Resample, Interpolate)):
         return operand
-    if isinstance(operand, (ParameterIndex, ComponentIndex)):
+    if isinstance(operand, (ParameterIndex, ComponentIndex, str)):
         return Leaf(operand)
     if isinstance(operand, (int, float)):
         return Const(operand)
@@ -159,8 +160,8 @@ def interpolate(ref, products):
 
 
 def _leaf_key(index):
-    """What identifies a product: two indexes with the same key are the same data."""
-    return index.spz_provider(), index.spz_uid()
+    """What identifies a product, index or 'provider/uid' string: same key, same data."""
+    return provider_and_product(index)
 
 
 def _collect_all(nodes):
