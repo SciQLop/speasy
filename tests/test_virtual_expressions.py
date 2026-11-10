@@ -524,6 +524,14 @@ class TestRegisteredExpression(unittest.TestCase):
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
         np.testing.assert_array_equal(result.time, b.time)
 
+    def test_get_data_options_reach_the_products_of_an_expression(self):
+        b = _make_variable([1, 2, 3])
+        register_virtual_product("virtual/test/mag_10", 10 * self.index)
+        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+            fake_spz.get_data.return_value = [b]
+            spz.get_data("virtual/test/mag_10", "2016-10-10", "2016-10-11", force_refresh=True)
+        self.assertEqual(fake_spz.get_data.call_args.kwargs, {"force_refresh": True})
+
     def test_two_cadences_expression_is_served_under_its_name(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
         b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
