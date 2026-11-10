@@ -97,6 +97,11 @@ class VirtualProductGetData(VirtualProductWithVP):
         by_node = spz.get_data(_tree_node(path), _START, _STOP)
         self.assertEqual(len(by_path), len(by_node))
 
+    @data(*_VP_PATHS)
+    def test_function_ignores_get_data_options(self, path):
+        var = spz.get_data(path, _START, _STOP, force_refresh=True)
+        self.assertIsInstance(var, SpeasyVariable)
+
     def test_get_data_does_not_collapse_double_slash(self):
         with self.assertRaises(registry.UnknownVirtualProduct):
             spz.get_data("virtual/test//hourly_ramp", _START, _STOP)
@@ -280,6 +285,10 @@ class VirtualProductDecorator(unittest.TestCase):
 
     def test_decorated_name_is_accepted_by_get_data(self):
         self.assertIsInstance(spz.get_data(self.beta, _START, _STOP), SpeasyVariable)
+
+    def test_decorated_function_ignores_get_data_options(self):
+        var = spz.get_data(self.beta, _START, _STOP, force_refresh=True)
+        self.assertIsInstance(var, SpeasyVariable)
 
 
 class VirtualProductRobustness(unittest.TestCase):

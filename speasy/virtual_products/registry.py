@@ -1,6 +1,7 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
 import difflib
+import functools
 import logging
 import os
 import threading
@@ -86,8 +87,8 @@ def _path_to_uid(path: str) -> str:
 
 
 def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
-                  labels: Optional[list] = None, meta: Optional[dict] = None):
-    """Call callback(start_time, stop_time) and check it returned a SpeasyVariable or None.
+                  labels: Optional[list] = None, meta: Optional[dict] = None, **kwargs):
+    """Call callback(start_time, stop_time, **kwargs) and check it returned a SpeasyVariable or None.
 
     Shared by both ways of reaching a virtual product: calling the VirtualProduct
     directly, and speasy.get_data() through _VirtualProvider. Also guards against
@@ -99,7 +100,7 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
         raise VirtualProductCycleError(_cycle_message(chain + [path]))
     chain.append(path)
     try:
-        result = callback(start_time, stop_time)
+        result = callback(start_time, stop_time, **kwargs)
     finally:
         chain.pop()
     if result is not None and not isinstance(result, SpeasyVariable):
@@ -133,9 +134,9 @@ class VirtualProduct(ParameterIndex):
         self.__spz_labels__ = labels
         self.__spz_meta__ = meta
 
-    def __call__(self, start_time, stop_time):
+    def __call__(self, start_time, stop_time, **kwargs):
         return _call_checked(self.spz_uid(), self.__spz_callback__, start_time, stop_time,
-                             labels=self.__spz_labels__, meta=self.__spz_meta__)
+                             labels=self.__spz_labels__, meta=self.__spz_meta__, **kwargs)
 
 
 def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None,
@@ -176,12 +177,16 @@ def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
 
 
 def _as_callback(product: Union[Callable, Node], name: str) -> Callable:
-    """An expression becomes the callback(start_time, stop_time) that evaluates it; a function is kept."""
+    """The callback to store: an expression receives the request options, a function never sees them."""
     if isinstance(product, Node):
-        def evaluate_expression(start_time, stop_time):
-            return evaluate(product, start_time, stop_time, name=name)
+        def evaluate_expression(start_time, stop_time, **kwargs):
+            return evaluate(product, start_time, stop_time, name=name, **kwargs)
         return evaluate_expression
-    return product
+
+    @functools.wraps(product)
+    def without_options(start_time, stop_time, **kwargs):
+        return product(start_time, stop_time)
+    return without_options
 
 
 def register_virtual_product(path: str, *args: Union[Callable, Node], meta: Optional[dict] = None,
@@ -201,7 +206,7 @@ def register_virtual_product(path: str, *args: Union[Callable, Node], meta: Opti
         return _register(uid, _as_callback(args[0], f"virtual/{uid}"), meta, labels)
 
     def decorator(callback: Callable) -> VirtualProduct:
-        return _register(uid, callback, meta, labels)
+        return _register(uid, _as_callback(callback, f"virtual/{uid}"), meta, labels)
 
     return decorator
 
@@ -235,7 +240,7 @@ class _VirtualProvider:
         node = _flat_inventory.parameters.get(product_uid)
         if node is None:
             raise UnknownVirtualProduct(_unknown_product_message(product_uid))
-        return node(start_time, stop_time)
+        return node(start_time, stop_time, **kwargs)
 
 
 def _unknown_product_message(product_uid: str) -> str:
