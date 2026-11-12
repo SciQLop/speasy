@@ -42,11 +42,11 @@ def _only_primitive_types(d: dict) -> dict:
     return d
 
 
-def to_dataset_and_variable(index_or_str: ParameterIndex or str) -> Tuple[str, str]:
+def to_dataset_and_variable(index_or_str: ParameterIndex | str) -> Tuple[str, str]:
     if type(index_or_str) is str:
         parts = index_or_str.split('/')
     elif isinstance(index_or_str, ParameterIndex):
-        parts = index_or_str.product.split('/')
+        parts = index_or_str.spz_uid().split('/')
     else:
         raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
     assert len(parts) == 2
