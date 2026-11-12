@@ -14,7 +14,7 @@ from speasy.virtual_products.expression import (Const, Interpolate, Leaf, Op, Re
                                                  collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 from speasy.signal import resampling
-from tests.test_virtual_products import _reset_registry
+from tests.test_virtual_products import _reset_registry, _mag_divided_offset
 
 _T0 = np.datetime64("2016-10-10T00:00", "ns")
 
@@ -649,8 +649,10 @@ class TestInterpolate(unittest.TestCase):
 @unittest.skipIf(spz.config.core.disabled_providers.get().intersection({"cda", "amda"}),
                  "cda or amda provider not available")
 class TestNetworkIntegration(unittest.TestCase):
-    def test_expression_over_cda_and_amda_products(self):
+    def setUp(self):
         self.addCleanup(_reset_registry)
+
+    def test_expression_over_cda_and_amda_products(self):
         tree = spz.inventories.tree
         b_index = tree.cda.MMS.MMS1.FGM.MMS1_FGM_SRVY_L2.mms1_fgm_b_gse_srvy_l2
         n_index = tree.amda.Parameters.MMS.MMS1.FPI.fast_mode.mms1_fpi_dismoms.mms1_dis_ni
@@ -662,4 +664,15 @@ class TestNetworkIntegration(unittest.TestCase):
         self.assertEqual(result.name, "virtual/test/ratio")
         b, n = spz.get_data([b_index, n_index], start, stop)
         expected = 10 * resampling.interpolate(result.time, b).values / resampling.interpolate(result.time, n).values
+        np.testing.assert_allclose(result.values, expected)
+
+    def test_virtual_product_in_expression(self):
+        start, stop = "2016-10-10T12:00", "2016-10-10T12:10"
+        mag_divided_offset = register_virtual_product("virtual/test/mag_divided_offset", _mag_divided_offset)
+        register_virtual_product("virtual/test/virtual_expr_with_vp", 10 * mag_divided_offset)
+        result = spz.get_data("virtual/test/virtual_expr_with_vp", start, stop)
+        self.assertEqual(result.values.shape, (37, 3))
+        ref = spz.get_data("virtual/test/mag_divided_offset", start, stop)
+        cleaned = ref.replace_fillval_by_nan(convert_to_float=True).clamp_with_nan()
+        expected = 10 * cleaned.values
         np.testing.assert_allclose(result.values, expected)
