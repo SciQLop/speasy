@@ -445,12 +445,12 @@ class TestEvaluate(unittest.TestCase):
         np.testing.assert_array_equal(result.time, b.time)
         np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
 
-    def test_result_drops_fill_and_valid_range_metadata(self):
+    def test_result_keeps_fillval_and_drops_valid_range_metadata(self):
         b = _make_variable([1, 2, 3], meta={"CATDESC": "B field", "FILLVAL": -1e31,
                                             "VALIDMIN": 0, "VALIDMAX": 100})
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
-        self.assertEqual(result.meta, {"CATDESC": "B field"})
+        self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31})
 
     def test_result_drops_units_when_operands_disagree(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")

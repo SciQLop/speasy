@@ -83,8 +83,8 @@ Without ``labels=``, the columns of the result have generic names:
 Good to know
 ------------
 
-- The result keeps the metadata of the leftmost product, without ``FILLVAL``,
-  ``VALIDMIN`` and ``VALIDMAX``, which no longer describe the computed values.
+- The result keeps the metadata of the leftmost product, without ``VALIDMIN``
+  and ``VALIDMAX``, which no longer describe the computed values.
 - ``UNITS`` is kept for ``+`` and ``-`` between identical units, for a constant
   offset or scale (``B + 1``, ``10 * B``, ``B / 10``), for ``-B``, ``abs(B)``,
   ``resample`` and ``interpolate``. It is dropped otherwise. There is no unit

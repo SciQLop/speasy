@@ -276,7 +276,7 @@ def _units(node, data):
     return None
 
 
-_STALE_METADATA = ("FILLVAL", "VALIDMIN", "VALIDMAX")
+_STALE_METADATA = ("VALIDMIN", "VALIDMAX")
 
 
 def finalise(result, node, data, name=None):
