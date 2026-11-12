@@ -452,6 +452,12 @@ class TestEvaluate(unittest.TestCase):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31})
 
+    def test_fill_and_out_of_range_values_become_nan(self):
+        b = _make_variable([1, -1e31, 3, 200], meta={"FILLVAL": -1e31, "VALIDMIN": 0, "VALIDMAX": 100})
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
+        np.testing.assert_array_equal(result.values, [[10.], [np.nan], [30.], [np.nan]])
+
     def test_result_drops_units_when_operands_disagree(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
         b = _make_variable([1, 2, 3], meta={"UNITS": "nT"})

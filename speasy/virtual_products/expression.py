@@ -200,6 +200,12 @@ def bind(indexes, variables):
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
 
 
+def clean(data):
+    """Replace fill values and out-of-range values by NaN in each product's data."""
+    return {key: variable.replace_fillval_by_nan(convert_to_float=True).clamp_with_nan()
+            for key, variable in data.items()}
+
+
 def _cadence(variable):
     """The time between two samples, as a readable string: '16 Hz' or '4.5 s'."""
     seconds = np.median(np.diff(variable.time) / np.timedelta64(1, "s"))
@@ -296,6 +302,7 @@ def evaluate(node, start, stop, name=None, **kwargs):
     data = bind(indexes, variables)
     if data is None:
         return None
-    result = walk(node, data, start, stop)
-    named = finalise(result, node, data, name)
+    cleaned = clean(data)
+    result = walk(node, cleaned, start, stop)
+    named = finalise(result, node, cleaned, name)
     return named
