@@ -10,8 +10,9 @@ import numpy as np
 
 import speasy as spz
 from speasy.core.codecs import get_codec
+from speasy.core.inventory.indexes import ParameterIndex
 from speasy.data_providers.csa import (_download_variable, _load_variable, cache_entry_name, delivery_format,
-                                       get_parameter_args)
+                                       get_parameter_args, to_dataset_and_variable)
 
 sys.path.insert(0, os.path.dirname(__file__))
 from test_cef_codec import SCALAR  # noqa: E402
@@ -117,6 +118,12 @@ def _csa_like_archive(content: bytes) -> io.BytesIO:
         tar.addfile(member, io.BytesIO(content))
     buffer.seek(0)
     return buffer
+
+
+class CSAProductOfTheInventoryTree(unittest.TestCase):
+    def test_a_tree_product_gives_its_dataset_and_variable(self):
+        product = ParameterIndex(name="B_vec_xyz_gse", provider="csa", uid="C3_CP_FGM_SPIN/B_vec_xyz_gse__C3_CP_FGM_SPIN")
+        self.assertEqual(to_dataset_and_variable(product), ("C3_CP_FGM_SPIN", "B_vec_xyz_gse__C3_CP_FGM_SPIN"))
 
 
 class CSAArchive(unittest.TestCase):
