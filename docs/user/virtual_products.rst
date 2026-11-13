@@ -89,6 +89,70 @@ By path, by the decorated name, through the inventory tree, or by a direct call:
     >>> ramp("2016-10-10", "2016-10-11").shape
     (24, 1)
 
+Distributing virtual products as a plugin
+-----------------------------------------
+
+A package can ship virtual products that are registered as soon as Speasy is imported.
+Declare a zero-argument function as a ``speasy.virtual_products`` entry point in the
+package's ``pyproject.toml``:
+
+.. code-block:: toml
+
+    [project.entry-points."speasy.virtual_products"]
+    my_products = "my_pkg:register"
+
+The function only has to import the module holding the decorated functions:
+
+.. code-block:: python
+
+    # my_pkg/__init__.py
+    def register():
+        from . import products  # noqa: F401
+
+.. code-block:: python
+
+    # my_pkg/products.py
+    from speasy.virtual_products import register_virtual_product
+
+    @register_virtual_product("virtual/my_pkg/beta")
+    def beta(start_time, stop_time):
+        ...
+
+Once the package is installed, ``spz.inventories.tree.virtual.my_pkg.beta`` exists after
+``import speasy``.
+
+- Plugins are loaded while ``import speasy`` is running: import ``register_virtual_product``
+  from ``speasy.virtual_products``, not from the top-level ``speasy`` package. The function
+  bodies only run when the product is requested, so they can use all of Speasy.
+- A plugin that fails to load is logged as a warning and skipped; ``import speasy`` still
+  completes.
+- A plugin can be turned off with the ``core.disabled_plugins`` config entry, by its name
+  (``my_products``) or by its group-qualified name (``speasy.virtual_products.my_products``).
+
+Loading virtual products from a directory
+-----------------------------------------
+
+Without packaging anything, every ``.py`` file in the user virtual products directory
+(``~/.local/share/speasy/virtual_products/`` on Linux; ``speasy.virtual_products.registry.user_vp_dir()``
+gives it on your system) is executed by ``import speasy``:
+
+.. code-block:: python
+
+    # ~/.local/share/speasy/virtual_products/my_products.py
+    from speasy.virtual_products import register_virtual_product
+
+    @register_virtual_product("virtual/mine/beta")
+    def beta(start_time, stop_time):
+        ...
+
+More directories can be scanned with the ``core.user_vp_extra_dirs`` config entry, a
+comma-separated list (see :doc:`configuration`).
+
+- Files are loaded after the plugins: a file registering the same path as an installed plugin
+  replaces it, with a warning.
+- A file that fails to load is logged as a warning, with a traceback pointing to the file, and
+  skipped; the other files and ``import speasy`` are unaffected.
+
 Good to know
 ------------
 

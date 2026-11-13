@@ -243,6 +243,9 @@ This is useful to avoid creating a new pool for each request.""",
                      user_codecs_extra_dirs={"default": "",
                                              "description": """A comma separated list of directories to scan for extra codecs.""",
                                              "type_ctor": _parse_dir_set},
+                     user_vp_extra_dirs={"default": "",
+                                             "description": """A comma separated list of directories to scan for extra virtual_products.""",
+                                             "type_ctor": _parse_dir_set},
                      disabled_plugins={"default": "",
                                        "description": """A comma separated list of plugin entry-point names to skip, e.g. the
 'my_format' of [project.entry-points."speasy.codecs"] my_format = "my_pkg:register".

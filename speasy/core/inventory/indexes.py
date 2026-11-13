@@ -1,6 +1,8 @@
 import json
 from typing import Optional, Union
 
+import numpy as np
+
 __INDEXES_TYPES__ = {}
 
 
@@ -42,6 +44,49 @@ class SpeasyIndex:
         return f'<SpeasyIndex: {self.spz_name()}>'
 
 
+def _make_op(ufunc, *operands):
+    """Deferred import: this module is loaded before speasy.virtual_products."""
+    from speasy.core.virtual_products.expression import make_op
+    return make_op(ufunc, *operands)
+
+
+class ExpressionOperators:
+    """Python operators on an index build a lazy expression instead of computing."""
+
+    def __add__(self, other):
+        return _make_op(np.add, self, other)
+
+    def __radd__(self, other):
+        return _make_op(np.add, other, self)
+
+    def __sub__(self, other):
+        return _make_op(np.subtract, self, other)
+
+    def __rsub__(self, other):
+        return _make_op(np.subtract, other, self)
+
+    def __mul__(self, other):
+        return _make_op(np.multiply, self, other)
+
+    def __rmul__(self, other):
+        return _make_op(np.multiply, other, self)
+
+    def __truediv__(self, other):
+        return _make_op(np.divide, self, other)
+
+    def __rtruediv__(self, other):
+        return _make_op(np.divide, other, self)
+
+    def __pow__(self, other):
+        return _make_op(np.power, self, other)
+
+    def __neg__(self):
+        return _make_op(np.negative, self)
+
+    def __abs__(self):
+        return _make_op(np.absolute, self)
+
+
 class TimetableIndex(SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
@@ -58,7 +103,7 @@ class CatalogIndex(SpeasyIndex):
         return f'<CatalogIndex: {self.spz_name()}>'
 
 
-class ComponentIndex(SpeasyIndex):
+class ComponentIndex(ExpressionOperators, SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
 
@@ -66,7 +111,7 @@ class ComponentIndex(SpeasyIndex):
         return f'<ComponentIndex: {self.spz_name()}>'
 
 
-class ParameterIndex(SpeasyIndex):
+class ParameterIndex(ExpressionOperators, SpeasyIndex):
     def __init__(self, name: str, provider: str, uid: str, meta: Optional[dict] = None):
         super().__init__(name, provider, uid, meta)
 

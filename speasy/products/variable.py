@@ -1186,4 +1186,4 @@ def same_time_axis(variables: List[SpeasyVariable]) -> bool:
     if len(variables) < 2:
         return True
     ref_time_axis = variables[0].time
-    return all([np.all(var.time == ref_time_axis) for var in variables[1:]])
+    return all(np.array_equal(var.time, ref_time_axis) for var in variables[1:])

@@ -1,9 +1,14 @@
 """Virtual products: products computed locally instead of fetched from a web service."""
 
 import difflib
+import functools
+import logging
+import os
 import threading
 import warnings
 from typing import Callable, Optional
+from speasy.config import core as cfg
+import appdirs
 
 from ..core.algorithms import fix_name
 from ..core.dataprovider import register_provider
@@ -11,11 +16,15 @@ from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
+from ..core.virtual_products.expression import Node, evaluate, with_labels_and_meta
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
 _registration_lock = threading.Lock()
 
+__USER_VP_DIR__ = f'{appdirs.user_data_dir("speasy", "LPP")}/virtual_products'
+
+log = logging.getLogger(__name__)
 
 class _Resolution(threading.local):
     """Paths of the virtual products being computed, outermost first.
@@ -29,6 +38,36 @@ class _Resolution(threading.local):
 
 
 _resolution = _Resolution()
+
+def _list_dir_abs(path: str):
+    return [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.py')]
+
+def _load_vp(path: str):
+    if path.endswith('.py'):
+        try:
+            with open(path) as vp_file:
+                exec(compile(vp_file.read(), path, "exec"))
+        except Exception:
+            log.warning(f"Failed to load virtual product file {path}", exc_info=True)
+
+
+def user_vp_dir():
+    """Get the user virtual products directory, any virtual product placed in this directory will be automatically registered
+
+    Returns
+    -------
+    str
+        The user virtual products directory
+    """
+    return __USER_VP_DIR__
+
+
+def load_extra_vp():
+    if os.path.exists(user_vp_dir()):
+        list(map(_load_vp, _list_dir_abs(user_vp_dir())))
+    for path in cfg.user_vp_extra_dirs.get():
+        if os.path.exists(path):
+            list(map(_load_vp, _list_dir_abs(path)))
 
 
 def _path_to_uid(path: str) -> str:
@@ -48,8 +87,8 @@ def _path_to_uid(path: str) -> str:
 
 
 def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
-                  labels: Optional[list] = None, meta: Optional[dict] = None):
-    """Call callback(start_time, stop_time) and check it returned a SpeasyVariable or None.
+                  labels: Optional[list] = None, meta: Optional[dict] = None, **kwargs):
+    """Call callback(start_time, stop_time, **kwargs) and check it returned a SpeasyVariable or None.
 
     Shared by both ways of reaching a virtual product: calling the VirtualProduct
     directly, and speasy.get_data() through _VirtualProvider. Also guards against
@@ -61,19 +100,14 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
         raise VirtualProductCycleError(_cycle_message(chain + [path]))
     chain.append(path)
     try:
-        result = callback(start_time, stop_time)
+        result = callback(start_time, stop_time, **kwargs)
     finally:
         chain.pop()
     if result is not None and not isinstance(result, SpeasyVariable):
         raise VirtualProductTypeError(f"Virtual product 'virtual/{product_uid}': "
                                       f"{getattr(callback, '__qualname__', callback)} returned "
                                       f"{type(result).__name__}, expected SpeasyVariable or None")
-    if result is not None and labels is not None:
-        result = result.with_labels(labels)
-    if result is not None and meta is not None:
-        # keys are uppercased to match ISTP convention (e.g. "units" -> "UNITS")
-        result = result.with_meta({k.upper(): v for k, v in meta.items()})
-    return result
+    return with_labels_and_meta(result, labels, meta)
 
 
 def _cycle_message(chain: list) -> str:
@@ -95,9 +129,9 @@ class VirtualProduct(ParameterIndex):
         self.__spz_labels__ = labels
         self.__spz_meta__ = meta
 
-    def __call__(self, start_time, stop_time):
+    def __call__(self, start_time, stop_time, **kwargs):
         return _call_checked(self.spz_uid(), self.__spz_callback__, start_time, stop_time,
-                             labels=self.__spz_labels__, meta=self.__spz_meta__)
+                             labels=self.__spz_labels__, meta=self.__spz_meta__, **kwargs)
 
 
 def _register(product_uid: str, callback: Callable, meta: Optional[dict] = None,
@@ -137,12 +171,26 @@ def _register_locked(product_uid: str, callback: Callable, meta: Optional[dict],
     return node
 
 
-def register_virtual_product(path: str, *args: Callable, meta: Optional[dict] = None,
+def _as_callback(product: Callable | Node, name: str) -> Callable:
+    """The callback to store: an expression receives the request options, a function never sees them."""
+    if isinstance(product, Node):
+        def evaluate_expression(start_time, stop_time, **kwargs):
+            return evaluate(product, start_time, stop_time, name=name, **kwargs)
+        return evaluate_expression
+
+    @functools.wraps(product)
+    def without_options(start_time, stop_time, **kwargs):
+        return product(start_time, stop_time)
+    return without_options
+
+
+def register_virtual_product(path: str, *args: Callable | Node, meta: Optional[dict] = None,
                               labels: Optional[list] = None):
     """Serve a callback(start_time, stop_time) as the product at path, e.g. 'virtual/plasma/beta'.
 
-    Two call forms:
+    Three call forms:
     - register_virtual_product(path, callback) registers callback and returns the tree leaf;
+    - register_virtual_product(path, expression) does the same for an expression, e.g. 10 * B;
     - @register_virtual_product(path) does the same as a decorator.
     The tree leaf stays callable and can be passed straight to speasy.get_data().
     meta, if given, becomes attributes of the tree leaf: meta={"units": "nT"} gives leaf.units.
@@ -150,10 +198,10 @@ def register_virtual_product(path: str, *args: Callable, meta: Optional[dict] = 
     """
     uid = _path_to_uid(path)
     if args:
-        return _register(uid, args[0], meta, labels)
+        return _register(uid, _as_callback(args[0], f"virtual/{uid}"), meta, labels)
 
     def decorator(callback: Callable) -> VirtualProduct:
-        return _register(uid, callback, meta, labels)
+        return _register(uid, _as_callback(callback, f"virtual/{uid}"), meta, labels)
 
     return decorator
 
@@ -187,7 +235,7 @@ class _VirtualProvider:
         node = _flat_inventory.parameters.get(product_uid)
         if node is None:
             raise UnknownVirtualProduct(_unknown_product_message(product_uid))
-        return node(start_time, stop_time)
+        return node(start_time, stop_time, **kwargs)
 
 
 def _unknown_product_message(product_uid: str) -> str:
