@@ -198,12 +198,8 @@ def collect(node):
 
 
 def fetch(indexes, start, stop, **kwargs):
-    """The data of all the given products, in the same order, from one get_data call with the given options."""
-    return spz.get_data(indexes, start, stop, **kwargs)
-
-
-def bind(indexes, variables):
-    """Map each product's key to its data, or None if a product has no data."""
+    """Map each product's key to its data, from one get_data call with the given options; None if a product has no data."""
+    variables = spz.get_data(indexes, start, stop, **kwargs)
     if any(variable is None for variable in variables):
         return None
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
@@ -318,8 +314,7 @@ def with_labels_and_meta(result, labels=None, meta=None):
 def evaluate(node, start, stop, name=None, **kwargs):
     """Compute an expression tree over [start, stop]: fetch its products with the given options, then walk it."""
     indexes = collect(node)
-    variables = fetch(indexes, start, stop, **kwargs)
-    data = bind(indexes, variables)
+    data = fetch(indexes, start, stop, **kwargs)
     if data is None:
         return None
     cleaned = clean(data)

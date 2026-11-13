@@ -10,7 +10,7 @@ from ddt import data, ddt, unpack
 import speasy as spz
 from speasy.core.inventory.indexes import ComponentIndex, ParameterIndex
 from speasy.virtual_products import interpolate, register_virtual_product, resample
-from speasy.core.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
+from speasy.core.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch,
                                                       collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 from speasy.signal import resampling
@@ -273,14 +273,14 @@ class TestCollect(unittest.TestCase):
 
 
 class TestFetch(unittest.TestCase):
-    def test_asks_for_all_products_in_one_call(self):
+    def test_maps_each_product_key_to_its_data_from_one_call(self):
         b_index = ParameterIndex(name="b", provider="cda", uid="b")
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
         b, n = _make_variable([1, 2, 3]), _make_variable([4, 5, 6])
         with mock.patch("speasy.get_data", return_value=[b, n]) as get_data:
             result = fetch([b_index, n_index], "2016-10-10", "2016-10-11")
         get_data.assert_called_once_with([b_index, n_index], "2016-10-10", "2016-10-11")
-        self.assertEqual(result, [b, n])
+        self.assertEqual(result, {("cda", "b"): b, ("amda", "n"): n})
 
     def test_passes_options_to_get_data(self):
         b_index = ParameterIndex(name="b", provider="cda", uid="b")
@@ -289,20 +289,12 @@ class TestFetch(unittest.TestCase):
             fetch([b_index], "2016-10-10", "2016-10-11", force_refresh=True)
         get_data.assert_called_once_with([b_index], "2016-10-10", "2016-10-11", force_refresh=True)
 
-
-class TestBind(unittest.TestCase):
-    def test_maps_each_product_key_to_its_data(self):
-        b_index = ParameterIndex(name="b", provider="cda", uid="b")
-        n_index = ParameterIndex(name="n", provider="amda", uid="n")
-        b, n = _make_variable([1, 2, 3]), _make_variable([4, 5, 6])
-        self.assertEqual(bind([b_index, n_index], [b, n]),
-                         {("cda", "b"): b, ("amda", "n"): n})
-
     def test_a_product_without_data_gives_none(self):
         b_index = ParameterIndex(name="b", provider="cda", uid="b")
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
         b = _make_variable([1, 2, 3])
-        self.assertIsNone(bind([b_index, n_index], [b, None]))
+        with mock.patch("speasy.get_data", return_value=[b, None]):
+            self.assertIsNone(fetch([b_index, n_index], "2016-10-10", "2016-10-11"))
 
 
 class TestWalk(unittest.TestCase):
