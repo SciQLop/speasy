@@ -10,8 +10,8 @@ from ddt import data, ddt, unpack
 import speasy as spz
 from speasy.core.inventory.indexes import ComponentIndex, ParameterIndex
 from speasy.virtual_products import interpolate, register_virtual_product, resample
-from speasy.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
-                                                 collect, evaluate, fetch, parse_dt, walk)
+from speasy.core.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch, bind,
+                                                      collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 from speasy.signal import resampling
 from tests.test_virtual_products import _reset_registry, _mag_divided_offset
@@ -525,7 +525,7 @@ class TestRegisteredExpression(unittest.TestCase):
         # the outer get_data below stays real so it routes to the virtual
         # provider and into evaluate_expression; only the inner fetch of B is
         # faked so it doesnt try a network  access.
-        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+        with mock.patch("speasy.core.virtual_products.expression.spz") as fake_spz:
             fake_spz.get_data.return_value = [b]
             result = spz.get_data("virtual/test/mag_10", "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
@@ -534,7 +534,7 @@ class TestRegisteredExpression(unittest.TestCase):
     def test_get_data_options_reach_the_products_of_an_expression(self):
         b = _make_variable([1, 2, 3])
         register_virtual_product("virtual/test/mag_10", 10 * self.index)
-        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+        with mock.patch("speasy.core.virtual_products.expression.spz") as fake_spz:
             fake_spz.get_data.return_value = [b]
             spz.get_data("virtual/test/mag_10", "2016-10-10", "2016-10-11", force_refresh=True)
         self.assertEqual(fake_spz.get_data.call_args.kwargs, {"force_refresh": True})
@@ -546,7 +546,7 @@ class TestRegisteredExpression(unittest.TestCase):
         b_30m, n_30m = resample([self.index, n_index], "30min")
         product = register_virtual_product("virtual/test/ratio", 10 * b_30m / n_30m)
         start, stop = "2016-10-10", "2016-10-10T02:00"
-        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+        with mock.patch("speasy.core.virtual_products.expression.spz") as fake_spz:
             fake_spz.get_data.return_value = [b, n]
             results = [spz.get_data("virtual/test/ratio", start, stop), product(start, stop)]
         for result in results:
@@ -557,7 +557,7 @@ class TestRegisteredExpression(unittest.TestCase):
         b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
         [b_1h] = resample([self.index], "1h")
         register_virtual_product("virtual/test/b_1h", b_1h)
-        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+        with mock.patch("speasy.core.virtual_products.expression.spz") as fake_spz:
             fake_spz.get_data.return_value = [b]
             result = spz.get_data("virtual/test/b_1h", "2016-10-10", "2016-10-10T02:00")
         np.testing.assert_allclose(result.values, [[1.], [6.]])
@@ -569,7 +569,7 @@ class TestRegisteredExpression(unittest.TestCase):
         n = _make_variable([2, 4, 8])
         [n_on_b] = interpolate(self.index, [n_index])
         register_virtual_product("virtual/test/n_on_b", n_on_b)
-        with mock.patch("speasy.virtual_products.expression.spz") as fake_spz:
+        with mock.patch("speasy.core.virtual_products.expression.spz") as fake_spz:
             fake_spz.get_data.return_value = [b, n]
             result = spz.get_data("virtual/test/n_on_b", "2016-10-10", "2016-10-10T02:00")
         np.testing.assert_allclose(result.values, [[2.], [3.], [4.], [6.]])
