@@ -33,7 +33,7 @@ aligns them silently: without a directive, requesting the expression raises
     >>> spz.get_data(unaligned, start, stop)
     Traceback (most recent call last):
         ...
-    speasy.virtual_products.expression.TimeAxisMismatch: cannot combine
+    speasy.core.virtual_products.expression.TimeAxisMismatch: cannot combine
 
 :func:`speasy.virtual_products.resample` puts products on one regular grid, built
 from the requested time range. The time step is a number of seconds, a string
