@@ -16,7 +16,7 @@ from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
-from ..core.virtual_products.expression import Node, evaluate
+from ..core.virtual_products.expression import Node, evaluate, with_labels_and_meta
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
@@ -107,12 +107,7 @@ def _call_checked(product_uid: str, callback: Callable, start_time, stop_time,
         raise VirtualProductTypeError(f"Virtual product 'virtual/{product_uid}': "
                                       f"{getattr(callback, '__qualname__', callback)} returned "
                                       f"{type(result).__name__}, expected SpeasyVariable or None")
-    if result is not None and labels is not None:
-        result = result.with_labels(labels)
-    if result is not None and meta is not None:
-        # keys are uppercased to match ISTP convention (e.g. "units" -> "UNITS")
-        result = result.with_meta({k.upper(): v for k, v in meta.items()})
-    return result
+    return with_labels_and_meta(result, labels, meta)
 
 
 def _cycle_message(chain: list) -> str:
