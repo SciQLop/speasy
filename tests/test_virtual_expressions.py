@@ -11,7 +11,7 @@ import speasy as spz
 from speasy.core.inventory.indexes import ComponentIndex, ParameterIndex
 from speasy.virtual_products import interpolate, register_virtual_product, resample
 from speasy.core.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch,
-                                                      collect, evaluate, fetch, parse_dt, walk)
+                                                      clean, collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 from speasy.signal import resampling
 from tests.test_virtual_products import _reset_registry, _mag_divided_offset
@@ -442,13 +442,17 @@ class TestEvaluate(unittest.TestCase):
                                             "VALIDMIN": 0, "VALIDMAX": 100})
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
-        self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31})
+        self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31, "SPZ_CLEANED": True})
 
     def test_fill_and_out_of_range_values_become_nan(self):
         b = _make_variable([1, -1e31, 3, 200], meta={"FILLVAL": -1e31, "VALIDMIN": 0, "VALIDMAX": 100})
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [np.nan], [30.], [np.nan]])
+
+    def test_clean_leaves_already_cleaned_data_as_is(self):
+        b = _make_variable([1, -1e31, 3], meta={"FILLVAL": -1e31, "SPZ_CLEANED": True})
+        self.assertIs(clean({"b": b})["b"], b)
 
     def test_result_drops_units_when_operands_disagree(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
@@ -618,6 +622,23 @@ class TestRegisteredExpression(unittest.TestCase):
             result = spz.get_data("virtual/test/n_on_b", "2016-10-10", "2016-10-10T02:00")
         np.testing.assert_allclose(result.values, [[2.], [3.], [4.], [6.]])
         self.assertEqual(result.name, "virtual/test/n_on_b")
+
+    def test_nested_virtual_product_is_cleaned_once(self):
+        b = _make_variable([1, 2, 3])
+        inner = register_virtual_product("virtual/test/inner", 10 * self.index)
+        outer = 2 * inner
+
+        def get_data(indexes, start, stop, **kwargs):
+            # Stands in for the dispatch: the virtual leaf is computed, B is served directly.
+            return [index(start, stop) if index is inner else b for index in indexes]
+
+        original = SpeasyVariable.replace_fillval_by_nan
+        with (mock.patch("speasy.get_data", side_effect=get_data),
+              mock.patch.object(SpeasyVariable, "replace_fillval_by_nan", autospec=True,
+                                side_effect=original) as spy):
+            result = outer("2016-10-10", "2016-10-11")
+        np.testing.assert_array_equal(result.values, [[20.], [40.], [60.]])
+        self.assertEqual(spy.call_count, 1)
 
 
 @ddt
