@@ -70,8 +70,17 @@ def _operand_repr(node, precedence, parenthesize_equal):
     return f"({text})" if weaker or equal else text
 
 
+class CallableExpression(ExpressionOperators):
+    """An expression node held by the user: operators build on it, calling it computes it."""
+
+    def __call__(self, start_time, stop_time, labels=None, meta=None, **kwargs):
+        """Compute the expression over [start_time, stop_time]; options such as force_refresh=True go to its products."""
+        result = evaluate(self, start_time, stop_time, **kwargs)
+        return with_labels_and_meta(result, labels, meta)
+
+
 @dataclass(frozen=True, eq=False)
-class Op(ExpressionOperators):
+class Op(CallableExpression):
     """Elementwise application of a numpy ufunc to its operands."""
     ufunc: np.ufunc
     operands: Tuple["Node", ...]
@@ -94,7 +103,7 @@ class Op(ExpressionOperators):
 
 
 @dataclass(frozen=True, eq=False)
-class Resample(ExpressionOperators):
+class Resample(CallableExpression):
     """Directive: compute the operand on a regular time grid of step dt."""
     operand: "Node"
     dt: np.timedelta64
@@ -105,7 +114,7 @@ class Resample(ExpressionOperators):
 
 
 @dataclass(frozen=True, eq=False)
-class Interpolate(ExpressionOperators):
+class Interpolate(CallableExpression):
     """Directive: compute the operand on the time axis of ref."""
     operand: "Node"
     ref: "Node"
@@ -293,6 +302,17 @@ def finalise(result, node, data, name=None):
     if _units(node, data) is None:
         final.meta.pop("UNITS", None)
     return final
+
+
+def with_labels_and_meta(result, labels=None, meta=None):
+    """Apply the user's labels and meta to a result; meta keys are uppercased to match the ISTP convention."""
+    if result is None:
+        return None
+    if labels is not None:
+        result = result.with_labels(labels)
+    if meta is not None:
+        result = result.with_meta({key.upper(): value for key, value in meta.items()})
+    return result
 
 
 def evaluate(node, start, stop, name=None, **kwargs):

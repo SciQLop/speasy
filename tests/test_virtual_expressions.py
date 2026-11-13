@@ -512,6 +512,58 @@ class TestEvaluate(unittest.TestCase):
                 np.testing.assert_array_equal(result.values, expected)
 
 
+class TestCallExpression(unittest.TestCase):
+    def setUp(self):
+        self.index = ParameterIndex(name="mms1_fgm_b_gse_srvy_l2", provider="cda",
+                                    uid="mms1_fgm_b_gse_srvy_l2")
+
+    def test_calling_an_expression_computes_it(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = (10 * self.index)("2016-10-10", "2016-10-11")
+        np.testing.assert_array_equal(result.values, [[10.], [20.], [30.]])
+        self.assertEqual(result.name, "10 * cda/mms1_fgm_b_gse_srvy_l2")
+
+    def test_call_passes_options_to_get_data(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]) as get_data:
+            (10 * self.index)("2016-10-10", "2016-10-11", force_refresh=True)
+        get_data.assert_called_once_with([self.index], "2016-10-10", "2016-10-11", force_refresh=True)
+
+    def test_call_meta_sets_the_metadata(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = (10 * self.index)("2016-10-10", "2016-10-11", meta={"units": "nT"})
+        self.assertEqual(result.meta["UNITS"], "nT")
+
+    def test_call_labels_name_the_columns(self):
+        b = _make_variable([1, 2, 3])
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = (10 * self.index)("2016-10-10", "2016-10-11", labels=["x"])
+        self.assertEqual(result.columns, ["x"])
+
+    def test_call_without_data_gives_none(self):
+        with mock.patch("speasy.get_data", return_value=[None]):
+            result = (10 * self.index)("2016-10-10", "2016-10-11", labels=["x"], meta={"units": "nT"})
+        self.assertIsNone(result)
+
+    def test_a_resample_node_is_callable(self):
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        [b_1h] = resample([self.index], "1h")
+        with mock.patch("speasy.get_data", return_value=[b]):
+            result = b_1h("2016-10-10", "2016-10-10T02:00")
+        np.testing.assert_allclose(result.values, [[1.], [6.]])
+
+    def test_an_interpolate_node_is_callable(self):
+        n_index = ParameterIndex(name="n", provider="amda", uid="n")
+        b = _make_variable([1, 3, 6, 9], step=np.timedelta64(30, "m"))
+        n = _make_variable([2, 4, 8])
+        [n_on_b] = interpolate(self.index, [n_index])
+        with mock.patch("speasy.get_data", return_value=[b, n]):
+            result = n_on_b("2016-10-10", "2016-10-10T02:00")
+        np.testing.assert_allclose(result.values, [[2.], [3.], [4.], [6.]])
+
+
 class TestRegisteredExpression(unittest.TestCase):
     def setUp(self):
         self.addCleanup(_reset_registry)

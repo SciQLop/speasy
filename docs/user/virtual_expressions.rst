@@ -50,6 +50,27 @@ Both return a list with one element per product to align, usable in an expressio
 the reference of ``interpolate`` gets no element. Both are limited to 1-D and 2-D
 products: requesting an expression that aligns a spectrogram raises a ``ValueError``.
 
+Computing an expression directly
+--------------------------------
+
+An expression can be computed without registering it, by calling it with a time
+range:
+
+    >>> direct_expr = 10 * b1s / n1s
+    >>> direct_expr
+    10 * resample(cda/MMS1_FGM_SRVY_L2/mms1_fgm_b_gse_srvy_l2, 1s) / resample(amda/mms1_dis_ni, 1s)
+    >>> computed = direct_expr(start, stop)
+    >>> computed.values.shape
+    (600, 4)
+    >>> computed.name == repr(direct_expr)
+    True
+
+The call accepts ``labels=`` and ``meta=`` like :func:`speasy.virtual_products.register_virtual_product`,
+and passes other options, such as ``force_refresh=True``, to the products of the expression:
+
+    >>> direct_expr(start, stop, meta={"units": "nT cm^3"}).meta["UNITS"]
+    'nT cm^3'
+
 Registering and using an expression
 -----------------------------------
 
