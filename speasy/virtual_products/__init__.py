@@ -4,7 +4,7 @@
 from . import registry  # noqa: F401
 from .registry import load_extra_vp, register_virtual_product  # noqa: F401
 from .registry import UnknownVirtualProduct, VirtualProductCycleError, VirtualProductTypeError  # noqa: F401
-from .expression import TimeAxisMismatch, interpolate, resample  # noqa: F401
+from ..core.virtual_products.expression import TimeAxisMismatch, interpolate, resample  # noqa: F401
 
 from ..core.plugins import load_plugins
 

@@ -46,7 +46,7 @@ class SpeasyIndex:
 
 def _make_op(ufunc, *operands):
     """Deferred import: this module is loaded before speasy.virtual_products."""
-    from speasy.virtual_products.expression import make_op
+    from speasy.core.virtual_products.expression import make_op
     return make_op(ufunc, *operands)
 
 

@@ -16,7 +16,7 @@ from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
-from .expression import Node, evaluate
+from ..core.virtual_products.expression import Node, evaluate
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
