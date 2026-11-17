@@ -39,7 +39,7 @@ def _component_values(cdf: pycdfpp.CDF, virtual: pycdfpp.Variable) -> np.ndarray
 
     simplify: only records after the last written one are rebuilt, pycdfpp already fills the gaps before it.
     """
-    component = cdf[_attribute(virtual, 'COMPONENT_0')]
+    component = cdf[_component_name(virtual)]
     values, n_records = component.values, _record_count(cdf, virtual)
     if component.is_nrv or n_records is None or not 0 < values.shape[0] < n_records:
         return values
@@ -60,15 +60,54 @@ def _arr_slice(cdf: pycdfpp.CDF, virtual: pycdfpp.Variable) -> np.ndarray:
                            axis=int(_attribute(virtual, 'ARR_DIM')[0]) + 1))
 
 
-FUNCTIONS = {'arr_slice': _arr_slice}
+def _flip_vert(cdf: pycdfpp.CDF, virtual: pycdfpp.Variable) -> np.ndarray:
+    # IDL's reverse(img[*,*,j]) flips the first dimension of each record, see alternate_view in virtual_funcs.pro
+    return _component_values(cdf, virtual)[:, ::-1]
+
+
+def _makes_vary(cdf: pycdfpp.CDF, virtual: pycdfpp.Variable) -> bool:
+    # read_myCDF.pro's MAKE_VARY: a clone the master declares record varying turns an NRV component into a varying one
+    return (_function_name(virtual) == 'clone' and not virtual.is_nrv and cdf[_component_name(virtual)].is_nrv
+            and _record_count(cdf, virtual) is not None)
+
+
+def _clone(cdf: pycdfpp.CDF, virtual: pycdfpp.Variable) -> np.ndarray:
+    values = _component_values(cdf, virtual)
+    return np.repeat(values, _record_count(cdf, virtual), axis=0) if _makes_vary(cdf, virtual) else values
+
+
+# alternate_view reuses the component's data as is (virtual_funcs.pro), clone reads it (read_myCDF.pro)
+FUNCTIONS = {
+    'arr_slice': _arr_slice,
+    'alternate_view': _component_values,
+    'alternate_view_flip_vert': _flip_vert,
+    'clone': _clone,
+}
 
 
 def _function_name(variable: pycdfpp.Variable) -> Optional[str]:
     return _attribute(variable, 'FUNCT').lower() if 'FUNCT' in variable.attributes else None
 
 
-def _is_computable(cdf: pycdfpp.CDF, virtual: pycdfpp.Variable) -> bool:
-    return _function_name(virtual) in FUNCTIONS and _attribute(virtual, 'COMPONENT_0') in cdf
+def _component_name(virtual: pycdfpp.Variable) -> str:
+    return _attribute(virtual, 'COMPONENT_0')
+
+
+def _in_dependency_order(master: pycdfpp.CDF) -> list[tuple[str, pycdfpp.Variable]]:
+    """The computable virtual variables, each after the virtual variable it is computed from; cycles are dropped."""
+    remaining = {name: v for name, v in master.items() if _function_name(v) in FUNCTIONS and 'COMPONENT_0' in v.attributes}
+    ordered = []
+    while ready := [(name, v) for name, v in remaining.items() if _component_name(v) not in remaining]:
+        ordered += ready
+        for name, _ in ready:
+            del remaining[name]
+    return ordered
+
+
+def _as_declared(values: np.ndarray, virtual: pycdfpp.Variable) -> np.ndarray:
+    # CDAWeb writes a virtual variable with the numeric type its master declares (doubles become CDF_REAL4 views)
+    declared = virtual.values.dtype
+    return values.astype(declared) if values.dtype.kind in 'iuf' and declared.kind in 'iuf' else values
 
 
 def _set_values(cdf: pycdfpp.CDF, name: str, values: np.ndarray, is_nrv: bool) -> None:
@@ -81,12 +120,12 @@ def _set_values(cdf: pycdfpp.CDF, name: str, values: np.ndarray, is_nrv: bool) -
 def with_virtuals(cdf: pycdfpp.CDF, master: pycdfpp.CDF) -> pycdfpp.CDF:
     """`cdf` with the values of every virtual variable of `master` it holds what to compute from.
 
-    A virtual variable varies with records when its component does.
+    A virtual variable varies with records when its component does, or when a clone is made to.
     """
-    for name, virtual in master.items():
-        if _is_computable(cdf, virtual):
-            _set_values(cdf, name, FUNCTIONS[_function_name(virtual)](cdf, virtual),
-                        is_nrv=cdf[_attribute(virtual, 'COMPONENT_0')].is_nrv)
+    for name, virtual in _in_dependency_order(master):
+        if _component_name(virtual) in cdf:
+            _set_values(cdf, name, _as_declared(FUNCTIONS[_function_name(virtual)](cdf, virtual), virtual),
+                        is_nrv=cdf[_component_name(virtual)].is_nrv and not _makes_vary(cdf, virtual))
     return cdf
 
 

@@ -108,6 +108,63 @@ class SparseRecords(unittest.TestCase):
         np.testing.assert_array_equal(cdf['slice'].values, [[5., 6., 7., 8.]])
 
 
+def _copy_master(funct: str, component: str = 'grid') -> pycdfpp.CDF:
+    master = pycdfpp.CDF()
+    master.add_variable('view', values=np.zeros((0, 3, 4), dtype=np.float32),
+                        attributes={'VIRTUAL': 'true', 'FUNCT': funct, 'COMPONENT_0': component})
+    return master
+
+
+class CopiedViews(unittest.TestCase):
+    # alternate_view reuses the component's data handle as is (virtual_funcs.pro), clone reads the component's
+    # data (read_myCDF.pro): both give the component's values
+    def test_alternate_view_and_clone_copy_the_component(self):
+        for funct in ('alternate_view', 'clone', 'ALTERNATE_VIEW'):
+            with self.subTest(funct=funct):
+                cdf = with_virtuals(_data_file(with_empty_slice=False), _copy_master(funct))
+                np.testing.assert_array_equal(cdf['view'].values, cdf['grid'].values)
+
+    def test_a_copy_of_a_non_record_varying_component_stays_non_record_varying(self):
+        cdf = pycdfpp.CDF()
+        cdf.add_variable('grid', values=np.arange(12, dtype=np.float32).reshape(1, 3, 4), is_nrv=True)
+        cdf = with_virtuals(cdf, _copy_master('alternate_view'))
+        self.assertTrue(cdf['view'].is_nrv)
+        np.testing.assert_array_equal(cdf['view'].values, cdf['grid'].values)
+
+    def test_a_record_varying_clone_of_a_non_record_varying_component_repeats_it_per_record(self):
+        # read_myCDF.pro's MAKE_VARY, STA_L1_SEPT clones NRV spectra into record varying products
+        cdf = _sparse_file(pycdfpp.SparseRecords.no_sparse_records)
+        cdf._remove_variable('grid')
+        cdf.add_variable('grid', values=np.arange(12, dtype=np.float32).reshape(1, 3, 4), is_nrv=True)
+        master = _copy_master('clone')
+        master['view'].add_attribute('DEPEND_0', 'epoch')
+        cdf = with_virtuals(cdf, master)
+        self.assertFalse(cdf['view'].is_nrv)
+        np.testing.assert_array_equal(cdf['view'].values, np.repeat(cdf['grid'].values, 5, axis=0))
+
+    def test_the_view_takes_the_numeric_type_the_master_declares(self):
+        # CDAWeb writes a virtual variable with its master type: RBSPA_REL03_ECT-REPT-SCI-L2 B_Calc_TT is a CDF_REAL4
+        # view of a B_Calc the files hold as doubles
+        cdf = pycdfpp.CDF()
+        cdf.add_variable('grid', values=np.linspace(0, 1, 24).reshape(2, 3, 4))
+        cdf = with_virtuals(cdf, _copy_master('alternate_view'))
+        self.assertEqual(cdf['view'].type, pycdfpp.DataType.CDF_FLOAT)
+        np.testing.assert_array_equal(cdf['view'].values, cdf['grid'].values.astype(np.float32))
+
+    def test_flip_vert_reverses_the_first_dimension_of_each_record(self):
+        # IDL's reverse(img[*,*,j]) reverses the first dimension IDL indexes, the first declared one
+        cdf = with_virtuals(_data_file(with_empty_slice=False), _copy_master('alternate_view_flip_vert'))
+        np.testing.assert_array_equal(cdf['view'].values, cdf['grid'].values[:, ::-1, :])
+
+    def test_a_virtual_component_is_computed_first_whatever_the_master_order(self):
+        master = _copy_master('alternate_view', component='slice')
+        master.add_variable('slice', values=np.zeros((0, 4), dtype=np.float32),
+                            attributes={'VIRTUAL': 'true', 'FUNCT': 'arr_slice', 'COMPONENT_0': 'grid',
+                                        'ARR_INDEX': [np.int32(1)], 'ARR_DIM': [np.int32(0)]})
+        cdf = with_virtuals(_data_file(with_empty_slice=True), master)
+        np.testing.assert_array_equal(cdf['view'].values, cdf['grid'].values[:, 1, :])
+
+
 def _archive_params(product: str, start=START, stop=STOP):
     inventory = spz.inventories.flat_inventories.cda
     dataset, variable = product.split('/')
