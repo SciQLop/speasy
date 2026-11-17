@@ -104,5 +104,18 @@ class ReimeiL2FromDarts(unittest.TestCase):
         self.assertEqual(counts.axes[2].values[4], 148.84)
 
 
+class ReimeiInTheArchive(unittest.TestCase):
+    def test_a_month_end_pass_filed_in_the_next_month_folder_is_found(self):
+        import speasy as spz
+        for instrument in ("esa_l2", "isa_l2"):
+            with self.subTest(instrument=instrument):
+                counts = spz.get_data(f"archive/darts/REIMEI/{instrument}/counts", "2008-02-29T11:15",
+                                      "2008-02-29T11:16")
+                self.assertIsNotNone(counts)
+                self.assertEqual(counts.values.shape[1:], (32, 30))
+                self.assertGreaterEqual(counts.time[0], np.datetime64("2008-02-29T11:15", "ns"))
+                self.assertIn("DARTS", counts.meta["Acknowledgement"])
+
+
 if __name__ == "__main__":
     unittest.main()
