@@ -167,6 +167,19 @@ class TestEntryChecks(_TempYaml):
         self.assertIn("my_ds: no variables found", log)
         self.assertNoDataset(root)
 
+    def test_list_next_folder_is_a_known_key_that_reaches_get_product(self):
+        from speasy.data_providers.generic_archive._checks import FETCH_KEYS
+        entry = dict(inventory_path='mylab/MAG', master_file=_CDF, split_rule='random', url_pattern=_CDF,
+                     fname_regex=r'(?P<start>\d+)', list_next_folder=True)
+        self.assertEqual(_entry_problems('my_ds', entry), ([], []))
+        self.assertIn('list_next_folder', FETCH_KEYS)
+
+    def test_list_next_folder_needs_a_random_split(self):
+        entry = dict(inventory_path='mylab/MAG', master_file=_CDF, split_rule='regular', url_pattern=_CDF,
+                     list_next_folder=True)
+        errors, _ = _entry_problems('my_ds', entry)
+        self.assertRegex(' '.join(errors), "list_next_folder only applies to split_rule 'random'")
+
     def test_bundled_inventories_pass_the_checks(self):
         for name in ('cda.yaml', 'themis_cdpp.yaml.example'):
             entries, problems = _read_entries(f"{__HERE__}/../speasy/data/archive/{name}")
