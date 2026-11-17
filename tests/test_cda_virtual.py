@@ -6,7 +6,7 @@ import pycdfpp
 
 import speasy as spz
 from speasy.data_providers.cda import _archive_params_for
-from speasy.data_providers.cda._virtual import with_virtuals
+from speasy.data_providers.cda._virtual import pruned, with_virtuals
 
 START, STOP = datetime(2000, 1, 1, 0, 20, tzinfo=timezone.utc), datetime(2000, 1, 1, 0, 50, tzinfo=timezone.utc)
 
@@ -163,6 +163,23 @@ class CopiedViews(unittest.TestCase):
                                         'ARR_INDEX': [np.int32(1)], 'ARR_DIM': [np.int32(0)]})
         cdf = with_virtuals(_data_file(with_empty_slice=True), master)
         np.testing.assert_array_equal(cdf['view'].values, cdf['grid'].values[:, 1, :])
+
+
+class Pruning(unittest.TestCase):
+    # read_with_virtuals writes the patched file back before the ISTP loader reads it, and writing a whole MMS or
+    # MAVEN file decompressed every variable: 3 GB for one product. Only what the product references is kept.
+    def test_keeps_the_variable_and_everything_it_references_drops_the_rest(self):
+        cdf = pycdfpp.CDF()
+        for name in ('epoch', 'grid', 'labels', 'unrelated', 'axis'):
+            cdf.add_variable(name, values=np.zeros((2, 3), dtype=np.float32))
+        cdf['grid'].add_attribute('DEPEND_0', 'epoch')
+        cdf['grid'].add_attribute('DEPEND_1', 'axis')
+        master = _copy_master('alternate_view')
+        master['view'].add_attribute('LABL_PTR_1', 'labels')
+        master['view'].add_attribute('CATDESC', 'not a variable name')
+        kept_cdf, kept_master = pruned('view', cdf, master)
+        self.assertSetEqual(set(kept_cdf.keys()), {'epoch', 'grid', 'labels', 'axis'})
+        self.assertSetEqual(set(kept_master.keys()), {'view'})
 
 
 def _archive_params(product: str, start=START, stop=STOP):
