@@ -181,7 +181,7 @@ class TestEntryChecks(_TempYaml):
         self.assertRegex(' '.join(errors), "list_next_folder only applies to split_rule 'random'")
 
     def test_bundled_inventories_pass_the_checks(self):
-        for name in ('cda.yaml', 'themis_cdpp.yaml.example'):
+        for name in ('cda.yaml', 'reimei.yaml', 'themis_cdpp.yaml.example'):
             entries, problems = _read_entries(f"{__HERE__}/../speasy/data/archive/{name}")
             self.assertEqual(problems, [])
             self.assertEqual([p for n, e in entries.items() for kind in _entry_problems(n, e) for p in kind], [])

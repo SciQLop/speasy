@@ -1,0 +1,62 @@
+# REIMEI (INDEX) Level-2 particle data from JAXA DARTS, read with the reimei/l2 codec (counts only).
+# Open data under the ISAS data policy (https://www.isas.jaxa.jp/en/researchers/data-policy/), to be
+# acknowledged as the dataset page asks: https://darts.isas.jaxa.jp/en/datasets/darts:reimei-level2-data
+# DARTS files the passes of a month's last day in the next month's folder, hence list_next_folder.
+esa_l2:
+  inventory_path: darts/REIMEI
+  codec: reimei/l2
+  split_rule: random
+  split_frequency: monthly
+  list_next_folder: true
+  url_pattern: https://data.darts.isas.jaxa.jp/pub/reimei/Level-2/{Y}/{M:02d}/RE_ESA_\d+\.L2
+  fname_regex: RE_ESA_(?P<start>\d{14})\.L2
+  date_format: '%Y%m%d%H%M%S'
+  meta:
+    Mission_group: REIMEI
+    Descriptor: ESA>Electron Spectrum Analyzer (INDEX)
+    Data_type: L2>Level-2 counts
+    Acknowledgement: &esa_acknowledgement >-
+      Reimei electron data were provided by K. Asamura and M. Hirahara through DARTS at Institute of
+      Space and Astronautical Science, JAXA in Japan.
+  variables:
+    counts:
+      meta:
+        CATDESC: Electron counts per energy step and channel
+        Acknowledgement: *esa_acknowledgement
+    total:
+      meta:
+        CATDESC: Electron total counts per energy step
+        Acknowledgement: *esa_acknowledgement
+    gomi:
+      meta:
+        CATDESC: Electron 'gomi' counts per energy step, as the file names them
+        Acknowledgement: *esa_acknowledgement
+isa_l2:
+  inventory_path: darts/REIMEI
+  codec: reimei/l2
+  split_rule: random
+  split_frequency: monthly
+  list_next_folder: true
+  url_pattern: https://data.darts.isas.jaxa.jp/pub/reimei/Level-2/{Y}/{M:02d}/RE_ISA_\d+\.L2
+  fname_regex: RE_ISA_(?P<start>\d{14})\.L2
+  date_format: '%Y%m%d%H%M%S'
+  meta:
+    Mission_group: REIMEI
+    Descriptor: ISA>Ion Spectrum Analyzer (INDEX)
+    Data_type: L2>Level-2 counts
+    Acknowledgement: &isa_acknowledgement >-
+      Reimei ion data were provided by K. Asamura and M. Hirahara through DARTS at Institute of
+      Space and Astronautical Science, JAXA in Japan.
+  variables:
+    counts:
+      meta:
+        CATDESC: Ion counts per energy step and channel
+        Acknowledgement: *isa_acknowledgement
+    total:
+      meta:
+        CATDESC: Ion total counts per energy step
+        Acknowledgement: *isa_acknowledgement
+    gomi:
+      meta:
+        CATDESC: Ion 'gomi' counts per energy step, as the file names them
+        Acknowledgement: *isa_acknowledgement
