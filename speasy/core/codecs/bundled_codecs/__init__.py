@@ -9,3 +9,4 @@ except ImportError:  # pragma: no cover - platform-specific (WASM has no netCDF4
 from .hapi.csv import HapiCsv  # noqa: F401
 from .hapi.binary import HapiBinary  # noqa: F401
 from .cef import Cef  # noqa: F401
+from .reimei import ReimeiL2  # noqa: F401

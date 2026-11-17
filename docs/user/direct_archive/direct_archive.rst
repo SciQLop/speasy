@@ -61,6 +61,10 @@ Supported file formats
    * - HAPI Binary
      - ``hapi/binary`` (exact name, no extension/mimetype alias)
      - Same limitation as HAPI CSV.
+   * - REIMEI Level-2 ESA/ISA (JAXA DARTS text files)
+     - ``reimei/l2`` (exact name, no extension/mimetype alias)
+     - Counts as ``counts`` (time, energy, channel), plus ``total`` and ``gomi`` (time, energy); energy and
+       azimuth axes from the file header. Inline ``variables:`` datasets only.
    * - Anything else
      - a name you choose
      - Write your own codec — see :ref:`writing_a_codec`.
