@@ -587,6 +587,23 @@ class DirectArchiveConverter(unittest.TestCase):
             },
             "https://cdaweb.gsfc.nasa.gov/pub/data/aaa_planetary/msl/rad/cdf/obs-l2/2015/msl_rad_obs-l2_2015001_v00.cdf",
             datetime(2015, 1, 1, tzinfo=timezone.utc)
+        ),
+        (
+            # %q is the FAST orbit number, left literal it matched no file and every request went to the API
+            "fa_esa_l2_ees_%Y%m%d%H%M%S_%q_%Q.cdf",
+            "%Y/%m",
+            "https://cdaweb.gsfc.nasa.gov/pub/data/fast/esa/l2/ees",
+            {
+                'date_format': '%Y%m%d%H%M%S',
+                'fname_regex': 'fa_esa_l2_ees_(?P<start>\\d+t?T?\\d+)_\\d+_(?P<version>.*).cdf',
+                'split_frequency': 'monthly',
+                'split_rule': 'random',
+                'url_pattern': 'https://cdaweb.gsfc.nasa.gov/pub/data/fast/esa/l2/ees/{Y}/{M:02d}/'
+                               'fa_esa_l2_ees_{Y}{M:02d}[0-3]\\d[0-2]\\d[0-5]\\d[0-5]\\d_\\d+_.*.cdf',
+                'use_file_list': True
+            },
+            "https://cdaweb.gsfc.nasa.gov/pub/data/fast/esa/l2/ees/2000/01/fa_esa_l2_ees_20000101001738_13312_v02.cdf",
+            datetime(2000, 1, 1, tzinfo=timezone.utc)
         )
     )
     @unpack
