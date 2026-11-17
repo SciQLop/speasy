@@ -3,13 +3,16 @@ import re
 
 _version_regex = re.compile(r"%Q(\.\d+)*")
 _date_format_regex = re.compile(r"(%[YymHjdMS])+t?(%[YymHjdMS])+")
+# FAST spells its orbit number %q (fa_esa_l2_ees_20000101001738_13312_v02.cdf)
+_orbit = ('%q', r'\d+')
 
 substitutions = (
     ('%H', r'[0-2]\d'),
     ('%I', r'[01]\d'),
     ('%p', r'[AP]M'),
     ('%M', r'[0-5]\d'),
-    ('%S', r'[0-5]\d')
+    ('%S', r'[0-5]\d'),
+    _orbit,
 )
 
 substitutions_yearly = substitutions + (
@@ -120,6 +123,7 @@ def to_direct_archive_params(file_naming: str, subdivided_by: str, url: str) -> 
     fname_regex = _date_format_regex.sub(r"(?P<start>\\d+t?T?\\d+)", fname_regex, 1)
     fname_regex = _date_format_regex.sub(r"(?P<stop>\\d+t?T?\\d+)", fname_regex, 1)
     fname_regex = _version_regex.sub(r"(?P<version>.*)", fname_regex)
+    fname_regex = fname_regex.replace(*_orbit)
 
     return {
         "url_pattern": url_pattern,
