@@ -31,6 +31,7 @@ from ._direct_archive import to_direct_archive_params
 from ._patches.table import PatchedParameter, is_injected, patch_for
 from ._patches.reader import patched_reader
 from ._patches.inventory import patch_inventory as _apply_patch_table
+from ._virtual import has_computable_virtuals, read_with_virtuals
 
 log = logging.getLogger(__name__)
 
@@ -127,6 +128,36 @@ def _patched_archive_params(dataset: DatasetIndex, entry: PatchedParameter, star
     return params if readable else None
 
 
+@CacheCall(cache_retention=timedelta(days=7), is_pure=True)
+def _virtuals_can_read(file_url: str, variable: str, master_cdf_url: str) -> bool:
+    try:
+        return read_with_virtuals(file_url, variable, master_cdf_url) is not None
+    except IOError:
+        raise   # transient, and the caller must not remember it as a verdict on the dataset
+    except Exception as e:
+        log.debug(f"Can't compute {variable} from {file_url}: {type(e).__name__}: {e}")
+        return False
+
+
+def _computed_archive_params(dataset: DatasetIndex, variable: str, start_time: datetime,
+                             stop_time: datetime) -> Optional[Dict]:
+    """A virtual product is read from files when the virtual variables it needs are ones Speasy can compute.
+
+    Probing a file answers that without walking the master's DEPEND/COMPONENT graph: anything left uncomputed
+    either loads as nothing or fails on an empty axis.
+    """
+    if not hasattr(dataset, 'filenaming') or not has_computable_virtuals(dataset):
+        return None
+    params = to_direct_archive_params(file_naming=dataset.filenaming, subdivided_by=dataset.subdividedby,
+                                      url=dataset.url)
+    if params is None or 'codec' in params:
+        return None
+    params = {**params, 'master_cdf_url': dataset.mastercdf, 'file_reader': read_with_virtuals}
+    readable = _archive_can_read(params, lambda file_url: _virtuals_can_read(file_url, variable, dataset.mastercdf),
+                                 start_time, stop_time)
+    return params if readable else None
+
+
 def _archive_params_for(dataset: DatasetIndex, product_index: ParameterIndex, variable: str,
                         start_time: datetime, stop_time: datetime) -> Optional[Dict]:
     """Direct archive parameters when this product can really be served from files, None otherwise."""
@@ -134,7 +165,7 @@ def _archive_params_for(dataset: DatasetIndex, product_index: ParameterIndex, va
     if entry is not None:
         return _patched_archive_params(dataset, entry, start_time, stop_time)
     if _is_virtual(dataset, product_index):
-        return None
+        return _computed_archive_params(dataset, variable, start_time, stop_time)
     params = to_direct_archive_params(file_naming=dataset.filenaming, subdivided_by=dataset.subdividedby,
                                       url=dataset.url)
     if params is None:
