@@ -115,6 +115,16 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
     raise ValueError(f"Unknown/unimplemented split_frequency: {split_frequency}")
 
 
+_ONE_PERIOD = {'daily': relativedelta(days=1), 'monthly': relativedelta(months=1), 'yearly': relativedelta(years=1)}
+
+
+def _folder_dates(split_frequency: str, start: datetime, stop: datetime, list_next_folder: bool) -> List[datetime]:
+    """The dates whose folders hold the files of [start, stop]; with list_next_folder, one period further."""
+    if list_next_folder:
+        stop = stop + _ONE_PERIOD.get(split_frequency.lower(), relativedelta())
+    return spilt_range(split_frequency, start, stop)
+
+
 def _parse_date(date: str | datetime, date_format: str | None = None) -> datetime | None:
     if isinstance(date, datetime) or date_format is None:
         return make_utc_datetime(date)
@@ -224,12 +234,13 @@ class RandomSplitDirectDownload:
 
     @staticmethod
     def list_files(split_frequency, url_pattern: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
-                   fname_regex: str, date_format=None, force_refresh=False, prefer_cache=False) -> List[str]:
+                   fname_regex: str, date_format=None, force_refresh=False, prefer_cache=False,
+                   list_next_folder=False) -> List[str]:
 
         keep = []
         start_time = make_utc_datetime(start_time)
         stop_time = make_utc_datetime(stop_time)
-        for start in spilt_range(split_frequency, start_time, stop_time):
+        for start in _folder_dates(split_frequency, start_time, stop_time, list_next_folder):
 
             base_ulr = apply_date_format(url_pattern, start)
             folder_url, folder_regex = base_ulr.rsplit('/', 1)
@@ -251,7 +262,8 @@ class RandomSplitDirectDownload:
     @staticmethod
     def get_product(url_pattern: str, variable: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                     fname_regex: str, split_frequency: str = "daily", date_format=None,
-                    file_reader: FileLoaderCallable = _read_cdf, **kwargs) -> SpeasyVariable | None:
+                    file_reader: FileLoaderCallable = _read_cdf, list_next_folder=False,
+                    **kwargs) -> SpeasyVariable | None:
 
         # kept in kwargs on purpose: they must also reach the file reader's own cache
         force_refresh = kwargs.get('force_refresh', False)
@@ -265,7 +277,8 @@ class RandomSplitDirectDownload:
                                                      fname_regex=fname_regex,
                                                      date_format=date_format,
                                                      force_refresh=force_refresh,
-                                                     prefer_cache=prefer_cache
+                                                     prefer_cache=prefer_cache,
+                                                     list_next_folder=list_next_folder
                                                      )
             )
         )
@@ -311,7 +324,7 @@ def _unknown_split_rule(split_rule: str) -> ValueError:
 
 def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, stop_time: AnyDateTimeType,
                use_file_list: bool = False, split_frequency: str = "daily", fname_regex: str | None = None,
-               date_format=None, **kwargs) -> str | None:
+               date_format=None, list_next_folder=False, **kwargs) -> str | None:
     """URL of the first file this archive would read for that range, None when it resolves none.
 
     Lets a caller look at one real file -- its variable list, its metadata -- without loading data.
@@ -319,7 +332,8 @@ def first_file(url_pattern: str, split_rule: str, start_time: AnyDateTimeType, s
     if split_rule.lower() == "random":
         files = RandomSplitDirectDownload.list_files(split_frequency=split_frequency, url_pattern=url_pattern,
                                                      start_time=start_time, stop_time=stop_time,
-                                                     fname_regex=fname_regex, date_format=date_format)
+                                                     fname_regex=fname_regex, date_format=date_format,
+                                                     list_next_folder=list_next_folder)
         return files[0] if len(files) else None
     if split_rule.lower() == "regular":
         urls = (_build_url(url_pattern, date, use_file_list=use_file_list)

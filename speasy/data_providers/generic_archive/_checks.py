@@ -14,7 +14,8 @@ CHOICES = {
     'split_frequency': ('daily', 'monthly', 'yearly', 'none'),
     'meta_priority': ('file', 'yaml'),
 }
-FETCH_KEYS = ('url_pattern', 'split_rule', 'split_frequency', 'use_file_list', 'fname_regex', 'date_format', 'codec')
+FETCH_KEYS = ('url_pattern', 'split_rule', 'split_frequency', 'use_file_list', 'fname_regex', 'date_format', 'codec',
+              'list_next_folder')
 KNOWN = frozenset((*REQUIRED, *VARIABLE_SOURCES, *CHOICES, *FETCH_KEYS, 'meta'))
 
 
@@ -63,6 +64,12 @@ def _random_without_regex(entry: dict) -> List[str]:
     return []
 
 
+def _next_folder_without_random(entry: dict) -> List[str]:
+    if entry.get('list_next_folder') and str(entry.get('split_rule', '')).lower() != 'random':
+        return ["list_next_folder only applies to split_rule 'random', the only one that lists folders"]
+    return []
+
+
 def _unknown_keys(entry: dict) -> List[str]:
     def hint(key):
         close = difflib.get_close_matches(key, KNOWN, n=1)
@@ -76,5 +83,5 @@ def entry_problems(name: str, entry) -> Tuple[List[str], List[str]]:
     if not isinstance(entry, dict):
         return [f"{name}: expected a mapping of fields, got {entry!r}"], []
     errors = [*_missing_keys(entry), *_bad_choices(entry), *_missing_variable_source(entry),
-              *_random_without_regex(entry)]
+              *_random_without_regex(entry), *_next_folder_without_random(entry)]
     return [f"{name}: {e}" for e in errors], [f"{name}: {w}" for w in _unknown_keys(entry)]

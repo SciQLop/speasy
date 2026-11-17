@@ -375,6 +375,39 @@ class DirectArchiveDownloader(unittest.TestCase):
 
         self.assertListEqual(sorted(found), sorted(expected))
 
+    def _reimei_like_archive(self, archive):
+        # JAXA DARTS files REIMEI passes from the last day(s) of a month in the next month's folder:
+        # 2008/03 holds RE_ESA_20080229111427.L2
+        layout = {'2008/02': ['RE_ESA_20080228000000.L2'],
+                  '2008/03': ['RE_ESA_20080229111427.L2', 'RE_ESA_20080301000154.L2']}
+        for folder, names in layout.items():
+            os.makedirs(f"{archive}/{folder}")
+            for name in names:
+                open(f"{archive}/{folder}/{name}", 'w').close()
+        return dict(split_frequency='monthly', url_pattern=archive + r"/{Y}/{M:02d}/RE_ESA_\d+\.L2",
+                    start_time='2008-02-29T11:15', stop_time='2008-02-29T11:20',
+                    fname_regex=r"RE_ESA_(?P<start>\d+)\.L2", date_format='%Y%m%d%H%M%S')
+
+    def test_random_split_lists_only_the_folders_of_the_requested_periods_by_default(self):
+        with tempfile.TemporaryDirectory() as archive:
+            found = dad.RandomSplitDirectDownload.list_files(**self._reimei_like_archive(archive))
+        self.assertListEqual([url.rsplit('/', 1)[-1] for url in found], ['RE_ESA_20080228000000.L2'])
+
+    def test_list_next_folder_finds_files_filed_in_the_next_period_folder(self):
+        with tempfile.TemporaryDirectory() as archive:
+            found = dad.RandomSplitDirectDownload.list_files(**self._reimei_like_archive(archive),
+                                                             list_next_folder=True)
+        self.assertIn('RE_ESA_20080229111427.L2', [url.rsplit('/', 1)[-1] for url in found])
+
+    def test_list_next_folder_reaches_the_listing_not_the_file_reader(self):
+        read = []
+        with tempfile.TemporaryDirectory() as archive:
+            params = self._reimei_like_archive(archive)
+            get_product(split_rule='random', variable='counts', list_next_folder=True,
+                        file_reader=lambda url, variable, **kwargs: read.append((url, kwargs)), **params)
+        self.assertIn('RE_ESA_20080229111427.L2', [url.rsplit('/', 1)[-1] for url, _ in read])
+        self.assertTrue(all('list_next_folder' not in kwargs for _, kwargs in read))
+
     @data(
         (
                 "https://cdaweb.gsfc.nasa.gov/pub/data/arase/pwe/hfa/l3/1min/{Y}/erg_pwe_hfa_l3_1min_{Y}{M:02d}{D:02d}_v05_11.cdf",

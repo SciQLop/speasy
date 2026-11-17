@@ -363,6 +363,11 @@ YAML field reference
        ``2018-06-05`` spellings. Set it when that automatic parsing fails or guesses wrong on your
        file names — e.g. ``date_format: "%d%m%Y"`` for a day-first ``05062018`` stamp, which is
        otherwise rejected as "month must be in 1..12".
+   * - **list_next_folder**
+     - Only for ``random`` split datasets. Set it to ``true`` when an archive files some data in the
+       folder of the *next* period: JAXA DARTS puts the REIMEI passes of a month's last day in the
+       next month's folder. Speasy then also lists that folder; the file dates still decide what is
+       read. Default: ``false``.
 
 .. _url_placeholders:
 
