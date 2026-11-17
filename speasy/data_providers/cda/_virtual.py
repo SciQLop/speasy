@@ -133,11 +133,39 @@ def has_computable_virtuals(dataset: DatasetIndex) -> bool:
     return any(getattr(p, 'FUNCT', '').lower() in FUNCTIONS for p in dataset.__dict__.values())
 
 
+def _references(variable: pycdfpp.Variable) -> list[str]:
+    return [a.value for _, a in variable.attributes.items() if isinstance(a.value, str)]
+
+
+def _needed(variable: str, cdf: pycdfpp.CDF, master: pycdfpp.CDF) -> set[str]:
+    """`variable` and every variable its attributes name (DEPEND_n, LABL_PTR_n, COMPONENT_n...), recursively."""
+    needed, todo = set(), [variable]
+    while todo:
+        name = todo.pop()
+        if name in needed or not (name in cdf or name in master):
+            continue
+        needed.add(name)
+        todo += [ref for source in (cdf, master) if name in source for ref in _references(source[name])]
+    return needed
+
+
+def _keep_only(cdf: pycdfpp.CDF, names: set[str]) -> pycdfpp.CDF:
+    for name in [n for n in cdf.keys() if n not in names]:
+        cdf._remove_variable(name)
+    return cdf
+
+
+def pruned(variable: str, cdf: pycdfpp.CDF, master: pycdfpp.CDF) -> tuple[pycdfpp.CDF, pycdfpp.CDF]:
+    """Both CDFs down to what `variable` needs: the variables left out are never decompressed, nor written back."""
+    needed = _needed(variable, cdf, master)
+    return _keep_only(cdf, needed), _keep_only(master, needed)
+
+
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
 def read_with_virtuals(url: Optional[str], variable: str, master_cdf_url: str) -> Optional[SpeasyVariable]:
     if url is None:
         return None
-    cdf = with_virtuals(_load(url), _load(master_cdf_url))
+    cdf = with_virtuals(*pruned(variable, _load(url), _load(master_cdf_url)))
     loaded = get_codec('application/x-cdf').load_variables(variables=[variable], file=memoryview(pycdfpp.save(cdf)),
                                                            master_cdf_url=master_cdf_url)
     return loaded and loaded.get(variable)
