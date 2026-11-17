@@ -165,22 +165,32 @@ def map_ranges(url, fname_regex: str | re.Pattern, date_format: str | None = Non
         filter(lambda m: m is not None, map(fname_regex.match,
                                             list_remote_files(url.rsplit('/', 1)[0],
                                                        re.compile(url.rsplit('/', 1)[1]))))))
-    ranges = []
-    if len(files):
-        if files[0].groupdict().get('stop', None):
-            for index, file in enumerate(files):
-                d = file.groupdict()
-                ranges.append((file.string, (_parse_date(d['start'], date_format),
-                                             _parse_date(d['stop'],
-                                                         date_format))))
-        else:
-            # a file ends where the next one starts, which only holds once they are in
-            # chronological order -- a directory listing is alphabetical, which is not the same
-            files = sorted(files, key=lambda f: _parse_date(f.groupdict()['start'], date_format))
-            start_dates = [_parse_date(f.groupdict()['start'], date_format) for f in files]
-            start_dates += [None]
-            ranges = list(zip([f.string for f in files], zip(start_dates, start_dates[1:])))
+    dated = _dated(files, date_format)
+    if dated and dated[0][2] is not None:
+        ranges = [(file.string, (start, stop)) for file, start, stop in dated]
+    else:
+        # a file ends where the next one starts, which only holds once they are in
+        # chronological order -- a directory listing is alphabetical, which is not the same
+        dated = sorted(dated, key=lambda d: d[1])
+        start_dates = [start for _, start, _ in dated] + [None]
+        ranges = list(zip([file.string for file, _, _ in dated], zip(start_dates, start_dates[1:])))
     return sorted(ranges, key=lambda r: r[1][0])
+
+
+def _dated(files: List[re.Match], date_format: str | None) -> List[Tuple[re.Match, datetime, datetime | None]]:
+    """Each file with the start and stop dates of its name; a name holding no valid date is skipped.
+
+    CDAWeb lists voyager2_48s_mag_19840532_v02.cdf: one such name must not fail every request of its folder.
+    """
+    dated = []
+    for file in files:
+        groups = file.groupdict()
+        try:
+            dated.append((file, _parse_date(groups['start'], date_format),
+                          _parse_date(groups['stop'], date_format) if groups.get('stop') else None))
+        except ValueError as e:
+            log.warning(f"Skipping {file.string}: its name does not hold a valid date ({e})")
+    return dated
 
 
 def filter_ranges(ranges: List[Tuple[str, Tuple[datetime, datetime]]], start: AnyDateTimeType,

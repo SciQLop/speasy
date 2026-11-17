@@ -352,6 +352,21 @@ class DirectArchiveDownloader(unittest.TestCase):
                              ['brst_v2_20180101100000.cdf',    # 10:00
                               'brst_v1_20180101120000.cdf'])   # 12:00
 
+    def test_a_file_name_with_an_impossible_date_is_skipped_with_a_warning(self):
+        # CDAWeb lists voyager2_48s_mag_19840532_v02.cdf (May 32nd): its strptime error made every 1984 request of
+        # VOYAGER2_48S_MAG fail, for all products
+        with tempfile.TemporaryDirectory() as archive:
+            os.makedirs(f"{archive}/1984")
+            for day in ('19840530', '19840532', '19840601'):
+                open(f"{archive}/1984/mag_{day}_v02.cdf", 'w').close()
+            with self.assertLogs(dad.log, level='WARNING') as logs:
+                found = dad.RandomSplitDirectDownload.list_files(
+                    split_frequency='yearly', url_pattern=archive + r"/{Y}/mag_\d+_v\d+\.cdf",
+                    start_time='1984-05-30', stop_time='1984-06-02',
+                    fname_regex=r"mag_(?P<start>\d+)_v(?P<version>\d+)\.cdf", date_format='%Y%m%d')
+        self.assertListEqual([url.rsplit('/', 1)[-1] for url in found], ['mag_19840530_v02.cdf', 'mag_19840601_v02.cdf'])
+        self.assertRegex(logs.output[0], r"mag_19840532_v02\.cdf.*date")
+
     def test_random_split_scans_every_month_folder_of_a_multi_year_range(self):
         # End to end consequence of the above: a monthly-foldered random-split dataset silently
         # returned only the files of its first months, the rest were never even listed.
