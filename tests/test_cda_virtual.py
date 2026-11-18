@@ -1,12 +1,13 @@
 import unittest
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import numpy as np
 import pycdfpp
 
 import speasy as spz
 from speasy.data_providers.cda import _archive_params_for
-from speasy.data_providers.cda._virtual import pruned, with_virtuals
+from speasy.data_providers.cda._virtual import has_computable_virtuals, pruned, with_virtuals
 
 START, STOP = datetime(2000, 1, 1, 0, 20, tzinfo=timezone.utc), datetime(2000, 1, 1, 0, 50, tzinfo=timezone.utc)
 
@@ -182,6 +183,16 @@ class Pruning(unittest.TestCase):
         self.assertSetEqual(set(kept_master.keys()), {'view'})
 
 
+class OtherFunctions(unittest.TestCase):
+    def test_a_dataset_whose_virtuals_use_only_other_functions_goes_to_the_web_service(self):
+        dataset = SimpleNamespace(flux=SimpleNamespace(FUNCT='convert_log10'), counts=SimpleNamespace())
+        self.assertFalse(has_computable_virtuals(dataset))
+
+    def test_a_dataset_with_one_computable_virtual_is_read_from_files(self):
+        dataset = SimpleNamespace(flux=SimpleNamespace(FUNCT='convert_log10'), view=SimpleNamespace(FUNCT='Alternate_View'))
+        self.assertTrue(has_computable_virtuals(dataset))
+
+
 def _archive_params(product: str, start=START, stop=STOP):
     inventory = spz.inventories.flat_inventories.cda
     dataset, variable = product.split('/')
@@ -195,8 +206,8 @@ class FastFromFiles(unittest.TestCase):
     def test_variable_with_arr_slice_axes_is_served_from_files(self):
         self.assertIsNotNone(_archive_params('FA_ESA_L2_EES/eflux'))
 
-    def test_other_virtual_functions_still_go_to_the_web_service(self):
-        self.assertIsNone(_archive_params('FA_ESA_L2_EES/eflux_movie'))   # alternate_view
+    def test_alternate_view_virtual_is_served_from_files(self):
+        self.assertIsNotNone(_archive_params('FA_ESA_L2_EES/eflux_movie'))
 
     def test_files_and_web_service_agree(self):
         for product in ('FA_ESA_L2_EES/energy_median', 'FA_ESA_L2_EES/eflux'):
