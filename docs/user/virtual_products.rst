@@ -10,6 +10,9 @@ Speasy product: request it with :func:`speasy.get_data`, or call it by its name.
 The registration can be done either directly, or with the decorator
 :func:`speasy.virtual_products.register_virtual_product`.
 
+For arithmetic on existing products, such as ``10 * B / N``, you don't need to
+write a function: see :doc:`virtual_expressions`.
+
 
 Writing the function
 --------------------
