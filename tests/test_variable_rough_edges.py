@@ -99,5 +99,30 @@ class IndexingByPositionAndName(unittest.TestCase):
             self.v[:, 0]
 
 
+class UfuncOutParameter(unittest.TestCase):
+    def test_returns_the_output_variable(self):
+        v = make_var()
+        w = v.copy()
+        self.assertIs(np.add(v, 1, out=w), w)
+        np.testing.assert_array_equal(w.values, v.values + 1)
+
+
+@ddt
+class ShapePreservingFunctionsAlongTime(unittest.TestCase):
+    @data(np.cumsum, np.sort, np.gradient)
+    def test_keep_the_time_axis(self, func):
+        v = make_var()
+        res = func(v, axis=0)
+        self.assertIsInstance(res, SpeasyVariable)
+        np.testing.assert_array_equal(res.values, func(v.values, axis=0))
+        np.testing.assert_array_equal(res.time, v.time)
+
+    def test_reductions_along_time_still_give_plain_arrays(self):
+        square = make_var(n=3)
+        self.assertNotIsInstance(np.mean(square, axis=0), SpeasyVariable)
+        self.assertEqual(np.mean(square, axis=0).shape, (3,))
+        self.assertNotIsInstance(np.diff(square, axis=0), SpeasyVariable)
+
+
 if __name__ == '__main__':
     unittest.main()
