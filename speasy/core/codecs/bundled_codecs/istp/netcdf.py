@@ -3,6 +3,7 @@ import io
 import os
 import tempfile
 import logging
+import re
 from datetime import timedelta
 
 import numpy as np
@@ -12,9 +13,10 @@ from speasy.core.codecs import CodecInterface, register_codec, Buffer
 from speasy.core.cache import CacheCall
 from speasy.products import SpeasyVariable
 
-from . import _load_variable, _resolve_url_type, _list_variables, _axis_slot
+from . import _load_variable, _resolve_url_type, _list_variables, _axis_slot, _attributes_to_write
 
 log = logging.getLogger(__name__)
+_PTR_rx = re.compile(r".*_PTR(_\d+)?")
 
 
 def _load_variables(variables, file=None, buffer=None):
@@ -77,6 +79,18 @@ def _axis_dimensions(axis, axis_index: int, data_dims: List[str], data_shape) ->
     return (data_dims[axis_index],)
 
 
+def _write_pointed_variable(name: str, values: list, ds) -> str:
+    ds.createDimension(name, len(values))
+    ds.createVariable(name, str, (name,))[:] = np.array([str(value) for value in values], dtype=object)
+    return name
+
+
+def _write_attribute(var, key: str, value, ds):
+    if _PTR_rx.match(key) and isinstance(value, list):
+        value = _write_pointed_variable(f"{var.name}_{key}", value, ds)
+    _try_set_attr(var, key, value)
+
+
 def _write_extra_axis(axis, name: str, dims: tuple, time_dim_name: str, ds):
     var = ds.createVariable(name, _nc_dtype(axis.values), dims)
     var[:] = axis.values
@@ -98,8 +112,8 @@ def _write_variable_nc(v: SpeasyVariable, ds, saved_axes: list):
             _write_extra_axis(ax, name, _axis_dimensions(ax, index, var_dims, v.values.shape), axis_names[0], ds)
     var = ds.createVariable(v.name, _nc_dtype(v.values), tuple(var_dims))
     var[:] = v.values
-    for k, val in v.meta.items():
-        _try_set_attr(var, k, val)
+    for k, val in _attributes_to_write(v).items():
+        _write_attribute(var, k, val, ds)
     # Re-assert DEPEND_* after meta loop: original values (e.g. "Epoch") may
     # differ from the names used in the saved file (e.g. "time").
     for i, name in enumerate(axis_names):

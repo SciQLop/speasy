@@ -13,7 +13,7 @@ from speasy.products import SpeasyVariable, VariableAxis
 
 import re
 
-from . import _load_variable, _resolve_url_type, _simplify_shape, _list_variables, _axis_slot
+from . import _load_variable, _resolve_url_type, _simplify_shape, _list_variables, _axis_slot, _attributes_to_write
 
 log = logging.getLogger(__name__)
 _PTR_rx = re.compile(r".*_PTR(_\d+)?")
@@ -86,7 +86,7 @@ def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, saved_axes: List[Tuple[
         axis_names.append(_save_axis(ax, cdf, saved_axes, compress_variables,
                                      time_axis_name=axis_names[0] if index else None))
     depends = {f"DEPEND_{index}": name for index, name in enumerate(axis_names)}
-    attributes = {**v.meta, **depends}
+    attributes = {**_attributes_to_write(v), **depends}
     cdf.add_variable(
         name=v.name,
         values=_simplify_shape(v.values),
