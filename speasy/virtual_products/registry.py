@@ -178,6 +178,10 @@ def _as_callback(product: Callable | Node, name: str) -> Callable:
             return evaluate(product, start_time, stop_time, name=name, **kwargs)
         return evaluate_expression
 
+    if not callable(product):
+        raise TypeError(f"Virtual product '{name}': expected a function or an expression such as 10 * B, "
+                        f"got {type(product).__name__}")
+
     @functools.wraps(product)
     def without_options(start_time, stop_time, **kwargs):
         return product(start_time, stop_time)
