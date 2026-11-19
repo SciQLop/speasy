@@ -119,3 +119,8 @@ class SscUiowaEphTool(unittest.TestCase):
         self.assertEqual(len(eph), 13)
         self.assertEqual(eph.time[-1], np.datetime64('2004-07-01T03:00:00.000000000', 'ns'))
 
+    def test_small_saturn_moons_stop_where_the_server_ephemeris_stops(self):
+        # built locally: the inventory served by the proxy only gets this once the proxy is upgraded
+        saturn = uiowa_eph_tool.build_inventory().Saturn_geocentric.Ecliptic
+        for moon in ('Methone', 'Anthe', 'Pallene', 'Telesto', 'Helene'):
+            self.assertTrue(getattr(saturn, moon).stop_date.startswith('2050-01-01'))

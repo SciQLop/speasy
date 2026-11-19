@@ -239,7 +239,9 @@ __TIME_RANGES__ = {
     "Galileo": DateTimeRange(datetime(1989, 10, 19, 1, 28, 38), datetime(2003, 9, 30, 11, 58, 55)),
     "Ulysses": DateTimeRange(datetime(1990, 10, 6, 20, 26, 1), datetime(2050, 1, 1, 11, 58, 49)),
     "Cassini": DateTimeRange(datetime(1997, 10, 15, 9, 26, 10), datetime(2017, 9, 15, 10, 32, 49)),
-    "Solar": DateTimeRange(datetime(1958, 1, 1), datetime(2094, 1, 1))
+    "Solar": DateTimeRange(datetime(1958, 1, 1), datetime(2094, 1, 1)),
+    **{moon: DateTimeRange(datetime(1958, 1, 1), datetime(2050, 1, 1))
+       for moon in ("Methone", "Anthe", "Pallene", "Telesto", "Helene")},
 }
 
 _FLOAT_REGEX = r'(-?\d+\.\d+)'
