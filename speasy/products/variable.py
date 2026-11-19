@@ -1107,6 +1107,14 @@ def to_dataframe(var: SpeasyVariable) -> pds.DataFrame:
     return SpeasyVariable.to_dataframe(var)
 
 
+def _check_same_sample_shape(variables: List[SpeasyVariable]):
+    shapes = {v.shape[1:] for v in variables}
+    if len(shapes) > 1:
+        raise ValueError(
+            f"merge() joins variables in time, so every sample must have the same shape, got {sorted(shapes)}. "
+            f"Merge only variables of the same product, or select matching columns first (var[['x', 'y']]).")
+
+
 def merge(variables: Iterable[SpeasyVariable]) -> Optional[SpeasyVariable]:
     """Merge a list of :class:`~speasy.common.variable.SpeasyVariable` objects.
 
@@ -1124,6 +1132,7 @@ def merge(variables: Iterable[SpeasyVariable]) -> Optional[SpeasyVariable]:
     variables = [v for v in variables if v is not None]
     if len(variables) == 0:
         return None
+    _check_same_sample_shape(variables)
     sorted_var_list = [v for v in variables if len(v.time) > 0]
     if len(sorted_var_list) == 0:
         return SpeasyVariable.reserve_like(variables[0], length=0)
