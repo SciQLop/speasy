@@ -386,14 +386,14 @@ def get_data(*args, **kwargs) -> MaybeAnyProduct:
     >>> import speasy as spz
     >>> spz.get_data("amda/imf_gsm", [["2016-10-10", "2016-10-11"],
     ...                               ["2017-10-10", "2017-10-11"]])
-    [<speasy.products.variable.SpeasyVariable object at ...>, <speasy.products.variable.SpeasyVariable object at ...>]
+    [SpeasyVariable(...), SpeasyVariable(...)]
 
     - Several products on a single interval:
 
     >>> import speasy as spz
     >>> spz.get_data(["amda/imf_gsm", spz.inventories.tree.ssc.Trajectories.wind],
     ...              "2016-10-10", "2016-10-11")
-    [<speasy.products.variable.SpeasyVariable object at ...>, <speasy.products.variable.SpeasyVariable object at ...>]
+    [SpeasyVariable(...), SpeasyVariable(...)]
 
     - Several products for several time ranges:
 
