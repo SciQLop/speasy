@@ -285,7 +285,7 @@ class DataContainer(DataContainerProtocol['DataContainer']):
     def unit_applied(self, unit: str or None = None) -> "DataContainer":
         try:
             u = astropy.units.Unit(unit or self.unit)
-        except (ValueError, KeyError):
+        except (ValueError, KeyError, TypeError):
             u = astropy.units.Unit("")
 
         return DataContainer(values=self.__values * u, meta=self.__meta, name=self.__name,

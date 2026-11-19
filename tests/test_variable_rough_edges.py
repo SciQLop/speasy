@@ -162,5 +162,11 @@ class DataFrameRoundTrip(unittest.TestCase):
             SpeasyVariable.from_dataframe(pds.DataFrame({"a": []}))
 
 
+class UnitApplied(unittest.TestCase):
+    def test_variable_without_unit_becomes_dimensionless(self):
+        v = make_var(meta={})
+        self.assertEqual(v.unit_applied().values.unit, astropy.units.dimensionless_unscaled)
+
+
 if __name__ == '__main__':
     unittest.main()
