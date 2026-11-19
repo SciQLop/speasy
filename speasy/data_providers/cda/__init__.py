@@ -16,7 +16,7 @@ from speasy.core import AllowedKwargs, EnsureUTCDateTime, make_utc_datetime
 from speasy.core import http, url_utils
 from email.utils import format_datetime
 from speasy.config import cdaweb as cda_cfg
-from speasy.core.codecs import get_codec
+from speasy.core.codecs import get_codec, has_codec
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, CacheCall, UnversionedProviderCache
 from speasy.core.dataprovider import (GET_DATA_ALLOWED_KWARGS, DataProvider,
                                       ParameterRangeCheck, register_provider)
@@ -93,7 +93,7 @@ def _archive_can_read(archive_params: Dict, can_read: Callable[[str], bool], sta
 def _codec_can_read_archive(archive_params: Dict, variable: str, start_time: datetime,
                             stop_time: datetime) -> bool:
     codec = archive_params['codec']
-    if get_codec(codec) is None:
+    if not has_codec(codec):
         log.warning(f"No {codec} codec available, switching to web service")
         return False
     return _archive_can_read(archive_params, lambda file_url: _codec_can_read(file_url, codec, variable),
