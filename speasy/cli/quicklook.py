@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 from cyclopts import Parameter
 
-from ._common import console, error
+from ._common import check_time, console, error
 
 
 def _image_name(name: str, start, image_format: str) -> str:
@@ -44,7 +44,8 @@ def quicklook(template: str, *, start: Optional[str] = None, stop: Optional[str]
         return error(f"{template} has nothing Speasy can render")
     if (start is None) != (stop is None):
         return error("--start and --stop go together")
-    start, stop = (start, stop) if start is not None else (loaded.time_range or (None, None))
+    start, stop = (check_time('--start', start), check_time('--stop', stop)) if start is not None \
+        else (loaded.time_range or (None, None))
     if start is None:
         return error(f"{template} stores no time range, give one with --start and --stop")
     if workers < 1:

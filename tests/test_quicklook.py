@@ -278,6 +278,16 @@ class TestQuicklookCli(_TempDir):
                               '--output-dir', self.dir)
         self.assertIn('vp//x', out)
 
+    def test_missing_template_is_a_clean_error(self):
+        code, out = self.run_cli('quicklook', 'nonexistent.json', '--start', '2022-01-01', '--stop', '2022-01-02')
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"Error: no such file: nonexistent\.json")
+
+    def test_unparsable_start_is_named(self):
+        code, out = self.run_cli('quicklook', self.template(), '--start', 'notadate', '--stop', '2022-01-02')
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"--start 'notadate' is not a date")
+
 
 if __name__ == '__main__':
     unittest.main()

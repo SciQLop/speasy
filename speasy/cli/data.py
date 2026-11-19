@@ -4,7 +4,7 @@ from typing import Annotated, Callable, List, Optional, Tuple
 
 from cyclopts import App, Parameter
 
-from ._common import console, error, table
+from ._common import check_time, console, error, table
 
 cache_app = App(name='cache', help="Inspect Speasy's local cache.")
 
@@ -48,7 +48,7 @@ def get(product: str, start: str, stop: str, *, output: Optional[str] = None) ->
     extension = os.path.splitext(output)[1].lower() if output else None
     if output and extension not in writers:
         return error(f"can't write '{extension}' files, supported formats are: {', '.join(sorted(writers))}")
-    var = speasy.get_data(product, start, stop)
+    var = speasy.get_data(product, check_time('start', start), check_time('stop', stop))
     if var is None:
         return error(f"no data for {product} between {start} and {stop}")
     if output:

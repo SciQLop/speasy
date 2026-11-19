@@ -23,3 +23,5 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
     except ValueError as e:  # bad names or values given on the command line
         return error(str(e))
+    except FileNotFoundError as e:
+        return error(f"no such file: {e.filename}")

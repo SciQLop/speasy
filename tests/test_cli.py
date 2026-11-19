@@ -215,6 +215,17 @@ class TestGet(_IsolatedConfig):
         self.assertEqual(code, 1)
         self.assertIn('no data', out)
 
+    def test_unparsable_start_is_named(self):
+        code, out = _run('get', 'archive/x/BGSEc', 'notadate', '2022-01-02')
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"start 'notadate' is not a date.*2018-06-01")
+        self.get_data.assert_not_called()
+
+    def test_unparsable_stop_is_named(self):
+        code, out = _run('get', 'archive/x/BGSEc', '2022-01-01', 'tomorrow')
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"stop 'tomorrow' is not a date")
+
 
 class TestCache(_IsolatedConfig):
 
@@ -259,6 +270,12 @@ class TestCacheWarm(_IsolatedConfig):
         self.assertEqual(code, 1)
         self.assertIn("ranges.txt line 2", out)
         self.get_data.assert_not_called()
+
+    def test_missing_ranges_file_is_a_clean_error(self):
+        code, out = _run('cache', 'warm', 'amda/a', '--ranges-file', 'nonexistent.txt')
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"Error: no such file: nonexistent\.txt")
+        self.assertNotIn('Traceback', out)
 
     def test_a_failure_does_not_stop_the_others(self):
         self.get_data.side_effect = [RuntimeError("server down"), self.get_data.return_value]
