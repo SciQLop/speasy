@@ -11,6 +11,7 @@ from pyistp.support_data_variable import SupportDataVariable
 from speasy.core.any_files import any_loc_open
 from speasy.core.url_utils import urlparse, is_local_file, to_local_path
 from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
+from speasy.products.variable import _check_extra_axes
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +74,27 @@ def _filter_extra_axes(variable: pyistp.loader.DataVariable) -> List[SupportData
     return variable.axes[1:]
 
 
+def _axes_fit(time_axis: VariableTimeAxis, axes: List[VariableAxis], values: DataContainer) -> bool:
+    try:
+        _check_extra_axes(time_axis, axes, values)
+        return True
+    except (ValueError, IndexError):
+        return False
+
+
+def _fitting_axes(time_axis: VariableTimeAxis, axes: List[VariableAxis], values: DataContainer) -> List[VariableAxis]:
+    """The axes before the first one that doesn't fit its data dimension, as CDAWeb's web service does.
+
+    Some masters point DEPEND_1 at the wrong variable (GOES12_EPHEMERIS_SSC/GSM_LAT) and some files write
+    an NRV axis with no record (RBSP-A-RBSPICE_LEV-3_TOFXEH/Telescope): the data is still good.
+    """
+    count = next(n for n in range(len(axes), -1, -1) if _axes_fit(time_axis, axes[:n], values))
+    if count < len(axes):
+        log.warning(f"Ignoring the axes of {values.name} from {axes[count].name} on: shape {axes[count].shape} "
+                    f"does not fit the data shape {values.shape}")
+    return axes[:count]
+
+
 def _valid_variable_or_none(variable: SpeasyVariable) -> Optional[SpeasyVariable]:
     if len(variable) == 1 and variable.time[0] < np.datetime64('1900-01-01'):  # handle fill values in epoch
         return None
@@ -105,13 +127,14 @@ def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVar
             return None
     if (var is not None) and (var.values.shape[0] == var.axes[0].values.shape[0]):
         time_axis_name = var.axes[0].name
+        time_axis = VariableTimeAxis(values=var.axes[0].values.copy(),
+                                     meta=_fix_attributes_types(var.axes[0].attributes))
+        values = DataContainer(values=var.values.copy(), meta=_fix_attributes_types(var.attributes), name=var.name,
+                               is_time_dependent=True)
+        extra_axes = [_make_axis(axis, time_axis_name, len(time_axis)) for axis in _filter_extra_axes(var)]
         return _valid_variable_or_none(SpeasyVariable(
-            axes=[VariableTimeAxis(values=var.axes[0].values.copy(),
-                                   meta=_fix_attributes_types(var.axes[0].attributes))] + [
-                     _make_axis(axis, time_axis_name, len(var.axes[0].values)) for axis in _filter_extra_axes(var)],
-            values=DataContainer(values=var.values.copy(), meta=_fix_attributes_types(var.attributes),
-                                 name=var.name,
-                                 is_time_dependent=True),
+            axes=[time_axis] + _fitting_axes(time_axis, extra_axes, values),
+            values=values,
             columns=_build_labels(var)))
     return None
 
