@@ -106,8 +106,8 @@ Good to know
 
 - The result keeps the metadata of the leftmost product, without ``VALIDMIN``
   and ``VALIDMAX``, which no longer describe the computed values.
-  It gets ``SPZ_CLEANED``: its fill values and out-of-range values are already
-  ``NaN``, so an expression that uses it as a product does not clean it again.
+  Its fill values and out-of-range values are already ``NaN``, and speasy
+  remembers it: an expression that uses it as a product does not clean it again.
 - ``UNITS`` is kept for ``+`` and ``-`` between identical units, for a constant
   offset or scale (``B + 1``, ``10 * B``, ``B / 10``), for ``-B``, ``abs(B)``,
   ``resample`` and ``interpolate``. It is dropped otherwise. There is no unit

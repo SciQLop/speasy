@@ -436,7 +436,7 @@ class TestEvaluate(unittest.TestCase):
                                             "VALIDMIN": 0, "VALIDMAX": 100})
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
-        self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31, "SPZ_CLEANED": True})
+        self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31})
 
     def test_fill_and_out_of_range_values_become_nan(self):
         b = _make_variable([1, -1e31, 3, 200], meta={"FILLVAL": -1e31, "VALIDMIN": 0, "VALIDMAX": 100})
@@ -445,8 +445,15 @@ class TestEvaluate(unittest.TestCase):
         np.testing.assert_array_equal(result.values, [[10.], [np.nan], [30.], [np.nan]])
 
     def test_clean_leaves_already_cleaned_data_as_is(self):
-        b = _make_variable([1, -1e31, 3], meta={"FILLVAL": -1e31, "SPZ_CLEANED": True})
+        b = _make_variable([1, -1e31, 3], meta={"FILLVAL": -1e31})
+        b._spz_cleaned = True
         self.assertIs(clean({"b": b})["b"], b)
+
+    def test_cleaned_flag_survives_labels_and_meta(self):
+        b = _make_variable([1, 2, 3])
+        b._spz_cleaned = True
+        self.assertTrue(b.with_labels(["x"])._spz_cleaned)
+        self.assertTrue(b.with_meta({"UNITS": "nT"})._spz_cleaned)
 
     def test_result_drops_units_when_operands_disagree(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")

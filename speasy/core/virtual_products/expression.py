@@ -205,12 +205,10 @@ def fetch(indexes, start, stop, **kwargs):
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
 
 
-_CLEANED_FLAG = "SPZ_CLEANED"
-
 
 def clean(data):
     """Replace fill values and out-of-range values by NaN in each product's data, unless already cleaned."""
-    return {key: variable if variable.meta.get(_CLEANED_FLAG)
+    return {key: variable if getattr(variable, "_spz_cleaned", False)
             else variable.replace_fillval_by_nan(convert_to_float=True).clamp_with_nan()
             for key, variable in data.items()}
 
@@ -301,7 +299,7 @@ def finalise(result, node, data, name=None):
         final.meta.pop(key, None)
     if _units(node, data) is None:
         final.meta.pop("UNITS", None)
-    final.meta[_CLEANED_FLAG] = True
+    final._spz_cleaned = True
     return final
 
 

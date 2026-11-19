@@ -160,7 +160,7 @@ class SpeasyVariable(SpeasyProduct):
 
     """
 
-    __slots__ = ["__values_container", "__columns", "__axes"]
+    __slots__ = ["__values_container", "__columns", "__axes", "_spz_cleaned"]
     __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
     def __init__(
@@ -184,6 +184,7 @@ class SpeasyVariable(SpeasyProduct):
 
         self.__values_container = values
         self.__axes = axes
+        self._spz_cleaned = False  # flag to indicate that the variable has been cleaned 
 
     def view(self, index_range: Union[slice, np.ndarray]) -> "SpeasyVariable":
         """Return view of the current variable within the desired :data:`index_range`.
@@ -241,7 +242,9 @@ class SpeasyVariable(SpeasyProduct):
         SpeasyVariable
             a SpeasyVariable with the given column names, without copying the data
         """
-        return SpeasyVariable(axes=list(self.__axes), values=self.__shared_values(meta={}), columns=labels)
+        variable = SpeasyVariable(axes=list(self.__axes), values=self.__shared_values(meta={}), columns=labels)
+        variable._spz_cleaned = getattr(self, "_spz_cleaned", False)  # may be unset on a variable read back from the cache
+        return variable
 
     def with_meta(self, meta: Dict) -> "SpeasyVariable":
         """Builds a SpeasyVariable whose meta-data is this variable's, updated with meta, sharing axes and values
@@ -256,7 +259,9 @@ class SpeasyVariable(SpeasyProduct):
         SpeasyVariable
             a SpeasyVariable with the merged meta-data, without copying the data
         """
-        return SpeasyVariable(axes=list(self.__axes), values=self.__shared_values(meta), columns=self.columns)
+        variable = SpeasyVariable(axes=list(self.__axes), values=self.__shared_values(meta), columns=self.columns)
+        variable._spz_cleaned = getattr(self, "_spz_cleaned", False)  # may be unset on a variable read back from the cache
+        return variable
 
     def __shared_values(self, meta: Dict) -> DataContainer:
         # A new container over the same array: the data is shared, the meta-data dict is not.
