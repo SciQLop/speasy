@@ -1,4 +1,5 @@
-from typing import List, Optional
+from itertools import chain, count
+from typing import Container, List, Optional, Tuple
 import re
 import logging
 
@@ -127,3 +128,21 @@ def _simplify_shape(values: np.ndarray) -> np.ndarray:
     if len(values.shape) == 2 and values.shape[1] == 1:
         return np.reshape(values, (-1))
     return values
+
+
+def _free_name(name: str, *taken: Container[str]) -> str:
+    candidates = chain([name], (f"{name}_{i}" for i in count(1)))
+    return next(candidate for candidate in candidates if not any(candidate in names for names in taken))
+
+
+def _axis_slot(axis: VariableAxis, saved_axes: List[Tuple[VariableAxis, str]], taken: Container[str]) -> Tuple[str, bool]:
+    """The name to write an axis under, and whether it still has to be written.
+
+    An axis equal to one already saved shares it; one that only shares its name gets a free name instead.
+    """
+    for saved, name in saved_axes:
+        if saved == axis:
+            return name, False
+    name = _free_name(axis.name, taken, [name for _, name in saved_axes])
+    saved_axes.append((axis, name))
+    return name, True

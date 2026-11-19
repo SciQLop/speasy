@@ -12,7 +12,7 @@ from speasy.core.codecs import CodecInterface, register_codec, Buffer
 from speasy.core.cache import CacheCall
 from speasy.products import SpeasyVariable
 
-from . import _load_variable, _resolve_url_type, _list_variables
+from . import _load_variable, _resolve_url_type, _list_variables, _axis_slot
 
 log = logging.getLogger(__name__)
 
@@ -41,29 +41,25 @@ def _try_set_attr(nc_var, key, value):
         log.debug("Could not set netCDF attribute '%s': %s", key, e)
 
 
-def _write_time_axis(axis, ds) -> str:
-    dim_name = axis.name
-    if dim_name not in ds.dimensions:
-        ds.createDimension(dim_name, len(axis.values))
-    if dim_name not in ds.variables:
-        var = ds.createVariable(dim_name, 'f8', (dim_name,))
-        var.units = "seconds since 1970-01-01T00:00:00"
-        var.VAR_TYPE = "support_data"
-        var[:] = axis.values.astype('int64') / 1e9
-        for k, val in axis.meta.items():
-            if k != 'units':
-                _try_set_attr(var, k, val)
-    return dim_name
+def _write_time_axis(axis, dim_name: str, ds):
+    ds.createDimension(dim_name, len(axis.values))
+    var = ds.createVariable(dim_name, 'f8', (dim_name,))
+    var.units = "seconds since 1970-01-01T00:00:00"
+    var.VAR_TYPE = "support_data"
+    var[:] = axis.values.astype('int64') / 1e9
+    for k, val in axis.meta.items():
+        if k != 'units':
+            _try_set_attr(var, k, val)
 
 
-def _data_dimensions(v: SpeasyVariable, time_dim_name: str, ds) -> List[str]:
+def _data_dimensions(v: SpeasyVariable, axis_names: List[str], ds) -> List[str]:
     """One dimension per dimension of the data, named after the axis describing it when there is one.
 
     Sizing them from the data rather than from the axes is what lets an axis span several of them.
     """
-    names = [time_dim_name]
+    names = [axis_names[0]]
     for index, size in enumerate(v.values.shape[1:], start=1):
-        name = f"dim_{v.axes[index].name}" if index < len(v.axes) else f"dim_{index}"
+        name = f"dim_{axis_names[index]}" if index < len(axis_names) else f"dim_{v.name}_{index}"
         if name not in ds.dimensions:
             ds.createDimension(name, size)
         names.append(name)
@@ -81,33 +77,33 @@ def _axis_dimensions(axis, axis_index: int, data_dims: List[str], data_shape) ->
     return (data_dims[axis_index],)
 
 
-def _write_extra_axis(axis, dims: tuple, time_dim_name: str, ds):
-    if axis.name not in ds.variables:
-        var = ds.createVariable(axis.name, _nc_dtype(axis.values), dims)
-        var[:] = axis.values
-        for k, val in axis.meta.items():
-            _try_set_attr(var, k, val)
-        if axis.is_time_dependent:
-            # this is how the reader tells a record varying axis from a fixed one
-            var.DEPEND_0 = time_dim_name
+def _write_extra_axis(axis, name: str, dims: tuple, time_dim_name: str, ds):
+    var = ds.createVariable(name, _nc_dtype(axis.values), dims)
+    var[:] = axis.values
+    for k, val in axis.meta.items():
+        _try_set_attr(var, k, val)
+    if axis.is_time_dependent:
+        # this is how the reader tells a record varying axis from a fixed one
+        var.DEPEND_0 = time_dim_name
 
 
-def _write_variable_nc(v: SpeasyVariable, ds, written_axes: list):
-    time_dim_name = _write_time_axis(v.axes[0], ds)
-    var_dims = _data_dimensions(v, time_dim_name, ds)
-    for index, ax in enumerate(v.axes[1:], start=1):
-        if ax.name not in written_axes:
-            _write_extra_axis(ax, _axis_dimensions(ax, index, var_dims, v.values.shape), time_dim_name, ds)
-            written_axes.append(ax.name)
+def _write_variable_nc(v: SpeasyVariable, ds, saved_axes: list):
+    slots = [_axis_slot(ax, saved_axes, taken=ds.variables) for ax in v.axes]
+    axis_names = [name for name, _ in slots]
+    if slots[0][1]:
+        _write_time_axis(v.axes[0], axis_names[0], ds)
+    var_dims = _data_dimensions(v, axis_names, ds)
+    for index, (ax, (name, to_write)) in enumerate(zip(v.axes[1:], slots[1:]), start=1):
+        if to_write:
+            _write_extra_axis(ax, name, _axis_dimensions(ax, index, var_dims, v.values.shape), axis_names[0], ds)
     var = ds.createVariable(v.name, _nc_dtype(v.values), tuple(var_dims))
     var[:] = v.values
     for k, val in v.meta.items():
         _try_set_attr(var, k, val)
     # Re-assert DEPEND_* after meta loop: original values (e.g. "Epoch") may
     # differ from the names used in the saved file (e.g. "time").
-    var.DEPEND_0 = time_dim_name
-    for i, ax in enumerate(v.axes[1:], start=1):
-        var.setncattr(f"DEPEND_{i}", ax.name)
+    for i, name in enumerate(axis_names):
+        var.setncattr(f"DEPEND_{i}", name)
 
 
 def _fill_dataset(ds, variables: List[SpeasyVariable]):
