@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `speasy` package."""
+import io
 import pickle
 import unittest
 from datetime import datetime, timezone
@@ -12,6 +13,7 @@ import numpy as np
 import pyzstd
 from ddt import data, ddt
 from numcodecs import Blosc
+from packaging.version import Version
 
 from speasy.core import epoch_to_datetime64
 from speasy.core.dataprovider import DataProvider
@@ -204,3 +206,33 @@ class ProxyBloscResponses(unittest.TestCase):
                 patch("speasy.core.proxy.http.get", return_value=_response(body, "application/python-pickle")):
             GetInventory.get("mockprovider")
         self.assertEqual(from_dict.call_args.args[0], pickle.loads(body))
+
+
+class ProxyFallbackReporting(unittest.TestCase):
+    """When the proxy can't serve, the fallback to the provider is reported through logging, never on stdout."""
+
+    def _call_through_proxy(self, request_get=None, proxy_version="1.0.0"):
+        from speasy.core.proxy import Proxyfiable
+        request = SimpleNamespace(get=request_get or (lambda **kwargs: "from proxy"))
+        wrapped = Proxyfiable(request, lambda **kwargs: kwargs)(lambda **kwargs: "from provider")
+        with patch("speasy.core.proxy.proxy_cfg.enabled", return_value=True), \
+                patch("speasy.core.proxy.is_proxy_up", return_value=True), \
+                patch("speasy.core.proxy.query_proxy_version", return_value=Version(proxy_version)), \
+                patch("sys.stdout", new_callable=io.StringIO) as stdout, \
+                self.assertLogs("speasy.core.proxy") as logs:
+            result = wrapped()
+        return result, "\n".join(logs.output), stdout.getvalue()
+
+    def test_a_failing_proxy_is_logged_with_its_error(self):
+        def boom(**kwargs):
+            raise ValueError("proxy exploded")
+
+        result, logs, stdout = self._call_through_proxy(request_get=boom)
+        self.assertEqual(result, "from provider")
+        self.assertIn("proxy exploded", logs)
+        self.assertEqual(stdout, "")
+
+    def test_an_old_proxy_names_the_minimum_version(self):
+        result, logs, _ = self._call_through_proxy(proxy_version="0.0.1")
+        self.assertEqual(result, "from provider")
+        self.assertIn("minimum required version", logs)

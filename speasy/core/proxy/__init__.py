@@ -214,10 +214,9 @@ class Proxyfiable(object):
                         return self.request.get(**self.arg_builder(**kwargs))
                     else:
                         log.warning(
-                            f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimun required version is {min_version}")
+                            f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimum required version is {min_version}")
                 except Exception as e:  # lgtm [py/catch-base-exception]
-                    log.error(f"Can't get data from proxy server {proxy_cfg.url()}")
-                    print(e)
+                    log.error(f"Can't get data from proxy server {proxy_cfg.url()}, falling back to the provider: {e}")
             return func(*args, **kwargs)
 
         return wrapped
