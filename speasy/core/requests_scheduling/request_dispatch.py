@@ -363,7 +363,7 @@ def get_data(*args, **kwargs) -> MaybeAnyProduct:
 
     >>> import speasy as spz
     >>> spz.get_data("amda/imf_gsm", "2016-10-10", "2016-10-11")
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
 
 
     - Same with a catalog using Speasy dynamic inventory:
