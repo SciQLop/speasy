@@ -80,6 +80,9 @@ class ExpressionOperators:
     def __pow__(self, other):
         return _make_op(np.power, self, other)
 
+    def __rpow__(self, other):
+        return _make_op(np.power, other, self)
+
     def __neg__(self):
         return _make_op(np.negative, self)
 

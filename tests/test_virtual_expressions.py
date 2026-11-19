@@ -137,7 +137,8 @@ class TestRepr(unittest.TestCase):
 
 
 _OPERATORS = ((operator.add, np.add), (operator.sub, np.subtract),
-              (operator.mul, np.multiply), (operator.truediv, np.divide))
+              (operator.mul, np.multiply), (operator.truediv, np.divide),
+              (operator.pow, np.power))
 
 
 @ddt
@@ -195,13 +196,6 @@ class TestOperators(unittest.TestCase):
         index_leaf, string_leaf = op.operands
         self.assertIs(index_leaf.index, self.index)
         self.assertEqual(string_leaf.index, "amda/mms1_dis_ni")  # the path is kept as is
-
-    def test_power_builds_an_op(self):
-        op = self.index ** 2
-        self.assertIs(op.ufunc, np.power)
-        leaf, const = op.operands
-        self.assertIs(leaf.index, self.index)
-        self.assertEqual(const.value, 2)
 
     @data((operator.neg, np.negative), (abs, np.absolute))
     @unpack
