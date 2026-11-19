@@ -439,7 +439,7 @@ class SpeasyVariable(SpeasyProduct):
         if np.isscalar(res):
             return res
         if isinstance(res, np.ndarray):
-            if len(res.shape) != self.shape and (res.shape[0] != len(self.time) or kwargs.get('axis', None) == 0):
+            if res.shape != self.shape and (res.shape[0] != len(self.time) or kwargs.get('axis', None) == 0):
                 return res
 
         n_cols = res.shape[1] if len(res.shape) > 1 else 1
@@ -461,9 +461,7 @@ class SpeasyVariable(SpeasyProduct):
         axes = self.__np_build_axes__(values, axis=kwargs.get('axis', None))
 
         if out is not None:
-            if isinstance(out, SpeasyVariable):
-                out.__axes = axes
-            return out
+            return out[0] if len(out) == 1 else out
         if type(values) is np.ndarray and values.dtype == bool:
             return np.all(values, axis=tuple(range(1, values.ndim)), keepdims=True)
         else:
