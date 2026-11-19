@@ -8,7 +8,7 @@ from packaging.version import Version
 
 import numpy as np
 
-from speasy.core import any_files, AllowedKwargs, fix_name, EnsureUTCDateTime, tap
+from speasy.core import http, AllowedKwargs, fix_name, EnsureUTCDateTime, tap
 from speasy.core.codecs import get_codec, CodecInterface
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
 from speasy.core.dataprovider import DataProvider, ParameterRangeCheck, GET_DATA_ALLOWED_KWARGS, register_provider
@@ -171,11 +171,26 @@ def _load_variable(archive: io.IOBase, variable: str, codec: CodecInterface) -> 
         return codec.load_variable(file=tar.extractfile(member).read(), variable=variable)
 
 
+def _no_products_found(response) -> bool:
+    """CSA answers a range without data with a 404 page saying "No products found"."""
+    return response.status_code == 404 and "No products found" in response.text
+
+
+def _fetch_archive(url: str, headers: Dict[str, str]) -> Optional[io.BytesIO]:
+    response = http.get(url, headers=headers)
+    if _no_products_found(response):
+        return None
+    if not response.ok:
+        raise IOError(f"CSA failed to serve {url}: HTTP {response.status_code}. The Cluster Science Archive may be "
+                      f"down, try again later; if it persists, report it at https://github.com/SciQLop/speasy/issues")
+    return io.BytesIO(response.bytes)
+
+
 def _download_variable(url: str, dataset: str, variable: str, start_time: datetime, stop_time: datetime,
                        delivery_format: str, extra_http_headers: Optional[Dict[str, str]] = None) \
         -> Optional[SpeasyVariable]:
     # https://csa.esac.esa.int/csa-sl-tap/data?RETRIEVAL_TYPE=product&&DATASET_ID=C3_CP_PEA_LERL_DEFlux&START_DATE=2001-06-10T22:12:14Z&END_DATE=2001-06-11T06:12:14Z&DELIVERY_FORMAT=CDF_ISTP&DELIVERY_INTERVAL=all
-    archive = any_files.any_loc_open(
+    archive = _fetch_archive(
         build_url(base=url, parameters={
             "RETRIEVAL_TYPE": "product",
             "DATASET_ID": dataset,
@@ -185,6 +200,8 @@ def _download_variable(url: str, dataset: str, variable: str, start_time: dateti
             "DELIVERY_INTERVAL": "all"
         }),
         headers=dict(extra_http_headers or {}))
+    if archive is None:
+        return None
     return _load_variable(archive, variable, get_codec(_CODECS[delivery_format]))
 
 
