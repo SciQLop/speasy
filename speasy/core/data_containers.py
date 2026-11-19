@@ -63,6 +63,8 @@ def fill_value_mask(values: np.ndarray, meta: Dict) -> Optional[np.ndarray]:
 def _name(input_p: Any) -> str:
     if hasattr(input_p, "name"):
         return input_p.name
+    if isinstance(input_p, (list, tuple)):
+        return f"[{', '.join(map(_name, input_p))}]"
     return str(input_p)
 
 

@@ -24,7 +24,20 @@ if TYPE_CHECKING:
 def _values(input: Any) -> Any:
     if isinstance(input, SpeasyVariable):
         return input.values
+    if isinstance(input, (list, tuple)):
+        return type(input)(map(_values, input))
     return input
+
+
+_JOINING_FUNCTIONS = {'concatenate', 'stack', 'vstack', 'hstack', 'dstack', 'column_stack', 'row_stack', 'append',
+                      'block'}
+
+
+def _refuse_joining(func):
+    if func.__name__ in _JOINING_FUNCTIONS:
+        raise TypeError(
+            f"numpy.{func.__name__} can't join SpeasyVariables: use speasy.products.variable.merge() to join them "
+            f"in time, or pass their .values to get a plain numpy array.")
 
 
 def _check_time_axis(axis: VariableTimeAxis, values: DataContainer):
@@ -408,6 +421,7 @@ class SpeasyVariable(SpeasyProduct):
             return SpeasyVariable.__dict__[func.__name__].__func__(self)
         if 'out' in kwargs:
             raise ValueError("out parameter is not supported")
+        _refuse_joining(func)
         f_args = [_values(arg) for arg in args]
         f_kwargs = {name: _values(value) for name, value in kwargs.items()}
         res = func(*f_args, **f_kwargs)

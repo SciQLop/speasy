@@ -54,5 +54,20 @@ class UnaryOperators(unittest.TestCase):
         np.testing.assert_array_equal(abs(self.v).values, np.abs(self.v.values))
 
 
+@ddt
+class JoiningFunctions(unittest.TestCase):
+    @data(np.concatenate, np.vstack, np.hstack, np.stack)
+    def test_point_to_merge_instead_of_recursing(self, func):
+        v = make_var()
+        with self.assertRaisesRegex(TypeError, r"merge\(\)"):
+            func([v, v])
+
+    def test_other_functions_taking_a_list_of_variables_do_not_recurse(self):
+        v = make_var()
+        res = np.select([v.values > 0], [v])
+        np.testing.assert_array_equal(res.values, np.select([v.values > 0], [v.values]))
+        self.assertTrue(res.name.endswith(", [b])"))
+
+
 if __name__ == '__main__':
     unittest.main()
