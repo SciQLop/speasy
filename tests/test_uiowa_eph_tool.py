@@ -57,10 +57,12 @@ class SscUiowaEphTool(unittest.TestCase):
         ('Trajectories.Jupiter.Ecliptic.Io', "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
         ('Jupiter_Io_Ecliptic', "2006-01-08T00:00:00", "2006-01-09T00:00:00"),
         ('Trajectories.Io.Geographic.Galileo', "2000-01-08T00:00:00", "2000-01-09T00:00:00"),
+        ('Hyperion_Cassini_Geographic', "2005-01-08T00:00:00", "2005-01-09T00:00:00"),
+        ('Saturn geocentric_Hyperion_Geographic', "2005-01-08T00:00:00", "2005-01-09T00:00:00"),
     )
     @unpack
     def test_simple_request(self, trajectory, start, end):
-        eph = self.uiowa.get_data(_product(trajectory), start, end, disable_cache=True)
+        eph = self.uiowa.get_data(_product(trajectory), start, end, disable_cache=True, disable_proxy=True)
         self.assertIsNotNone(eph)
         self.assertGreater(len(eph), 0)
         self.assertIsInstance(eph, SpeasyVariable)
