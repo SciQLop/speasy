@@ -44,6 +44,9 @@ class ImpexProductType(Enum):
     CATALOG = 5
 
 
+_TIME_SERIES_TYPES = (ImpexProductType.DATASET, ImpexProductType.PARAMETER, ImpexProductType.COMPONENT)
+
+
 class ImpexProvider(DataProvider):
     """ImpexProvider class. This class is the main interface to interact with the Impex data providers such as AMDA or CLWeb.
     """
@@ -321,27 +324,33 @@ class ImpexProvider(DataProvider):
 
         """
         product_t = self.product_type(product)
-        if product_t == ImpexProductType.DATASET and start_time and stop_time:
-            return self.get_dataset(dataset_id=product, start=start_time, stop=stop_time, **kwargs)
-        if product_t == ImpexProductType.PARAMETER and start_time and stop_time:
-            if self.is_user_parameter(product):
-                return self.get_user_parameter(parameter_id=product,
-                                               start_time=start_time, stop_time=stop_time, **kwargs)
-            else:
-                return self.get_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
-        if product_t == ImpexProductType.COMPONENT and start_time and stop_time:
-            return self.get_component(component_id=product, start_time=start_time, stop_time=stop_time, **kwargs)
+        if product_t in _TIME_SERIES_TYPES and start_time and stop_time:
+            return self._get_time_series(product_t, product, start_time, stop_time, **kwargs)
         if product_t == ImpexProductType.CATALOG:
-            if self.is_user_catalog(product):
-                return self.get_user_catalog(catalog_id=product, **kwargs)
-            else:
-                return self.get_catalog(catalog_id=product, **kwargs)
+            return self._get_catalog_of_any_owner(product, **kwargs)
         if product_t == ImpexProductType.TIMETABLE:
-            if self.is_user_timetable(product):
-                return self.get_user_timetable(timetable_id=product, **kwargs)
-            else:
-                return self.get_timetable(timetable_id=product, **kwargs)
+            return self._get_timetable_of_any_owner(product, **kwargs)
         raise ValueError(f"Unknown product: {product}")
+
+    def _get_time_series(self, product_t, product, start_time, stop_time, **kwargs):
+        if product_t == ImpexProductType.DATASET:
+            return self.get_dataset(dataset_id=product, start=start_time, stop=stop_time, **kwargs)
+        if product_t == ImpexProductType.COMPONENT:
+            return self.get_component(component_id=product, start_time=start_time, stop_time=stop_time, **kwargs)
+        if self.is_user_parameter(product):
+            return self.get_user_parameter(parameter_id=product, start_time=start_time, stop_time=stop_time,
+                                           **kwargs)
+        return self.get_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
+
+    def _get_catalog_of_any_owner(self, product, **kwargs):
+        if self.is_user_catalog(product):
+            return self.get_user_catalog(catalog_id=product, **kwargs)
+        return self.get_catalog(catalog_id=product, **kwargs)
+
+    def _get_timetable_of_any_owner(self, product, **kwargs):
+        if self.is_user_timetable(product):
+            return self.get_user_timetable(timetable_id=product, **kwargs)
+        return self.get_timetable(timetable_id=product, **kwargs)
 
     def get_user_parameter(self, parameter_id: str or ParameterIndex, start_time: datetime or str,
                            stop_time: datetime or str, **kwargs) -> Optional[SpeasyVariable]:

@@ -31,8 +31,9 @@ def make_spectro_without_columns(n=4, height=3):
 
 class MergeShapes(unittest.TestCase):
     def test_refuses_variables_with_different_column_counts(self):
+        variables = [make_var(5), make_var(5, columns=("bx",), start=5.)]
         with self.assertRaisesRegex(ValueError, r"same shape.*\(1,\).*\(3,\)"):
-            merge([make_var(5), make_var(5, columns=("bx",), start=5.)])
+            merge(variables)
 
     def test_still_merges_same_shape_variables(self):
         self.assertEqual(len(merge([make_var(5), make_var(5, start=5.)])), 10)
@@ -153,8 +154,9 @@ class DataFrameRoundTrip(unittest.TestCase):
         self.assertEqual(len(pds.concat([v.to_dataframe(), v.to_dataframe()])), 20)
 
     def test_variable_without_column_names_raises_a_clear_error(self):
+        variable = make_spectro_without_columns()
         with self.assertRaisesRegex(ValueError, "0 column names for 3 columns.*with_labels"):
-            make_spectro_without_columns().to_dataframe()
+            variable.to_dataframe()
 
     def test_3d_variable_error_has_no_typo(self):
         time = epoch_to_datetime64(np.arange(2, dtype=float))
@@ -182,8 +184,9 @@ class NaNOnIntegerData(unittest.TestCase):
 
     @data("replace_fillval_by_nan", "clamp_with_nan")
     def test_error_says_to_convert_to_float(self, method):
+        clean = getattr(self.make_int_var(), method)
         with self.assertRaisesRegex(ValueError, "convert_to_float=True"):
-            getattr(self.make_int_var(), method)()
+            clean()
 
     @data("replace_fillval_by_nan", "clamp_with_nan")
     def test_convert_to_float_works(self, method):
@@ -206,16 +209,19 @@ class PlainRepr(unittest.TestCase):
 
 class CatalogAppendError(unittest.TestCase):
     def test_names_the_offending_type(self):
+        catalog = Catalog(name="c", events=[])
         with self.assertRaisesRegex(TypeError, "str"):
-            Catalog(name="c", events=[]).append("x")
+            catalog.append("x")
+        events = [Event("2020-01-01", "2020-01-02"), 3]
         with self.assertRaisesRegex(TypeError, "int"):
-            Catalog(name="c", events=[]).append([Event("2020-01-01", "2020-01-02"), 3])
+            catalog.append(events)
 
 
 class ColormapOfVector(unittest.TestCase):
     def test_raises_a_clear_error(self):
+        plot = make_var().plot
         with self.assertRaisesRegex(ValueError, r"plot\.line\(\)"):
-            make_var().plot.colormap()
+            plot.colormap()
 
 
 if __name__ == '__main__':

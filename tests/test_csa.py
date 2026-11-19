@@ -147,7 +147,7 @@ _DOWNLOAD_ARGS = ("https://csa.esac.esa.int/csa-sl-tap/data", "C1_CP_TEST", "den
 def _download_answered(status_code: int, text: str = "", content: bytes = b""):
     from unittest.mock import patch
     answer = SimpleNamespace(status_code=status_code, text=text, bytes=content, ok=status_code == 200)
-    with patch("speasy.data_providers.csa.http.get", lambda url, headers=None: answer):
+    with patch("speasy.data_providers.csa.http.get", return_value=answer):
         return _download_variable(*_DOWNLOAD_ARGS)
 
 
