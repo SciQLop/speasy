@@ -290,8 +290,8 @@ def parse_trajectory(trajectory: str, product: ParameterIndex) -> Optional[Speas
             logging.warning(f"Could not parse line: {line}")
 
     return SpeasyVariable(
-        axes=[VariableTimeAxis(values=time)],
-        values=DataContainer(values=values,
+        axes=[VariableTimeAxis(values=time[:index])],
+        values=DataContainer(values=values[:index],
                                          meta={
                                              "UNITS": units,
                                              "COORDINATE_SYSTEM": product.CoordinateSystem,

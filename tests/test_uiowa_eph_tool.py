@@ -110,3 +110,12 @@ class SscUiowaEphTool(unittest.TestCase):
         # the sample sitting inside the window must be returned, however small the window is
         self.assertEqual(list(eph.time), [np.datetime64('2004-07-01T02:05:00.000000000', 'ns')])
 
+
+    def test_unparsed_trailing_lines_do_not_add_garbage_rows(self):
+        # past the end of a body's ephemeris the server appends a SPICE error to the data it could compute
+        with open(_CSV_SAMPLE_PATH1, 'r') as f:
+            sample = f.read() + "\nSPICE(SPKINSUFFDATA) --\nInsufficient ephemeris data has been loaded\n"
+        eph = uiowa_eph_tool.parse_trajectory(sample, _product('Trajectories.Callisto.Co_rotational.Cassini'))
+        self.assertEqual(len(eph), 13)
+        self.assertEqual(eph.time[-1], np.datetime64('2004-07-01T03:00:00.000000000', 'ns'))
+
