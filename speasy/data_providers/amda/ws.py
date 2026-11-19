@@ -377,22 +377,23 @@ class AmdaWebservice(ImpexProvider):
     def _get_timetables_tree(self) -> str or None:
         return super()._get_timetables_tree()
 
-    @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_user_timetables_tree(self) -> str or None:
-        return super()._get_user_timetables_tree()
+        return self._account_list(self.client.username, "_get_user_timetables_tree")
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_catalogs_tree(self) -> str or None:
         return super()._get_catalogs_tree()
 
-    @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_user_catalogs_tree(self) -> str or None:
-        return super()._get_user_catalogs_tree()
+        return self._account_list(self.client.username, "_get_user_catalogs_tree")
 
-    @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
     def _get_derived_parameter_tree(self) -> str or None:
-        return super()._get_derived_parameter_tree()
+        return self._account_list(self.client.username, "_get_derived_parameter_tree")
+
+    def _get_private_parameter_tree(self) -> str or None:
+        return self._account_list(self.client.username, "_get_private_parameter_tree")
 
     @CacheCall(cache_retention=amda_cfg.user_cache_retention(), is_pure=True)
-    def _get_private_parameter_tree(self) -> str or None:
-        return super()._get_private_parameter_tree()
+    def _account_list(self, username: str, getter: str) -> str or None:
+        """A list that depends on the account, cached per username; the password never goes in a cache key."""
+        return getattr(super(), getter)()

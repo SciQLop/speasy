@@ -4,6 +4,7 @@
 """Tests for `amda` package."""
 import os
 import unittest
+import uuid
 from unittest import mock
 from datetime import datetime, timezone
 
@@ -56,6 +57,26 @@ class RejectedCredentials(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, r"amda rejected.*SPEASY_AMDA_USERNAME"):
             spz.amda.reset_credentials("bad", "bad")
         self.assertIsNotNone(spz.get_data("amda/imf", "2020-01-01", "2020-01-01T00:30:00"))
+
+
+@ddt
+class PrivateListsAreCachedPerUser(unittest.TestCase):
+    def setUp(self):
+        self.client = spz.amda.client
+        self.saved = (self.client.username, self.client.password)
+
+    def tearDown(self):
+        self.client.reset_credentials(*self.saved)
+
+    @data("_get_user_timetables_tree", "_get_user_catalogs_tree", "_get_derived_parameter_tree",
+          "_get_private_parameter_tree")
+    def test_another_user_does_not_get_the_previous_user_list(self, getter):
+        from speasy.core.impex import ImpexProvider
+        users = [f"user-{uuid.uuid4()}" for _ in range(2)]
+        with mock.patch.object(ImpexProvider, getter, lambda provider: f"list of {provider.client.username}"):
+            for user in users:
+                self.client.reset_credentials(user, "pw")
+                self.assertEqual(getattr(spz.amda, getter)(), f"list of {user}")
 
 
 class PublicProductsRequests(unittest.TestCase):
