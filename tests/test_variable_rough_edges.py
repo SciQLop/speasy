@@ -188,5 +188,14 @@ class NaNOnIntegerData(unittest.TestCase):
         np.testing.assert_array_equal(getattr(v, method)().values, v.values)
 
 
+class PlainRepr(unittest.TestCase):
+    def test_repr_describes_the_variable(self):
+        text = repr(make_var())
+        for expected in ("SpeasyVariable(", "Name: b", "Time Range:", "Shape: (10, 3)", "Unit: nT",
+                         "Columns: ['bx', 'by', 'bz']", "Size:"):
+            self.assertIn(expected, text)
+        self.assertEqual(str(make_var()), text)
+
+
 if __name__ == '__main__':
     unittest.main()

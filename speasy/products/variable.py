@@ -1108,45 +1108,29 @@ class SpeasyVariable(SpeasyProduct):
             columns=deepcopy(other.columns),
         )
 
-    def _repr_pretty_(self, p, cycle):
+    def __summary(self) -> List[Tuple[str, Any]]:
         import humanize
+        time_range = [("Time Range", f"{self.time[0]} - {self.time[-1]}")] if len(self) else []
+        return [("Name", self.name), *time_range, ("Shape", self.shape), ("Unit", self.unit),
+                ("Columns", self.columns), ("Meta", self.meta), ("Size", humanize.naturalsize(self.nbytes))]
+
+    def __repr__(self):
+        fields = ", ".join(f"{label}: {value}" for label, value in self.__summary())
+        return f"{type(self).__name__}({fields})"
+
+    def _repr_pretty_(self, p, cycle):
         if cycle:
-            p.text("SpeasyVariable(...)")
-        else:
-            def _print_member(name, value, last=False):
-                p.text(f"{name}: ")
-                p.pretty(value)
-                if not last:
-                    p.text(", ")
+            p.text(f"{type(self).__name__}(...)")
+            return
+        with p.group(4, f"{type(self).__name__}(", ")"):
+            for index, (label, value) in enumerate(self.__summary()):
+                p.text("," if index else "")
                 p.breakable()
-
-            def _print_dict(name, d, last=False):
-                p.text(f"{name}: ")
-                with p.group(4, '{', '}'):
-                    p.breakable()
-                    for k, v in d.items():
-                        p.text(f"{k}: ")
-                        p.pretty(v)
-                        p.text(", ")
-                        p.breakable()
-                if not last:
-                    p.text(", ")
-                p.breakable()
-
-            def _print_time_range():
-                p.text(f"Time Range: {self.time[0]} - {self.time[-1]}")
-                p.breakable()
-
-            with p.group(4, f'{self.__class__.__name__}(', ')'):
-                p.breakable()
-                _print_member("Name", self.name)
-                if len(self):
-                    _print_time_range()
-                _print_member("Shape", self.shape)
-                _print_member("Unit", self.unit)
-                _print_member("Columns", self.columns)
-                _print_dict("Meta", self.meta)
-                _print_member("Size", humanize.naturalsize(self.nbytes))
+                p.text(f"{label}: ")
+                if isinstance(value, str):
+                    p.text(value)
+                else:
+                    p.pretty(value)
 
 
 def to_dictionary(var: SpeasyVariable, array_to_list=False) -> Dict[str, object]:
