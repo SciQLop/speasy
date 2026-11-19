@@ -88,8 +88,7 @@ def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: Lis
             already_saved_axes.append(ax)
         else:
             depends[f"DEPEND_{index}"] = a
-    attributes = v.meta
-    attributes.update(depends)
+    attributes = {**v.meta, **depends}
     cdf.add_variable(
         name=v.name,
         values=_simplify_shape(v.values),
