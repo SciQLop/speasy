@@ -225,6 +225,12 @@ class VirtualProductRegistration(unittest.TestCase):
         with self.assertRaises(ValueError):
             register_virtual_product("plasma/beta")
 
+    def test_rejects_a_bare_product(self):
+        b = ParameterIndex(name="b", provider="cda", uid="b")
+        with self.assertRaisesRegex(TypeError, "a function or an expression"):
+            register_virtual_product("virtual/probe/bare", b)
+        self.assertNotIn("probe/bare", spz.inventories.flat_inventories.virtual.parameters)
+
     def test_direct_form_sets_meta_on_the_tree_leaf(self):
         register_virtual_product("virtual/plasma/beta", _hourly_ramp, meta={"units": "nT"})
         self.assertEqual(spz.inventories.tree.virtual.plasma.beta.units, "nT")
