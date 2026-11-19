@@ -124,5 +124,43 @@ class ShapePreservingFunctionsAlongTime(unittest.TestCase):
         self.assertNotIsInstance(np.diff(square, axis=0), SpeasyVariable)
 
 
+class DataFrameRoundTrip(unittest.TestCase):
+    def test_keeps_name_unit_and_meta(self):
+        v = make_var()
+        back = SpeasyVariable.from_dataframe(v.to_dataframe())
+        self.assertEqual(back.name, "b")
+        self.assertEqual(back.unit, "nT")
+        self.assertEqual(back, v)
+
+    def test_explicit_arguments_win(self):
+        back = SpeasyVariable.from_dataframe(make_var().to_dataframe(), meta={"UNITS": "V"}, name="e")
+        self.assertEqual((back.name, back.unit), ("e", "V"))
+
+    def test_plain_dataframe_still_gets_defaults(self):
+        df = pds.DataFrame({"a": [1., 2.]}, index=pds.to_datetime(["2020-01-01", "2020-01-02"]))
+        back = SpeasyVariable.from_dataframe(df)
+        self.assertEqual((back.name, back.meta), ("Unknown", {}))
+
+    def test_concatenating_frames_with_array_meta_still_works(self):
+        v = make_var(meta={"UNITS": "nT", "VALIDMIN": np.array([-1., -1., -1.])})
+        self.assertEqual(len(pds.concat([v.to_dataframe(), v.to_dataframe()])), 20)
+
+    def test_variable_without_column_names_raises_a_clear_error(self):
+        with self.assertRaisesRegex(ValueError, "0 column names for 3 columns.*with_labels"):
+            make_spectro_without_columns().to_dataframe()
+
+    def test_3d_variable_error_has_no_typo(self):
+        time = epoch_to_datetime64(np.arange(2, dtype=float))
+        var = SpeasyVariable(axes=[VariableTimeAxis(values=time), VariableAxis(name="y", values=np.arange(2.)),
+                                   VariableAxis(name="z", values=np.arange(2.))],
+                             values=DataContainer(values=np.ones((2, 2, 2))))
+        with self.assertRaisesRegex(ValueError, "^Can't convert"):
+            var.to_dataframe()
+
+    def test_empty_dataframe_raises_the_index_error_message(self):
+        with self.assertRaisesRegex(ValueError, "index.*datetime"):
+            SpeasyVariable.from_dataframe(pds.DataFrame({"a": []}))
+
+
 if __name__ == '__main__':
     unittest.main()

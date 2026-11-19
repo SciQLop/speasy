@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Any, Tuple, Union
 
 import astropy.table
@@ -89,6 +90,21 @@ def _check_axes(axes: List[VariableAxis or VariableTimeAxis], values: DataContai
         raise ValueError("At least one axis (time axis) must be provided")
     _check_time_axis(axes[0], values)
     _check_extra_axes(axes[0], axes[1:], values)
+
+
+@dataclass(frozen=True, eq=False)
+class _DataFrameOrigin:
+    # eq=False: pandas compares attrs when concatenating frames, and a meta dict holding numpy arrays
+    # can't be compared with ==, so frames from different variables simply drop it.
+    name: str = "Unknown"
+    meta: Dict = field(default_factory=dict)
+    time_name: str = "time"
+    time_meta: Dict = field(default_factory=dict)
+
+
+def _dataframe_origin(df: pds.DataFrame) -> _DataFrameOrigin:
+    origin = df.attrs.get("speasy")
+    return origin if isinstance(origin, _DataFrameOrigin) else _DataFrameOrigin()
 
 
 class SpeasyVariable(SpeasyProduct):
@@ -701,17 +717,28 @@ class SpeasyVariable(SpeasyProduct):
         from_dataframe: builds a SpeasyVariable from a pandas DataFrame
         to_astropy_table: exports a SpeasyVariable to an astropy.Table object
         """
-        if len(self.__values_container.shape) != 2:
-            raise ValueError(
-                f"Cant' convert a SpeasyVariable with shape {self.__values_container.shape} to DataFrame, only 1D/2D variables are accepted"
-            )
-        return pds.DataFrame(
+        self.__check_table_like()
+        df = pds.DataFrame(
             index=self.time, data=self.values, columns=self.__columns, copy=True
         )
+        df.attrs["speasy"] = _DataFrameOrigin(name=self.name, meta=deepcopy(self.meta),
+                                              time_name=self.__axes[0].name, time_meta=deepcopy(self.__axes[0].meta))
+        return df
+
+    def __check_table_like(self):
+        shape = self.__values_container.shape
+        if len(shape) != 2:
+            raise ValueError(
+                f"Can't convert SpeasyVariable {self.name} with shape {shape} to a DataFrame, only 1D/2D variables "
+                f"are accepted. Reduce the extra dimensions first, for instance with numpy.sum(variable, axis=2).")
+        if len(self.__columns) != shape[1]:
+            raise ValueError(
+                f"Can't convert SpeasyVariable {self.name} to a DataFrame: it has {len(self.__columns)} column names "
+                f"for {shape[1]} columns. Name them first with variable.with_labels([...]).")
 
     @staticmethod
     def from_dataframe(df: pds.DataFrame, meta: Optional[Dict[str, Any]] = None,
-                       name: str = "Unknown") -> "SpeasyVariable":
+                       name: Optional[str] = None) -> "SpeasyVariable":
         """Load from pandas.DataFrame object.
 
         Parameters
@@ -719,9 +746,9 @@ class SpeasyVariable(SpeasyProduct):
         df: pandas.DataFrame
             Input DataFrame to convert
         meta: Optional[Dict[str, Any]], optional
-            Optional metadata dictionary, by default None
+            Optional metadata dictionary, by default the one saved by :meth:`to_dataframe` in df.attrs, else empty
         name: str, optional
-            Variable name, by default "Unknown"
+            Variable name, by default the one saved by :meth:`to_dataframe` in df.attrs, else "Unknown"
 
         Returns
         -------
@@ -736,16 +763,19 @@ class SpeasyVariable(SpeasyProduct):
         if isinstance(df.index, pds.DatetimeIndex):
             index = df.index if df.index.tz is None else df.index.tz_convert(None)
             time = index.values.astype("datetime64[ns]")
-        elif hasattr(df.index[0], "timestamp"):
+        elif len(df.index) and hasattr(df.index[0], "timestamp"):
             time = np.array(
                 [np.datetime64(round(d.timestamp() * 1e9), "ns") for d in df.index]
             )
         else:
             raise ValueError(
-                "Can't convert DataFrame index to datetime64[ns] array")
+                "Can't convert DataFrame index to datetime64[ns] array: index the DataFrame by time first, "
+                "for instance with df.set_index(pandas.to_datetime(df['time'])).")
+        origin = _dataframe_origin(df)
         return SpeasyVariable(
-            axes=[VariableTimeAxis(values=time, meta={})],
-            values=DataContainer(values=df.values, meta=meta or {}, name=name),
+            axes=[VariableTimeAxis(values=time, meta=deepcopy(origin.time_meta), name=origin.time_name)],
+            values=DataContainer(values=df.values, meta=deepcopy(origin.meta) if meta is None else meta,
+                                 name=name or origin.name),
             columns=list(df.columns),
         )
 
