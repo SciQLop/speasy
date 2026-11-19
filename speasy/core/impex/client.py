@@ -7,7 +7,7 @@ import time
 from ...core import http
 from ...core.http import is_server_up
 
-from .exceptions import MissingCredentials, UnavailableEndpoint
+from .exceptions import InvalidCredentials, MissingCredentials, UnavailableEndpoint
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +29,9 @@ class ImpexEndpoint(Enum):
 
 class ImpexClient:
     def __init__(self, server_url="", capabilities=None, username="", password="",
-                 output_format="CDF_ISTP", time_format='UNIXTIME'):
+                 output_format="CDF_ISTP", time_format='UNIXTIME', provider_name="impex"):
         self.server_url = server_url
+        self.provider_name = provider_name
         if capabilities is None:
             capabilities = [ImpexEndpoint.OBSTREE, ImpexEndpoint.GETPARAM]
         self.capabilities = capabilities
@@ -143,6 +144,14 @@ class ImpexClient:
             params['userID'], params['password'] = self.get_credentials()
         return self._send_request(ImpexEndpoint.GETCAT, params=params)
 
+    def _invalid_credentials(self, server_message: str) -> InvalidCredentials:
+        env_prefix = f"SPEASY_{self.provider_name.upper()}"
+        return InvalidCredentials(
+            f"{self.provider_name} rejected the credentials of user {self.username!r} ({server_message}). "
+            f"Fix them with spz.config.{self.provider_name}.username.set(...) and "
+            f"spz.config.{self.provider_name}.password.set(...), or the {env_prefix}_USERNAME and "
+            f"{env_prefix}_PASSWORD environment variables; leave both empty to use public data only.")
+
     def _request_url(self, endpoint: ImpexEndpoint) -> str:
         if isinstance(endpoint, ImpexEndpoint):
             return f"{self.server_url}/{endpoint.value}"
@@ -192,6 +201,8 @@ class ImpexClient:
                     return self.get_status(process_id)
             elif "alive" in js and (js["alive"] is True):
                 return True
+            elif isinstance(js, dict) and "Login procedure failed" in str(js.get("error")):
+                raise self._invalid_credentials(js["error"])
             else:
                 log.debug(f"Failed: {r.text}")
         except JSONDecodeError:

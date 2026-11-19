@@ -12,3 +12,7 @@ class BadTemplateArgDefinition(Exception):
 
 class FailedChunkedRequest(Exception):
     pass
+
+
+class InvalidCredentials(Exception):
+    pass

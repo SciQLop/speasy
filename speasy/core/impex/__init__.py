@@ -28,7 +28,7 @@ from ...inventories import flat_inventories
 from .parser import ImpexXMLParser, to_xmlid
 from .client import ImpexClient, ImpexEndpoint
 from .utils import load_catalog, load_timetable, is_user_product, is_not_user_product, is_private
-from .exceptions import MissingCredentials, FailedChunkedRequest
+from .exceptions import MissingCredentials, FailedChunkedRequest, InvalidCredentials
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +53,8 @@ class ImpexProvider(DataProvider):
                  min_proxy_version=MINIMUM_REQUIRED_PROXY_VERSION):
         self.server_url = server_url
         self.client = ImpexClient(capabilities=capabilities, server_url=server_url,
-                                  username=username, password=password, output_format=output_format)
+                                  username=username, password=password, output_format=output_format,
+                                  provider_name=provider_name)
         if not self.client.is_alive():
             warnings.warn(f"The data provider {provider_name} appears to be under maintenance")
         self.max_chunk_size_days = max_chunk_size_days
@@ -141,39 +142,45 @@ class ImpexProvider(DataProvider):
 
         """
         if self.client.credential_are_valid():
-            if self.client.is_capable(ImpexEndpoint.GETTT):
-                user_tt = ImpexXMLParser.parse(self._get_user_timetables_tree(),
-                                               self.provider_name, self.name_mapping,
-                                               is_public=False, user_product=True)
-                if hasattr(user_tt, 'ws'):
-                    # CLWeb case
-                    public_root = user_tt.ws.timetabList
-                else:
-                    # AMDA case
-                    public_root = user_tt.timetabList
-                root.TimeTables.MyTimeTables = SpeasyIndex(name='MyTimeTables', provider=self.provider_name,
-                                                           uid='MyTimeTables', meta=public_root.__dict__)
-
-            if self.client.is_capable(ImpexEndpoint.GETCAT):
-                user_cat = ImpexXMLParser.parse(self._get_user_catalogs_tree(), self.provider_name,
-                                                self.name_mapping, is_public=False, user_product=True)
-                root.Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider=self.provider_name, uid='MyCatalogs',
-                                                       meta=user_cat.catalogList.__dict__)
-
-            if self.client.is_capable(ImpexEndpoint.LISTPARAM):
-                user_param = ImpexXMLParser.parse(self._get_derived_parameter_tree(),
-                                                  self.provider_name, self.name_mapping, is_public=False,
-                                                  user_product=True)
-                root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider=self.provider_name,
-                                                     uid='DerivedParameters', meta=user_param.ws.paramList.__dict__)
-
-                private_param = ImpexXMLParser.parse(self._get_private_parameter_tree(),
-                                                     self.provider_name, self.name_mapping, is_public=False,
-                                                     user_product=False)
-                root.PrivateParameters = SpeasyIndex(name='PrivateParameters', provider=self.provider_name,
-                                                     uid='PrivateParameters',
-                                                     meta=private_param.dataRoot.dataCenter.__dict__)
+            try:
+                self._add_private_inventory(root)
+            except InvalidCredentials as e:
+                warnings.warn(f"{e} Private products are unavailable, public products still work.")
         return root
+
+    def _add_private_inventory(self, root: SpeasyIndex):
+        if self.client.is_capable(ImpexEndpoint.GETTT):
+            user_tt = ImpexXMLParser.parse(self._get_user_timetables_tree(),
+                                           self.provider_name, self.name_mapping,
+                                           is_public=False, user_product=True)
+            if hasattr(user_tt, 'ws'):
+                # CLWeb case
+                public_root = user_tt.ws.timetabList
+            else:
+                # AMDA case
+                public_root = user_tt.timetabList
+            root.TimeTables.MyTimeTables = SpeasyIndex(name='MyTimeTables', provider=self.provider_name,
+                                                       uid='MyTimeTables', meta=public_root.__dict__)
+
+        if self.client.is_capable(ImpexEndpoint.GETCAT):
+            user_cat = ImpexXMLParser.parse(self._get_user_catalogs_tree(), self.provider_name,
+                                            self.name_mapping, is_public=False, user_product=True)
+            root.Catalogs.MyCatalogs = SpeasyIndex(name='MyCatalogs', provider=self.provider_name, uid='MyCatalogs',
+                                                   meta=user_cat.catalogList.__dict__)
+
+        if self.client.is_capable(ImpexEndpoint.LISTPARAM):
+            user_param = ImpexXMLParser.parse(self._get_derived_parameter_tree(),
+                                              self.provider_name, self.name_mapping, is_public=False,
+                                              user_product=True)
+            root.DerivedParameters = SpeasyIndex(name='DerivedParameters', provider=self.provider_name,
+                                                 uid='DerivedParameters', meta=user_param.ws.paramList.__dict__)
+
+            private_param = ImpexXMLParser.parse(self._get_private_parameter_tree(),
+                                                 self.provider_name, self.name_mapping, is_public=False,
+                                                 user_product=False)
+            root.PrivateParameters = SpeasyIndex(name='PrivateParameters', provider=self.provider_name,
+                                                 uid='PrivateParameters',
+                                                 meta=private_param.dataRoot.dataCenter.__dict__)
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:
         """Get parameter time range as defined in the inventory.

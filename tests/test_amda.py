@@ -47,6 +47,16 @@ class UserProductsRequestsWithoutCreds(unittest.TestCase):
             spz.amda.get_user_catalog("Id doesn't matter")
 
 
+class RejectedCredentials(unittest.TestCase):
+    def tearDown(self):
+        spz.amda.reset_credentials(spz.config.amda.username(), spz.config.amda.password())
+
+    def test_public_data_still_works_and_user_is_told_how_to_fix_credentials(self):
+        with self.assertWarnsRegex(UserWarning, r"amda rejected.*SPEASY_AMDA_USERNAME"):
+            spz.amda.reset_credentials("bad", "bad")
+        self.assertIsNotNone(spz.get_data("amda/imf", "2020-01-01", "2020-01-01T00:30:00"))
+
+
 class PublicProductsRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
