@@ -79,15 +79,28 @@ def _valid_variable_or_none(variable: SpeasyVariable) -> Optional[SpeasyVariable
     return variable
 
 
+def _data_variable_or_none(istp_loader: pyistp.loader.ISTPLoader, name: str):
+    """pyistp lists the data variables of the master, but a data file may hold only some of them.
+
+    The MMS EPD-EIS masters list the variables of every file version (P4, P5, P6...) and pyistp
+    raises a KeyError for the ones a file lacks: that file just has no data for them.
+    """
+    try:
+        return istp_loader.data_variable(name)
+    except KeyError:
+        log.debug(f"{name} is listed by the master CDF but absent from the data file")
+        return None
+
+
 def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVariable or None:
     if variable in istp_loader.data_variables():
-        var = istp_loader.data_variable(variable)
+        var = _data_variable_or_none(istp_loader, variable)
     elif variable.replace('-', '_') in istp_loader.data_variables():  # THX CSA/ISTP
-        var = istp_loader.data_variable(variable.replace('-', '_'))
+        var = _data_variable_or_none(istp_loader, variable.replace('-', '_'))
     else:  # CDA https://cdaweb.gsfc.nasa.gov/WebServices/REST/#Get_Data_GET
         alternative = re.sub(r"[\\/.%!@#^&*()\-+=`~|?<> ]", "$", variable)
         if alternative in istp_loader.data_variables():
-            var = istp_loader.data_variable(alternative)
+            var = _data_variable_or_none(istp_loader, alternative)
         else:
             return None
     if (var is not None) and (var.values.shape[0] == var.axes[0].values.shape[0]):
