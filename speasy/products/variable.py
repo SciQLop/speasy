@@ -372,6 +372,15 @@ class SpeasyVariable(SpeasyProduct):
     def __rtruediv__(self, other):
         return np.divide(other, self)
 
+    def __neg__(self):
+        return np.negative(self)
+
+    def __pos__(self):
+        return np.positive(self)
+
+    def __abs__(self):
+        return np.absolute(self)
+
     def __np_build_axes__(self, other, axis=None, func=None):
         if axis is None or self.ndim == other.ndim:
             return deepcopy(self.__axes)

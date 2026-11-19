@@ -38,5 +38,21 @@ class MergeShapes(unittest.TestCase):
         self.assertEqual(len(merge([make_var(5), make_var(5, start=5.)])), 10)
 
 
+class UnaryOperators(unittest.TestCase):
+    def setUp(self):
+        self.v = make_var()
+
+    def test_negative(self):
+        self.assertIsInstance(-self.v, SpeasyVariable)
+        np.testing.assert_array_equal((-self.v).values, -self.v.values)
+
+    def test_positive(self):
+        np.testing.assert_array_equal((+self.v).values, self.v.values)
+
+    def test_abs(self):
+        self.assertIsInstance(abs(self.v), SpeasyVariable)
+        np.testing.assert_array_equal(abs(self.v).values, np.abs(self.v.values))
+
+
 if __name__ == '__main__':
     unittest.main()
