@@ -169,6 +169,17 @@ class PublicProductsRequests(unittest.TestCase):
             self.assertIsNotNone(r)
             self.assertIsNotNone(r.values)
 
+    def test_get_component_from_tree(self):
+        component = spz.inventories.tree.amda.Parameters.ACE.MFI.ace_imf_all.imf.imf1
+        imf = spz.get_data("amda/imf", "2020-01-01", "2020-01-01T01")
+        by = spz.get_data(component, "2020-01-01", "2020-01-01T01")
+        self.assertEqual(by.columns, ["by"])
+        np.testing.assert_array_equal(by.values[:, 0], imf["by"].values[:, 0])
+
+    def test_get_component_from_spectrogram(self):
+        r = spz.get_data("amda/stb_sit_1h_fefl(6)", "2013-02-08", "2013-02-09")
+        self.assertEqual(r.values.shape[1], 1)
+
     def test_get_private_parameters(self):
         with self.assertRaises(AttributeError):
             index = spz.inventories.tree.amda.PrivateParameters
