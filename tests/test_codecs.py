@@ -153,6 +153,27 @@ class TestWritersLeaveTheSourceUntouched(unittest.TestCase):
 
 
 @ddt
+class TestSavingSeveralVariables(unittest.TestCase):
+
+    @data("cdf", "nc")
+    def test_time_axes_sharing_a_name_but_not_values_are_kept_apart(self, codec_id):
+        b, n = _vector(name="b"), _vector(name="n", start="2021-06-01", columns=("x", "y"))
+        codec = get_codec(codec_id)
+        loaded = codec.load_variables(["b", "n"], bytes(codec.save_variables([b, n])))
+        np.testing.assert_array_equal(b.time, loaded["b"].time)
+        np.testing.assert_array_equal(n.time, loaded["n"].time)
+        np.testing.assert_array_equal(n.values, loaded["n"].values)
+
+    def test_identical_time_axes_are_written_once(self):
+        b = _vector(name="b")
+        n = _vector(name="n")
+        import pycdfpp
+        cdf = pycdfpp.load(bytes(get_codec("cdf").save_variables([b, n])))
+        time_variables = [name for name in cdf if cdf[name].type == pycdfpp.DataType.CDF_TIME_TT2000]
+        self.assertEqual(["time"], time_variables)
+
+
+@ddt
 class TestCDFWriterPtrAttributes(unittest.TestCase):
 
     @data(

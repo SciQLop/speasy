@@ -1,4 +1,4 @@
-from typing import List, AnyStr, Optional, Mapping, Union
+from typing import List, AnyStr, Optional, Mapping, Tuple, Union
 import io
 import logging
 from datetime import timedelta
@@ -13,7 +13,7 @@ from speasy.products import SpeasyVariable, VariableAxis
 
 import re
 
-from . import _load_variable, _resolve_url_type, _simplify_shape, _list_variables
+from . import _load_variable, _resolve_url_type, _simplify_shape, _list_variables, _axis_slot
 
 log = logging.getLogger(__name__)
 _PTR_rx = re.compile(r".*_PTR(_\d+)?")
@@ -51,7 +51,7 @@ def _convert_attributes_to_variables(variable_name: str, attrs: Mapping, cdf: py
     return clean_attrs
 
 
-def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False,
+def _write_axis(ax: VariableAxis, name: str, cdf: pycdfpp.CDF, compress_variables=False,
                 time_axis_name: Optional[str] = None) -> bool:
     data_type = None
     if ax.values.dtype == np.dtype("datetime64[ns]"):
@@ -62,32 +62,30 @@ def _write_axis(ax: VariableAxis, cdf: pycdfpp.CDF, compress_variables=False,
         # grid spanning every dimension comes back time independent and then matches none of them
         attributes["DEPEND_0"] = time_axis_name
     cdf.add_variable(
-        name=ax.name,
+        name=name,
         values=_simplify_shape(ax.values),
         data_type=data_type,
-        attributes=_convert_attributes_to_variables(variable_name=ax.name, attrs=attributes, cdf=cdf) if attributes else None,
+        attributes=_convert_attributes_to_variables(variable_name=name, attrs=attributes, cdf=cdf) if attributes else None,
         compression=pycdfpp.CompressionType.gzip_compression if compress_variables else pycdfpp.CompressionType.no_compression
     )
     return True
 
 
-def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, already_saved_axes: List[VariableAxis],
-                    compress_variables=False) -> None:
-    def _already_in_cdf(ax: VariableAxis):
-        for _ax in already_saved_axes:
-            if _ax == ax:
-                return _ax.name
-        return None
+def _save_axis(ax: VariableAxis, cdf: pycdfpp.CDF, saved_axes: List[Tuple[VariableAxis, str]],
+               compress_variables: bool, time_axis_name: Optional[str]) -> str:
+    name, to_write = _axis_slot(ax, saved_axes, taken=cdf)
+    if to_write:
+        _write_axis(ax, name, cdf, compress_variables, time_axis_name=time_axis_name)
+    return name
 
-    depends = {}
+
+def _write_variable(v: SpeasyVariable, cdf: pycdfpp.CDF, saved_axes: List[Tuple[VariableAxis, str]],
+                    compress_variables=False) -> None:
+    axis_names = []
     for index, ax in enumerate(v.axes):
-        a = _already_in_cdf(ax)
-        if a is None:
-            _write_axis(ax, cdf, compress_variables, time_axis_name=v.axes[0].name if index else None)
-            depends[f"DEPEND_{index}"] = ax.name
-            already_saved_axes.append(ax)
-        else:
-            depends[f"DEPEND_{index}"] = a
+        axis_names.append(_save_axis(ax, cdf, saved_axes, compress_variables,
+                                     time_axis_name=axis_names[0] if index else None))
+    depends = {f"DEPEND_{index}": name for index, name in enumerate(axis_names)}
     attributes = {**v.meta, **depends}
     cdf.add_variable(
         name=v.name,
