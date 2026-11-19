@@ -139,6 +139,34 @@ class CSAArchive(unittest.TestCase):
         self.assertIsNone(_load_variable(buffer, "density", get_codec("cef")))
 
 
+_NO_PRODUCTS_PAGE = "<html><body><h2>SERVICE ERROR - 404</h2><li>Message: No products found</li></body></html>"
+_DOWNLOAD_ARGS = ("https://csa.esac.esa.int/csa-sl-tap/data", "C1_CP_TEST", "density",
+                  datetime(2005, 1, 1), datetime(2005, 1, 2), "CEF")
+
+
+def _download_answered(status_code: int, text: str = "", content: bytes = b""):
+    from unittest.mock import patch
+    answer = SimpleNamespace(status_code=status_code, text=text, bytes=content, ok=status_code == 200)
+    with patch("speasy.data_providers.csa.http.get", lambda url, headers=None: answer):
+        return _download_variable(*_DOWNLOAD_ARGS)
+
+
+class CSAAnswers(unittest.TestCase):
+    def test_no_products_found_means_no_data(self):
+        self.assertIsNone(_download_answered(404, _NO_PRODUCTS_PAGE))
+
+    def test_other_errors_say_what_to_do(self):
+        with self.assertRaisesRegex(IOError, r"(?s)HTTP 503.*try again later"):
+            _download_answered(503, "Service Unavailable")
+
+    def test_a_404_without_no_products_found_is_an_error(self):
+        with self.assertRaisesRegex(IOError, r"HTTP 404"):
+            _download_answered(404, "Not Found")
+
+    def test_an_archive_is_read(self):
+        self.assertEqual(len(_download_answered(200, content=_csa_like_archive(SCALAR).getvalue())), 3)
+
+
 class CSALiveCef(unittest.TestCase):
     """Builds the inventory without the proxy: a proxy older than the CEF codec doesn't list CEF-only datasets."""
 
@@ -183,6 +211,10 @@ class CSALiveCef(unittest.TestCase):
         v = spz.get_data("csa/C1_CP_AUX_LSTAR/Lstar_value__C1_CP_AUX_LSTAR", "2005-01-01T00:00:00",
                          "2005-01-01T02:00:00", disable_cache=True, output_format="CDF_ISTP")
         self.assertEqual(len(v), 120)
+
+    def test_a_gap_in_the_dataset_gives_none(self):
+        self.assertIsNone(spz.get_data("csa/C3_CP_FGM_FULL/B_mag__C3_CP_FGM_FULL", "2000-07-20T10:06:12",
+                                       "2000-07-20T11:06:12", disable_cache=True))
 
     def test_cef_and_cdf_istp_give_the_same_variable(self):
         args = ("https://csa.esac.esa.int/csa-sl-tap/data", "C1_CP_FGM_SPIN", "B_vec_xyz_gse__C1_CP_FGM_SPIN",
