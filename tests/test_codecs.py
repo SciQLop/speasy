@@ -131,6 +131,27 @@ class TestCDFWriterPreservesAxisAttributes(unittest.TestCase):
         self.assertEqual(self.back.axes[0].meta.get("UNITS"), "ns")
 
 
+def _vector(name="test", meta=None, columns=("c0", "c1", "c2"), start="2020-01-01"):
+    from speasy.core.data_containers import DataContainer, VariableTimeAxis
+    from speasy.products import SpeasyVariable
+    time = np.datetime64(start, 'ns') + np.arange(4) * np.timedelta64(1, 's')
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                          values=DataContainer(np.random.random((4, len(columns))), name=name, is_time_dependent=True,
+                                               meta=dict(meta if meta is not None else {"UNITS": "nT", "VAR_TYPE": "data"})),
+                          columns=list(columns))
+
+
+@ddt
+class TestWritersLeaveTheSourceUntouched(unittest.TestCase):
+
+    @data("cdf", "nc", "hapi/csv", "hapi/binary")
+    def test_meta_is_not_mutated(self, codec_id):
+        v = _vector()
+        before = dict(v.meta)
+        get_codec(codec_id).save_variables([v])
+        self.assertEqual(before, v.meta)
+
+
 @ddt
 class TestCDFWriterPtrAttributes(unittest.TestCase):
 
