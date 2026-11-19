@@ -472,7 +472,7 @@ class SpeasyVariable(SpeasyProduct):
             _out = _values(out[0])
         else:
             _out = None
-        values = ufunc(*list(map(_values, inputs)), **{name: _values(value) for name, value in kwargs}, out=_out)
+        values = ufunc(*list(map(_values, inputs)), **{name: _values(value) for name, value in kwargs.items()}, out=_out)
 
         axes = self.__np_build_axes__(values, axis=kwargs.get('axis', None))
 
