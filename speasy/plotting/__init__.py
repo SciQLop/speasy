@@ -124,6 +124,10 @@ class Plot:
         }
 
     def _time_arrangement(self, values, logy) -> dict:
+        if len(self.axes) < 2:
+            raise ValueError(
+                f"A colormap needs an axis besides time to put on y (an energy or frequency table for instance), "
+                f"{self.values.name} only has a time axis: plot it with .plot.line() instead.")
         if logy is None:
             logy = is_log_scale(self.axes[1].meta)
         if logy is None:

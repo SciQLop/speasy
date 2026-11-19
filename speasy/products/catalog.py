@@ -118,8 +118,9 @@ class Catalog(SpeasyProduct):
         """
         events = listify(events)
         if not _all_are_events(events):
+            offending = next(e for e in events if type(e) is not Event)
             raise TypeError(
-                f"You must provide a {Event} or a List of {Event} instead of {type(events)}")
+                f"You must provide a {Event} or a List of {Event}, got {offending!r} of type {type(offending)}")
         self._events += events
 
     def __iadd__(self, other: Event or List[Event]):
