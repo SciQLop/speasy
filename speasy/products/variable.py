@@ -264,6 +264,9 @@ class SpeasyVariable(SpeasyProduct):
         SpeasyVariable
             a SpeasyVariable with only selected columns
         """
+        unknown = [c for c in columns if c not in self.__columns]
+        if unknown:
+            raise KeyError(f"Unknown column(s) {unknown}, this variable has {self.__columns}")
         indexes = list(map(lambda v: self.__columns.index(v), columns))
         if len(self.__axes) == 1:
             axes = deepcopy(self.__axes)
@@ -322,12 +325,20 @@ class SpeasyVariable(SpeasyProduct):
                 return self.view(key[0])
             elif all(map(lambda v: type(v) is str, key)):
                 return self.filter_columns(key)
-        if type(key) is str and key in self.__columns:
+        if type(key) is str:
             return self.filter_columns([key])
         if type(key) is np.ndarray:
             return self.view(key)
+        if isinstance(key, (int, np.integer)) and not isinstance(key, bool):
+            return self.view(self.__row_slice(key))
         raise ValueError(
-            f"No idea how to slice SpeasyVariable with given value: {key}")
+            f"No idea how to slice SpeasyVariable with given value: {key!r}. Use an int or a slice for rows "
+            f"(by position or by time), a column name or a list of them, a boolean mask or an array of row indexes.")
+
+    def __row_slice(self, index: int) -> slice:
+        if not -len(self) <= index < len(self):
+            raise IndexError(f"Row {index} is out of range for a SpeasyVariable with {len(self)} rows")
+        return slice(index, index + 1 or None)
 
     def __setitem__(self, k, v: Union["SpeasyVariable", float, int]):
         if type(v) is SpeasyVariable:
