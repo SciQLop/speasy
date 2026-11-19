@@ -20,7 +20,8 @@ def _extract_data_csv(file: io.IOBase, headers: Dict[str, Any]) -> pds.DataFrame
         # a 1201 no-data response is a header with no records, which read_csv refuses to parse
         n_columns = sum(int(np.prod(p.get("size", [1]))) for p in headers["parameters"][1:])
         return pds.DataFrame(np.empty((0, n_columns)), index=pds.DatetimeIndex([], dtype="datetime64[ns]"))
-    return pds.read_csv(data, comment='#', sep=',', header=None, skiprows=0, index_col=0)
+    return pds.read_csv(data, comment='#', sep=',', header=None, skiprows=0, index_col=0,
+                         float_precision='round_trip')
 
 
 
