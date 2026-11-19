@@ -35,6 +35,8 @@ def _load_hapi(file: Union[Buffer, str, io.IOBase], extract_data_fn) -> Tuple[Op
     if isinstance(file, str):
         with any_loc_open(file, cache_remote_files=False, mode='rb') as f:
             return _parse_hapi(f, extract_data_fn)
+    if isinstance(file, (bytes, bytearray, memoryview)):
+        return _parse_hapi(io.BytesIO(file), extract_data_fn)
     if isinstance(file, io.IOBase) or hasattr(file, 'read'):
         return _parse_hapi(file, extract_data_fn)
     return None, None
