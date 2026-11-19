@@ -106,6 +106,13 @@ class UfuncOutParameter(unittest.TestCase):
         self.assertIs(np.add(v, 1, out=w), w)
         np.testing.assert_array_equal(w.values, v.values + 1)
 
+    def test_extra_keyword_arguments_are_forwarded(self):
+        v = make_var()
+        w = v.copy()
+        mask = v.values > 0
+        np.add(v, 1, out=w, where=mask)
+        np.testing.assert_array_equal(w.values, np.where(mask, v.values + 1, v.values))
+
 
 @ddt
 class ShapePreservingFunctionsAlongTime(unittest.TestCase):
