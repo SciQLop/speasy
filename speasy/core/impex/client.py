@@ -133,7 +133,7 @@ class ImpexClient:
         }
         if use_credentials:
             params['userID'], params['password'] = self.get_credentials()
-        return self._send_request(ImpexEndpoint.GETTT, params=params, **kwargs)
+        return self._send_request(ImpexEndpoint.GETTT, params=params)
 
     def get_catalog(self, catalog_id, use_credentials=False, **kwargs):
         params = {
@@ -141,7 +141,7 @@ class ImpexClient:
         }
         if use_credentials:
             params['userID'], params['password'] = self.get_credentials()
-        return self._send_request(ImpexEndpoint.GETCAT, params=params, **kwargs)
+        return self._send_request(ImpexEndpoint.GETCAT, params=params)
 
     def _request_url(self, endpoint: ImpexEndpoint) -> str:
         if isinstance(endpoint, ImpexEndpoint):
