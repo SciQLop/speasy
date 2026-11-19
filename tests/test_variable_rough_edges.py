@@ -69,5 +69,35 @@ class JoiningFunctions(unittest.TestCase):
         self.assertTrue(res.name.endswith(", [b])"))
 
 
+class IndexingByPositionAndName(unittest.TestCase):
+    def setUp(self):
+        self.v = make_var()
+
+    def test_int_selects_one_row(self):
+        row = self.v[2]
+        self.assertIsInstance(row, SpeasyVariable)
+        self.assertEqual(row.shape, (1, 3))
+        np.testing.assert_array_equal(row.values, self.v.values[2:3])
+        self.assertEqual(row.time[0], self.v.time[2])
+
+    def test_negative_int_selects_from_the_end(self):
+        np.testing.assert_array_equal(self.v[-1].values, self.v.values[-1:])
+        np.testing.assert_array_equal(self.v[np.int64(-2)].values, self.v.values[-2:-1])
+
+    def test_out_of_range_int_raises_index_error(self):
+        with self.assertRaisesRegex(IndexError, "10 rows"):
+            self.v[10]
+
+    def test_unknown_column_raises_key_error_listing_columns(self):
+        with self.assertRaisesRegex(KeyError, r"nope.*\['bx', 'by', 'bz'\]"):
+            self.v["nope"]
+        with self.assertRaisesRegex(KeyError, r"nope.*\['bx', 'by', 'bz'\]"):
+            self.v[["bx", "nope"]]
+
+    def test_unsupported_key_says_what_is_supported(self):
+        with self.assertRaisesRegex(ValueError, "slice.*column name.*boolean mask"):
+            self.v[:, 0]
+
+
 if __name__ == '__main__':
     unittest.main()
