@@ -83,6 +83,15 @@ class CefScalar(unittest.TestCase):
         self.assertEqual(self.v.name, "density")
 
 
+class CefIntegers(unittest.TestCase):
+    def test_int_values_beyond_32_bits(self):
+        # CSA writes calibration versions like this in C3_CP_PEA_MOMENTS
+        content = cef([variable("version", value_type="INT", DEPEND_0="time_tags")],
+                      ["2005-06-10T00:00:00Z, 20122350000", "2005-06-10T00:00:04Z, 7"])
+        v = load(content, "version")
+        self.assertEqual(v.values[:, 0].tolist(), [20122350000, 7])
+
+
 class CefColumns(unittest.TestCase):
     def test_label_1_list(self):
         self.assertListEqual(load(vector(LABEL_1='"Bx", "By", "Bz"'), "B").columns, ["Bx", "By", "Bz"])
