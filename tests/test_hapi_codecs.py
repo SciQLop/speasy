@@ -517,6 +517,20 @@ class TestHapiWriters(unittest.TestCase):
             v = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
             self.assertTrue(np.isnan(v.replace_fillval_by_nan().values[1, 0]))
 
+    @data(("hapi/csv", bytes), ("hapi/csv", memoryview), ("hapi/binary", bytes), ("hapi/binary", memoryview))
+    @unpack
+    def test_loads_from_an_in_memory_buffer(self, codec_name, buffer_type):
+        payload, _ = _save_and_read_headers(codec_name, _variable([1., 2.]))
+        v = get_codec(codec_name).load_variable(variable="v", file=buffer_type(payload), disable_cache=True)
+        self.assertEqual([1., 2.], v.values[:, 0].tolist())
+
+    @data("hapi/csv", "hapi/binary")
+    def test_float64_values_survive_a_round_trip_exactly(self, codec_name):
+        values = np.random.default_rng(42).random((4, 3))
+        payload, _ = _save_and_read_headers(codec_name, _variable(values))
+        v = get_codec(codec_name).load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        np.testing.assert_array_equal(values, v.values)
+
     @data("hapi/csv", "hapi/binary")
     def test_writes_an_empty_variable_as_no_data(self, codec_name):
         payload, headers = _save_and_read_headers(codec_name, _variable(np.empty((0,))),

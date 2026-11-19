@@ -28,8 +28,9 @@ def _to_csv(hapi_file: HapiFile, dest: IO[bytes], headers: Optional[Dict[str, An
                 data[f"{param.name}_{i}"] = vals[:, i]
 
     df = pds.DataFrame(data)
-    # pandas writes NaN as an empty field by default, which HAPI clients can't parse as a double
-    df.to_csv(dest, index=False, header=False, float_format='%.7g', na_rep='NaN')
+    # pandas writes NaN as an empty field by default, which HAPI clients can't parse as a double, and
+    # without a float_format it writes the shortest repr that reads back to the same value
+    df.to_csv(dest, index=False, header=False, na_rep='NaN')
     return True
 
 
