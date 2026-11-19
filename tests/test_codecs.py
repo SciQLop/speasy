@@ -170,7 +170,7 @@ class TestRoundTrip(unittest.TestCase):
         v = SpeasyVariable(axes=[VariableTimeAxis(values=_vector().time)],
                            values=DataContainer(np.ones((4, 1)), name="test", meta={"VAR_TYPE": "data"}))
         back = codec.load_variable("test", bytes(codec.save_variables([v])), disable_cache=True)
-        self.assertEqual([], back.columns)
+        self.assertEqual(back.columns, [])
 
     @data("cdf", "nc")
     def test_variable_without_var_type_is_readable(self, codec_id):
@@ -199,7 +199,7 @@ class TestSavingSeveralVariables(unittest.TestCase):
         import pycdfpp
         cdf = pycdfpp.load(bytes(get_codec("cdf").save_variables([b, n])))
         time_variables = [name for name in cdf if cdf[name].type == pycdfpp.DataType.CDF_TIME_TT2000]
-        self.assertEqual(["time"], time_variables)
+        self.assertEqual(time_variables, ["time"])
 
 
 @ddt

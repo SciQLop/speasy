@@ -522,7 +522,7 @@ class TestHapiWriters(unittest.TestCase):
     def test_loads_from_an_in_memory_buffer(self, codec_name, buffer_type):
         payload, _ = _save_and_read_headers(codec_name, _variable([1., 2.]))
         v = get_codec(codec_name).load_variable(variable="v", file=buffer_type(payload), disable_cache=True)
-        self.assertEqual([1., 2.], v.values[:, 0].tolist())
+        self.assertEqual(v.values[:, 0].tolist(), [1., 2.])
 
     @data("hapi/csv", "hapi/binary")
     def test_float64_values_survive_a_round_trip_exactly(self, codec_name):
