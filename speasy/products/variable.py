@@ -916,8 +916,16 @@ class SpeasyVariable(SpeasyProduct):
         else:
             res = self.astype(float)  # need to convert, do it on a new variable
         if (mask := fill_value_mask(res.values, res.meta)) is not None:
-            res[mask] = np.nan
+            res.__put_nan(mask, "replace_fillval_by_nan")
         return res
+
+    def __put_nan(self, mask: np.ndarray, method: str):
+        if not np.any(mask):
+            return
+        if not np.issubdtype(self.dtype, np.inexact):
+            raise ValueError(f"{self.name} holds {self.dtype} values, which can't hold NaN: "
+                             f"call {method}(convert_to_float=True)")
+        self.values[mask] = np.nan
 
     def clamp_with_nan(self, inplace=False, valid_min=None, valid_max=None, convert_to_float=False) -> "SpeasyVariable":
         """Replaces values outside valid range by NaN, valid range is taken from metadata fields "VALIDMIN" and "VALIDMAX".
@@ -954,7 +962,7 @@ class SpeasyVariable(SpeasyProduct):
                 res = self.astype(float)
             else:
                 res = deepcopy(self)
-        res.values[self._out_of_range_mask(valid_min, valid_max)] = np.nan
+        res.__put_nan(self._out_of_range_mask(valid_min, valid_max), "clamp_with_nan")
         return res
 
     def _out_of_range_mask(self, valid_min=None, valid_max=None) -> np.ndarray:

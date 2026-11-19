@@ -168,5 +168,25 @@ class UnitApplied(unittest.TestCase):
         self.assertEqual(v.unit_applied().values.unit, astropy.units.dimensionless_unscaled)
 
 
+@ddt
+class NaNOnIntegerData(unittest.TestCase):
+    def make_int_var(self):
+        return make_var(meta={"FILLVAL": -3, "VALIDMIN": -2, "VALIDMAX": 20}, dtype=np.int32)
+
+    @data("replace_fillval_by_nan", "clamp_with_nan")
+    def test_error_says_to_convert_to_float(self, method):
+        with self.assertRaisesRegex(ValueError, "convert_to_float=True"):
+            getattr(self.make_int_var(), method)()
+
+    @data("replace_fillval_by_nan", "clamp_with_nan")
+    def test_convert_to_float_works(self, method):
+        self.assertTrue(np.isnan(getattr(self.make_int_var(), method)(convert_to_float=True).values).any())
+
+    @data("replace_fillval_by_nan", "clamp_with_nan")
+    def test_int_data_with_nothing_to_replace_is_left_alone(self, method):
+        v = make_var(meta={"FILLVAL": -99, "VALIDMIN": -99, "VALIDMAX": 99}, dtype=np.int32)
+        np.testing.assert_array_equal(getattr(v, method)().values, v.values)
+
+
 if __name__ == '__main__':
     unittest.main()
