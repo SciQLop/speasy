@@ -153,6 +153,35 @@ class TestWritersLeaveTheSourceUntouched(unittest.TestCase):
 
 
 @ddt
+class TestRoundTrip(unittest.TestCase):
+
+    @data(("cdf", ("c0", "c1", "c2")), ("nc", ("c0", "c1", "c2")), ("cdf", ("|B|",)), ("nc", ("|B|",)))
+    @unpack
+    def test_columns_survive(self, codec_id, columns):
+        codec = get_codec(codec_id)
+        v = _vector(columns=columns)
+        back = codec.load_variable("test", bytes(codec.save_variables([v])), disable_cache=True)
+        self.assertEqual(list(columns), back.columns)
+
+    def test_unlabelled_scalar_has_no_columns(self):
+        from speasy.core.data_containers import DataContainer, VariableTimeAxis
+        from speasy.products import SpeasyVariable
+        codec = get_codec("cdf")
+        v = SpeasyVariable(axes=[VariableTimeAxis(values=_vector().time)],
+                           values=DataContainer(np.ones((4, 1)), name="test", meta={"VAR_TYPE": "data"}))
+        back = codec.load_variable("test", bytes(codec.save_variables([v])), disable_cache=True)
+        self.assertEqual([], back.columns)
+
+    @data("cdf", "nc")
+    def test_variable_without_var_type_is_readable(self, codec_id):
+        codec = get_codec(codec_id)
+        v = _vector(meta={"UNITS": "nT"})
+        back = codec.load_variable("test", bytes(codec.save_variables([v])), disable_cache=True)
+        np.testing.assert_array_equal(v.values, back.values)
+        self.assertNotIn("VAR_TYPE", v.meta)
+
+
+@ddt
 class TestSavingSeveralVariables(unittest.TestCase):
 
     @data("cdf", "nc")

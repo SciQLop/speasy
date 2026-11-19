@@ -58,6 +58,8 @@ def _make_axis(axis, time_axis_name, n_records):
 
 
 def _build_labels(variable: pyistp.loader.DataVariable):
+    if variable.labels is None and len(variable.values.shape) != 2:
+        return []
     if len(variable.values.shape) != 2:
         return _fix_value_type(variable.labels)
     if type(variable.labels) is list and len(variable.labels) == variable.values.shape[1]:
@@ -146,3 +148,17 @@ def _axis_slot(axis: VariableAxis, saved_axes: List[Tuple[VariableAxis, str]], t
     name = _free_name(axis.name, taken, [name for _, name in saved_axes])
     saved_axes.append((axis, name))
     return name, True
+
+
+def _label_attributes(v: SpeasyVariable) -> dict:
+    """The ISTP attributes the reader turns back into the columns of a 2D variable."""
+    if v.values.ndim != 2 or len(v.columns) != v.values.shape[1]:
+        return {}
+    if v.values.shape[1] == 1:
+        return {"LABLAXIS": v.columns[0]}
+    return {"LABL_PTR_1": list(v.columns)}
+
+
+def _attributes_to_write(v: SpeasyVariable) -> dict:
+    """The variable's meta as written: the reader only lists variables with VAR_TYPE 'data'."""
+    return {"VAR_TYPE": "data", **v.meta, **_label_attributes(v)}
