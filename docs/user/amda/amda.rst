@@ -184,8 +184,8 @@ with the ``product_inputs`` keyword:
 .. code-block:: python
 
     import speasy as spz
-    data = spz.get_data("amda/some_templated_parameter", "2018-01-01", "2018-01-02",
-                        product_inputs={'argument_name': 'value'})
+    data = spz.get_data("amda/jedi_i90_flux", "2023-01-04T07:51", "2023-01-04T07:52",
+                        product_inputs={'lookdir': "4"})
 
 Any argument you omit falls back to its default value, and Speasy emits a warning telling
 you which default was used and how to set it explicitly. Arguments declared as a list on

@@ -21,7 +21,7 @@ Speasy provides access to the following web services:
     - :doc:`Coordinated Data Analysis Web (CDAWeb) <cdaweb/cdaweb>` — public heliophysics data from current and past missions
     - :doc:`Cluster Science Archive (CSA) <csa/csa>` — Cluster and Double Star mission data
     - :doc:`Satellite Situation Center Web (SSCWeb) <sscweb/sscweb>` — spacecraft and planet trajectories
-    - :doc:`CDPP 3DView <cdpp3dview/cdpp3dview>` — planet, spacecraft, and comet trajectories in various coordinate systems (**disabled by default**, see its page)
+    - :doc:`CDPP 3DView <cdpp3dview/cdpp3dview>` — planet, spacecraft, and comet trajectories in various coordinate systems
     - :doc:`HAPI servers <hapi/hapi>` — every server of the official HAPI list (LISIRD, KNMI, INTERMAGNET, Kyoto WDC, VirES for Swarm, …)
     - :doc:`University of Iowa Cassini Ephemeris Tool (UiowaEphTool) <Uiowa_eph_tool/uiowa_eph_tool>` — Cassini, Ulysses, and Voyager trajectories
 

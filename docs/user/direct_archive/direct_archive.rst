@@ -845,7 +845,7 @@ Then call ``get_product`` with your reader:
     from speasy.core.direct_archive_downloader import get_product
 
     data = get_product(
-        url_pattern="https://example.com/data/{Y}/{M:02d}/mydata_{Y}{M:02d}{D:02d}_v\d+.cdf",
+        url_pattern=r"https://example.com/data/{Y}/{M:02d}/mydata_{Y}{M:02d}{D:02d}_v\d+.cdf",
         start_time="2023-06-19",
         stop_time="2023-06-20",
         variable="B",
@@ -892,7 +892,7 @@ so the standard reader cannot handle them.
         return SpeasyVariable(axes=[VariableTimeAxis(values= time)],values=DataContainer(values), columns=labels)
 
 
-    lfr_b_F2 = get_product(url_pattern="http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/data/solar-orbiter/rpw/science/l2/lfr-surv-swf-b/{Y}/solo_l2_rpw-lfr-surv-swf-b_{Y}{M:02}{D:02}_v\d+.cdf",
+    lfr_b_F2 = get_product(url_pattern=r"http://sciqlop.lpp.polytechnique.fr/cdaweb-data/pub/data/solar-orbiter/rpw/science/l2/lfr-surv-swf-b/{Y}/solo_l2_rpw-lfr-surv-swf-b_{Y}{M:02}{D:02}_v\d+.cdf",
                         start_time="2023-06-19T02:01:59",
                         stop_time="2023-06-19T02:02:08",
                         variable="B",
