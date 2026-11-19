@@ -869,7 +869,7 @@ class ImpexProvider(DataProvider):
             if not product_variables:
                 product_variables = [kwargs.get('real_product_id', parameter_id)]
             if kwargs.get('output_format', self.client.output_format) in ["CDF_ISTP", "CDF"]:
-                var = self._cdf_codec.load_variables(variables=product_variables, file=url)
+                var = self._load_result_file(url, parameter_id, product_variables)
             else:
                 raise NotImplementedError(f"Output format {kwargs.get('output_format')} not supported")
             if var is not None:
@@ -892,6 +892,15 @@ class ImpexProvider(DataProvider):
                 log.debug(f'Failed to load file f{url}')
             return var
         return None
+
+    def _load_result_file(self, url: str, parameter_id: str, product_variables: List):
+        try:
+            return self._cdf_codec.load_variables(variables=product_variables, file=url)
+        except OSError as e:
+            raise OSError(
+                f"{self.provider_name} computed {parameter_id} but its result file can't be downloaded ({e}). "
+                f"This is a server-side problem: retry later, and if it persists report it to the "
+                f"{self.provider_name} team.") from e
 
     def _dl_parameter(self, start_time: datetime, stop_time: datetime, parameter_id: str,
                       extra_http_headers: Dict or None = None, restricted_period=False,

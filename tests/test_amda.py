@@ -4,6 +4,7 @@
 """Tests for `amda` package."""
 import os
 import unittest
+from unittest import mock
 from datetime import datetime, timezone
 
 import numpy as np
@@ -189,6 +190,14 @@ class PublicProductsRequests(unittest.TestCase):
     def test_get_component_from_spectrogram(self):
         r = spz.get_data("amda/stb_sit_1h_fefl(6)", "2013-02-08", "2013-02-09")
         self.assertEqual(r.values.shape[1], 1)
+
+    def test_missing_result_file_says_it_is_a_server_problem(self):
+        # AMDA reported success for mms1_hpca_srvy_hefl but its result file was always 404
+        missing = "https://amda.irap.omp.eu/data/WSRESULT/speasy_test_missing_file.cdf"
+        with mock.patch.object(spz.amda.client, "get_parameter", return_value=missing):
+            with self.assertRaisesRegex(OSError, r"amda computed imf but its result file.*report it"):
+                spz.amda.get_parameter("imf", "2020-01-01", "2020-01-01T00:10:00",
+                                       disable_cache=True, disable_proxy=True)
 
     def test_get_private_parameters(self):
         with self.assertRaises(AttributeError):
