@@ -197,5 +197,19 @@ class PlainRepr(unittest.TestCase):
         self.assertEqual(str(make_var()), text)
 
 
+class CatalogAppendError(unittest.TestCase):
+    def test_names_the_offending_type(self):
+        with self.assertRaisesRegex(TypeError, "str"):
+            Catalog(name="c", events=[]).append("x")
+        with self.assertRaisesRegex(TypeError, "int"):
+            Catalog(name="c", events=[]).append([Event("2020-01-01", "2020-01-02"), 3])
+
+
+class ColormapOfVector(unittest.TestCase):
+    def test_raises_a_clear_error(self):
+        with self.assertRaisesRegex(ValueError, r"plot\.line\(\)"):
+            make_var().plot.colormap()
+
+
 if __name__ == '__main__':
     unittest.main()
