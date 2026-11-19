@@ -26,7 +26,7 @@ inventory tree, it's a keyword argument to ``get_data()`` (see ``coordinate_fram
     <SpeasyIndex: Trajectories>
     >>> mex_traj = spz.get_data(spz.inventories.tree.cdpp3dview.Trajectories.SPACECRAFT.MEX, "2010-01-02", "2010-01-03")
     >>> mex_traj
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
     >>> mex_traj.shape
     (144, 3)
     >>> mex_traj.columns
@@ -36,11 +36,11 @@ inventory tree, it's a keyword argument to ``get_data()`` (see ``coordinate_fram
     >>> mex_framed = spz.get_data(spz.inventories.tree.cdpp3dview.Trajectories.SPACECRAFT.MEX, "2010-01-02", "2010-01-03",
     ...                             coordinate_frame="ECLIPJ2000")
     >>> mex_framed
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
     >>> mex_sampled = spz.get_data(spz.inventories.tree.cdpp3dview.Trajectories.SPACECRAFT.MEX, "2010-01-02", "2010-01-03",
     ...                                sampling="60")
     >>> mex_sampled
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
 
 Coordinate frames
 -----------------

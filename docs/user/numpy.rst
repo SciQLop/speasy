@@ -62,7 +62,7 @@ Indexing and slicing
     >>> import speasy as spz
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
     >>> ace_mag[ace_mag > 0]
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
     >>> ace_mag[ace_mag > 0].shape, ace_mag.shape
     ((1157, 3), (16200, 3))
 
@@ -72,7 +72,7 @@ Indexing and slicing
     >>> import speasy as spz
     >>> ace_mag = spz.get_data('amda/imf', "2016-6-2", "2016-6-5")
     >>> ace_mag[np.where(ace_mag>0)]
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
     >>> ace_mag[np.where(ace_mag>0)].shape, ace_mag.shape
     ((1157, 3), (16200, 3))
 

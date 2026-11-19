@@ -17,7 +17,7 @@ All the trajectories available are discoverable using speasy dynamic inventory, 
     >>> trajectories = spz.inventories.tree.uiowaephtool.Trajectories
     >>> cassini_traj=spz.get_data(trajectories.Callisto.Co_rotational.Cassini, "2010-01-02", "2010-01-03")
     >>> cassini_traj
-    <speasy.products.variable.SpeasyVariable object at ...>
+    SpeasyVariable(...)
     >>> cassini_traj.shape
     (1440, 3)
     >>> cassini_traj.columns
