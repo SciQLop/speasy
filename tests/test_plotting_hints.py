@@ -185,6 +185,35 @@ class DisplayTypeDispatch(unittest.TestCase):
         self.assertEqual(len(ax.collections), 1)
 
 
+def _vector_plot(axis):
+    return Plot(axes=[VariableTimeAxis(values=_TIME), axis],
+                values=DataContainer(values=np.arange(9.).reshape(3, 3), name="b"),
+                columns_names=["bx", "by", "bz"])
+
+
+class InferredSpectrogram(unittest.TestCase):
+    """CSA ships spectrograms without DISPLAY_TYPE: their energy axis is what tells them from a vector."""
+
+    def setUp(self):
+        self.addCleanup(plt.close, "all")
+
+    def test_values_along_a_physical_axis_are_a_colormap(self):
+        ax = _colormap_plot(y_axis_meta={"UNITS": "eV"})(cmap="jet")
+        self.assertEqual(len(ax.collections), 1)
+
+    def test_vector_with_a_label_axis_is_a_line(self):
+        labels = VariableAxis(values=np.array([b"x", b"y", b"z"]), meta={"UNITS": None}, name="cartesian")
+        self.assertEqual(len(_vector_plot(labels)().get_lines()), 3)
+
+    def test_vector_with_an_index_axis_is_a_line(self):
+        index = VariableAxis(values=np.arange(3), name="b_index_1")
+        self.assertEqual(len(_vector_plot(index)().get_lines()), 3)
+
+    def test_display_type_wins_over_the_axes(self):
+        ax = _colormap_plot(values_meta={"DISPLAY_TYPE": "time_series"}, y_axis_meta={"UNITS": "eV"})(labels=["a", "b"])
+        self.assertEqual(len(ax.get_lines()), 2)
+
+
 class ColormapOverCoordinateGrids(unittest.TestCase):
     """A map is a colormap whose axes happen to be grids, not a plot type of its own."""
     def setUp(self):

@@ -65,9 +65,17 @@ class Plot:
         return values if mask is None else np.where(mask, np.nan, values)
 
     def _infer_plot_type(self):
-        if _display_type(self.values.meta) in ("spectrogram", "map_image", "map_movie"):
+        display_type = _display_type(self.values.meta)
+        if display_type in ("spectrogram", "map_image", "map_movie"):
+            return PlotType.SPECTRO
+        if not display_type and self._spread_along_a_physical_axis():
             return PlotType.SPECTRO
         return PlotType.LINE
+
+    def _spread_along_a_physical_axis(self) -> bool:
+        """Without a DISPLAY_TYPE (e.g. CSA), a spectrogram is told from a vector by its second axis: an energy or a
+        frequency has units, while a vector's component labels or index don't."""
+        return self.values.values.ndim == 2 and len(self.axes) == 2 and bool((self.axes[1].unit or "").strip())
 
     def _coordinate_grid_axes(self):
         """The grids to spread over, in the order the hint asks for, else in array order."""
