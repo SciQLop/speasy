@@ -1,4 +1,3 @@
-from typing import Optional
 from .codec_interface import CodecInterface
 from speasy.config import core as cfg
 import logging
@@ -80,7 +79,12 @@ def load_extra_codecs():
             list(map(_load_codec, _list_dir_abs(path)))
 
 
-def get_codec(codec: str) -> Optional[CodecInterface]:
+def has_codec(codec: str) -> bool:
+    """Whether a codec is registered for this name, extension or mimetype"""
+    return codec in __CODECS__
+
+
+def get_codec(codec: str) -> CodecInterface:
     """Get a codec by name, extension or mimetype
 
     Parameters
@@ -90,7 +94,15 @@ def get_codec(codec: str) -> Optional[CodecInterface]:
 
     Returns
     -------
-    Optional[CodecInterface]
-        The codec that matches the given name, extension or mimetype, or None if no codec is found
+    CodecInterface
+        The codec that matches the given name, extension or mimetype
+
+    Raises
+    ------
+    ValueError
+        If no codec is registered for it, use :func:`has_codec` to probe first
     """
-    return __CODECS__.get(codec, None)
+    if codec not in __CODECS__:
+        known = ", ".join(repr(name) for name in sorted(__CODECS__))
+        raise ValueError(f"Unknown codec {codec!r}, pass one of the registered codecs: {known}")
+    return __CODECS__[codec]

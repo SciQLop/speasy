@@ -18,14 +18,19 @@ __HERE__ = os.path.dirname(os.path.abspath(__file__))
 @ddt
 class TestCodecResolution(unittest.TestCase):
 
-    @data(
-        ("unknown", False),
-        ("cdf", True),
-        ("application/x-cdf", True),
-    )
+    @data("cdf", "application/x-cdf")
+    def test_codec_resolution(self, codec):
+        self.assertIsNotNone(get_codec(codec))
+
+    def test_unknown_codec_raises_listing_registered_ones(self):
+        with self.assertRaisesRegex(ValueError, r"Unknown codec 'csv'.*'cdf'.*'hapi/csv'"):
+            get_codec('csv')
+
+    @data(("unknown", False), ("cdf", True))
     @unpack
-    def test_codec_resolution(self, codec, expected):
-        self.assertEqual(get_codec(codec) is not None, expected)
+    def test_has_codec(self, codec, expected):
+        from speasy.core.codecs import has_codec
+        self.assertEqual(has_codec(codec), expected)
 
 
 @ddt

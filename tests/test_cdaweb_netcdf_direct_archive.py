@@ -80,10 +80,10 @@ class TestUnavailableCodecFallsBackToTheWebService(unittest.TestCase):
 
     def test_dataset_whose_codec_is_not_installed_is_not_served_from_files(self):
         # netCDF4 has no WASM/Pyodide wheel, so the NetCDF codec isn't registered there at all and
-        # get_codec('nc') answers None
+        # has_codec('nc') answers False
         with tempfile.TemporaryDirectory() as archive:
             open(os.path.join(archive, 'probe_20200102_v01.nc'), 'w').close()
-            with patch('speasy.data_providers.cda.get_codec', return_value=None):
+            with patch('speasy.data_providers.cda.has_codec', return_value=False):
                 self.assertIsNone(_archive_params_for(_cdaweb_dataset(url=archive), _regular_parameter(),
                                                       'DENSITY', '2020-01-02', '2020-01-03'))
 

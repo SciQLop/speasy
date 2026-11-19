@@ -17,7 +17,7 @@ from speasy.core import AnyDateTimeType, AllowedKwargs
 from speasy.core.cdf.inventory_extractor import make_dataset_index, extract_from_master
 from speasy.core.dataprovider import DataProvider, GET_DATA_ALLOWED_KWARGS, register_provider
 from speasy.core.direct_archive_downloader import get_product
-from speasy.core.codecs import get_codec
+from speasy.core.codecs import get_codec, has_codec
 from speasy.core.inventory.indexes import SpeasyIndex, ParameterIndex
 from speasy.core.http import is_server_up
 from speasy.core.url_utils import host_and_port, is_local_file
@@ -30,8 +30,8 @@ log = logging.getLogger(__name__)
 
 # List of available ISTP codecs (used in _dataset_from_master() )
 # The NetCDF codec is not registered if netCDF4 is not available:
-# this is why we filter on None
-_ISTP_CODECS = tuple(c for c in (get_codec('cdf'), get_codec('nc')) if c is not None)
+# this is why we filter on has_codec
+_ISTP_CODECS = tuple(get_codec(c) for c in ('cdf', 'nc') if has_codec(c))
 
 
 def _global_inventory_dir():
@@ -94,7 +94,7 @@ def _dataset_from_variables(name, path, entry_meta, variables, codec_id='', data
         log.warning(f"Dataset {name}: inline format requires a dataset 'meta' and a 'meta' "
                     f"for each variable, skipping")
         return None
-    if get_codec(codec_id or 'cdf') is None:  # get_data() resolves this same key at fetch time
+    if not has_codec(codec_id or 'cdf'):  # get_data() resolves this same key at fetch time
         log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
         return None
     parameters = [ParameterIndex(name=var, provider='archive', uid=f"{path}/{var}",
@@ -109,10 +109,10 @@ def _dataset_from_master(name, path, entry_meta, master_file, codec_id, dataset_
                          disable_cache=False):
     # All strings for a codec id (extension, mime type, class name) resolve to the same instance in
     # the registry, so we test the codec object instead of a string
-    codec = get_codec(codec_id or 'cdf')  # legacy master_cdf entries carry no codec
-    if codec is None:
+    if not has_codec(codec_id or 'cdf'):  # legacy master_cdf entries carry no codec
         log.warning(f"Unknown codec '{codec_id}' for dataset {name}, skipping")
         return None
+    codec = get_codec(codec_id or 'cdf')
     if codec in _ISTP_CODECS:  # ISTP formats: pyistp extraction with variable + dataset meta
         result = extract_from_master(master_file, provider='archive',
                                      params_uid_format=f"{path}/{{var_name}}",
