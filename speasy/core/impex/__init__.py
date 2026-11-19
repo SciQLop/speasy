@@ -322,6 +322,8 @@ class ImpexProvider(DataProvider):
                                                start_time=start_time, stop_time=stop_time, **kwargs)
             else:
                 return self.get_parameter(product=product, start_time=start_time, stop_time=stop_time, **kwargs)
+        if product_t == ImpexProductType.COMPONENT and start_time and stop_time:
+            return self.get_component(component_id=product, start_time=start_time, stop_time=stop_time, **kwargs)
         if product_t == ImpexProductType.CATALOG:
             if self.is_user_catalog(product):
                 return self.get_user_catalog(catalog_id=product, **kwargs)
@@ -417,6 +419,18 @@ class ImpexProvider(DataProvider):
 
         return self._get_parameter(product, start_time, stop_time, extra_http_headers=extra_http_headers,
                                    output_format=output_format or self.client.output_format, **kwargs)
+
+    def get_component(self, component_id: str or ComponentIndex, start_time, stop_time,
+                      **kwargs) -> Optional[SpeasyVariable]:
+        """Get one component of a parameter, e.g. "imf(1)" for the by column of "imf".
+
+        Fetches the whole parent parameter (so it shares its cache) and keeps only that column.
+        """
+        component = self.to_index(to_xmlid(component_id))
+        var = self.get_data(component.parameter, start_time, stop_time, **kwargs)
+        if var is None:
+            return None
+        return var.filter_columns([var.columns[int(component.index1)]])
 
     def get_dataset(self, dataset_id: str or DatasetIndex, start: str or datetime, stop: str or datetime,
                     **kwargs) -> Dataset or None:
