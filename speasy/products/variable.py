@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Any, Tuple, Union
 
 import astropy.table
@@ -105,6 +106,14 @@ class _DataFrameOrigin:
 def _dataframe_origin(df: pds.DataFrame) -> _DataFrameOrigin:
     origin = df.attrs.get("speasy")
     return origin if isinstance(origin, _DataFrameOrigin) else _DataFrameOrigin()
+
+
+def _as_time_shift(value) -> Optional[np.timedelta64]:
+    if isinstance(value, np.timedelta64):
+        return value
+    if isinstance(value, timedelta):
+        return np.timedelta64(value)
+    return None
 
 
 class SpeasyVariable(SpeasyProduct):
@@ -387,9 +396,9 @@ class SpeasyVariable(SpeasyProduct):
         return np.power(self, power)
 
     def __add__(self, other):
-        if type(other) is np.timedelta64:
-            result = self.copy(name=f"shifted({self.name}, {other})")
-            result.time[:] += other
+        if (shift := _as_time_shift(other)) is not None:
+            result = self.copy(name=f"shifted({self.name}, {shift})")
+            result.time[:] += shift
             return result
         return np.add(self, other)
 
@@ -397,9 +406,9 @@ class SpeasyVariable(SpeasyProduct):
         return np.add(other, self)
 
     def __sub__(self, other):
-        if type(other) is np.timedelta64:
-            result = self.copy(name=f"shifted({self.name}, -{other})")
-            result.time[:] -= other
+        if (shift := _as_time_shift(other)) is not None:
+            result = self.copy(name=f"shifted({self.name}, -{shift})")
+            result.time[:] -= shift
             return result
         return np.subtract(self, other)
 
@@ -466,6 +475,9 @@ class SpeasyVariable(SpeasyProduct):
                                  meta=deepcopy(self.__values_container.meta)),
             columns=[f"column_{i}" for i in range(n_cols)],
         )
+
+    def __array__(self, dtype=None, copy=None):
+        return np.array(self.values, dtype=dtype, copy=copy)
 
     def __array_ufunc__(self, ufunc, method, *inputs, out: 'SpeasyVariable' or None = None, **kwargs):
         if out is not None:

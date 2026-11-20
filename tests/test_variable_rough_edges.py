@@ -226,3 +226,59 @@ class ColormapOfVector(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def make_3d_var(n=4):
+    time = epoch_to_datetime64(np.arange(n, dtype=float))
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                VariableAxis(name="energy", values=np.arange(3, dtype=float)),
+                                VariableAxis(name="angle", values=np.arange(2, dtype=float))],
+                          values=DataContainer(values=np.ones((n, 3, 2)), name="dist", is_time_dependent=True))
+
+
+class AsNumpyArray(unittest.TestCase):
+    def test_asarray_gives_the_values(self):
+        v = make_var(4)
+        np.testing.assert_array_equal(np.asarray(v), v.values)
+        self.assertEqual(np.asarray(v, dtype=np.float32).dtype, np.float32)
+
+
+class TimeShiftByADatetimeTimedelta(unittest.TestCase):
+    def test_shifts_like_a_numpy_timedelta(self):
+        from datetime import timedelta
+        v = make_var(4)
+        np.testing.assert_array_equal((v + timedelta(seconds=5)).time, (v + np.timedelta64(5, "s")).time)
+        np.testing.assert_array_equal((v - timedelta(seconds=5)).time, (v - np.timedelta64(5, "s")).time)
+
+
+class SignalFunctionsLimits(unittest.TestCase):
+    def test_resample_refuses_more_than_2d_values_clearly(self):
+        from speasy.signal.resampling import resample, interpolate
+        with self.assertRaisesRegex(ValueError, r"dist.*\(4, 3, 2\).*time x columns"):
+            resample(make_3d_var(), 0.5)
+        with self.assertRaisesRegex(ValueError, r"dist.*\(4, 3, 2\).*time x columns"):
+            interpolate(make_var(4), make_3d_var())
+
+    def test_empty_variables_give_empty_results(self):
+        from speasy.signal.resampling import resample, interpolate
+        empty = make_var(0)
+        self.assertEqual(len(resample(empty, 0.5)), 0)
+        self.assertEqual(len(interpolate(make_var(0), empty)), 0)
+        self.assertTrue(np.isnan(interpolate(make_var(3), empty).values).all())
+
+    def test_filter_of_an_empty_variable_is_empty(self):
+        from scipy import signal
+        from speasy.signal.filtering import apply_sos_filter
+        sos = signal.butter(2, 0.1, output="sos")
+        self.assertEqual(len(apply_sos_filter(sos, signal.sosfilt, make_var(0))), 0)
+
+
+class PlotOfMoreThan2DValues(unittest.TestCase):
+    def test_without_display_type_it_says_how_to_reduce_it(self):
+        # it used to fall back to a line plot and fail with matplotlib's own "x and y can be no greater than 2D"
+        import matplotlib.pyplot as plt
+        try:
+            with self.assertRaisesRegex(ValueError, r"colormap needs 2 dimensions.*Reduce a dimension first"):
+                make_3d_var().plot()
+        finally:
+            plt.close("all")

@@ -68,7 +68,7 @@ class Plot:
         display_type = _display_type(self.values.meta)
         if display_type in ("spectrogram", "map_image", "map_movie"):
             return PlotType.SPECTRO
-        if not display_type and self._spread_along_a_physical_axis():
+        if not display_type and (self.values.values.ndim > 2 or self._spread_along_a_physical_axis()):
             return PlotType.SPECTRO
         return PlotType.LINE
 

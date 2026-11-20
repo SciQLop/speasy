@@ -44,8 +44,14 @@ class _NumpyInterpolator:
 
 def _interpolate(ref_time: np.ndarray, var: SpeasyVariable, interpolate_callback: Optional[Callable] = None, *args,
                  **kwargs) -> SpeasyVariable:
+    if var.values.ndim > 2:
+        raise ValueError(f"Can't resample or interpolate {var.name}: its values have shape {var.values.shape}, "
+                         f"only time x columns values (1 or 2 dimensions) are supported")
     res = SpeasyVariable.reserve_like(var, length=len(ref_time))
     res.time[:] = ref_time
+    if len(var) == 0:
+        res.values[:] = np.nan  # nothing to interpolate from
+        return res
     var_epoch = datetime64_to_epoch(var.time)
     res_epoch = datetime64_to_epoch(res.time)
     for col in range(var.values.shape[1]):
@@ -79,11 +85,13 @@ def resample(var: Union[SpeasyVariable, Collection[SpeasyVariable]], new_dt: Uni
 
     Notes
     -----
-    It only supports 1D variables.
+    It supports values of 1 or 2 dimensions (time x columns), spectrograms included.
     """
     if type(var) in (list, tuple):
         return [resample(v, new_dt, interpolate_callback, *args, **kwargs) for v in var]
     else:
+        if len(var) == 0:
+            return _interpolate(var.time, var, interpolate_callback, *args, **kwargs)
         time = generate_time_vector(var.time[0], var.time[-1] + np.timedelta64(1, 'ns'), new_dt)
         return _interpolate(time, var, interpolate_callback, *args, **kwargs)
 
@@ -110,7 +118,7 @@ def interpolate(ref: Union[np.ndarray, SpeasyVariable], var: Union[SpeasyVariabl
 
     Notes
     -----
-    It only supports 1D variables.
+    It supports values of 1 or 2 dimensions (time x columns), spectrograms included.
     """
     if isinstance(ref, SpeasyVariable):
         ref_time = ref.time
