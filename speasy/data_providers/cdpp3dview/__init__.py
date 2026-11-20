@@ -234,8 +234,8 @@ class Cdpp3dViewWebservice(DataProvider):
                     f"Got 404 'No data available' from 3dView with {URL}")
                 return None
             raise Cdpp3dViewWebException(
-                f'Failed to get data with request: {URL},'
-                f'got {resp.status_code} HTTP response')
+                f'Failed to get data with request: {URL}, '
+                f'got {resp.status_code} HTTP response: {resp.text.strip()[:300]}')
         else:
             return None
 

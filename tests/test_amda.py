@@ -79,6 +79,24 @@ class PrivateListsAreCachedPerUser(unittest.TestCase):
                 self.assertEqual(getattr(spz.amda, getter)(), f"list of {user}")
 
 
+class FailedRequestsSayWhy(unittest.TestCase):
+    """AMDA failures used to be logged at debug level only, so a FailedChunkedRequest came with no reason."""
+    start, stop = datetime(2020, 1, 1, tzinfo=timezone.utc), datetime(2020, 1, 1, 1, tzinfo=timezone.utc)
+
+    def test_no_result_file(self):
+        with mock.patch.object(spz.amda.client, "get_parameter", return_value=None), \
+                self.assertLogs("speasy.core.impex", level="WARNING") as logs:
+            self.assertIsNone(spz.amda._dl_parameter_chunk(self.start, self.stop, "imf"))
+        self.assertRegex("\n".join(logs.output), r"amda.*no result file for imf")
+
+    def test_unreadable_result_file(self):
+        with mock.patch.object(spz.amda.client, "get_parameter", return_value="https://amda/result.cdf"), \
+                mock.patch.object(spz.amda, "_load_result_file", return_value={"imf": None}), \
+                self.assertLogs("speasy.core.impex", level="WARNING") as logs:
+            self.assertIsNone(spz.amda._dl_parameter_chunk(self.start, self.stop, "imf"))
+        self.assertRegex("\n".join(logs.output), r"amda.*result file https://amda/result.cdf for imf could not be read")
+
+
 class PublicProductsRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
