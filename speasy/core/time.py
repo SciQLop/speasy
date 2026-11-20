@@ -26,6 +26,12 @@ def _to_datetime64_ns(input_dt: datetime) -> np.datetime64:
     return value.astype('datetime64[ns]')
 
 
+def check_time_order(start_time: AnyDateTimeType, stop_time: AnyDateTimeType) -> None:
+    """Raise a ValueError saying what to do when start_time is after stop_time."""
+    if make_utc_datetime(start_time) > make_utc_datetime(stop_time):
+        raise ValueError(f"start ({start_time}) is after stop ({stop_time}), swap them")
+
+
 def make_utc_datetime(input_dt: AnyDateTimeType) -> datetime:
     """Makes UTC datetime from given input.
 

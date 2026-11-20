@@ -5,6 +5,7 @@ from threading import Lock
 from typing import Callable, Dict, List, Optional, Tuple
 
 from speasy.core.datetime_range import DateTimeRange
+from speasy.core.time import check_time_order
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import (DatasetIndex, ParameterIndex,
                                            SpeasyIndex, inventory_has_changed)
@@ -102,6 +103,7 @@ class ParameterRangeCheck(object):
     def __call__(self, get_data: Callable):
         @wraps(get_data)
         def wrapped(wrapped_self, product, start_time, stop_time, **kwargs):
+            check_time_order(start_time, stop_time)
             p_range = wrapped_self.parameter_range(product)
             if not p_range.intersect(DateTimeRange(start_time, stop_time)):
                 log.warning(f"You are requesting {product} outside of its definition range {p_range}")

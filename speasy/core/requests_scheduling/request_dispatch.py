@@ -10,6 +10,7 @@ import logging
 
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
+from ..time import check_time_order
 from ..dataprovider import main_provider_name, provider_names, registered_providers, unregistered_provider_hint
 from ..inventory.indexes import (CatalogIndex, ComponentIndex,
                                  DatasetIndex, ParameterIndex,
@@ -282,6 +283,7 @@ def _get_one(index, *time_range, **kwargs):
 
 
 def _get_timeserie(index, start, stop, **kwargs):
+    check_time_order(start, stop)
     return _get_one(index, start, stop, **kwargs)
 
 
