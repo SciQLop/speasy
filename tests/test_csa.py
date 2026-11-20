@@ -18,6 +18,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 from test_cef_codec import SCALAR  # noqa: E402
 
 
+class CSAProductIds(unittest.TestCase):
+    def test_a_wrong_id_says_what_form_is_expected(self):
+        with self.assertRaisesRegex(ValueError, r"csa/C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN.*'DATASET/variable'"):
+            to_dataset_and_variable("csa/C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN")
+
+
 class CSAInventory(unittest.TestCase):
     def test_can_get_full_inventory_without_proxy(self):
         os.environ[spz.config.proxy.enabled.env_var_name] = "False"
