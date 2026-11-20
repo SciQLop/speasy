@@ -30,8 +30,8 @@ Disabling data providers
 Sometimes you may want to disable some data providers either to speed up Speasy import or because you don't need them.
 This can be done by adding the provider name to the ``disabled_providers`` list in the configuration file.
 Valid names are ``amda``, ``csa``, ``cda`` (alias ``cdaweb``), ``ssc`` (alias ``sscweb``),
-``archive`` (aliases ``generic_archive`` and ``file``), ``uiowaephtool`` (alias ``UiowaEphTool``) and
-``cdpp3dview`` (alias ``3DView``).
+``archive`` (aliases ``generic_archive`` and ``file``), ``uiowaephtool`` (alias ``UiowaEphTool``),
+``cdpp3dview`` (alias ``3DView``), ``hapi`` and ``virtual``.
 
 The value you set **replaces** the default rather than adding to it: the default is empty (every provider
 enabled), so setting ``disabled_providers = amda`` disables only AMDA.

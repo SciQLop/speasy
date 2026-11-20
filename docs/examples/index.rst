@@ -35,7 +35,7 @@ product from it:
 - **CDAWeb** — browse NASA's CDAWeb inventory and plot its variables.
 - **CSA** — get Cluster and Double Star data from ESA's Cluster Science Archive.
 - **SSCWeb** — fetch spacecraft and body trajectories from NASA's SSCWeb.
-- **Cdpp3dView** — planet and spacecraft trajectories from CDPP 3DView (disabled by default, see the notebook).
+- **Cdpp3dView** — planet and spacecraft trajectories from CDPP 3DView.
 - **GenericArchive** — point Speasy at your own archive of CDF files with a small YAML description.
 
 Working with data
