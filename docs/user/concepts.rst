@@ -92,8 +92,8 @@ Errors and empty results
 ------------------------
 
 A **known** product (one Speasy's inventory recognizes) with no data in the requested time range makes
-``get_data()`` (and ``get_dataset()``/``get_catalog()``/``get_timetable()``) return ``None`` rather than
-raise. Always check for ``None`` before using the result:
+``get_data()`` (and provider methods such as ``spz.amda.get_dataset()``/``get_catalog()``/``get_timetable()``)
+return ``None`` rather than raise. Always check for ``None`` before using the result:
 
 .. code-block:: python
 
