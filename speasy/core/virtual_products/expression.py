@@ -207,9 +207,8 @@ def fetch(indexes, start, stop, **kwargs):
 
 
 def clean(data):
-    """Replace fill values and out-of-range values by NaN in each product's data, unless already cleaned."""
-    return {key: variable if getattr(variable, "_spz_cleaned", False)
-            else variable.replace_fillval_by_nan(convert_to_float=True).clamp_with_nan()
+    """Replace fill values and out-of-range values by NaN in each product's data."""
+    return {key: variable.replace_fillval_by_nan(convert_to_float=True).clamp_with_nan()
             for key, variable in data.items()}
 
 
@@ -299,7 +298,6 @@ def finalise(result, node, data, name=None):
         final.meta.pop(key, None)
     if _units(node, data) is None:
         final.meta.pop("UNITS", None)
-    final._spz_cleaned = True
     return final
 
 
