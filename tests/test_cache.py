@@ -418,6 +418,23 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
         self.assertLessEqual(provider.count(product), 1)
 
 
+class CacheReleasesLocksWhenThereIsNoData(unittest.TestCase):
+    """A fetch that finds no data must not leave its fragments locked: other callers would wait for nothing."""
+
+    @Cacheable(prefix="", cache_instance=cache, version=lambda self, product: 0, deduplication_timeout=60)
+    def _no_data(self, product, start_time, stop_time):
+        return None
+
+    def test_another_thread_does_not_wait_after_an_empty_fetch(self):
+        product = "test_no_data_releases_locks"
+        start, stop = datetime(2020, 1, 1, tzinfo=timezone.utc), datetime(2020, 1, 1, 0, 30, tzinfo=timezone.utc)
+        self.assertIsNone(self._no_data(product, start, stop))
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            begin = time.perf_counter()
+            self.assertIsNone(executor.submit(self._no_data, product, start, stop).result(timeout=120))
+        self.assertLess(time.perf_counter() - begin, 5)
+
+
 @ddt
 class _CacheVersionTest(unittest.TestCase):
 
