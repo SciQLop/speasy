@@ -98,6 +98,8 @@ SSC_MALFORMED_RESPONSE_RETRY_DELAY_SECONDS = 1
 
 
 DEFAULT_COORDINATE_SYSTEM = 'gse'
+# what docs/user/sscweb/sscweb.rst lists; only used in error messages, SSCWeb may accept more
+KNOWN_COORDINATE_SYSTEMS = ('geo', 'gm', 'gse', 'gsm', 'sm', 'geitod', 'geij2000')
 
 
 def _make_cache_entry_name(prefix: str, product: str, start_time: str, **kwargs):
@@ -202,6 +204,9 @@ class SscWebservice(DataProvider):
         for attempt in range(1 + SSC_MALFORMED_RESPONSE_RETRY_COUNT):
             log.debug(f"Requesting {url} (attempt {attempt + 1})")
             res = http.get(url, headers=headers)
+            if not res.ok and 400 <= res.status_code < 500:
+                raise ValueError(f"SSCWeb rejected {url} ({res.status_code}): {res.text.strip()[:300]}. "
+                                 f"Check coordinate_system, known values are {', '.join(KNOWN_COORDINATE_SYSTEMS)}")
             if res.ok:
                 maybe_var = parse_trajectory(res.text)
                 if maybe_var is not None:
