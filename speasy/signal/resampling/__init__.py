@@ -126,6 +126,6 @@ def interpolate(ref: Union[np.ndarray, SpeasyVariable], var: Union[SpeasyVariabl
         ref_time = ref
     else:
         raise ValueError("Invalid reference time vector, must be a numpy array of datetime64[ns] or a SpeasyVariable.")
-    if type(var) in (list, tuple):
-        return [_interpolate(ref_time, v, interpolate_callback, *args, **kwargs) for v in var]
+    if type(var) in (list, tuple):  # None stays None: it's what get_data gives for a product that failed
+        return [None if v is None else _interpolate(ref_time, v, interpolate_callback, *args, **kwargs) for v in var]
     return _interpolate(ref_time, var, interpolate_callback, *args, **kwargs)

@@ -108,6 +108,13 @@ Leave out a bound to go to the start or the end.
     >>> b[["bx", "bz"]].columns
     ['bx', 'bz']
 
+**Both at once.** Put the rows first, then the columns, by name or by position:
+
+    >>> b["2016-06-03":"2016-06-04", "bz"].columns
+    ['bz']
+    >>> b[:, 0].columns
+    ['bx']
+
 **With a test.** A boolean array keeps the rows where it is ``True``. For instance, the samples
 where the field points north:
 

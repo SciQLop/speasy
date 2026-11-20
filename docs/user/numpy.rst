@@ -14,7 +14,7 @@ allows it (i.e. when the time axis is preserved), and a scalar or plain array ot
 Arithmetic operations
 ---------------------
 
-Standard arithmetic operators (``+``, ``-``, ``*``, ``/``, ``**``) work directly on Speasy variables
+Standard arithmetic operators (``+``, ``-``, ``*``, ``/``, ``//``, ``%``, ``**``) work directly on Speasy variables
 and return a new ``SpeasyVariable`` with the same time axis:
 
     >>> import speasy as spz
