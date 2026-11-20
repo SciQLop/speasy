@@ -22,7 +22,8 @@ Speasy's dynamic inventory, which is always up to date:
     >>> len(ssc_trajectories) > 100
     True
 
-``spz.ssc.get_observatories()`` returns the same listing programmatically. Time resolution
+``spz.ssc.get_observatories()`` returns SSCWeb's raw description of each observatory (a list of dicts),
+if you need more than the inventory shows. Time resolution
 varies from satellite to satellite: each inventory entry exposes a ``Resolution`` field
 telling you the cadence of that trajectory.
 

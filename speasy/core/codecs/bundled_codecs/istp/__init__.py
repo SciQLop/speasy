@@ -23,6 +23,11 @@ def _fix_value_type(value):
         return [_fix_value_type(sub_v) for sub_v in value]
     if type(value) is bytes:
         return value.decode('utf-8')
+    # netCDF4 gives numpy scalars and arrays where pycdfpp gives Python values
+    if isinstance(value, np.generic):
+        return _fix_value_type(value.item())
+    if isinstance(value, np.ndarray):
+        return _fix_value_type(value.tolist())
     return str(value)
 
 

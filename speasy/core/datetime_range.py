@@ -53,6 +53,9 @@ class DateTimeRange:
         return 2
 
     def __contains__(self, item: object) -> bool:
+        """A (start, stop) span inside this range, or a single time within it."""
+        if isinstance(item, (str, datetime, np.datetime64, float, int)):
+            return self.start_time <= make_utc_datetime(item) <= self.stop_time
         return span_utils.contains(self, other=item)
 
     def __add__(self, other):

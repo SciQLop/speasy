@@ -59,6 +59,32 @@ class ConfigModule(unittest.TestCase):
         self.assertEqual(my_test_entry.get(), "NEW VALUE")
         config.remove_entry(my_test_entry)
 
+    def test_set_refuses_a_value_of_the_wrong_type(self):
+        my_test_entry = config.ConfigEntry("unit-tests", "an-int", default="10", type_ctor=int)
+        with self.assertRaisesRegex(ValueError, r"unit-tests.*an-int.*notanumber"):
+            my_test_entry.set("notanumber")
+        self.assertEqual(my_test_entry.get(), 10)
+        config.remove_entry(my_test_entry)
+
+    def test_bool_entries_refuse_anything_but_true_or_false(self):
+        my_test_entry = config.ConfigEntry("unit-tests", "a-flag", default=True,
+                                           type_ctor=config.proxy.enabled.type_ctor)
+        with self.assertRaisesRegex(ValueError, r"unit-tests.*a-flag.*maybe"):
+            my_test_entry.set("maybe")
+        my_test_entry.set("False")
+        self.assertIs(my_test_entry.get(), False)
+        config.remove_entry(my_test_entry)
+
+    def test_a_bad_value_in_the_file_falls_back_to_the_default_with_a_warning(self):
+        # e.g. written by hand, or by a speasy version that didn't check values: speasy must still import
+        my_test_entry = config.ConfigEntry("unit-tests", "an-int", default="10", type_ctor=int)
+        if "unit-tests" not in config._config:
+            config._config.add_section("unit-tests")
+        config._config["unit-tests"]["an-int"] = "notanumber"
+        with self.assertWarnsRegex(UserWarning, r"unit-tests.*an-int.*notanumber.*speasy config"):
+            self.assertEqual(my_test_entry.get(), 10)
+        config.remove_entry(my_test_entry)
+
     def test_set_doesnt_touch_env_if_entry_is_not_in_env(self):
         my_test_entry = config.ConfigEntry("unit-tests", "default_value", "DEFAULT")
         my_test_entry.set("NEW VALUE")

@@ -216,6 +216,20 @@ class Cdpp3dViewTestErrorsCaught(unittest.TestCase):
                                  disable_proxy=True
                                  )
 
+    def test_a_rejected_request_quotes_the_server(self):
+        from unittest.mock import Mock, patch
+        rejected = Mock(status_code=400, ok=False, text="No data found: Command execution error found")
+        real_get = cdpp3dview.http.get
+
+        def only_intercept_the_trajectory(url, *args, **kwargs):
+            return rejected if "get_trajectory" in url else real_get(url, *args, **kwargs)
+
+        with patch.object(cdpp3dview.http, "get", side_effect=only_intercept_the_trajectory):
+            with self.assertRaisesRegex(cdpp3dview.Cdpp3dViewWebException, "No data found: Command execution"):
+                spz.cdpp3dview.get_data("GEOTAIL", datetime(1992, 7, 30, 1, 0, 0, tzinfo=timezone.utc),
+                                        datetime(1992, 7, 30, 2, 0, 0, tzinfo=timezone.utc),
+                                        disable_cache=True, disable_proxy=True)
+
     def test_get_data_conflicting_coordinate_aliases_raises(self):
         # coordinate_system is just an alias for coordinate_frame -- passing both with different
         # values is ambiguous and must fail loudly, not silently prefer one. Raised before any

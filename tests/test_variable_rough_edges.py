@@ -96,8 +96,8 @@ class IndexingByPositionAndName(unittest.TestCase):
             self.v[["bx", "nope"]]
 
     def test_unsupported_key_says_what_is_supported(self):
-        with self.assertRaisesRegex(ValueError, "slice.*column name.*boolean mask"):
-            self.v[:, 0]
+        with self.assertRaisesRegex(ValueError, r"slice.*column name.*boolean mask.*var\[rows, columns\]"):
+            self.v[1.5]
 
 
 class UfuncOutParameter(unittest.TestCase):
@@ -226,3 +226,115 @@ class ColormapOfVector(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def make_3d_var(n=4):
+    time = epoch_to_datetime64(np.arange(n, dtype=float))
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                VariableAxis(name="energy", values=np.arange(3, dtype=float)),
+                                VariableAxis(name="angle", values=np.arange(2, dtype=float))],
+                          values=DataContainer(values=np.ones((n, 3, 2)), name="dist", is_time_dependent=True))
+
+
+class AsNumpyArray(unittest.TestCase):
+    def test_asarray_gives_the_values(self):
+        v = make_var(4)
+        np.testing.assert_array_equal(np.asarray(v), v.values)
+        self.assertEqual(np.asarray(v, dtype=np.float32).dtype, np.float32)
+
+
+class TimeShiftByADatetimeTimedelta(unittest.TestCase):
+    def test_shifts_like_a_numpy_timedelta(self):
+        from datetime import timedelta
+        v = make_var(4)
+        np.testing.assert_array_equal((v + timedelta(seconds=5)).time, (v + np.timedelta64(5, "s")).time)
+        np.testing.assert_array_equal((v - timedelta(seconds=5)).time, (v - np.timedelta64(5, "s")).time)
+
+
+class SignalFunctionsLimits(unittest.TestCase):
+    def test_resample_refuses_more_than_2d_values_clearly(self):
+        from speasy.signal.resampling import resample, interpolate
+        var, ref = make_3d_var(), make_var(4)
+        with self.assertRaisesRegex(ValueError, r"dist.*\(4, 3, 2\).*time x columns"):
+            resample(var, 0.5)
+        with self.assertRaisesRegex(ValueError, r"dist.*\(4, 3, 2\).*time x columns"):
+            interpolate(ref, var)
+
+    def test_empty_variables_give_empty_results(self):
+        from speasy.signal.resampling import resample, interpolate
+        empty = make_var(0)
+        self.assertEqual(len(resample(empty, 0.5)), 0)
+        self.assertEqual(len(interpolate(make_var(0), empty)), 0)
+        self.assertTrue(np.isnan(interpolate(make_var(3), empty).values).all())
+
+    def test_filter_of_an_empty_variable_is_empty(self):
+        from scipy import signal
+        from speasy.signal.filtering import apply_sos_filter
+        sos = signal.butter(2, 0.1, output="sos")
+        self.assertEqual(len(apply_sos_filter(sos, signal.sosfilt, make_var(0))), 0)
+
+
+class PlotOfMoreThan2DValues(unittest.TestCase):
+    def test_without_display_type_it_says_how_to_reduce_it(self):
+        # it used to fall back to a line plot and fail with matplotlib's own "x and y can be no greater than 2D"
+        import matplotlib.pyplot as plt
+        var = make_3d_var()
+        try:
+            with self.assertRaisesRegex(ValueError, r"colormap needs 2 dimensions.*Reduce a dimension first"):
+                var.plot()
+        finally:
+            plt.close("all")
+
+
+@ddt
+class RowsThenColumns(unittest.TestCase):
+    def setUp(self):
+        self.v = make_var(10)
+
+    def test_all_rows_one_column(self):
+        self.assertEqual(self.v[:, 0].columns, ["bx"])
+        np.testing.assert_array_equal(self.v[:, 0].values, self.v.values[:, [0]])
+
+    @data((slice(2, 5), slice(1, None), ["by", "bz"]), (0, "bz", ["bz"]), (slice(None), [0, 2], ["bx", "bz"]),
+          (slice(None), ["bx", "bz"], ["bx", "bz"]))
+    def test_rows_and_columns(self, key):
+        rows, columns, names = key
+        selected = self.v[rows, columns]
+        self.assertEqual(selected.columns, names)
+        np.testing.assert_array_equal(selected.values, self.v[rows][names].values)
+
+    def test_rows_by_time(self):
+        t0, t1 = self.v.time[2], self.v.time[5]
+        self.assertEqual(self.v[t0:t1, "by"].values.shape, (3, 1))
+
+    def test_a_tuple_of_names_still_selects_columns(self):
+        self.assertEqual(self.v[("bx", "by")].columns, ["bx", "by"])
+
+
+class ModuloAndFloorDivision(unittest.TestCase):
+    def test_operators_match_numpy(self):
+        v = make_var(4)
+        np.testing.assert_array_equal((v % 4).values, np.mod(v.values, 4))
+        np.testing.assert_array_equal((v // 4).values, np.floor_divide(v.values, 4))
+        np.testing.assert_array_equal((50 % v[1:]).values, np.mod(50, v[1:].values))
+        np.testing.assert_array_equal((50 // v[1:]).values, np.floor_divide(50, v[1:].values))
+        quotient, remainder = divmod(v, 4)
+        np.testing.assert_array_equal(quotient.values, np.floor_divide(v.values, 4))
+        np.testing.assert_array_equal(remainder.values, np.mod(v.values, 4))
+
+
+class PointInEvent(unittest.TestCase):
+    def test_a_time_inside_an_event(self):
+        event = Event("2018-01-01", "2018-01-03")
+        self.assertIn("2018-01-02", event)
+        self.assertIn(np.datetime64("2018-01-03"), event)
+        self.assertNotIn("2018-01-04", event)
+        self.assertIn(Event("2018-01-01T12", "2018-01-02"), event)  # spans still work
+
+
+class InterpolateKeepsMissingProducts(unittest.TestCase):
+    def test_none_stays_none(self):
+        from speasy.signal.resampling import interpolate
+        result = interpolate(make_var(5), [make_var(5), None])
+        self.assertEqual(len(result[0]), 5)
+        self.assertIsNone(result[1])

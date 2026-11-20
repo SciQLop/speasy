@@ -272,6 +272,11 @@ class TestGetData(unittest.TestCase):
             self.assertEqual(len(v), 24)
             self.assertGreater(len(FakeClient.calls_of('data')), downloads)
 
+    def test_the_path_shown_by_the_tree_works_as_a_string(self):
+        # the tree shows 'Field/X' as FieldX: users copy that path, the raw id must not be the only one accepted
+        with _hapi_provider():
+            self.assertEqual(len(self._get('slashed/aaa/PT1M/xyz/FieldX', _utc(2000, 6, 1), _utc(2000, 6, 2))), 24)
+
     def test_get_data_resolves_unloaded_products(self):
         with _hapi_provider():
             v = self._get('v2/dataset1/scalar')

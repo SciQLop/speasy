@@ -1,4 +1,5 @@
 import logging
+import warnings
 import math
 import numpy as np
 from datetime import datetime, timedelta, timezone
@@ -234,13 +235,23 @@ class _Cacheable:
         Optional[SpeasyVariable]
             The variable that was added to the cache, or None if the variable was None.
         """
-        if variable is not None:
+        if variable is None:
+            # Nothing is cached for "no data": release our locks or other callers wait deduplication_timeout.
+            for fragment in fragments:
+                self.drop_cache_entry(fragment, product, **kwargs)
+            return None
+        try:
             for fragment in fragments:
                 fragment_end = fragment + fragment_duration
                 self.set_cache_entry(fragment, product,
                                      CacheItem(to_dictionary(variable[fragment:fragment_end]), version,
                                                lifetime=_fragment_lifetime(fragment_end, coverage_end, lifetime)),
                                      **kwargs)
+        except OSError as e:
+            # e.g. a full disk: the data is already downloaded, only caching it failed
+            warnings.warn(f"Could not cache {product}: {e}", UserWarning)
+            for fragment in fragments:
+                self.drop_cache_entry(fragment, product, **kwargs)
         return variable
 
     def set_cache_entry(self, fragment, product: str, entry, **kwargs):

@@ -92,7 +92,7 @@ class Fetching(GetDataTestCase):
 
     def test_an_inverted_range_raises(self):
         start, stop = _utc(2023, 1, 2), _utc(2023, 1, 1)
-        with self.assertRaisesRegex(ValueError, "stop.*after.*start"):
+        with self.assertRaisesRegex(ValueError, "start.*is after stop.*swap them"):
             self.get(start, stop)
 
     def test_an_inventory_node_is_a_product_too(self):

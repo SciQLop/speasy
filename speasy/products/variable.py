@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Any, Tuple, Union
 
 import astropy.table
@@ -105,6 +106,14 @@ class _DataFrameOrigin:
 def _dataframe_origin(df: pds.DataFrame) -> _DataFrameOrigin:
     origin = df.attrs.get("speasy")
     return origin if isinstance(origin, _DataFrameOrigin) else _DataFrameOrigin()
+
+
+def _as_time_shift(value) -> Optional[np.timedelta64]:
+    if isinstance(value, np.timedelta64):
+        return value
+    if isinstance(value, timedelta):
+        return np.timedelta64(value)
+    return None
 
 
 class SpeasyVariable(SpeasyProduct):
@@ -336,6 +345,8 @@ class SpeasyVariable(SpeasyProduct):
                 slice(_to_index(key.start, self.time),
                       _to_index(key.stop, self.time))
             )
+        if type(key) is tuple and len(key) == 2 and not isinstance(key[0], (str, np.ndarray)):
+            return self[key[0]][self.__column_names(key[1])]
         if type(key) in (list, tuple):
             if type(key[0]) is np.ndarray:
                 return self.view(key[0])
@@ -349,7 +360,17 @@ class SpeasyVariable(SpeasyProduct):
             return self.view(self.__row_slice(key))
         raise ValueError(
             f"No idea how to slice SpeasyVariable with given value: {key!r}. Use an int or a slice for rows "
-            f"(by position or by time), a column name or a list of them, a boolean mask or an array of row indexes.")
+            f"(by position or by time), a column name or a list of them, a boolean mask or an array of row indexes, "
+            f"or rows then columns as in var[rows, columns].")
+
+    def __column_names(self, selection) -> List[str]:
+        if isinstance(selection, str):
+            return [selection]
+        if isinstance(selection, (int, np.integer)):
+            return [self.columns[selection]]
+        if isinstance(selection, slice):
+            return self.columns[selection]
+        return [c if isinstance(c, str) else self.columns[c] for c in selection]
 
     def __row_slice(self, index: int) -> slice:
         if not -len(self) <= index < len(self):
@@ -387,9 +408,9 @@ class SpeasyVariable(SpeasyProduct):
         return np.power(self, power)
 
     def __add__(self, other):
-        if type(other) is np.timedelta64:
-            result = self.copy(name=f"shifted({self.name}, {other})")
-            result.time[:] += other
+        if (shift := _as_time_shift(other)) is not None:
+            result = self.copy(name=f"shifted({self.name}, {shift})")
+            result.time[:] += shift
             return result
         return np.add(self, other)
 
@@ -397,9 +418,9 @@ class SpeasyVariable(SpeasyProduct):
         return np.add(other, self)
 
     def __sub__(self, other):
-        if type(other) is np.timedelta64:
-            result = self.copy(name=f"shifted({self.name}, -{other})")
-            result.time[:] -= other
+        if (shift := _as_time_shift(other)) is not None:
+            result = self.copy(name=f"shifted({self.name}, -{shift})")
+            result.time[:] -= shift
             return result
         return np.subtract(self, other)
 
@@ -408,6 +429,24 @@ class SpeasyVariable(SpeasyProduct):
 
     def __truediv__(self, other):
         return np.divide(self, other)
+
+    def __floordiv__(self, other):
+        return np.floor_divide(self, other)
+
+    def __rfloordiv__(self, other):
+        return np.floor_divide(other, self)
+
+    def __mod__(self, other):
+        return np.mod(self, other)
+
+    def __rmod__(self, other):
+        return np.mod(other, self)
+
+    def __divmod__(self, other):
+        return self // other, self % other
+
+    def __rdivmod__(self, other):
+        return other // self, other % self
 
     def __rtruediv__(self, other):
         return np.divide(other, self)
@@ -466,6 +505,9 @@ class SpeasyVariable(SpeasyProduct):
                                  meta=deepcopy(self.__values_container.meta)),
             columns=[f"column_{i}" for i in range(n_cols)],
         )
+
+    def __array__(self, dtype=None, copy=None):
+        return np.array(self.values, dtype=dtype, copy=copy)
 
     def __array_ufunc__(self, ufunc, method, *inputs, out: 'SpeasyVariable' or None = None, **kwargs):
         if out is not None:

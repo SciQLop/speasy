@@ -418,6 +418,50 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
         self.assertLessEqual(provider.count(product), 1)
 
 
+class CacheFolderThatCannotBeUsed(unittest.TestCase):
+    """A bad cache.path must not stop speasy from importing: the CLI that fixes it imports speasy too."""
+
+    def test_caching_is_disabled_with_a_warning_saying_how_to_fix_it(self):
+        # a folder under a regular file can't be created on any OS; /dev/null/... is a valid path on Windows
+        with tempfile.NamedTemporaryFile() as a_file:
+            with self.assertWarnsRegex(UserWarning, r"speasy.*cache\.path.*SPEASY_CACHE_PATH"):
+                unusable = Cache(os.path.join(a_file.name, "speasy"))
+        unusable["key"] = "value"
+        self.assertIsNone(unusable.get("key"))
+
+
+class CacheWriteFailure(unittest.TestCase):
+    """A full disk must cost the cache, not the data that was just downloaded."""
+
+    @Cacheable(prefix="", cache_instance=cache, version=lambda self, product: 0)
+    def _make_data(self, product, start_time, stop_time):
+        return data_generator(start_time, stop_time)
+
+    def test_the_data_is_returned_with_a_warning(self):
+        start, stop = datetime(2021, 1, 1, tzinfo=timezone.utc), datetime(2021, 1, 1, 0, 30, tzinfo=timezone.utc)
+        with mock.patch.object(Cache, "__setitem__", side_effect=OSError(122, "Disk quota exceeded")), \
+                self.assertWarnsRegex(UserWarning, "Disk quota exceeded"):
+            result = self._make_data("test_cache_write_failure", start, stop)
+        self.assertEqual(len(result), 30)
+
+
+class CacheReleasesLocksWhenThereIsNoData(unittest.TestCase):
+    """A fetch that finds no data must not leave its fragments locked: other callers would wait for nothing."""
+
+    @Cacheable(prefix="", cache_instance=cache, version=lambda self, product: 0, deduplication_timeout=60)
+    def _no_data(self, product, start_time, stop_time):
+        return None
+
+    def test_another_thread_does_not_wait_after_an_empty_fetch(self):
+        product = "test_no_data_releases_locks"
+        start, stop = datetime(2020, 1, 1, tzinfo=timezone.utc), datetime(2020, 1, 1, 0, 30, tzinfo=timezone.utc)
+        self.assertIsNone(self._no_data(product, start, stop))
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            begin = time.perf_counter()
+            self.assertIsNone(executor.submit(self._no_data, product, start, stop).result(timeout=120))
+        self.assertLess(time.perf_counter() - begin, 5)
+
+
 @ddt
 class _CacheVersionTest(unittest.TestCase):
 
