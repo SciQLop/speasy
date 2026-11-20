@@ -11,7 +11,7 @@ import speasy as spz
 from speasy.core.inventory.indexes import ComponentIndex, ParameterIndex
 from speasy.virtual_products import interpolate, register_virtual_product, resample
 from speasy.core.virtual_products.expression import (Const, Interpolate, Leaf, Op, Resample, TimeAxisMismatch,
-                                                      clean, collect, evaluate, fetch, parse_dt, walk)
+                                                      collect, evaluate, fetch, parse_dt, walk)
 from speasy.products.variable import DataContainer, SpeasyVariable, VariableAxis, VariableTimeAxis
 from speasy.signal import resampling
 from tests.test_virtual_products import _reset_registry, _mag_divided_offset
@@ -431,29 +431,18 @@ class TestEvaluate(unittest.TestCase):
         np.testing.assert_array_equal(result.time, b.time)
         np.testing.assert_allclose(result.values, [[5.], [10.], [15.], [15.]])
 
-    def test_result_keeps_fillval_and_drops_valid_range_metadata(self):
+    def test_result_drops_fill_and_valid_range_metadata(self):
         b = _make_variable([1, 2, 3], meta={"CATDESC": "B field", "FILLVAL": -1e31,
                                             "VALIDMIN": 0, "VALIDMAX": 100})
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
-        self.assertEqual(result.meta, {"CATDESC": "B field", "FILLVAL": -1e31})
+        self.assertEqual(result.meta, {"CATDESC": "B field"})
 
     def test_fill_and_out_of_range_values_become_nan(self):
         b = _make_variable([1, -1e31, 3, 200], meta={"FILLVAL": -1e31, "VALIDMIN": 0, "VALIDMAX": 100})
         with mock.patch("speasy.get_data", return_value=[b]):
             result = evaluate(10 * self.index, "2016-10-10", "2016-10-11")
         np.testing.assert_array_equal(result.values, [[10.], [np.nan], [30.], [np.nan]])
-
-    def test_clean_leaves_already_cleaned_data_as_is(self):
-        b = _make_variable([1, -1e31, 3], meta={"FILLVAL": -1e31})
-        b._spz_cleaned = True
-        self.assertIs(clean({"b": b})["b"], b)
-
-    def test_cleaned_flag_survives_labels_and_meta(self):
-        b = _make_variable([1, 2, 3])
-        b._spz_cleaned = True
-        self.assertTrue(b.with_labels(["x"])._spz_cleaned)
-        self.assertTrue(b.with_meta({"UNITS": "nT"})._spz_cleaned)
 
     def test_result_drops_units_when_operands_disagree(self):
         n_index = ParameterIndex(name="n", provider="amda", uid="n")
@@ -624,22 +613,19 @@ class TestRegisteredExpression(unittest.TestCase):
         np.testing.assert_allclose(result.values, [[2.], [3.], [4.], [6.]])
         self.assertEqual(result.name, "virtual/test/n_on_b")
 
-    def test_nested_virtual_product_is_cleaned_once(self):
-        b = _make_variable([1, 2, 3])
-        inner = register_virtual_product("virtual/test/inner", 10 * self.index)
+    def test_nested_virtual_product_loses_no_valid_value(self):
+        b = _make_variable([1, 2, 3], meta={"FILLVAL": -1.0})
+        inner = register_virtual_product("virtual/test/inner", self.index - 2)
         outer = 2 * inner
 
         def get_data(indexes, start, stop, **kwargs):
             # Stands in for the dispatch: the virtual leaf is computed, B is served directly.
             return [index(start, stop) if index is inner else b for index in indexes]
 
-        original = SpeasyVariable.replace_fillval_by_nan
-        with (mock.patch("speasy.get_data", side_effect=get_data),
-              mock.patch.object(SpeasyVariable, "replace_fillval_by_nan", autospec=True,
-                                side_effect=original) as spy):
+        with mock.patch("speasy.get_data", side_effect=get_data):
             result = outer("2016-10-10", "2016-10-11")
-        np.testing.assert_array_equal(result.values, [[20.], [40.], [60.]])
-        self.assertEqual(spy.call_count, 1)
+        # inner is [-1, 0, 1]: its -1 is a real value, not a fill, and must survive the second cleaning.
+        np.testing.assert_array_equal(result.values, [[-2.], [0.], [2.]])
 
 
 @ddt
