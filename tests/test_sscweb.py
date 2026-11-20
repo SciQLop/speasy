@@ -200,6 +200,16 @@ class SscWeb(unittest.TestCase):
         self.assertIsNone(traj)
         self.assertEqual(mock_get.call_count, 1 + ssc.SSC_MALFORMED_RESPONSE_RETRY_COUNT)
 
+    def test_a_rejected_request_is_not_retried_and_says_why(self):
+        from unittest.mock import patch, Mock
+        rejected = Mock(ok=False, status_code=400, text="Invalid coordinate system: nope")
+        with patch.object(ssc.http, 'get', return_value=rejected) as mock_get, \
+             patch.object(ssc.time, 'sleep'):
+            with self.assertRaisesRegex(ValueError, r"SSCWeb rejected.*Invalid coordinate system: nope.*gsm"):
+                self.ssc.get_data("moon", "2006-01-08T01:00:00", "2006-01-08T01:30:00", coordinate_system="nope",
+                                  disable_cache=True, disable_proxy=True)
+        self.assertEqual(mock_get.call_count, 1)
+
     def test_returns_none_for_a_request_outside_of_range(self):
         with self.assertLogs('speasy.core.dataprovider', level='WARNING') as cm:
             result = self.ssc.get_data('solarorbiter', datetime(2006, 1, 8, 1, 0, 0, tzinfo=timezone.utc),
