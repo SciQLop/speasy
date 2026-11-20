@@ -197,6 +197,7 @@ class HapiWebservice(DataProvider):
     def _from_tree_path(self, path: str, kind: str) -> Optional[SpeasyIndex]:
         """The tree shows ids made Python-friendly ('best-avail' -> best_avail, 'Field/X' -> FieldX): accept
         the path a user copied from it too, loading the lazy server and dataset nodes on the way."""
+        expected_type = ParameterIndex if kind == 'parameters' else DatasetIndex
         node = self._root()
         for name in path.split('/'):
             if hasattr(node, '_load'):
@@ -204,7 +205,7 @@ class HapiWebservice(DataProvider):
             node = node.__dict__.get(name)
             if node is None:
                 return None
-        return node if isinstance(node, ParameterIndex if kind == 'parameters' else DatasetIndex) else None
+        return node if isinstance(node, expected_type) else None
 
     def _dataset_of(self, parameter: ParameterIndex) -> DatasetIndex:
         uid = parameter.__dict__['dataset']
