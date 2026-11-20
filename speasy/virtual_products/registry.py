@@ -2,8 +2,6 @@
 
 import difflib
 import functools
-import logging
-import os
 import threading
 import warnings
 from typing import Callable, Optional
@@ -14,6 +12,7 @@ from ..core.algorithms import fix_name
 from ..core.dataprovider import register_provider
 from ..core.inventory import ProviderInventory
 from ..core.inventory.indexes import ParameterIndex, SpeasyIndex, make_inventory_node
+from ..core.plugins import load_plugin_files
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
 from ..core.virtual_products.expression import Node, evaluate, with_labels_and_meta
@@ -23,8 +22,6 @@ _flat_inventory = ProviderInventory()
 _registration_lock = threading.Lock()
 
 __USER_VP_DIR__ = f'{appdirs.user_data_dir("speasy", "LPP")}/virtual_products'
-
-log = logging.getLogger(__name__)
 
 class _Resolution(threading.local):
     """Paths of the virtual products being computed, outermost first.
@@ -39,18 +36,6 @@ class _Resolution(threading.local):
 
 _resolution = _Resolution()
 
-def _list_dir_abs(path: str):
-    return [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.py')]
-
-def _load_vp(path: str):
-    if path.endswith('.py'):
-        try:
-            with open(path) as vp_file:
-                exec(compile(vp_file.read(), path, "exec"))
-        except Exception:
-            log.warning(f"Failed to load virtual product file {path}", exc_info=True)
-
-
 def user_vp_dir():
     """Get the user virtual products directory, any virtual product placed in this directory will be automatically registered
 
@@ -63,11 +48,7 @@ def user_vp_dir():
 
 
 def load_extra_vp():
-    if os.path.exists(user_vp_dir()):
-        list(map(_load_vp, _list_dir_abs(user_vp_dir())))
-    for path in cfg.user_vp_extra_dirs.get():
-        if os.path.exists(path):
-            list(map(_load_vp, _list_dir_abs(path)))
+    load_plugin_files("virtual product", [user_vp_dir(), *cfg.user_vp_extra_dirs.get()])
 
 
 def _path_to_uid(path: str) -> str:

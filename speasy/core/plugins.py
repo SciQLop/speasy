@@ -1,7 +1,9 @@
-"""PEP 621 entry-point plugin loading, shared by every plugin group Speasy defines
-(codecs today, virtual products when they land)."""
+"""Plugin loading shared by every plugin kind Speasy defines (providers, codecs, virtual products):
+PEP 621 entry points, and .py files dropped in user directories."""
 
 import logging
+import os
+import runpy
 from importlib.metadata import entry_points
 
 from speasy.config import core as core_cfg
@@ -27,3 +29,22 @@ def load_plugins(group: str) -> None:
             ep.load()()
         except Exception:
             log.warning(f"Failed to load {group} plugin {ep.name} ({ep.value})", exc_info=True)
+
+
+def _list_dir_abs(path: str):
+    return [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.py')]
+
+
+def load_plugin_files(kind: str, directories) -> None:
+    """Run every .py file of each existing directory, each in its own module namespace.
+
+    runpy gives the file one namespace for its globals, so its functions see its own imports
+    and helpers. A file that fails is reported and skipped, like a failing entry point.
+    """
+    for directory in directories:
+        if os.path.exists(directory):
+            for path in _list_dir_abs(directory):
+                try:
+                    runpy.run_path(path)
+                except Exception:
+                    log.warning(f"Failed to load {kind} file {path}", exc_info=True)
