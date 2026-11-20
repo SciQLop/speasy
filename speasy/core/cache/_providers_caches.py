@@ -234,13 +234,17 @@ class _Cacheable:
         Optional[SpeasyVariable]
             The variable that was added to the cache, or None if the variable was None.
         """
-        if variable is not None:
+        if variable is None:
+            # Nothing is cached for "no data": release our locks or other callers wait deduplication_timeout.
             for fragment in fragments:
-                fragment_end = fragment + fragment_duration
-                self.set_cache_entry(fragment, product,
-                                     CacheItem(to_dictionary(variable[fragment:fragment_end]), version,
-                                               lifetime=_fragment_lifetime(fragment_end, coverage_end, lifetime)),
-                                     **kwargs)
+                self.drop_cache_entry(fragment, product, **kwargs)
+            return None
+        for fragment in fragments:
+            fragment_end = fragment + fragment_duration
+            self.set_cache_entry(fragment, product,
+                                 CacheItem(to_dictionary(variable[fragment:fragment_end]), version,
+                                           lifetime=_fragment_lifetime(fragment_end, coverage_end, lifetime)),
+                                 **kwargs)
         return variable
 
     def set_cache_entry(self, fragment, product: str, entry, **kwargs):
