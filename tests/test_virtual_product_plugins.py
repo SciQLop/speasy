@@ -75,6 +75,24 @@ def beta(start_time, stop_time):
     return None
 '''
 
+_HELPER_VP_UID = "user_dir_test/uses_helper"
+
+_HELPER_VP_FILE = f'''
+import math
+
+from speasy.virtual_products import register_virtual_product
+
+
+def helper():
+    return math.sqrt(4.0)
+
+
+@register_virtual_product("virtual/{_HELPER_VP_UID}")
+def uses_helper(start_time, stop_time):
+    helper()
+    return None
+'''
+
 
 def _run_with_user_dir(vp_source, script):
     with tempfile.TemporaryDirectory() as vp_dir:
@@ -96,13 +114,22 @@ class VirtualProductUserDirs(unittest.TestCase):
                     registry.load_extra_vp()
         self.assertIn(_USER_VP_UID, registry._flat_inventory.parameters)
 
+    def test_a_vp_file_function_sees_the_file_imports_and_helpers(self):
+        with tempfile.TemporaryDirectory() as vp_dir:
+            Path(vp_dir, "uses_helper.py").write_text(_HELPER_VP_FILE)
+            with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
+                with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
+                    registry.load_extra_vp()
+        node = registry._flat_inventory.parameters[_HELPER_VP_UID]
+        self.assertIsNone(node("2020-01-01", "2020-01-02"))
+
     def test_a_broken_vp_file_is_skipped_and_the_valid_one_still_loads(self):
         with tempfile.TemporaryDirectory() as vp_dir:
             Path(vp_dir, "a_broken.py").write_text("raise RuntimeError('this vp file is broken')\n")
             Path(vp_dir, "beta.py").write_text(_USER_VP_FILE)
             with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
                 with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
-                    with self.assertLogs("speasy.virtual_products.registry", level="WARNING") as captured:
+                    with self.assertLogs("speasy.core.plugins", level="WARNING") as captured:
                         registry.load_extra_vp()
         self.assertTrue(any("a_broken.py" in line for line in captured.output))
         self.assertIn(_USER_VP_UID, registry._flat_inventory.parameters)
@@ -113,7 +140,7 @@ class VirtualProductUserDirs(unittest.TestCase):
             broken.write_text("raise RuntimeError('this vp file is broken')\n")
             with mock.patch.object(registry, "user_vp_dir", return_value="/nonexistent"):
                 with mock.patch.object(registry.cfg.user_vp_extra_dirs, "get", return_value={vp_dir}):
-                    with self.assertLogs("speasy.virtual_products.registry", level="WARNING") as captured:
+                    with self.assertLogs("speasy.core.plugins", level="WARNING") as captured:
                         registry.load_extra_vp()
         _, _, tb = captured.records[0].exc_info
         self.assertEqual(traceback.extract_tb(tb)[-1].filename, str(broken))
