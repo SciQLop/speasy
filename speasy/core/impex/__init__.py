@@ -896,10 +896,12 @@ class ImpexProvider(DataProvider):
                         name = parameter_id
                     var = ImpexProvider._concatenate_variables(var, name)
                     if var is None:
-                        log.debug('Failed to concatenate variables')
-            else:
-                log.debug(f'Failed to load file f{url}')
+                        log.warning(f"{self.provider_name}: the result file {url} for {parameter_id} could not be "
+                                    f"read as {product_variables}. This is a server-side problem: if it persists, "
+                                    f"report it to the {self.provider_name} team.")
             return var
+        log.warning(f"{self.provider_name}: no result file for {parameter_id} between {start_time} and {stop_time}, "
+                    f"the server failed to compute it")
         return None
 
     def _load_result_file(self, url: str, parameter_id: str, product_variables: List):
