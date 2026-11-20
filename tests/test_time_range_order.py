@@ -20,8 +20,9 @@ class _Provider:
 
 class StartAfterStop(unittest.TestCase):
     def test_provider_call_says_to_swap_the_dates(self):
+        provider = _Provider()
         with self.assertRaisesRegex(ValueError, r"start .*2020-01-02.* is after stop .*2020-01-01.*swap"):
-            _Provider().get_data("p", "2020-01-02", "2020-01-01")
+            provider.get_data("p", "2020-01-02", "2020-01-01")
 
     def test_get_data_says_to_swap_the_dates(self):
         register_virtual_product("virtual/test/time_order", lambda start, stop: None)

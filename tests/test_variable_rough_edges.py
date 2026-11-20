@@ -254,10 +254,11 @@ class TimeShiftByADatetimeTimedelta(unittest.TestCase):
 class SignalFunctionsLimits(unittest.TestCase):
     def test_resample_refuses_more_than_2d_values_clearly(self):
         from speasy.signal.resampling import resample, interpolate
+        var, ref = make_3d_var(), make_var(4)
         with self.assertRaisesRegex(ValueError, r"dist.*\(4, 3, 2\).*time x columns"):
-            resample(make_3d_var(), 0.5)
+            resample(var, 0.5)
         with self.assertRaisesRegex(ValueError, r"dist.*\(4, 3, 2\).*time x columns"):
-            interpolate(make_var(4), make_3d_var())
+            interpolate(ref, var)
 
     def test_empty_variables_give_empty_results(self):
         from speasy.signal.resampling import resample, interpolate
@@ -277,9 +278,10 @@ class PlotOfMoreThan2DValues(unittest.TestCase):
     def test_without_display_type_it_says_how_to_reduce_it(self):
         # it used to fall back to a line plot and fail with matplotlib's own "x and y can be no greater than 2D"
         import matplotlib.pyplot as plt
+        var = make_3d_var()
         try:
             with self.assertRaisesRegex(ValueError, r"colormap needs 2 dimensions.*Reduce a dimension first"):
-                make_3d_var().plot()
+                var.plot()
         finally:
             plt.close("all")
 
