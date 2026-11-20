@@ -1,10 +1,7 @@
 from .codec_interface import CodecInterface
+from ..plugins import load_plugin_files
 from speasy.config import core as cfg
-import logging
-import os
 import appdirs
-
-log = logging.getLogger(__name__)
 
 __USER_CODECS_DIR__ = f'{appdirs.user_data_dir("speasy", "LPP")}/codecs'
 
@@ -59,24 +56,8 @@ def register_codec(cls):
     return cls
 
 
-def _list_dir_abs(path: str):
-    return [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.py')]
-
-def _load_codec(path: str):
-    if path.endswith('.py'):
-        try:
-            with open(path) as codec_file:
-                exec(codec_file.read())
-        except Exception:
-            log.warning(f"Failed to load codec file {path}", exc_info=True)
-
-
 def load_extra_codecs():
-    if os.path.exists(user_codecs_dir()):
-        list(map(_load_codec, _list_dir_abs(user_codecs_dir())))
-    for path in cfg.user_codecs_extra_dirs.get():
-        if os.path.exists(path):
-            list(map(_load_codec, _list_dir_abs(path)))
+    load_plugin_files("codec", [user_codecs_dir(), *cfg.user_codecs_extra_dirs.get()])
 
 
 def has_codec(codec: str) -> bool:
