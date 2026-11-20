@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import logging
+import warnings
 import importlib.metadata
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -283,7 +284,7 @@ def _migrate_legacy_diskcache(full_path: str, move: bool = False) -> bool:
     return True
 
 
-def _open_or_recover(ctor, full_path: str, label: str):
+def _open_or_delete_and_retry(ctor, full_path: str, label: str):
     """Call ``ctor()`` to open the cache/index database at ``full_path``. If it
     raises -- the database is corrupted, which can happen after a move-mode
     migration interrupted mid-way (see ``migrate_by_moving``) or from
@@ -309,6 +310,21 @@ def _open_or_recover(ctor, full_path: str, label: str):
         )
         shutil.rmtree(str(p))
         return ctor()
+
+
+def _open_or_recover(ctor, full_path: str, label: str):
+    """Open the cache/index database at ``full_path``, see ``_open_or_delete_and_retry``.
+
+    When the folder can't be used at all (no permission, a file in the way, ...), Speasy runs without it:
+    failing here would also break ``speasy config``, the command that fixes the path.
+    """
+    try:
+        return _open_or_delete_and_retry(ctor, full_path, label)
+    except OSError as e:
+        warnings.warn(f"Speasy can't use the {label} folder {full_path} ({e}), so the {label} is disabled. "
+                      f"Set a writable folder with `speasy config set {label}.path <folder>`, "
+                      f"or with the SPEASY_{label.upper()}_PATH environment variable.", UserWarning)
+        return _noop_cache.Cache()
 
 
 def _warn_if_backup_present(full_path: str) -> None:

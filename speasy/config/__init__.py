@@ -7,6 +7,7 @@ Configuration module for SPEASY, it reads or sets config entries first from ENV 
 
 import configparser
 import os
+import warnings
 from typing import Any, Dict, Iterable
 import ast
 import difflib
@@ -30,6 +31,13 @@ def _parse_dir_set(value: str) -> set:
     string 'set()' -- installs that ran before user_codecs_extra_dirs/extra_inventory_lookup_dirs
     got an empty-string default may already have str(set()) persisted to their config.ini/env."""
     return {p for p in value.split(',') if p and p != 'set()'}
+
+
+def _parse_bool(value: str) -> bool:
+    try:
+        return {'true': True, 'false': False}[value.strip().lower()]
+    except KeyError:
+        raise ValueError(f"expected true or false, got {value!r}") from None
 
 
 def _load_dict_from_repr(value: str):
@@ -102,12 +110,26 @@ class ConfigEntry:
             configuration value
         """
         if self.env_var_name in os.environ:
-            return self.type_ctor(os.environ[self.env_var_name])
+            return self._parse_or_default(os.environ[self.env_var_name], f"environment variable {self.env_var_name}")
         if self.key1 in _config and self.key2 in _config[self.key1]:
-            return self.type_ctor(_config[self.key1][self.key2])
+            return self._parse_or_default(_config[self.key1][self.key2], SPEASY_CONFIG_FILE)
         return self.type_ctor(self.default)
 
+    def _parse_or_default(self, value: str, origin: str):
+        # A bad value must not stop speasy from importing: `speasy config` itself needs the import to fix it.
+        try:
+            return self.type_ctor(value)
+        except ValueError as e:
+            warnings.warn(f"Ignoring invalid {self.key1}/{self.key2} value {value!r} from {origin} ({e}), "
+                          f"using the default {self.default!r}. Fix it with "
+                          f"`speasy config set {self.key1.lower()}.{self.key2} <value>`.", UserWarning)
+            return self.type_ctor(self.default)
+
     def set(self, value: str):
+        try:
+            self.type_ctor(str(value))
+        except ValueError as e:
+            raise ValueError(f"Invalid value {value!r} for config entry {self.key1}/{self.key2}: {e}") from None
         if self.env_var_name in os.environ:
             os.environ[self.env_var_name] = str(value)
         if self.key1 not in _config:
@@ -258,7 +280,7 @@ proxy = ConfigSection("PROXY",
                       enabled={"default": True,
                                "description": """Enables or disables speasy proxy usage.
 Speasy proxy is an intermediary server which helps by caching requests among several users.""",
-                               "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
+                               "type_ctor": _parse_bool},
                       url={"default": "https://sciqlop.lpp.polytechnique.fr/cache",
                            "description": """Speasy proxy server URL, you can use https://sciqlop.lpp.polytechnique.fr/cache.
 Speasy proxy is an intermediary server which helps by caching requests among several users."""}
@@ -276,7 +298,7 @@ as a rollback backup. Uses much less peak disk space during migration, at the co
 fall back to the legacy cache if the new one turns out to have an issue. On by default, since this is
 just a cache (data is always re-fetchable) and most users would rather not silently double their disk
 usage during migration; set to false to keep the old copy-with-rollback-backup behaviour.""",
-                                        "type_ctor": lambda x: {'true': True, 'false': False}.get(x.lower(), False)},
+                                        "type_ctor": _parse_bool},
                       )
 
 index = ConfigSection("INDEX",

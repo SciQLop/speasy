@@ -418,6 +418,16 @@ class CacheRequestsDeduplicationMultiProcess(unittest.TestCase):
         self.assertLessEqual(provider.count(product), 1)
 
 
+class CacheFolderThatCannotBeUsed(unittest.TestCase):
+    """A bad cache.path must not stop speasy from importing: the CLI that fixes it imports speasy too."""
+
+    def test_caching_is_disabled_with_a_warning_saying_how_to_fix_it(self):
+        with self.assertWarnsRegex(UserWarning, r"/dev/null/speasy.*cache\.path.*SPEASY_CACHE_PATH"):
+            unusable = Cache("/dev/null/speasy")
+        unusable["key"] = "value"
+        self.assertIsNone(unusable.get("key"))
+
+
 class CacheReleasesLocksWhenThereIsNoData(unittest.TestCase):
     """A fetch that finds no data must not leave its fragments locked: other callers would wait for nothing."""
 
