@@ -6,7 +6,8 @@ import numpy as np
 
 def _apply_filter(filter_function: Callable, sos: np.ndarray, var: SpeasyVariable) -> SpeasyVariable:
     res = np.empty_like(var)
-    res.values[:] = filter_function(sos=sos, x=var.values, axis=0)
+    if len(var):  # scipy can't filter zero samples
+        res.values[:] = filter_function(sos=sos, x=var.values, axis=0)
     return res
 
 
