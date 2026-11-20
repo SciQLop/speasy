@@ -55,12 +55,13 @@ def filter_dataset_meta(dataset: ISTPLoader) -> dict:
                  'Acknowledgement']
     return {key: _attribute_value(dataset.attribute(key)) for key in dataset.attributes() if key in keep_list}
 
+def _is_virtual(datavar: DataVariable) -> bool:
+    """ISTP virtual variables are computed by the server (CDAWeb) and never stored in data files."""
+    return any(v.attributes.get('VIRTUAL', 'false').lower() == 'true' for v in (datavar, *datavar.axes))
+
+
 def _apply_cda_trick(datavar: DataVariable, meta: dict) -> dict:
-    VIRTUAL = (datavar.attributes.get('VIRTUAL', 'false').lower() == 'true')
-    if not VIRTUAL:
-        for depend in datavar.axes:
-            VIRTUAL |= (depend.attributes.get('VIRTUAL', 'false').lower() == 'true')
-    if VIRTUAL:
+    if _is_virtual(datavar):
         meta['VIRTUAL'] = "TRUE"
     return meta
 
@@ -114,7 +115,9 @@ def extract_from_master(url: str, provider: str, params_uid_format: str = "{var_
         with any_loc_open(url, cache_remote_files=True) as remote_file:
             params_meta = params_meta or {}
             istp = pyistp.load(buffer=remote_file.read())
-            parameters = _extract_parameters_impl(istp, provider=provider, uid_fmt=params_uid_format, meta=params_meta)
+            parameters = [p for p in _extract_parameters_impl(istp, provider=provider, uid_fmt=params_uid_format,
+                                                              meta=params_meta)
+                          if not _is_virtual(istp.data_variable(p.spz_name()))]
             dataset_meta = filter_dataset_meta(istp)
             return parameters, dataset_meta
     except RuntimeError as e:
