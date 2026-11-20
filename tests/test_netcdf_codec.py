@@ -42,7 +42,12 @@ def nc_path(tmp_path):
     density.VAR_TYPE = "data"
     density.DEPEND_0 = "Epoch"
     density.UNITS = "cm**-3"
-    density[:] = np.linspace(1.0, 10.0, 10).astype("f4")
+    density.FILLVAL = np.float32(-1e31)
+    density.VALIDMIN = np.float32(0.0)
+    density.VALIDMAX = np.float32(100.0)
+    values = np.linspace(1.0, 10.0, 10).astype("f4")
+    values[3] = -1e31
+    density[:] = values
 
     ds.close()
     return str(path)
@@ -72,6 +77,16 @@ class TestNetCDFCodecRead:
     def test_loaded_variable_has_time_axis(self, codec, nc_path):
         var = codec.load_variable("DENSITY", file=nc_path)
         assert var.time.dtype == np.dtype("datetime64[ns]")
+
+    def test_numeric_attributes_stay_numbers(self, codec, nc_path):
+        var = codec.load_variable("DENSITY", file=nc_path)
+        assert var.meta["FILLVAL"] == np.float32(-1e31)
+        assert (var.meta["VALIDMIN"], var.meta["VALIDMAX"]) == (0.0, 100.0)
+
+    def test_fill_values_can_be_replaced_by_nan(self, codec, nc_path):
+        var = codec.load_variable("DENSITY", file=nc_path)
+        assert np.isnan(var.replace_fillval_by_nan().values[3, 0])
+        assert np.isnan(var.clamp_with_nan().values[3, 0])
 
 
 @pytest.mark.skipif(not os.path.exists(AC_MFI), reason="real CDAWeb file not present")
