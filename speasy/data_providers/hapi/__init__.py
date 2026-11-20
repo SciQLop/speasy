@@ -189,8 +189,22 @@ class HapiWebservice(DataProvider):
             if uid not in getattr(self.flat_inventory, kind):
                 self._resolve(uid)
             found = getattr(self.flat_inventory, kind).get(uid)
-            if found is not None or self._root() is root:
+            if found is not None:
                 return found
+            if self._root() is root:
+                return self._from_tree_path(uid, kind)
+
+    def _from_tree_path(self, path: str, kind: str) -> Optional[SpeasyIndex]:
+        """The tree shows ids made Python-friendly ('best-avail' -> best_avail, 'Field/X' -> FieldX): accept
+        the path a user copied from it too, loading the lazy server and dataset nodes on the way."""
+        node = self._root()
+        for name in path.split('/'):
+            if hasattr(node, '_load'):
+                node._load()
+            node = node.__dict__.get(name)
+            if node is None:
+                return None
+        return node if isinstance(node, ParameterIndex if kind == 'parameters' else DatasetIndex) else None
 
     def _dataset_of(self, parameter: ParameterIndex) -> DatasetIndex:
         uid = parameter.__dict__['dataset']
