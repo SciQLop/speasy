@@ -695,24 +695,20 @@ is loaded automatically the next time Speasy starts.
 
 .. warning::
     Codec files are **executed directly**, not imported as a regular module — keep this in mind before
-    placing a file you didn't write yourself in a codecs directory. Three consequences worth knowing
+    placing a file you didn't write yourself in a codecs directory. Two consequences worth knowing
     before you write one:
 
     1. **A codec file that raises is logged as a warning and skipped**, not an error that breaks ``import speasy``.
        When a codec file throws an exception (syntax error, name collision, etc.), Speasy logs a warning with the
        file path and traceback, then continues loading other codecs. This means the error is contained — broken code
        can never break ``import speasy``. Packaged entry-point codecs gain the same robustness (see
-       :ref:`shipping_a_codec_as_a_package` below) plus avoid gotchas 2 and 3 below, which are specific to the
-       ``exec()`` semantics of directory-based codec files.
+       :ref:`shipping_a_codec_as_a_package` below) plus avoid gotcha 2 below, which is specific to
+       directory-based codec files.
     2. **Import codec/registry helpers from their submodules**, not the ``speasy.core.codecs`` package
        itself: ``from speasy.core.codecs.codec_interface import CodecInterface`` and
        ``from speasy.core.codecs.codecs_registry import register_codec``. Codec files load while that
        package is still mid-import, so importing from the package directly raises a circular
        ``ImportError``.
-    3. **Put every import a method needs inside that method**, not at the top of the codec file — a
-       top-level ``import numpy as np`` will raise ``NameError: name 'np' is not defined`` the first
-       time a method tries to use it, because of how the file is executed. This doesn't affect the
-       ``class ...:`` and ``@register_codec`` lines themselves, only names used inside ``def`` bodies.
 
 Minimal working example — a codec for a simple ``timestamp,var1,var2,...`` CSV file, supporting both
 inline ``variables:`` and ``master_file:`` discovery:
@@ -721,15 +717,19 @@ inline ``variables:`` and ``master_file:`` discovery:
 
     # ~/.local/share/speasy/codecs/my_csv_codec.py (or a dir listed in user_codecs_extra_dirs)
 
+    import csv
+
+    import numpy as np
+
     from speasy.core.codecs.codec_interface import CodecInterface
     from speasy.core.codecs.codecs_registry import register_codec
+    from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
 
 
     @register_codec
     class MyCsvCodec(CodecInterface):
 
         def _read(self, file):
-            import csv
             with open(file, newline='') as f:
                 rows = list(csv.reader(f))
             header, data = rows[0], rows[1:]
@@ -740,9 +740,6 @@ inline ``variables:`` and ``master_file:`` discovery:
             return header[1:]  # everything but the timestamp column
 
         def load_variables(self, variables, file, cache_remote_files=True, **kwargs):
-            import numpy as np
-            from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
-
             header, data = self._read(file)
             columns = {name: i for i, name in enumerate(header)}
             time = np.array([row[0] for row in data], dtype='datetime64[ns]')
