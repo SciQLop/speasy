@@ -345,6 +345,8 @@ class SpeasyVariable(SpeasyProduct):
                 slice(_to_index(key.start, self.time),
                       _to_index(key.stop, self.time))
             )
+        if type(key) is tuple and len(key) == 2 and not isinstance(key[0], (str, np.ndarray)):
+            return self[key[0]][self.__column_names(key[1])]
         if type(key) in (list, tuple):
             if type(key[0]) is np.ndarray:
                 return self.view(key[0])
@@ -358,7 +360,17 @@ class SpeasyVariable(SpeasyProduct):
             return self.view(self.__row_slice(key))
         raise ValueError(
             f"No idea how to slice SpeasyVariable with given value: {key!r}. Use an int or a slice for rows "
-            f"(by position or by time), a column name or a list of them, a boolean mask or an array of row indexes.")
+            f"(by position or by time), a column name or a list of them, a boolean mask or an array of row indexes, "
+            f"or rows then columns as in var[rows, columns].")
+
+    def __column_names(self, selection) -> List[str]:
+        if isinstance(selection, str):
+            return [selection]
+        if isinstance(selection, (int, np.integer)):
+            return [self.columns[selection]]
+        if isinstance(selection, slice):
+            return self.columns[selection]
+        return [c if isinstance(c, str) else self.columns[c] for c in selection]
 
     def __row_slice(self, index: int) -> slice:
         if not -len(self) <= index < len(self):
@@ -417,6 +429,24 @@ class SpeasyVariable(SpeasyProduct):
 
     def __truediv__(self, other):
         return np.divide(self, other)
+
+    def __floordiv__(self, other):
+        return np.floor_divide(self, other)
+
+    def __rfloordiv__(self, other):
+        return np.floor_divide(other, self)
+
+    def __mod__(self, other):
+        return np.mod(self, other)
+
+    def __rmod__(self, other):
+        return np.mod(other, self)
+
+    def __divmod__(self, other):
+        return self // other, self % other
+
+    def __rdivmod__(self, other):
+        return other // self, other % self
 
     def __rtruediv__(self, other):
         return np.divide(other, self)

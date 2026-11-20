@@ -96,8 +96,8 @@ class IndexingByPositionAndName(unittest.TestCase):
             self.v[["bx", "nope"]]
 
     def test_unsupported_key_says_what_is_supported(self):
-        with self.assertRaisesRegex(ValueError, "slice.*column name.*boolean mask"):
-            self.v[:, 0]
+        with self.assertRaisesRegex(ValueError, r"slice.*column name.*boolean mask.*var\[rows, columns\]"):
+            self.v[1.5]
 
 
 class UfuncOutParameter(unittest.TestCase):
@@ -282,3 +282,57 @@ class PlotOfMoreThan2DValues(unittest.TestCase):
                 make_3d_var().plot()
         finally:
             plt.close("all")
+
+
+@ddt
+class RowsThenColumns(unittest.TestCase):
+    def setUp(self):
+        self.v = make_var(10)
+
+    def test_all_rows_one_column(self):
+        self.assertEqual(self.v[:, 0].columns, ["bx"])
+        np.testing.assert_array_equal(self.v[:, 0].values, self.v.values[:, [0]])
+
+    @data((slice(2, 5), slice(1, None), ["by", "bz"]), (0, "bz", ["bz"]), (slice(None), [0, 2], ["bx", "bz"]),
+          (slice(None), ["bx", "bz"], ["bx", "bz"]))
+    def test_rows_and_columns(self, key):
+        rows, columns, names = key
+        selected = self.v[rows, columns]
+        self.assertEqual(selected.columns, names)
+        np.testing.assert_array_equal(selected.values, self.v[rows][names].values)
+
+    def test_rows_by_time(self):
+        t0, t1 = self.v.time[2], self.v.time[5]
+        self.assertEqual(self.v[t0:t1, "by"].values.shape, (3, 1))
+
+    def test_a_tuple_of_names_still_selects_columns(self):
+        self.assertEqual(self.v[("bx", "by")].columns, ["bx", "by"])
+
+
+class ModuloAndFloorDivision(unittest.TestCase):
+    def test_operators_match_numpy(self):
+        v = make_var(4)
+        np.testing.assert_array_equal((v % 4).values, np.mod(v.values, 4))
+        np.testing.assert_array_equal((v // 4).values, np.floor_divide(v.values, 4))
+        np.testing.assert_array_equal((50 % v[1:]).values, np.mod(50, v[1:].values))
+        np.testing.assert_array_equal((50 // v[1:]).values, np.floor_divide(50, v[1:].values))
+        quotient, remainder = divmod(v, 4)
+        np.testing.assert_array_equal(quotient.values, np.floor_divide(v.values, 4))
+        np.testing.assert_array_equal(remainder.values, np.mod(v.values, 4))
+
+
+class PointInEvent(unittest.TestCase):
+    def test_a_time_inside_an_event(self):
+        event = Event("2018-01-01", "2018-01-03")
+        self.assertIn("2018-01-02", event)
+        self.assertIn(np.datetime64("2018-01-03"), event)
+        self.assertNotIn("2018-01-04", event)
+        self.assertIn(Event("2018-01-01T12", "2018-01-02"), event)  # spans still work
+
+
+class InterpolateKeepsMissingProducts(unittest.TestCase):
+    def test_none_stays_none(self):
+        from speasy.signal.resampling import interpolate
+        result = interpolate(make_var(5), [make_var(5), None])
+        self.assertEqual(len(result[0]), 5)
+        self.assertIsNone(result[1])

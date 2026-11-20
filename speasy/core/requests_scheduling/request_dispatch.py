@@ -4,6 +4,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple, Union, overload
 import traceback
+import warnings
 
 import numpy as np
 import logging
@@ -284,7 +285,15 @@ def _get_one(index, *time_range, **kwargs):
 
 def _get_timeserie(index, start, stop, **kwargs):
     check_time_order(start, stop)
-    return _get_one(index, start, stop, **kwargs)
+    return _warn_if_unsorted(_get_one(index, start, stop, **kwargs), index)
+
+
+def _warn_if_unsorted(result, index):
+    if isinstance(result, SpeasyVariable) and np.any(np.diff(result.time) < np.timedelta64(0, 'ns')):
+        warnings.warn(f"{index if isinstance(index, str) else repr(index)}: the time axis is not sorted, as "
+                      f"served by its source. Sort it with var[np.argsort(var.time)] if you need it ordered.",
+                      UserWarning)
+    return result
 
 
 def _get_timeserie1(index, dtrange, **kwargs):
