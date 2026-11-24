@@ -36,6 +36,16 @@ spz.config.proxy.enabled.set(True)
 class ProxyError(Exception):
     pass
 
+
+def _failure(resp) -> ProxyError:
+    """The proxy answers 200 whenever it could serve, even with no data: any other status is a proxy failure."""
+    try:
+        body = resp.json()
+        reason = body.get("detail") or body.get("error") or body
+    except Exception:  # lgtm [py/catch-base-exception]
+        reason = resp.text.strip()[:300]
+    return ProxyError(f"HTTP {resp.status_code}: {reason}")
+
 def query_proxy_version():
     global _CURRENT_PROXY_SERVER_VERSION
     if _CURRENT_PROXY_SERVER_VERSION is None:
@@ -153,10 +163,9 @@ class GetProduct:
             kwargs['compression'] = 'blosc'
         resp = http.get(f"{url}/get_data", params=kwargs, timeout=60 * 5)
         log.debug(f"Asking data from proxy {resp.url}, {resp.headers}")
-        if resp.status_code == 200:
-            var = var_from_dict(load_response(resp))
-            return var
-        return None
+        if resp.status_code != 200:
+            raise _failure(resp)
+        return var_from_dict(load_response(resp))
 
 
 class GetInventory:
@@ -191,7 +200,7 @@ class GetInventory:
             return inventory
         if resp.status_code == 304:
             return saved_inventory
-        raise ProxyError(f"Can't get inventory for provider {provider} from proxy server {proxy_cfg.url()}, status code {resp.status_code}")
+        raise _failure(resp)
 
 
 class Proxyfiable(object):
@@ -216,7 +225,7 @@ class Proxyfiable(object):
                         log.warning(
                             f"You are using an incompatible proxy server {proxy_cfg.url()} which is {proxy_version} while minimum required version is {min_version}")
                 except Exception as e:  # lgtm [py/catch-base-exception]
-                    log.error(f"Can't get data from proxy server {proxy_cfg.url()}, falling back to the provider: {e}")
+                    log.warning(f"The proxy server {proxy_cfg.url()} failed ({e}), using the source instead")
             return func(*args, **kwargs)
 
         return wrapped

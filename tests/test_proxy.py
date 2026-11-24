@@ -236,3 +236,82 @@ class ProxyFallbackReporting(unittest.TestCase):
         result, logs, _ = self._call_through_proxy(proxy_version="0.0.1")
         self.assertEqual(result, "from provider")
         self.assertIn("minimum required version", logs)
+
+
+def _status_response(status_code: int, text: str):
+    return SimpleNamespace(status_code=status_code, headers={"Content-Type": "application/json"},
+                           bytes=text.encode(), text=text, url="fake")
+
+
+@ddt
+class ProxyFailuresFallBackToTheSource(unittest.TestCase):
+    """The proxy answers 200 for every request it could serve, with a pickled None when there is no data:
+    any other status, or a body that can't be decoded, means the proxy failed and the source must be asked."""
+
+    def _call(self, request, response):
+        from speasy.core.proxy import Proxyfiable
+        source_calls = []
+
+        def source(**kwargs):
+            source_calls.append(kwargs)
+            return "from source"
+
+        wrapped = Proxyfiable(request, lambda **kwargs: kwargs)(source)
+        with patch("speasy.core.proxy.proxy_cfg.enabled", return_value=True), \
+                patch("speasy.core.proxy.is_proxy_up", return_value=True), \
+                patch("speasy.core.proxy.query_proxy_version", return_value=Version("1.0.0")), \
+                patch("speasy.core.proxy.index.get", side_effect=lambda module, key, default=None: default), \
+                patch("speasy.core.proxy.http.get", return_value=response), \
+                self.assertLogs("speasy.core.proxy") as logs:
+            import logging
+            logging.getLogger("speasy.core.proxy").warning("start")  # assertLogs needs one record when all is fine
+            result = wrapped(path="amda/imf", start_time="2020-01-01", stop_time="2020-01-02", provider="amda")
+        return result, source_calls, logs.records[1:]
+
+    @data((502, '{"error": "Failed to get data for amda/imf", "detail": "AMDA timed out"}'),
+          (500, '{"error": "Failed to encode data"}'),
+          (404, '{"error": "Unknown product"}'),
+          (400, '{"error": "Invalid time range"}'),
+          (503, '<html>Service Unavailable</html>'))
+    def test_a_status_other_than_200_falls_back_with_one_warning(self, status):
+        from speasy.core.proxy import GetProduct
+        code, text = status
+        result, source_calls, records = self._call(GetProduct, _status_response(code, text))
+        self.assertEqual(result, "from source")
+        self.assertEqual(len(source_calls), 1)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].levelname, "WARNING")
+        self.assertRegex(records[0].getMessage(), rf"proxy.*{code}.*source")
+
+    def test_the_proxy_detail_is_quoted(self):
+        from speasy.core.proxy import GetProduct
+        _, _, records = self._call(GetProduct, _status_response(502, '{"error": "x", "detail": "AMDA timed out"}'))
+        self.assertIn("AMDA timed out", records[0].getMessage())
+
+    def test_a_body_that_cannot_be_decoded_falls_back(self):
+        from speasy.core.proxy import GetProduct
+        result, source_calls, records = self._call(GetProduct, _response(b"not a pickle", "application/python-pickle"))
+        self.assertEqual(result, "from source")
+        self.assertEqual([r.levelname for r in records], ["WARNING"])
+
+    def test_no_data_from_a_working_proxy_does_not_ask_the_source(self):
+        from speasy.core.proxy import GetProduct
+        result, source_calls, records = self._call(GetProduct, _response(pickle.dumps(None), "application/python-pickle"))
+        self.assertIsNone(result)
+        self.assertEqual(source_calls, [])
+        self.assertEqual(records, [])
+
+    @data(500, 404, 400)
+    def test_an_inventory_status_other_than_200_or_304_falls_back_with_one_warning(self, code):
+        from speasy.core.proxy import GetInventory
+        result, source_calls, records = self._call(GetInventory, _status_response(code, '{"error": "x"}'))
+        self.assertEqual(result, "from source")
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].levelname, "WARNING")
+        self.assertRegex(records[0].getMessage(), rf"proxy.*{code}.*source")
+
+    def test_an_inventory_that_cannot_be_decoded_falls_back(self):
+        from speasy.core.proxy import GetInventory
+        result, _, records = self._call(GetInventory, _response(b"not a pickle", "application/python-pickle"))
+        self.assertEqual(result, "from source")
+        self.assertEqual([r.levelname for r in records], ["WARNING"])
