@@ -452,8 +452,9 @@ class TestThroughTheProxy(unittest.TestCase):
     def test_servers_disabled_in_the_config_are_dropped_from_the_proxy_tree(self):
         with _hapi_provider(proxy=FakeProxy(servers=('v3', 'v2')), disabled=('v2',)):
             self.assertNotIn('v2', tree.hapi.__dict__)
+            start, stop = _utc(2010, 1, 1), _utc(2010, 1, 2)
             with self.assertRaisesRegex(ValueError, "'v2'"):
-                request_dispatch.get_data('hapi/v2/dataset1/scalar', _utc(2010, 1, 1), _utc(2010, 1, 2))
+                request_dispatch.get_data('hapi/v2/dataset1/scalar', start, stop)
 
     def test_get_data_goes_through_the_proxy(self):
         proxy = FakeProxy()
