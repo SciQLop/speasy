@@ -1,12 +1,15 @@
 """Every server of the official HAPI registry, as ``hapi/<server>/<dataset id>/<parameter name>``.
 
-Starting the provider contacts no server: a server's catalog is fetched on first access to its node, and each
-dataset's /info on first access to the dataset, see :mod:`speasy.core.hapi.inventory`.
+With speasy-proxy >= 0.27.0 the tree comes filled from the proxy, and data goes through it. Without it, or for a
+server the proxy doesn't list, starting the provider contacts no server: a server's catalog is fetched on first access
+to its node, and each dataset's /info on first access to the dataset, see :mod:`speasy.core.hapi.inventory`.
 """
 import logging
 from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Dict, Iterator, List, Optional
+
+from packaging.version import Version
 
 from speasy.config import hapi as hapi_cfg
 from speasy.core import AllowedKwargs, EnsureUTCDateTime
@@ -20,7 +23,7 @@ from speasy.core.hapi.inventory import (HapiDatasetIndex, HapiServerIndex, build
 from speasy.core.hapi.registry import blocked_reason, bundled_registry, enabled_servers, server_key
 from speasy.core.inventory import ProviderInventory
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
-from speasy.core.proxy import PROXY_ALLOWED_KWARGS
+from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable
 from speasy.products.variable import SpeasyVariable, merge
 
 log = logging.getLogger(__name__)
@@ -28,6 +31,8 @@ log = logging.getLogger(__name__)
 # Without maxRequestDuration, a week of 1 s cadence data is about 600k records per request.
 _DEFAULT_MAX_REQUEST_DURATION = timedelta(days=7)
 _NOT_HAPI_PARAMETER_META = ('dataset', 'start_date', 'stop_date')
+# The first speasy-proxy serving the HAPI tree, filled from the servers' dumps
+HAPI_MIN_PROXY_VERSION = Version("0.27.0")
 
 
 def _tree() -> SpeasyIndex:
@@ -59,6 +64,11 @@ def _hapi_time(t: datetime) -> str:
     return t.strftime('%Y-%m-%dT%H:%M:%S') + (f".{t.microsecond:06d}" if t.microsecond else '') + 'Z'
 
 
+def _proxy_args(product, start_time: datetime, stop_time: datetime, **_) -> dict:
+    uid = product.spz_uid() if isinstance(product, SpeasyIndex) else product
+    return {'path': f"hapi/{uid}", 'start_time': start_time.isoformat(), 'stop_time': stop_time.isoformat()}
+
+
 def _dataset_candidates(uid: str) -> Iterator[str]:
     """Dataset ids and parameter names may both contain '/': longest dataset id first."""
     parts = uid.split('/')
@@ -75,23 +85,37 @@ class HapiWebservice(DataProvider):
         self._flat_inventory_lock = Lock()
         HapiServerIndex.loader = self._load_server
         HapiDatasetIndex.loader = self._load_dataset
-        # speasy-proxy doesn't serve a 'hapi' inventory (yet), and building ours costs no request.
-        DataProvider.__init__(self, inventory_disable_proxy=True)
+        DataProvider.__init__(self, min_proxy_version=HAPI_MIN_PROXY_VERSION)
 
     def update_inventory(self) -> None:
-        """Starts over from unloaded servers. Swapped under the lock loads publish with, so a load in flight can't
-        mix nodes of the old and new trees, and readers never see a half-cleared flat inventory."""
-        root = self.build_inventory(SpeasyIndex(name=self.provider_name, provider=self.provider_name,
-                                                uid=self.provider_name,
-                                                meta={'build_date': datetime.now(tz=timezone.utc).isoformat()}))
+        """Starts over from the proxy's filled tree, or from unloaded servers without it. Swapped under the lock loads
+        publish with, so a load in flight can't mix nodes of the old and new trees, and readers never see a
+        half-cleared flat inventory."""
+        served = self._inventory(provider_name=self.provider_name, min_proxy_version=self.min_proxy_version)
+        root = self._configured_servers_of(served)
+        loaded = ProviderInventory()
+        loaded.update(root)
         with self._flat_inventory_lock:
             _tree().__dict__[self.provider_name] = root
-            self.flat_inventory.datasets, self.flat_inventory.parameters = {}, {}
+            self.flat_inventory.datasets, self.flat_inventory.parameters = loaded.datasets, loaded.parameters
 
     def build_inventory(self, root: SpeasyIndex) -> SpeasyIndex:
         for key, record in self._servers.items():
-            root.__dict__[key] = HapiServerIndex(name=key, provider=self.provider_name, uid=key,
-                                                 meta={**record, 'hapi_loaded': False})
+            root.__dict__[key] = self._lazy_server(key, record)
+        return root
+
+    def _lazy_server(self, key: str, record: dict) -> HapiServerIndex:
+        return HapiServerIndex(name=key, provider=self.provider_name, uid=key, meta={**record, 'hapi_loaded': False})
+
+    def _configured_servers_of(self, served: SpeasyIndex) -> SpeasyIndex:
+        """The servers of the config, filled when ``served`` (the proxy's tree) has them: it lists the registry's,
+        while the config may disable some and add others."""
+        root = SpeasyIndex(name=self.provider_name, provider=self.provider_name, uid=self.provider_name,
+                           meta={'build_date': served.__dict__.get('build_date',
+                                                                   datetime.now(tz=timezone.utc).isoformat())})
+        for key, record in self._servers.items():
+            node = served.__dict__.get(key)
+            root.__dict__[key] = node if isinstance(node, SpeasyIndex) else self._lazy_server(key, record)
         return root
 
     def _load_server(self, node: HapiServerIndex) -> None:
@@ -146,9 +170,9 @@ class HapiWebservice(DataProvider):
             return self._root().__dict__.get(node.spz_uid()) is node
         return self.flat_inventory.datasets.get(node.spz_uid()) is node
 
-    def _server_node(self, key: str) -> HapiServerIndex:
+    def _server_node(self, key: str) -> SpeasyIndex:
         node = self._root().__dict__.get(key)
-        if isinstance(node, HapiServerIndex):
+        if isinstance(node, SpeasyIndex):
             return node
         if (reason := _blocked_server_reason(key)) is not None:
             raise ValueError(reason)
@@ -165,14 +189,19 @@ class HapiWebservice(DataProvider):
 
     def _client(self, key: str) -> HapiClient:
         if key not in self._clients:
-            self._server_node(key)._load()
+            node = self._server_node(key)
+            if isinstance(node, HapiServerIndex):
+                node._load()
+            else:  # filled by the proxy, only data requests are left to make
+                self._clients[key] = HapiClient(node.__dict__['x_url'])
         return self._clients[key]
 
     def _resolve(self, uid: str) -> None:
         """Loads what ``uid`` needs: its server, then the dataset it belongs to."""
         key = uid.split('/', 1)[0]
         server = self._server_node(key)
-        _load_or_explain(server, key)
+        if isinstance(server, HapiServerIndex):
+            _load_or_explain(server, key)
         for candidate in _dataset_candidates(uid):
             dataset = self.flat_inventory.datasets.get(candidate)
             if dataset is not None:
@@ -272,15 +301,16 @@ class HapiWebservice(DataProvider):
     @ParameterRangeCheck()
     def get_data(self, product: str or ParameterIndex, start_time: datetime, stop_time: datetime,
                  disable_proxy: bool = False, progress: bool = False, **kwargs) -> Optional[SpeasyVariable]:
-        """Get a HAPI parameter. ``disable_proxy`` and ``progress`` are accepted for uniformity with the other
-        providers: HAPI requests never use the proxy, and a single parameter has no progress to show."""
-        return self._get_data(product, start_time=start_time, stop_time=stop_time, **kwargs)
+        """Get a HAPI parameter, through the proxy unless ``disable_proxy``. ``progress`` is accepted for uniformity
+        with the other providers: a single parameter has no progress to show."""
+        return self._get_data(product, start_time=start_time, stop_time=stop_time, disable_proxy=disable_proxy,
+                              **kwargs)
 
     @UnversionedProviderCache(prefix="hapi", fragment_hours=lambda product: 12, cache_retention=timedelta(days=7))
+    @Proxyfiable(GetProduct, _proxy_args, min_version=HAPI_MIN_PROXY_VERSION)
     def _get_data(self, product: str, start_time: datetime, stop_time: datetime,
-                  if_newer_than: Optional[datetime] = None, extra_http_headers: Optional[Dict] = None,
-                  disable_proxy: bool = False) -> Optional[SpeasyVariable]:
-        """``disable_proxy`` comes from the cache on a forced refresh; HAPI requests never use the proxy."""
+                  if_newer_than: Optional[datetime] = None,
+                  extra_http_headers: Optional[Dict] = None) -> Optional[SpeasyVariable]:
         parameter = self._to_parameter_index(product)
         dataset = self._dataset_of(parameter)
         time_range = _clamped(DateTimeRange(start_time, stop_time), self._dataset_range(dataset))

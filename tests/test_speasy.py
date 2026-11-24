@@ -4,6 +4,7 @@
 """Tests for `speasy` package."""
 import os
 import unittest
+from unittest import mock
 from datetime import datetime, timezone
 
 from ddt import data, ddt, unpack
@@ -25,22 +26,21 @@ def _started_providers():
 
 
 def _has_products(provider):
-    """hapi only lists its servers up front, their products load on first access."""
-    if provider == 'hapi':
-        from speasy.core.hapi.inventory import HapiServerIndex
-        return any(isinstance(node, HapiServerIndex) for node in spz.inventories.tree.__dict__[provider].__dict__.values())
-    return len(spz.inventories.flat_inventories.__dict__[provider].parameters) >= 1
+    """Without the proxy, hapi only lists its servers up front, their products load on first access."""
+    if len(spz.inventories.flat_inventories.__dict__[provider].parameters) >= 1:
+        return True
+    from speasy.core.hapi.inventory import HapiServerIndex
+    return any(isinstance(node, HapiServerIndex) for node in spz.inventories.tree.__dict__[provider].__dict__.values())
 
 
 @ddt
 class SpeasyGetData(unittest.TestCase):
     def setUp(self):
-        os.environ[spz.config.proxy.enabled.env_var_name] = "True"
-        os.environ[spz.config.proxy.url.env_var_name] = "http://sciqlop.lpp.polytechnique.fr/cache"
-
-    def tearDown(self):
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
-        os.environ.pop(spz.config.proxy.url.env_var_name)
+        environment = mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "True",
+                                                   spz.config.proxy.url.env_var_name:
+                                                       "http://sciqlop.lpp.polytechnique.fr/cache"})
+        environment.start()
+        self.addCleanup(environment.stop)
 
     @data(
         {
@@ -223,19 +223,17 @@ class SpeasyModule(unittest.TestCase):
             spz.inventories.flat_inventories.__dict__[
                 provider].parameters.clear()
 
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            for provider in providers:
+                getattr(spz, provider).flat_inventory.clear()
+                spz.inventories.tree.__dict__[provider].clear()
 
-        for provider in providers:
-            getattr(spz, provider).flat_inventory.clear()
-            spz.inventories.tree.__dict__[provider].clear()
+            for provider in providers:
+                self.assertEqual(
+                    len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
 
-        for provider in providers:
-            self.assertEqual(
-                len(spz.inventories.flat_inventories.__dict__[provider].parameters), 0)
+            spz.update_inventories()
 
-        spz.update_inventories()
-
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
         for provider in providers:
             self.assertTrue(_has_products(provider), provider)
 
@@ -249,10 +247,8 @@ class SpeasyModule(unittest.TestCase):
 
     def test_warns_if_proxy_is_disabled(self):
         import importlib
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        with self.assertWarns(UserWarning):
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}), self.assertWarns(UserWarning):
             importlib.reload(spz.core.proxy)
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
         importlib.reload(spz.core.proxy)
 
 
