@@ -11,6 +11,7 @@ from typing import Dict, Iterator, List, Optional
 
 from packaging.version import Version
 
+from speasy.core.exceptions import UnknownDataset, UnknownParameter, UnknownProduct
 from speasy.config import hapi as hapi_cfg
 from speasy.core import AllowedKwargs, EnsureUTCDateTime
 from speasy.core.cache import CACHE_ALLOWED_KWARGS, UnversionedProviderCache
@@ -175,12 +176,12 @@ class HapiWebservice(DataProvider):
         if isinstance(node, SpeasyIndex):
             return node
         if (reason := _blocked_server_reason(key)) is not None:
-            raise ValueError(reason)
+            raise UnknownProduct(reason)
         if server_key(key) in {server_key(k) for k in hapi_cfg.disabled_servers()}:
-            raise ValueError(f"HAPI server {key!r} is disabled, remove it from the [HAPI] disabled_servers config "
+            raise UnknownProduct(f"HAPI server {key!r} is disabled, remove it from the [HAPI] disabled_servers config "
                              f"entry (or SPEASY_HAPI_DISABLED_SERVERS) to use it")
         known = ', '.join(sorted(self._servers))
-        raise ValueError(f"Unknown HAPI server {key!r}, known servers are: {known}. A server missing from the HAPI "
+        raise UnknownProduct(f"Unknown HAPI server {key!r}, known servers are: {known}. A server missing from the HAPI "
                          f"registry can be added with the [HAPI] extra_servers config entry, "
                          f"e.g. {{\"{key}\": \"https://example.org/hapi\"}}")
 
@@ -240,7 +241,7 @@ class HapiWebservice(DataProvider):
         uid = parameter.__dict__['dataset']
         dataset = self._find(uid, 'datasets')
         if dataset is None:
-            raise ValueError(f"HAPI dataset {uid!r} is no longer listed by its server, "
+            raise UnknownDataset(f"HAPI dataset {uid!r} is no longer listed by its server, "
                              f"browse spz.inventories.tree.hapi.{uid.split('/', 1)[0]} to see what it offers now")
         return dataset
 
@@ -253,7 +254,7 @@ class HapiWebservice(DataProvider):
         if self._find(index_or_str, 'datasets') is not None:
             raise ValueError(f"{index_or_str!r} is a HAPI dataset, get its parameters one by one: "
                              f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} lists them")
-        raise ValueError(f"Unknown HAPI product {index_or_str!r}, browse "
+        raise UnknownParameter(f"Unknown HAPI product {index_or_str!r}, browse "
                          f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets and "
                          f"parameters it offers")
 
@@ -262,7 +263,7 @@ class HapiWebservice(DataProvider):
             return super()._to_dataset_index(index_or_str)
         dataset = self._find(index_or_str, 'datasets')
         if dataset is None:
-            raise ValueError(f"Unknown HAPI dataset {index_or_str!r}, browse "
+            raise UnknownDataset(f"Unknown HAPI dataset {index_or_str!r}, browse "
                              f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets it offers")
         return dataset
 

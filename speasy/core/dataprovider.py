@@ -4,6 +4,7 @@ from functools import wraps
 from threading import Lock
 from typing import Callable, Dict, List, Optional, Tuple
 
+from speasy.core.exceptions import UnknownDataset, UnknownParameter, UnknownProvider
 from speasy.core.datetime_range import DateTimeRange
 from speasy.core.time import check_time_order
 from speasy.core.inventory import ProviderInventory
@@ -70,7 +71,7 @@ def provider_class(name: str) -> type:
     """The provider class registered under `name`, a main or alternative name. It is not started."""
     cls = _PROVIDER_CLASSES.get(name)
     if cls is None:
-        raise ValueError(f"Unknown provider {name!r}, use one of {sorted(registered_providers())} "
+        raise UnknownProvider(f"Unknown provider {name!r}, use one of {sorted(registered_providers())} "
                          f"or one of their alternative names")
     return cls
 
@@ -215,7 +216,7 @@ class DataProvider:
             if index_or_str in self.flat_inventory.datasets:
                 return self.flat_inventory.datasets[index_or_str]
             else:
-                raise ValueError(f"Unknown dataset: {index_or_str}")
+                raise UnknownDataset(f"Unknown dataset: {index_or_str}")
 
         if isinstance(index_or_str, DatasetIndex):
             return index_or_str
@@ -231,7 +232,7 @@ class DataProvider:
                     raise ValueError(
                         f"Can't directly download a whole dataset from {self.provider_name}, you need to download each parameter separately.")
                 else:
-                    raise ValueError(f"Unknown parameter: {index_or_str}")
+                    raise UnknownParameter(f"Unknown parameter: {index_or_str}")
 
         if isinstance(index_or_str, ParameterIndex):
             return index_or_str

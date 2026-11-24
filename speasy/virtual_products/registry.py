@@ -16,6 +16,7 @@ from ..core.plugins import load_plugin_files
 from ..inventories import tree, flat_inventories
 from ..products.variable import SpeasyVariable
 from ..core.virtual_products.expression import Node, evaluate, with_labels_and_meta
+from speasy.core.exceptions import UnknownVirtualProduct, VirtualProductCycleError, VirtualProductTypeError
 
 _root = SpeasyIndex(name="virtual", provider="virtual", uid="virtual")
 _flat_inventory = ProviderInventory()
@@ -189,18 +190,6 @@ def register_virtual_product(path: str, *args: Callable | Node, meta: Optional[d
         return _register(uid, _as_callback(callback, f"virtual/{uid}"), meta, labels)
 
     return decorator
-
-
-class UnknownVirtualProduct(ValueError):
-    """Raised when a virtual product is requested but was never registered."""
-
-
-class VirtualProductTypeError(TypeError):
-    """Raised when a virtual product callback returns something other than a SpeasyVariable or None."""
-
-
-class VirtualProductCycleError(RecursionError):
-    """Raised when a virtual product requests itself, directly or through other virtual products."""
 
 
 @register_provider

@@ -1,18 +1,3 @@
-class MissingCredentials(Exception):
-    pass
-
-
-class UnavailableEndpoint(Exception):
-    pass
-
-
-class BadTemplateArgDefinition(Exception):
-    pass
-
-
-class FailedChunkedRequest(Exception):
-    pass
-
-
-class InvalidCredentials(Exception):
-    pass
+"""Moved to :mod:`speasy.core.exceptions`, re-exported here for compatibility."""
+from speasy.core.exceptions import (BadTemplateArgDefinition, FailedChunkedRequest, InvalidCredentials,  # noqa: F401
+                                    MissingCredentials, UnavailableEndpoint)

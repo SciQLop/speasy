@@ -10,6 +10,7 @@ from speasy.core.inventory.indexes import ComponentIndex, ExpressionOperators, P
 from speasy.core.requests_scheduling.request_dispatch import provider_and_product
 from speasy.products.variable import SpeasyVariable, same_time_axis
 from speasy.signal import resampling
+from speasy.core.exceptions import TimeAxisMismatch
 
 
 @dataclass(frozen=True, eq=False)
@@ -126,10 +127,6 @@ class Interpolate(CallableExpression):
 Node = Union[Leaf, Const, Op, Resample, Interpolate]
 
 
-class TimeAxisMismatch(ValueError):
-    """Raised when operands with different time axes are combined without a directive."""
-
-
 def _as_node(operand):
     """Wrap one operand into a node, or None if it cannot be part of an expression."""
     if isinstance(operand, (Op, Resample, Interpolate)):
@@ -203,7 +200,6 @@ def fetch(indexes, start, stop, **kwargs):
     if any(variable is None for variable in variables):
         return None
     return {_leaf_key(index): variable for index, variable in zip(indexes, variables)}
-
 
 
 def clean(data):

@@ -31,13 +31,10 @@ from speasy.core.inventory.indexes import (
 from speasy.core.proxy import PROXY_ALLOWED_KWARGS, GetProduct, Proxyfiable, Version
 from speasy.core.time import EnsureUTCDateTime, make_utc_datetime
 from speasy.core.typing import AnyDateTimeType
+from speasy.core.exceptions import Cdpp3dViewWebException
 from email.utils import format_datetime
 
 log = logging.getLogger(__name__)
-
-
-class Cdpp3dViewWebException(Exception):
-    pass
 
 
 DEFAULT_COORDINATE_FRAME = "J2000"

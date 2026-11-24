@@ -10,6 +10,7 @@ from speasy.core.datetime_range import DateTimeRange
 from speasy.core.inventory.indexes import SpeasyIndex, from_dict as inventory_from_dict, to_dict as inventory_to_dict
 from speasy.products import Catalog, Dataset, Event, SpeasyVariable, TimeTable
 from speasy.products.variable import from_dictionary
+from speasy.core.exceptions import NotStorable
 
 
 class Serializer:
@@ -24,14 +25,6 @@ class Serializer:
 
     def loads(self, data):
         return msgspec.msgpack.decode(data)
-
-
-class NotStorable(TypeError):
-    """A value or product kind a data index doesn't know how to store; ``product`` is the product it came with."""
-
-    def __init__(self, message: str, product=None):
-        super().__init__(message)
-        self.product = product
 
 
 def _array(array: np.ndarray, path: str):
