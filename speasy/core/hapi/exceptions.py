@@ -1,28 +1,3 @@
-class HapiError(Exception):
-    pass
-
-
-class HapiRequestError(HapiError):
-    """4xx — Client Error (unkown dataset, bad date format, ...) """
-    def __init__(self, code: int, message: str):
-        self.code = code
-        self.message = message
-        super().__init__(message)
-
-
-class HapiServerError(HapiError):
-    """5xx — Server Error """
-    def __init__(self, code: int, message: str):
-        self.code = code
-        self.message = message
-        super().__init__(message)
-
-
-class HapiNoData(HapiError):
-    """1201 — Valid request, but no available data on time range"""
-    pass
-
-
-class HapiServerUnavailable(HapiError, ConnectionError):
-    """The server, or the dataset needed, could not be loaded"""
-    pass
+"""Moved to :mod:`speasy.core.exceptions`, re-exported here for compatibility."""
+from speasy.core.exceptions import (HapiError, HapiNoData, HapiRequestError, HapiServerError,  # noqa: F401
+                                    HapiServerUnavailable)

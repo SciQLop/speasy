@@ -7,6 +7,10 @@ Unreleased
 
 New features:
 
+* ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product
+  id now raises ``UnknownProduct`` (or ``UnknownProvider``, ``UnknownDataset``, ``UnknownParameter``,
+  ``UnknownVirtualProduct``), still a ``ValueError``, from every provider. The existing exceptions keep their old
+  import paths and built-in bases. An unknown CSA dataset used to raise a bare ``KeyError``.
 * A CEF (Cluster Exchange Format) codec, built on `CEFast <https://github.com/SciQLop/CEFast>`_:
   ``get_codec("cef")`` reads CEF 2.0 files, with their support axes (``DEPEND_i``), column names (``LABEL_i`` or
   ``REPRESENTATION_i``), units and fill values. CEF attributes are also given their ISTP names (``DISPLAY_TYPE``,

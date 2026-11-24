@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Optional, Tuple
 from packaging.version import Version
 
+from speasy.core.exceptions import CdaWebException, UnknownProduct
 from speasy.core import AllowedKwargs, EnsureUTCDateTime, make_utc_datetime
 from speasy.core import http, url_utils
 from email.utils import format_datetime
@@ -189,11 +190,6 @@ def _cache_fragment_size(product):
         return 12
 
 
-class CdaWebException(Exception):
-    def __init__(self, text):
-        super(CdaWebException, self).__init__(text)
-
-
 def get_parameter_args_ws(start_time: datetime, stop_time: datetime, product: str, **_):
     return {
         'path': f"cdaweb/{product}",
@@ -283,9 +279,9 @@ class CdaWebservice(DataProvider):
                     var = '/'.join(parts[pos:])
                     if (ds in self.flat_inventory.datasets) and (index_or_str in self.flat_inventory.parameters):
                         return ds, var
-                raise ValueError(
+                raise UnknownProduct(
                     f"Given string is ambiguous, it contains several '/', tried all combinations but failed to find a matching dataset/variable pair in inventory: {index_or_str}")
-            raise ValueError(f"Given string does not look like a CDA dataset/variable pair: {index_or_str}")
+            raise UnknownProduct(f"Given string does not look like a CDA dataset/variable pair: {index_or_str}")
         raise TypeError(f"Wrong type for {index_or_str}, expecting a string or a SpeasyIndex, got {type(index_or_str)}")
 
     def _dl_variable(self,

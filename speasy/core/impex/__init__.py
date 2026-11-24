@@ -8,6 +8,7 @@ from copy import deepcopy
 
 import numpy as np
 
+from speasy.core.exceptions import UnknownProduct
 from ..datetime_range import DateTimeRange
 from ...core.dataprovider import (DataProvider)
 
@@ -330,7 +331,7 @@ class ImpexProvider(DataProvider):
             return self._get_catalog_of_any_owner(product, **kwargs)
         if product_t == ImpexProductType.TIMETABLE:
             return self._get_timetable_of_any_owner(product, **kwargs)
-        raise ValueError(f"Unknown product: {product}")
+        raise UnknownProduct(f"Unknown product: {product}")
 
     def _get_time_series(self, product_t, product, start_time, stop_time, **kwargs):
         if product_t == ImpexProductType.DATASET:
@@ -651,7 +652,7 @@ class ImpexProvider(DataProvider):
                 return p
             if p := flat_inventories.__dict__[self.provider_name].catalogs.get(product_id):
                 return p
-        raise ValueError(f"Unknown product: {product_id}")
+        raise UnknownProduct(f"Unknown product: {product_id}")
 
     def find_parent_dataset(
         self,

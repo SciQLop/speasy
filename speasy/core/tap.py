@@ -7,10 +7,7 @@ import xml.etree.ElementTree as ElementTree
 from typing import Any, Dict, List
 
 from speasy.core import http
-
-
-class TapError(Exception):
-    pass
+from speasy.core.exceptions import TapError
 
 
 def query(tap_url: str, adql: str) -> List[Dict[str, Any]]:

@@ -11,6 +11,7 @@ import os
 from typing import Optional
 from datetime import timedelta
 
+from speasy.core.exceptions import UnknownParameter
 from speasy.config import SPEASY_CONFIG_DIR, SPEASY_CONFIG_FILE
 from speasy.config import archive as cfg
 from speasy.core import AnyDateTimeType, AllowedKwargs
@@ -215,7 +216,7 @@ class GenericArchive(DataProvider):
             if product in self.flat_inventory.parameters:
                 return self.flat_inventory.parameters[product]
             else:
-                raise ValueError(f"Unknown product {product}")
+                raise UnknownParameter(f"Unknown product {product}")
         elif isinstance(product, ParameterIndex):
             return product
         else:

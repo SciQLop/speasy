@@ -17,6 +17,7 @@ from ..inventory.indexes import from_dict as inventory_from_dict
 from ... import SpeasyIndex
 from ...products.variable import from_dictionary as var_from_dict
 from ..cache import CacheCall
+from ..exceptions import ProxyError
 
 log = logging.getLogger(__name__)
 PROXY_ALLOWED_KWARGS = ['disable_proxy']
@@ -32,9 +33,6 @@ spz.config.proxy.url.set("https://sciqlop.lpp.polytechnique.fr/cache")
 spz.config.proxy.enabled.set(True)
 ===========================================================================
             """, stacklevel=0)
-
-class ProxyError(Exception):
-    pass
 
 
 def _failure(resp) -> ProxyError:

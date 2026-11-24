@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 import logging
 
+from speasy.core.exceptions import UnknownProduct, UnknownProvider
 from .. import is_collection, progress_bar
 from ..datetime_range import DateTimeRange
 from ..time import check_time_order
@@ -104,7 +105,7 @@ def init_provider(name: str, ignore_disabled_status=False):
     a retry if its previous init failed, see _safe_init_provider."""
     main_name = main_provider_name(name)
     if main_name is None:
-        raise ValueError(f"Unknown provider {name!r}")
+        raise UnknownProvider(f"Unknown provider {name!r}")
     _safe_init_provider(registered_providers()[main_name], provider_names(main_name),
                         ignore_disabled_status=ignore_disabled_status)
 
@@ -244,7 +245,7 @@ def provider_and_product(path_or_product: str or SpeasyIndex) -> (str, str):
             provider_uid, product_uid = path_or_product.split('/', 1)
             return provider_uid, product_uid
         else:
-            raise ValueError(f"Given string does not look like a path {path_or_product}")
+            raise UnknownProduct(f"Given string does not look like a path {path_or_product}")
     raise TypeError(
         f"Wrong type for {path_or_product}, expecting a string or a SpeasyIndex, got {type(path_or_product)}")
 
@@ -253,7 +254,7 @@ def _scalar_get_data(index, *args, **kwargs):
     provider_uid, product_uid = provider_and_product(index)
     if _ensure_provider(provider_uid) is not None:
         return PROVIDERS[provider_uid].get_data(product_uid, *args, **kwargs)
-    raise ValueError(f"Can't find a provider for {index}{_unavailable_provider_hint(provider_uid)}")
+    raise UnknownProvider(f"Can't find a provider for {index}{_unavailable_provider_hint(provider_uid)}")
 
 
 def _unavailable_provider_hint(name: str) -> str:

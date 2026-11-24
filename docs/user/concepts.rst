@@ -104,19 +104,35 @@ return ``None`` rather than raise. Always check for ``None`` before using the re
     else:
         var.plot()
 
-An **unrecognized** product id or inventory path, on the other hand, raises ``ValueError`` immediately
-(Speasy can't even identify which provider/product to ask), and some providers raise a provider-specific
-exception for certain invalid arguments (e.g. CDPP 3DView raises ``Cdpp3dViewWebException`` for an invalid
-``coordinate_frame``):
+An **unrecognized** product id or inventory path, on the other hand, raises
+:class:`~speasy.core.exceptions.UnknownProduct` immediately (Speasy can't even identify which provider/product to
+ask). It is a ``ValueError``, so code catching ``ValueError`` keeps working. Some providers raise a
+provider-specific exception for certain invalid arguments (e.g. CDPP 3DView raises ``Cdpp3dViewWebException`` for an
+invalid ``coordinate_frame``):
 
     >>> import speasy as spz
     >>> spz.get_data("amda/this_product_does_not_exist", "2018-01-01", "2018-01-02")
     Traceback (most recent call last):
         ...
-    ValueError: Unknown product: this_product_does_not_exist
+    speasy.core.exceptions.UnknownProduct: Unknown product: this_product_does_not_exist
 
 Network failures raise as well, so a robust caller wants a ``try``/``except`` around the call and a
 ``None`` check on the result.
+
+Every exception Speasy raises on purpose derives from :class:`~speasy.core.exceptions.SpeasyError`, and they all
+live in :mod:`speasy.core.exceptions`. Most keep a built-in base too:
+
+- ``UnknownProduct`` (also ``ValueError``): no provider knows this id
+
+  - ``UnknownProvider``, ``UnknownDataset``, ``UnknownParameter``, ``UnknownVirtualProduct``
+
+- ``ProxyError``: the proxy failed; Speasy then asks the source itself, so you only see it in the logs
+- ``HapiError`` and its subclasses (``HapiServerUnavailable`` is also a ``ConnectionError``)
+- ``CdaWebException``, ``Cdpp3dViewWebException``, ``TapError``: a web service failed
+- ``MissingCredentials``, ``UnavailableEndpoint``, ``FailedChunkedRequest``, ``BadTemplateArgDefinition``: AMDA
+- ``TimeAxisMismatch`` (also ``ValueError``), ``VirtualProductTypeError`` (also ``TypeError``),
+  ``VirtualProductCycleError`` (also ``RecursionError``): virtual products and expressions
+- ``NotStorable`` (also ``TypeError``): a value a :doc:`data index <data_index>` can't store
 
 .. note::
     **Boundary samples.** Ranges are half-open: ``[start, stop)`` — the sample at ``start`` is

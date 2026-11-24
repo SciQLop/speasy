@@ -1,5 +1,6 @@
 from cyclopts import App
 
+from speasy.core.exceptions import UnknownProvider
 from speasy.config import core as core_cfg, add_values, remove_values
 from speasy.core.dataprovider import registered_providers, provider_names, main_provider_name
 from ._common import console, table, warn_if_env_overrides
@@ -10,7 +11,7 @@ app = App(name='providers', help="List, enable and disable data providers.")
 def _main_name(name: str) -> str:
     main_name = main_provider_name(name)
     if main_name is None:
-        raise ValueError(f"unknown provider '{name}', known ones are: {', '.join(registered_providers())}")
+        raise UnknownProvider(f"unknown provider '{name}', known ones are: {', '.join(registered_providers())}")
     return main_name
 
 

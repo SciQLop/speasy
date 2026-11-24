@@ -8,6 +8,7 @@ from packaging.version import Version
 
 import numpy as np
 
+from speasy.core.exceptions import UnknownProduct
 from speasy.core import http, AllowedKwargs, fix_name, EnsureUTCDateTime, tap
 from speasy.core.codecs import get_codec, CodecInterface
 from speasy.core.cache import Cacheable, CACHE_ALLOWED_KWARGS  # _cache is used for tests (hack...)
@@ -50,7 +51,7 @@ def to_dataset_and_variable(index_or_str: ParameterIndex | str) -> Tuple[str, st
     else:
         raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
     if len(parts) != 2:
-        raise ValueError(f"CSA product id {index_or_str!r} must look like 'DATASET/variable', "
+        raise UnknownProduct(f"CSA product id {index_or_str!r} must look like 'DATASET/variable', "
                          f"e.g. 'C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN'")
     return parts[0], parts[1]
 
@@ -231,8 +232,7 @@ class CsaWebservice(DataProvider):
         return is_server_up(url=CsaWebservice.BASE_URL)
 
     def _dataset_range(self, dataset: str or DatasetIndex) -> DateTimeRange:
-        if type(dataset) is str:
-            dataset = self.flat_inventory.datasets[dataset]
+        dataset = self._to_dataset_index(dataset)
         return DateTimeRange(dataset.start_date, dataset.stop_date)
 
     def _dl_variable(self,
@@ -310,14 +310,14 @@ class CsaWebservice(DataProvider):
             product last update date
         """
         dataset, _ = to_dataset_and_variable(product)
-        return self.flat_inventory.datasets[dataset].date_last_update
+        return self._to_dataset_index(dataset).date_last_update
 
     def get_data(self, product, start_time: datetime, stop_time: datetime, output_format: Optional[str] = None,
                  **kwargs) -> Optional[SpeasyVariable]:
         """output_format: CEF or CDF_ISTP, defaults to speasy.config.csa.output_format. Datasets CSA doesn't serve
         as CDF_ISTP are read as CEF."""
         dataset, _ = to_dataset_and_variable(product)
-        output_format = delivery_format(self.flat_inventory.datasets[dataset], output_format or csa_cfg.output_format())
+        output_format = delivery_format(self._to_dataset_index(dataset), output_format or csa_cfg.output_format())
         return self._get_data(product, start_time, stop_time, output_format=output_format, **kwargs)
 
     @AllowedKwargs(PROXY_ALLOWED_KWARGS + CACHE_ALLOWED_KWARGS + GET_DATA_ALLOWED_KWARGS + ['output_format'])
