@@ -41,7 +41,12 @@ All the HAPI metadata of a dataset or parameter (``cadence``, ``units``, ``descr
 What gets downloaded, and when
 ------------------------------
 
-Most HAPI servers list thousands of datasets, so nothing is downloaded until you need it:
+With the :doc:`proxy <../configuration>` enabled (the default), starting the ``hapi`` provider downloads the whole
+HAPI tree from the proxy, already filled from the servers' catalogs, and data requests go through the proxy too, like
+for the other providers. If the proxy fails, Speasy asks the HAPI server itself.
+
+Without the proxy, or for a server the proxy doesn't list (one added with ``extra_servers``), nothing is downloaded
+until you need it, since most HAPI servers list thousands of datasets:
 
 - starting the ``hapi`` provider contacts no server;
 - the first time you open a server (``spz.inventories.tree.hapi.lisird``, its completion, or a ``get_data`` on one of

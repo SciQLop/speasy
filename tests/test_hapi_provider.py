@@ -1,4 +1,5 @@
 """HAPI provider logic against a fake HapiClient serving recorded responses: no network access."""
+import copy
 import json
 import os
 import threading
@@ -17,6 +18,9 @@ from speasy.core.hapi.inventory import HapiDatasetIndex, HapiServerIndex
 from speasy.core.hapi.registry import bundled_registry, enabled_servers, server_key
 from speasy.core import dataprovider
 from speasy.core.requests_scheduling import request_dispatch
+from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex, from_dict, to_dict
+from speasy.core.proxy import GetInventory, GetProduct, ProxyError
+from packaging.version import Version
 from speasy.inventories import flat_inventories, tree
 from speasy.products import SpeasyVariable
 
@@ -109,9 +113,53 @@ class FakeClient:
         return [c for client in cls.instances for c in client.calls if c[0] == kind]
 
 
+class FakeProxy:
+    """A speasy-proxy serving ``servers`` filled from their catalogs, like its HAPI dumps do."""
+
+    def __init__(self, servers=('v3',), version='0.27.0', fails=False):
+        self.version, self.fails = version, fails
+        self.inventory_requests, self.data_requests = [], []
+        root = SpeasyIndex(name='hapi', provider='hapi', uid='hapi', meta={'build_date': '2026-11-24T00:00:00+00:00'})
+        for key in servers:
+            record = next(e for e in REGISTRY if server_key(e['id']) == key)
+            node = SpeasyIndex(name=key, provider='hapi', uid=key, meta={**record, 'hapi_loaded': False})
+            hapi_inventory.build_inventory(node, {}, SERVERS[record['x_url']]['catalog'], dataset_type=DatasetIndex)
+            root.__dict__[key] = node
+        self._served = to_dict(root, version=2)
+
+    def get_inventory(self, provider, **kwargs):
+        self.inventory_requests.append(provider)
+        return from_dict(copy.deepcopy(self._served), version=2)
+
+    def get_data(self, path, start_time, stop_time, **kwargs):
+        self.data_requests.append(path)
+        if self.fails:
+            raise ProxyError("HTTP 502: upstream failed")
+        times = np.arange(np.datetime64(start_time[:19], 'ns'), np.datetime64(stop_time[:19], 'ns'),
+                          np.timedelta64(1, 's'))
+        return SpeasyVariable(axes=[VariableTimeAxis(values=times)],
+                              values=DataContainer(np.zeros((len(times), 3)), name='from proxy'))
+
+    @contextmanager
+    def serving(self):
+        with mock.patch('speasy.core.proxy.proxy_cfg.enabled', return_value=True), \
+                mock.patch('speasy.core.proxy.is_proxy_up', return_value=True), \
+                mock.patch('speasy.core.proxy.query_proxy_version', return_value=Version(self.version)), \
+                mock.patch.object(GetInventory, 'get', side_effect=self.get_inventory), \
+                mock.patch.object(GetProduct, 'get', side_effect=self.get_data):
+            yield
+
+
 @contextmanager
-def _hapi_provider(registry=REGISTRY, disabled=('cdaweb',), extra=None, client=FakeClient):
-    """A HapiWebservice using ``client`` (FakeClient by default); the global provider state is restored afterwards."""
+def _no_proxy():
+    with mock.patch('speasy.core.proxy.proxy_cfg.enabled', return_value=False):
+        yield
+
+
+@contextmanager
+def _hapi_provider(registry=REGISTRY, disabled=('cdaweb',), extra=None, client=FakeClient, proxy=None):
+    """A HapiWebservice using ``client`` (FakeClient by default) and ``proxy`` (none by default); the global
+    provider state is restored afterwards."""
     from speasy.data_providers import hapi
     namespaces = (tree.__dict__, flat_inventories.__dict__, request_dispatch.PROVIDERS, dataprovider.PROVIDERS)
     saved = [namespace.get('hapi') for namespace in namespaces]
@@ -120,7 +168,8 @@ def _hapi_provider(registry=REGISTRY, disabled=('cdaweb',), extra=None, client=F
     hapi_inventory._failed_loads.clear()
     servers = enabled_servers(registry, set(disabled), extra or {})
     with mock.patch.object(hapi, 'HapiClient', client), \
-            mock.patch.object(hapi, '_server_records', return_value=servers):
+            mock.patch.object(hapi, '_server_records', return_value=servers), \
+            (proxy.serving() if proxy is not None else _no_proxy()):
         try:
             provider = request_dispatch.PROVIDERS['hapi'] = hapi.HapiWebservice()
             yield provider
@@ -263,7 +312,7 @@ class TestGetData(unittest.TestCase):
         return request_dispatch.get_data(f"hapi/{product}", start, stop, disable_cache=True, **kwargs)
 
     def test_force_refresh_downloads_again(self):
-        # the cache makes a forced refresh skip the proxy, which HAPI never uses but must still accept
+        # the cache makes a forced refresh skip the proxy
         with _hapi_provider():
             request_dispatch.get_data('hapi/v2/dataset1/scalar', _utc(2010, 1, 1), _utc(2010, 1, 2))
             downloads = len(FakeClient.calls_of('data'))
@@ -378,6 +427,83 @@ TEST_SERVERS = [{'id': 'TestData2.0', 'x_url': 'https://hapi-server.org/servers/
                 {'id': 'TestData3.3', 'x_url': 'https://hapi-server.org/servers/TestData3.3/hapi'}]
 
 
+class TestThroughTheProxy(unittest.TestCase):
+    """speasy-proxy >= 0.27.0 serves the HAPI tree filled from the servers' dumps, and HAPI data like any product."""
+
+    def _get(self, product, **kwargs):
+        return request_dispatch.get_data(product, _utc(1970, 1, 1), _utc(1970, 1, 1, 0, 1), disable_cache=True,
+                                         **kwargs)
+
+    def test_the_inventory_comes_filled_from_the_proxy(self):
+        proxy = FakeProxy()
+        with _hapi_provider(proxy=proxy) as provider:
+            self.assertEqual(proxy.inventory_requests, ['hapi'])
+            self.assertIsInstance(tree.hapi.v3.dataset1.vector, ParameterIndex)
+            self.assertIn('v3/dataset1/vector', provider.flat_inventory.parameters)
+            self.assertEqual(FakeClient.instances, [])
+
+    def test_servers_the_proxy_does_not_serve_stay_lazy(self):
+        with _hapi_provider(proxy=FakeProxy(), extra={'MyLab': 'https://fake/v2/hapi'}):
+            self.assertIsInstance(tree.hapi.__dict__['v2'], HapiServerIndex)
+            self.assertIsInstance(tree.hapi.__dict__['mylab'], HapiServerIndex)
+            self.assertEqual(len(request_dispatch.get_data('hapi/v2/dataset1/scalar', _utc(2010, 1, 1),
+                                                           _utc(2010, 1, 2), disable_cache=True, disable_proxy=True)), 24)
+
+    def test_servers_disabled_in_the_config_are_dropped_from_the_proxy_tree(self):
+        with _hapi_provider(proxy=FakeProxy(servers=('v3', 'v2')), disabled=('v2',)):
+            self.assertNotIn('v2', tree.hapi.__dict__)
+            with self.assertRaisesRegex(ValueError, "'v2'"):
+                request_dispatch.get_data('hapi/v2/dataset1/scalar', _utc(2010, 1, 1), _utc(2010, 1, 2))
+
+    def test_get_data_goes_through_the_proxy(self):
+        proxy = FakeProxy()
+        with _hapi_provider(proxy=proxy):
+            v = self._get('hapi/v3/dataset1/vector')
+            self.assertEqual(proxy.data_requests, ['hapi/v3/dataset1/vector'])
+            self.assertEqual(v.values.shape, (60, 3))
+            self.assertEqual(FakeClient.calls_of('data'), [])
+
+    def test_a_tree_node_from_the_proxy_works_as_product(self):
+        proxy = FakeProxy()
+        with _hapi_provider(proxy=proxy):
+            self._get(tree.hapi.v3.dataset1.vector)
+            self.assertEqual(proxy.data_requests, ['hapi/v3/dataset1/vector'])
+
+    def test_a_failing_proxy_falls_back_to_the_server_of_the_proxy_tree(self):
+        proxy = FakeProxy(fails=True)
+        with _hapi_provider(proxy=proxy):
+            v = self._get('hapi/v3/dataset1/vector')
+            self.assertEqual(len(proxy.data_requests), 1)
+            _, dataset, start, stop, parameters, header = FakeClient.calls_of('data')[0]
+            self.assertEqual((dataset, parameters), ('dataset1', ('vector',)))
+            self.assertEqual(header['parameters'][0]['name'], 'Time')
+            self.assertEqual(header['parameters'][1]['name'], 'vector')
+            self.assertEqual(len(v), 1)  # FakeClient gives one record per hour
+
+    def test_disable_proxy_asks_the_server(self):
+        proxy = FakeProxy()
+        with _hapi_provider(proxy=proxy):
+            self._get('hapi/v3/dataset1/vector', disable_proxy=True)
+            self.assertEqual(proxy.data_requests, [])
+            self.assertEqual(len(FakeClient.calls_of('data')), 1)
+
+    def test_a_proxy_older_than_0_27_is_not_used(self):
+        proxy = FakeProxy(version='0.26.0')
+        with _hapi_provider(proxy=proxy):
+            self.assertEqual(proxy.inventory_requests, [])
+            self.assertIsInstance(tree.hapi.__dict__['v3'], HapiServerIndex)
+            self._get('hapi/v3/dataset1/vector')
+            self.assertEqual(proxy.data_requests, [])
+            self.assertEqual(len(FakeClient.calls_of('data')), 1)
+
+    def test_an_inventory_update_asks_the_proxy_again(self):
+        proxy = FakeProxy()
+        with _hapi_provider(proxy=proxy) as provider:
+            provider.update_inventory()
+            self.assertEqual(proxy.inventory_requests, ['hapi', 'hapi'])
+            self.assertIn('v3/dataset1/vector', provider.flat_inventory.parameters)
+
+
 class TestLiveTestDataServers(unittest.TestCase):
     """The real HapiClient against the HAPI project's test servers."""
 
@@ -416,3 +542,36 @@ class TestLiveTestDataServers(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestLiveThroughTheProxy(unittest.TestCase):
+    """The real provider against the configured speasy-proxy (>= 0.27.0) and the INTERMAGNET HAPI server."""
+
+    PRODUCT = 'hapi/intermagnet/aae/definitive/PT1M/native/Field_Vector'
+
+    def setUp(self):
+        import speasy as spz
+        from speasy.core.proxy import is_proxy_up, query_proxy_version, proxy_cfg
+        from speasy.data_providers.hapi import HAPI_MIN_PROXY_VERSION
+        if not (proxy_cfg.enabled() and is_proxy_up() and query_proxy_version() >= HAPI_MIN_PROXY_VERSION):
+            self.skipTest("needs speasy-proxy >= 0.27.0")
+        spz.hapi.update_inventory()
+
+    def test_tree_and_data_come_from_the_proxy_and_match_the_server(self):
+        served = []
+        get = GetProduct.get
+
+        def spy(**kwargs):
+            served.append(kwargs['path'])
+            return get(**kwargs)
+
+        self.assertIsInstance(tree.hapi.intermagnet.aae.definitive.PT1M.native.Field_Vector, ParameterIndex)
+        args = self.PRODUCT, _utc(2010, 6, 1), _utc(2010, 6, 1, 1)
+        with mock.patch.object(GetProduct, 'get', side_effect=spy):
+            via_proxy = request_dispatch.get_data(*args, disable_cache=True)
+        direct = request_dispatch.get_data(*args, disable_cache=True, disable_proxy=True)
+        self.assertEqual(served, [self.PRODUCT])
+        self.assertEqual(via_proxy.values.shape, (60, 3))
+        np.testing.assert_array_equal(via_proxy.time, direct.time)
+        np.testing.assert_array_equal(via_proxy.values, direct.values)
+        self.assertEqual(via_proxy.columns, direct.columns)
