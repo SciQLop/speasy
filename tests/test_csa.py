@@ -3,6 +3,7 @@ import os
 import sys
 import tarfile
 import unittest
+from unittest import mock
 from datetime import datetime
 from types import SimpleNamespace
 
@@ -26,9 +27,9 @@ class CSAProductIds(unittest.TestCase):
 
 class CSAInventory(unittest.TestCase):
     def test_can_get_full_inventory_without_proxy(self):
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        spz.csa.update_inventory()
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
+        # patch.dict restores the variable: popping it would turn the proxy on for the tests run after this one
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            spz.csa.update_inventory()
         self.assertGreaterEqual(len(spz.inventories.flat_inventories.csa.parameters), 1932)
         self.assertIn('B_vec_xyz_gse__C1_CP_FGM_SPIN',
                       spz.inventories.tree.csa.Cluster.Cluster_1.FGM1.C1_CP_FGM_SPIN.__dict__)
@@ -174,16 +175,7 @@ class CSAAnswers(unittest.TestCase):
 
 
 class CSALiveCef(unittest.TestCase):
-    """Builds the inventory without the proxy: a proxy older than the CEF codec doesn't list CEF-only datasets."""
-
-    @classmethod
-    def setUpClass(cls):
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        spz.csa.update_inventory()
-
-    @classmethod
-    def tearDownClass(cls):
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
+    """Through the proxy when it is enabled: speasy-proxy >= 0.27.0 lists CEF-only datasets and serves both formats."""
 
     def test_cef_only_product(self):
         v = spz.get_data("csa/C1_CP_AUX_LSTAR/Lstar_value__C1_CP_AUX_LSTAR", "2005-01-01T00:00:00",
@@ -205,12 +197,9 @@ class CSALiveCef(unittest.TestCase):
         self.assertNotIn("PARAMETER_TYPE", v.meta)
 
     def test_cdf_istp_from_the_config(self):
-        os.environ[spz.config.csa.output_format.env_var_name] = "CDF_ISTP"
-        try:
+        with mock.patch.dict(os.environ, {spz.config.csa.output_format.env_var_name: "CDF_ISTP"}):
             v = spz.get_data("csa/C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN", "2005-01-01T00:00:00",
                              "2005-01-01T02:00:00", disable_cache=True)
-        finally:
-            os.environ.pop(spz.config.csa.output_format.env_var_name)
         self.assertNotIn("PARAMETER_TYPE", v.meta)
 
     def test_cef_only_product_with_cdf_istp_asked(self):

@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import unittest
+from unittest import mock
 from datetime import datetime, timedelta, timezone
 from multiprocessing import dummy
 
@@ -183,10 +184,9 @@ class SimpleRequest(unittest.TestCase):
                                  stop_time="2018-01-02", **kwargs)
 
     def test_can_get_full_inventory_without_proxy(self):
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        reset_cda_inventory_cache_flags()
-        spz.cda.update_inventory()
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            reset_cda_inventory_cache_flags()
+            spz.cda.update_inventory()
         self.assertGreaterEqual(len(spz.inventories.flat_inventories.cda.parameters), 47000)
 
 
@@ -277,25 +277,23 @@ class SpecificNonRegression(unittest.TestCase):
 
     def test_get_products_with_percent_in_name(self):
         # https://github.com/SciQLop/speasy/issues/211
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        reset_cda_inventory_cache_flags()
-        spz.cda.update_inventory()
-        data = spz.get_data(spz.inventories.tree.cda.Equator_S.EQ.MAM.EQ_PP_MAM.B_nsigma_b_eq_pp_mam, "1998-01-01",
-                            "1998-01-02")
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            reset_cda_inventory_cache_flags()
+            spz.cda.update_inventory()
+            data = spz.get_data(spz.inventories.tree.cda.Equator_S.EQ.MAM.EQ_PP_MAM.B_nsigma_b_eq_pp_mam,
+                                "1998-01-01", "1998-01-02")
         self.assertIsNotNone(data)
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
 
     def test_get_stereo_l1_het(self):
         # https://github.com/SciQLop/speasy/issues/223
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        data = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            data = spz.get_data("cda/STA_L1_HET/Proton_Flux", "2020-10-28", "2020-10-28T01")
         self.assertIsNotNone(data)
-        os.environ.pop(spz.config.proxy.enabled.env_var_name)
 
     def test_get_PSP_ISOIS_EPILO_L2_PE(self):
         # https://github.com/SciQLop/speasy/issues/225
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
-        data = spz.get_data("cda/PSP_ISOIS-EPILO_L2-PE/Electron_Counts_ChanE", "2021-10-09", "2021-10-09T01")
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            data = spz.get_data("cda/PSP_ISOIS-EPILO_L2-PE/Electron_Counts_ChanE", "2021-10-09", "2021-10-09T01")
         self.assertIsNotNone(data)
         data_sum_1 = np.sum(data, axis=1)
         data_sum_2 = np.sum(data, axis=2)
@@ -304,9 +302,9 @@ class SpecificNonRegression(unittest.TestCase):
 
     def test_get_WI_SFSP_3DP(self):
         # https://github.com/SciQLop/speasy/issues/225
-        os.environ[spz.config.proxy.enabled.env_var_name] = "False"
         self.assertEqual(spz.inventories.tree.cda.Wind.WIND.n_3DP.WI_SFSP_3DP.FLUX.VIRTUAL.lower(), "true")
-        data = spz.get_data("cda/WI_SFSP_3DP/FLUX", "2005-01-01", "2005-01-01T01")
+        with mock.patch.dict(os.environ, {spz.config.proxy.enabled.env_var_name: "False"}):
+            data = spz.get_data("cda/WI_SFSP_3DP/FLUX", "2005-01-01", "2005-01-01T01")
         self.assertIsNotNone(data)
 
 
