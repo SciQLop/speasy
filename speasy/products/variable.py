@@ -296,8 +296,9 @@ class SpeasyVariable(SpeasyProduct):
         if len(self.__axes) == 1:
             axes = deepcopy(self.__axes)
         elif len(self.__axes) == 2:
+            column_axis = self.__axes[1]
             axes = [deepcopy(self.__axes[0]),
-                    deepcopy(self.__axes[1][indexes])]
+                    column_axis.select((slice(None), indexes) if column_axis.is_time_dependent else indexes)]
         else:
             raise ValueError("filter_columns is only supported for table-like variables with 1 or 2 axes")
 
@@ -345,6 +346,8 @@ class SpeasyVariable(SpeasyProduct):
                 slice(_to_index(key.start, self.time),
                       _to_index(key.stop, self.time))
             )
+        if self.__indexes_dimensions(key):
+            return self.__along_dimensions(key)
         if type(key) is tuple and len(key) == 2 and not isinstance(key[0], (str, np.ndarray)):
             return self[key[0]][self.__column_names(key[1])]
         if type(key) in (list, tuple):
@@ -362,6 +365,54 @@ class SpeasyVariable(SpeasyProduct):
             f"No idea how to slice SpeasyVariable with given value: {key!r}. Use an int or a slice for rows "
             f"(by position or by time), a column name or a list of them, a boolean mask or an array of row indexes, "
             f"or rows then columns as in var[rows, columns].")
+
+    def __indexes_dimensions(self, key) -> bool:
+        """Ints, slices and row masks index dimensions; a column name, or a list of them, keeps picking columns."""
+        if type(key) is not tuple or any(isinstance(k, str) for k in key):
+            return False
+        return len(key) > 2 or (len(key) == 2 and self.ndim > 2 and isinstance(key[1], (int, np.integer, slice)))
+
+    def __along_dimensions(self, key: tuple) -> "SpeasyVariable":
+        """var[rows, k1, k2, ...]: rows as usual, then an int (drops the axis) or a slice per dimension, like numpy."""
+        if len(key) > self.ndim:
+            raise IndexError(f"{len(key)} indices for a variable with {self.ndim} dimensions")
+        var = self if isinstance(key[0], slice) and key[0] == slice(None) else self[key[0]]
+        for dimension in reversed(range(1, len(key))):
+            var = var.__take(dimension, key[dimension])
+        return var
+
+    def __take(self, dimension: int, index) -> "SpeasyVariable":
+        if isinstance(index, bool) or not isinstance(index, (int, np.integer, slice)):
+            raise ValueError(f"dimension {dimension} takes an int or a slice, got {index!r}")
+        if isinstance(index, slice) and index == slice(None):
+            return self
+        values = self.values[(slice(None),) * dimension + (index,)]
+        axes = [self.__axis_taken(ax, i, dimension, index) for i, ax in enumerate(self.__axes)
+                if not (i == dimension and not isinstance(index, slice))]
+        return SpeasyVariable(
+            axes=axes,
+            values=DataContainer(values=values, name=self.__values_container.name,
+                                 meta=deepcopy(self.__values_container.meta),
+                                 is_time_dependent=self.__values_container.is_time_dependent),
+            columns=self.__columns_taken(dimension, index, values))
+
+    def __axis_taken(self, ax, position: int, dimension: int, index):
+        """An axis sliced on its own dimension: a grid axis spans the data's dimensions, a record-varying one keeps
+        time first, any other one is only cut when it is the axis of that dimension."""
+        if position != 0 and ax.shape == self.values.shape:
+            return ax.select((slice(None),) * dimension + (index,))
+        if position != 0 and ax.shape == self.values.shape[1:]:
+            return ax.select((slice(None),) * (dimension - 1) + (index,))
+        if position != dimension:
+            return deepcopy(ax)
+        return ax.select((slice(None), index) if ax.is_time_dependent else index)
+
+    def __columns_taken(self, dimension: int, index, values: np.ndarray) -> List[str]:
+        if dimension != 1:
+            return list(self.__columns)
+        if isinstance(index, slice) and len(self.__columns) == self.values.shape[1]:
+            return list(self.__columns[index])
+        return [f"column_{i}" for i in range(values.shape[1] if values.ndim > 1 else 1)]
 
     def __column_names(self, selection) -> List[str]:
         if isinstance(selection, str):

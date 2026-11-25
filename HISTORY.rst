@@ -9,6 +9,8 @@ New features:
 
 * numpy reductions on a ``SpeasyVariable`` take negative axes and tuples of axes, refuse ``keepdims=True`` with a clear
   message, and keep the column names when dimension 1 stays.
+* Indexing works along any dimension: ``var[:, :, 3]`` drops the axis, ``var[:, :, 1:3]`` keeps part of it, with the
+  axis values and bin widths cut to match (record-varying axes per record).
 * ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
   DELTA_MINUS_VAR. Data cached before has none.
 * ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product
@@ -30,6 +32,8 @@ Bug fixes:
 
 * CDAWeb patched datasets (PSP FIELDS TDS waveforms among them) no longer crash on a file holding more time records
   than data records, or the reverse: the records present in both are kept, with a warning naming the file.
+* Picking columns of a spectrogram whose axis varies with time, such as ``var[:, 1:3]``, cut the axis' records instead
+  of its columns and failed.
 * The name of a numpy result showed ``<built-in function input>`` for each plain argument:
   ``np.power(b, 2)`` was named ``power(b, <built-in function input>)``. It is now ``power(b, 2)``.
 * Slicing a variable by time:
