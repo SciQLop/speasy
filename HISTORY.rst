@@ -7,6 +7,8 @@ Unreleased
 
 New features:
 
+* numpy reductions on a ``SpeasyVariable`` take negative axes and tuples of axes, refuse ``keepdims=True`` with a clear
+  message, and keep the column names when dimension 1 stays.
 * ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
   DELTA_MINUS_VAR. Data cached before has none.
 * ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product

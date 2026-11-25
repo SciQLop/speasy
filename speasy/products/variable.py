@@ -460,14 +460,33 @@ class SpeasyVariable(SpeasyProduct):
     def __abs__(self):
         return np.absolute(self)
 
-    def __np_build_axes__(self, other, axis=None, func=None):
-        if axis is None or self.ndim == other.ndim:
-            return deepcopy(self.__axes)
-        else:
-            return [deepcopy(self.__reduce_axis(i, ax, axis))
-                    for i, ax in enumerate(self.__axes) if i != axis]
+    def __reduced_dimensions(self, axis) -> tuple:
+        """numpy's ``axis`` argument as sorted non-negative dimensions; () when nothing is reduced."""
+        if axis is None:
+            return ()
+        return tuple(sorted({a % self.ndim for a in (axis if isinstance(axis, tuple) else (axis,))}))
 
-    def __reduce_axis(self, index: int, ax, reduced_dimension: int):
+    def __np_build_axes__(self, other, axis=None, func=None):
+        dimensions = self.__reduced_dimensions(axis)
+        if not dimensions or self.ndim == other.ndim:
+            return deepcopy(self.__axes)
+        return [deepcopy(self.__reduce_axis(i, ax, dimensions))
+                for i, ax in enumerate(self.__axes) if i not in dimensions]
+
+    def __np_columns(self, result, axis) -> List[str]:
+        """The column names belong to dimension 1: they stay when it does."""
+        if 1 not in self.__reduced_dimensions(axis) and result.shape[1:2] == (len(self.__columns),):
+            return list(self.__columns)
+        return [f"column_{i}" for i in range(result.shape[1] if result.ndim > 1 else 1)]
+
+    @staticmethod
+    def __refuse_keepdims(kwargs):
+        if kwargs.get('keepdims'):
+            raise ValueError("keepdims=True is not supported on a SpeasyVariable: a kept dimension has no axis "
+                             "values. Reduce without it, or use np.sum(var.values, ..., keepdims=True) for a plain "
+                             "array.")
+
+    def __reduce_axis(self, index: int, ax, reduced_dimensions: tuple):
         """Drops the reduced dimension from an axis that carries a coordinate per data cell.
 
         Such an axis spans the data's dimensions, so losing one of them means losing the same
@@ -477,9 +496,9 @@ class SpeasyVariable(SpeasyProduct):
         if index == 0:
             return ax
         if ax.shape == self.values.shape:
-            return np.mean(ax, axis=reduced_dimension, keepdims=False)
+            return np.mean(ax, axis=reduced_dimensions, keepdims=False)
         if ax.shape == self.values.shape[1:]:
-            return np.mean(ax, axis=reduced_dimension - 1, keepdims=False)
+            return np.mean(ax, axis=tuple(d - 1 for d in reduced_dimensions), keepdims=False)
         return ax
 
     def __array_function__(self, func, types, args, kwargs):
@@ -493,17 +512,17 @@ class SpeasyVariable(SpeasyProduct):
         res = func(*f_args, **f_kwargs)
         if np.isscalar(res):
             return res
+        axis = kwargs.get('axis', None)
         if isinstance(res, np.ndarray):
-            if res.shape != self.shape and (res.shape[0] != len(self.time) or kwargs.get('axis', None) == 0):
+            if res.shape != self.shape and (res.shape[0] != len(self.time) or 0 in self.__reduced_dimensions(axis)):
                 return res
-
-        n_cols = res.shape[1] if len(res.shape) > 1 else 1
+        self.__refuse_keepdims(kwargs)
         return SpeasyVariable(
-            axes=self.__np_build_axes__(res, axis=kwargs.get('axis', None)),
+            axes=self.__np_build_axes__(res, axis=axis),
             values=DataContainer(values=res,
                                  name=np_build_result_name(func, *args, **kwargs),
                                  meta=deepcopy(self.__values_container.meta)),
-            columns=[f"column_{i}" for i in range(n_cols)],
+            columns=self.__np_columns(res, axis),
         )
 
     def __array__(self, dtype=None, copy=None):
