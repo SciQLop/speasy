@@ -72,6 +72,9 @@ per dimension of the values.
 
 .. variable-diagram:: distribution
 
+:doc:`reducing_axes` shows how to select along these axes and reduce them, by name or dimension, into an
+omni-directional energy spectrum for instance.
+
 The first axis is always the time, so selecting by time works the same whatever the shape.
 
 Selecting data

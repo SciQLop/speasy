@@ -11,8 +11,12 @@ New features:
   message, and keep the column names when dimension 1 stays.
 * Indexing works along any dimension: ``var[:, :, 3]`` drops the axis, ``var[:, :, 1:3]`` keeps part of it, with the
   axis values and bin widths cut to match (record-varying axes per record).
+* ``speasy.signal.reduction`` adds what numpy can't do along an axis: ``dimension`` (find an axis by name, or part of
+  one), ``sel`` (select by value, as in xarray) and ``integrate`` (value times bin width) (docs: "Selecting and
+  reducing axes").
 * ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
-  DELTA_MINUS_VAR. Data cached before has none.
+  DELTA_MINUS_VAR. Data cached before has none, and ``integrate`` then takes the widths from the midpoints between
+  the axis values.
 * ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product
   id now raises ``UnknownProduct`` (or ``UnknownProvider``, ``UnknownDataset``, ``UnknownParameter``,
   ``UnknownVirtualProduct``), still a ``ValueError``, from every provider. The existing exceptions keep their old
