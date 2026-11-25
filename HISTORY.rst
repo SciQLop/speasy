@@ -7,6 +7,8 @@ Unreleased
 
 New features:
 
+* ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
+  DELTA_MINUS_VAR. Data cached before has none.
 * ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product
   id now raises ``UnknownProduct`` (or ``UnknownProvider``, ``UnknownDataset``, ``UnknownParameter``,
   ``UnknownVirtualProduct``), still a ``ValueError``, from every provider. The existing exceptions keep their old

@@ -410,49 +410,101 @@ class DataContainer(DataContainerProtocol['DataContainer']):
         return self.__name
 
 
+def _checked_delta(delta: Optional[np.ndarray], values: np.ndarray, which: str, name: str) -> Optional[np.ndarray]:
+    if delta is None:
+        return None
+    delta = np.asarray(delta)
+    if delta.shape != values.shape:
+        raise ValueError(f"{which} of axis {name!r} has shape {delta.shape}, it must have the shape of the axis "
+                         f"values {values.shape}")
+    return delta
+
+
+def _same_or_both_none(a: Optional[np.ndarray], b: Optional[np.ndarray]) -> bool:
+    if a is None or b is None:
+        return a is None and b is None
+    return np.array_equal(a, b, equal_nan=True)
+
+
 class VariableAxis(DataContainerProtocol['VariableAxis']):
-    __slots__ = ['__data']
+    """An axis of a SpeasyVariable. ``delta_plus`` and ``delta_minus``, when known, are the distances from each
+    value to its bin's upper and lower edges (ISTP DELTA_PLUS_VAR / DELTA_MINUS_VAR), with the values' shape."""
+    __slots__ = ['__data', '__delta_plus', '__delta_minus']
     __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
     def __init__(self, values: np.array = None, meta: Dict = None, name: str = "", is_time_dependent: bool = False,
-                 data: DataContainer = None):
+                 data: DataContainer = None, delta_plus: Optional[np.ndarray] = None,
+                 delta_minus: Optional[np.ndarray] = None):
         if data is not None:
             self.__data = data
         else:
             self.__data = DataContainer(
                 values=values, name=name, meta=meta, is_time_dependent=is_time_dependent)
+        self.__delta_plus = _checked_delta(delta_plus, self.__data.values, 'delta_plus', self.__data.name)
+        self.__delta_minus = _checked_delta(delta_minus, self.__data.values, 'delta_minus', self.__data.name)
+
+    def __setstate__(self, state):
+        # axes pickled before deltas existed only carry __data
+        self.__delta_plus = self.__delta_minus = None
+        for part in state if isinstance(state, tuple) else (state,):
+            for name, value in (part or {}).items():
+                setattr(self, name, value)
+
+    def __deltas(self):
+        return self.__delta_plus, self.__delta_minus
+
+    def __with_deltas(self, data: DataContainer, transform) -> 'VariableAxis':
+        plus, minus = self.__deltas()
+        return VariableAxis(data=data, delta_plus=None if plus is None else transform(plus),
+                            delta_minus=None if minus is None else transform(minus))
+
+    @property
+    def delta_plus(self) -> Optional[np.ndarray]:
+        return self.__deltas()[0]
+
+    @property
+    def delta_minus(self) -> Optional[np.ndarray]:
+        return self.__deltas()[1]
 
     def zeros_like(self) -> "VariableAxis":
-        return VariableAxis(data=DataContainer.zeros_like(self.__data))
+        return self.__with_deltas(DataContainer.zeros_like(self.__data), np.copy)
 
     def ones_like(self) -> "VariableAxis":
-        return VariableAxis(data=DataContainer.ones_like(self.__data))
+        return self.__with_deltas(DataContainer.ones_like(self.__data), np.copy)
 
     def empty_like(self) -> "VariableAxis":
-        return VariableAxis(data=DataContainer.empty_like(self.__data))
-
+        return self.__with_deltas(DataContainer.empty_like(self.__data), np.copy)
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableAxis"})
+        for key, delta in zip(("delta_plus", "delta_minus"), self.__deltas()):
+            if delta is not None:
+                d[key] = delta.tolist() if array_to_list else delta.copy()
         return d
 
     def select(self, indices, inplace=False) -> "VariableAxis":
-        if inplace:
-            res = self
-        else:
-            res = deepcopy(self)
-        res.__data.select(indices, inplace=True)
-        return res
+        data = deepcopy(self.__data)
+        data.select(indices, inplace=True)
+        selected = self.__with_deltas(data, lambda delta: delta[indices])
+        if not inplace:
+            return selected
+        self.__data = selected.__data
+        self.__delta_plus, self.__delta_minus = selected.__deltas()
+        return self
 
     @staticmethod
     def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], time=None) -> "VariableAxis":
         assert dictionary['type'] == "VariableAxis"
-        return VariableAxis(data=DataContainer.from_dictionary(dictionary))
+        deltas = {key: np.asarray(dictionary[key], dtype=float) for key in ("delta_plus", "delta_minus")
+                  if dictionary.get(key) is not None}
+        return VariableAxis(data=DataContainer.from_dictionary(dictionary), **deltas)
 
     @staticmethod
     def reserve_like(other: 'VariableAxis', length: int = 0) -> 'VariableAxis':
-        return VariableAxis(data=DataContainer.reserve_like(other.__data, length))
+        return other.__with_deltas(DataContainer.reserve_like(other.__data, length),
+                                   lambda delta: np.empty((length,) + delta.shape[1:], dtype=delta.dtype)
+                                   if other.is_time_dependent else delta.copy())
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -463,6 +515,9 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
     def __setitem__(self, k, v: Union['VariableAxis', float, int]):
         if type(v) is VariableAxis:
             self.__data[k] = v.__data
+            for mine, theirs in zip(self.__deltas(), v.__deltas()):
+                if mine is not None and theirs is not None:
+                    mine[k] = theirs
         else:
             self.__data[k] = v
 
@@ -470,10 +525,11 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return len(self.__data)
 
     def view(self, index_range: Union[slice, np.ndarray]) -> 'VariableAxis':
-        return VariableAxis(data=self.__data[index_range])
+        return self.__with_deltas(self.__data[index_range], lambda delta: delta[index_range])
 
     def __eq__(self, other: 'VariableAxis') -> bool:
-        return type(other) is VariableAxis and self.__data == other.__data
+        return type(other) is VariableAxis and self.__data == other.__data and \
+            all(map(_same_or_both_none, self.__deltas(), other.__deltas()))
 
     def __array_function__(self, func, types, args, kwargs):
         if func.__name__ in VariableAxis.__LIKE_NP_FUNCTIONS__:
@@ -502,7 +558,7 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return res
 
     def astype(self, dtype) -> 'VariableAxis':
-        return VariableAxis(data=self.__data.astype(dtype))
+        return self.__with_deltas(self.__data.astype(dtype), np.copy)
 
     @property
     def unit(self) -> str:

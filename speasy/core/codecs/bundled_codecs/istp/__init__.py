@@ -10,6 +10,7 @@ from pyistp.support_data_variable import SupportDataVariable
 
 from speasy.core.any_files import any_loc_open
 from speasy.core.url_utils import urlparse, is_local_file, to_local_path
+from speasy.core.data_containers import fill_value_mask
 from speasy.products import SpeasyVariable, VariableAxis, VariableTimeAxis, DataContainer
 from speasy.products.variable import _check_extra_axes
 
@@ -58,9 +59,41 @@ def _display_type(variable: pyistp.loader.DataVariable) -> str:
     return ''
 
 
-def _make_axis(axis, time_axis_name, n_records):
-    return VariableAxis(values=axis.values.copy(), meta=_fix_attributes_types(axis.attributes), name=axis.name,
-                        is_time_dependent=_is_time_dependent(axis, time_axis_name, n_records))
+def _delta_values(istp_loader: pyistp.loader.ISTPLoader, name: str, values: np.ndarray) -> Optional[np.ndarray]:
+    """The values of the DELTA variable ``name``, with the shape of the axis ``values``, or None."""
+    delta = istp_loader.support_data_variable(name) if name else None
+    if delta is None:
+        return None
+    raw = np.asarray(delta.values)
+    if not np.issubdtype(raw.dtype, np.number):
+        return None
+    mask = fill_value_mask(raw, delta.attributes)
+    raw = raw.astype(float)
+    if mask is not None:
+        raw[mask] = np.nan
+    if raw.size == values.shape[-1]:  # one width per bin, the same for every record
+        return np.broadcast_to(raw.reshape(-1), values.shape).copy()
+    if raw.shape == values.shape:
+        return raw
+    log.debug(f"Ignoring {name}: its shape {raw.shape} does not fit its axis {values.shape}")
+    return None
+
+
+def _axis_deltas(istp_loader, axis, values: np.ndarray) -> dict:
+    """An axis variable's DELTA_PLUS_VAR / DELTA_MINUS_VAR are its bin half widths; those of a data variable are
+    error bars and are never read here. One given alone is used for both sides."""
+    plus = _delta_values(istp_loader, axis.attributes.get('DELTA_PLUS_VAR'), values)
+    minus = _delta_values(istp_loader, axis.attributes.get('DELTA_MINUS_VAR'), values)
+    if plus is None and minus is None:
+        return {}
+    return {'delta_plus': plus if plus is not None else minus, 'delta_minus': minus if minus is not None else plus}
+
+
+def _make_axis(istp_loader, axis, time_axis_name, n_records):
+    values = axis.values.copy()
+    return VariableAxis(values=values, meta=_fix_attributes_types(axis.attributes), name=axis.name,
+                        is_time_dependent=_is_time_dependent(axis, time_axis_name, n_records),
+                        **_axis_deltas(istp_loader, axis, values))
 
 
 def _build_labels(variable: pyistp.loader.DataVariable):
@@ -136,7 +169,8 @@ def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVar
                                      meta=_fix_attributes_types(var.axes[0].attributes))
         values = DataContainer(values=var.values.copy(), meta=_fix_attributes_types(var.attributes), name=var.name,
                                is_time_dependent=True)
-        extra_axes = [_make_axis(axis, time_axis_name, len(time_axis)) for axis in _filter_extra_axes(var)]
+        extra_axes = [_make_axis(istp_loader, axis, time_axis_name, len(time_axis))
+                      for axis in _filter_extra_axes(var)]
         return _valid_variable_or_none(SpeasyVariable(
             axes=[time_axis] + _fitting_axes(time_axis, extra_axes, values),
             values=values,
