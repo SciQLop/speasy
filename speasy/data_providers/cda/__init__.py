@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Optional, Tuple
 from packaging.version import Version
 
-from speasy.core.exceptions import CdaWebException, UnknownProduct
+from speasy.core.exceptions import CdaWebException
 from speasy.core import AllowedKwargs, EnsureUTCDateTime, make_utc_datetime
 from speasy.core import http, url_utils
 from email.utils import format_datetime
@@ -265,24 +265,10 @@ class CdaWebservice(DataProvider):
         return self._dataset_range(dataset_id)
 
     def _to_dataset_and_variable(self, index_or_str: ParameterIndex or str) -> Tuple[str, str]:
-
-        if isinstance(index_or_str, ParameterIndex):
-            index_or_str = index_or_str.spz_uid()
-
-        if type(index_or_str) is str:
-            if '/' in index_or_str:
-                parts = index_or_str.split('/')
-                if len(parts) == 2:
-                    return parts[0], parts[1]
-                for pos in range(1, len(parts)):
-                    ds = '/'.join(parts[:pos])
-                    var = '/'.join(parts[pos:])
-                    if (ds in self.flat_inventory.datasets) and (index_or_str in self.flat_inventory.parameters):
-                        return ds, var
-                raise UnknownProduct(
-                    f"Given string is ambiguous, it contains several '/', tried all combinations but failed to find a matching dataset/variable pair in inventory: {index_or_str}")
-            raise UnknownProduct(f"Given string does not look like a CDA dataset/variable pair: {index_or_str}")
-        raise TypeError(f"Wrong type for {index_or_str}, expecting a string or a SpeasyIndex, got {type(index_or_str)}")
+        # Split with the inventory, not on '/': some CDA ids have more than one '/'.
+        parameter = self._to_parameter_index(index_or_str)
+        variable = parameter.spz_name()
+        return parameter.spz_uid()[:-len(variable) - 1], variable
 
     def _dl_variable(self,
                      dataset: str, variable: str,

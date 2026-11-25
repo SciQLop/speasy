@@ -179,22 +179,19 @@ class HapiWebservice(DataProvider):
             raise UnknownProduct(reason)
         if server_key(key) in {server_key(k) for k in hapi_cfg.disabled_servers()}:
             raise UnknownProduct(f"HAPI server {key!r} is disabled, remove it from the [HAPI] disabled_servers config "
-                             f"entry (or SPEASY_HAPI_DISABLED_SERVERS) to use it")
+                                 f"entry (or SPEASY_HAPI_DISABLED_SERVERS) to use it")
         known = ', '.join(sorted(self._servers))
         raise UnknownProduct(f"Unknown HAPI server {key!r}, known servers are: {known}. A server missing from the HAPI "
-                         f"registry can be added with the [HAPI] extra_servers config entry, "
-                         f"e.g. {{\"{key}\": \"https://example.org/hapi\"}}")
+                             f"registry can be added with the [HAPI] extra_servers config entry, "
+                             f"e.g. {{\"{key}\": \"https://example.org/hapi\"}}")
 
     def _root(self) -> SpeasyIndex:
         return _tree().__dict__[self.provider_name]
 
     def _client(self, key: str) -> HapiClient:
+        """Loading a server sets its client; a server the proxy filled only needs one for data requests."""
         if key not in self._clients:
-            node = self._server_node(key)
-            if isinstance(node, HapiServerIndex):
-                node._load()
-            else:  # filled by the proxy, only data requests are left to make
-                self._clients[key] = HapiClient(node.__dict__['x_url'])
+            self._clients[key] = HapiClient(self._server_node(key).__dict__['x_url'])
         return self._clients[key]
 
     def _resolve(self, uid: str) -> None:
@@ -242,7 +239,7 @@ class HapiWebservice(DataProvider):
         dataset = self._find(uid, 'datasets')
         if dataset is None:
             raise UnknownDataset(f"HAPI dataset {uid!r} is no longer listed by its server, "
-                             f"browse spz.inventories.tree.hapi.{uid.split('/', 1)[0]} to see what it offers now")
+                                 f"browse spz.inventories.tree.hapi.{uid.split('/', 1)[0]} to see what it offers now")
         return dataset
 
     def _to_parameter_index(self, index_or_str) -> ParameterIndex:
@@ -255,8 +252,8 @@ class HapiWebservice(DataProvider):
             raise ValueError(f"{index_or_str!r} is a HAPI dataset, get its parameters one by one: "
                              f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} lists them")
         raise UnknownParameter(f"Unknown HAPI product {index_or_str!r}, browse "
-                         f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets and "
-                         f"parameters it offers")
+                               f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets and "
+                               f"parameters it offers")
 
     def _to_dataset_index(self, index_or_str) -> DatasetIndex:
         if type(index_or_str) is not str:
@@ -264,7 +261,7 @@ class HapiWebservice(DataProvider):
         dataset = self._find(index_or_str, 'datasets')
         if dataset is None:
             raise UnknownDataset(f"Unknown HAPI dataset {index_or_str!r}, browse "
-                             f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets it offers")
+                                 f"spz.inventories.tree.hapi.{index_or_str.split('/', 1)[0]} to see the datasets it offers")
         return dataset
 
     def parameter_range(self, parameter_id: str or ParameterIndex) -> Optional[DateTimeRange]:

@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlparse
 import numpy as np
 
 from speasy.core.hapi.client import HapiClient
-from speasy.core.hapi.exceptions import HapiRequestError
+from speasy.core.hapi.exceptions import HapiRequestError, HapiServerError
 
 RESOURCES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources')
 
@@ -155,6 +155,12 @@ class TestHapiClientData(unittest.TestCase):
         with self.assertRaises(HapiRequestError) as ctx:
             self._get_data(server)
         self.assertEqual(ctx.exception.code, 1405)
+
+    def test_a_server_failure_raises_with_the_http_status(self):
+        server = _FakeServer(data=_Response(503, b'<html>Service Unavailable</html>'))
+        with self.assertRaises(HapiServerError) as ctx:
+            self._get_data(server)
+        self.assertEqual((ctx.exception.code, ctx.exception.message), (503, '<html>Service Unavailable</html>'))
 
     def test_binary_body_is_not_decoded_as_json(self):
         record = np.zeros(1, dtype=[('Time', 'S24'), ('scalar', '<f8')])
