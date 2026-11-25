@@ -26,6 +26,8 @@ New features:
 
 Bug fixes:
 
+* CDAWeb patched datasets (PSP FIELDS TDS waveforms among them) no longer crash on a file holding more time records
+  than data records, or the reverse: the records present in both are kept, with a warning naming the file.
 * The name of a numpy result showed ``<built-in function input>`` for each plain argument:
   ``np.power(b, 2)`` was named ``power(b, <built-in function input>)``. It is now ``power(b, 2)``.
 * Slicing a variable by time:
