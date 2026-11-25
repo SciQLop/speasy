@@ -156,6 +156,7 @@ Its development is supported by the `CDPP <http://www.cdpp.eu/>`__.
 
    user/numpy
    user/scipy
+   user/reducing_axes
    user/plotting
    examples/index
 
