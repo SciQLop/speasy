@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 
 from speasy.core import AnyDateTimeType, make_utc_datetime
 from speasy.core.direct_archive_downloader.direct_archive_downloader import spilt_range
-from .sciqlop_template import PlotSpec, Template
+from .sciqlop_template import PlotSpec, Template, apply_operations
 
 
 def windows(start: AnyDateTimeType, stop: AnyDateTimeType, split: str) -> List[Tuple[datetime, datetime]]:
@@ -70,7 +70,8 @@ def _draw(ax, plot: PlotSpec, variables: Sequence):
 def _fetch(product, start: datetime, stop: datetime) -> Tuple[Optional[object], Optional[str]]:
     import speasy
     try:
-        return speasy.get_data(product.speasy_id, start, stop, **product.kwargs), None
+        var = speasy.get_data(product.speasy_id, start, stop, **product.kwargs)
+        return (apply_operations(var, product.reduce) if product.reduce and var is not None else var), None
     except Exception as e:  # one failing product must not cost the whole quicklook
         return None, f"{product.speasy_id}: {type(e).__name__}: {e}"
 

@@ -16,9 +16,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from speasy.cli import main  # noqa: E402
 from speasy.core.codecs import get_codec  # noqa: E402
-from speasy.plotting.quicklook import figure, render, windows  # noqa: E402
-from speasy.plotting.sciqlop_template import load_template  # noqa: E402
+from speasy.plotting.quicklook import fetch_window, figure, render, windows  # noqa: E402
+from speasy.plotting.sciqlop_template import apply_operations, checked_operations, load_template  # noqa: E402
 from speasy.products import SpeasyVariable, DataContainer, VariableTimeAxis, VariableAxis  # noqa: E402
+from speasy.signal.reduction import integrate, sel  # noqa: E402
 
 __HERE__ = os.path.dirname(os.path.abspath(__file__))
 _CDF = f"{__HERE__}/resources/ac_k2_mfi_20220101_v03.cdf"
@@ -28,9 +29,9 @@ def _utc(*args):
     return datetime(*args, tzinfo=timezone.utc)
 
 
-def _product(speasy_id, kind='sciqlop.speasy', graph_type='Line', y_axis='y', path='', knobs=None):
+def _product(speasy_id, kind='sciqlop.speasy', graph_type='Line', y_axis='y', path='', knobs=None, **extra):
     return {'path': path, 'label': '', 'kind': kind, 'speasy_id': speasy_id, 'graph_type': graph_type,
-            'knobs': knobs or {}, 'y_axis': y_axis}
+            'knobs': knobs or {}, 'y_axis': y_axis, **extra}
 
 
 def _plot(*products, y_log=False, y2_log=False, z_log=False):
@@ -152,6 +153,33 @@ class TestLoadTemplate(_TempDir):
         self.assertFalse(spec.right_axis)
         self.assertTrue(line.right_axis)
 
+    def test_reduce_is_read_with_the_product_in_v2_and_v3(self):
+        ops = [{'op': 'mean', 'axis': 'phi'}, {'op': 'mean', 'axis': 'theta', 'weights': [1.0, 2.0]}]
+        v2 = {**_V2, 'plots': [{**_V2['plots'][0], 'products': [{**_V2['plots'][0]['products'][0], 'reduce': ops}]}]}
+        v3 = _v3(_timeseries(_plot(_product('a/dist', reduce=ops), _product('a/line'))))
+        for doc in (v2, v3):
+            with self.subTest(version=doc['version']):
+                products = load_template(self.write(doc)).plots[0].products
+                self.assertEqual(products[0].reduce, tuple(ops))
+        self.assertEqual(load_template(self.write(v3)).plots[0].products[1].reduce, ())
+
+    def test_reduce_is_read_from_yaml(self):
+        yaml_doc = ("name: y\nversion: 2\ntime_range: null\nplots:\n- products:\n  - kind: speasy\n"
+                    "    speasy_id: a/dist\n    graph_type: SciQLopColorMap\n    reduce:\n"
+                    "    - {op: mean, axis: phi}\n    - {op: sel, axis: energy, value: [10, 1000]}\n")
+        product = load_template(self.write(yaml_doc, name='t.yaml')).plots[0].products[0]
+        self.assertEqual(product.reduce, ({'op': 'mean', 'axis': 'phi'},
+                                          {'op': 'sel', 'axis': 'energy', 'value': [10, 1000]}))
+
+    def test_a_bad_reduce_is_refused_at_load_naming_the_product(self):
+        for reduce, message in (([{'op': 'average', 'axis': 'phi'}], r"'op' must be one of isel, sel, sum, mean"),
+                                ([{'op': 'mean'}], r"mean takes 'axis' and optionally 'weights', got"),
+                                ('mean phi', r"a list of operations"),
+                                (['mean phi'], r"each operation is a dict")):
+            path = self.write(_v3(_timeseries(_plot(_product('a/dist', path='speasy//a//dist', reduce=reduce)))))
+            with self.subTest(reduce=reduce), self.assertRaisesRegex(ValueError, r"product speasy//a//dist: .*" + message):
+                load_template(path)
+
     def test_not_a_template_says_so(self):
         path = self.write({'hello': 1})
         with self.assertRaisesRegex(ValueError, r"t\.json is not a SciQLop panel template"):
@@ -198,6 +226,147 @@ class TestRender(_TempDir):
         render(template, data, _utc(2022, 1, 1), _utc(2022, 1, 2), target)
         self.assertGreater(os.path.getsize(target), 0)
         self.assertEqual(plt.get_fignums(), [])
+
+
+def _distribution_var(values=None, fill=None):
+    """(time, phi, theta, energy), like a 3D particle distribution."""
+    time = np.arange('2022-01-01T00', '2022-01-01T02', dtype='datetime64[m]').astype('datetime64[ns]')
+    shape = (len(time), 8, 4, 16)
+    values = np.random.rand(*shape) + 1. if values is None else values
+    return SpeasyVariable(axes=[VariableTimeAxis(values=time),
+                                VariableAxis(values=np.linspace(0, 337.5, 8), name='dist_phi'),
+                                VariableAxis(values=np.linspace(22.5, 157.5, 4), name='dist_theta'),
+                                VariableAxis(values=np.logspace(1, 4, 16), name='dist_energy')],
+                          values=DataContainer(values=values, name='dist', meta={} if fill is None else {'FILLVAL': fill}))
+
+
+class TestOperations(unittest.TestCase):
+    OPS = [{'op': 'sel', 'axis': 'energy', 'value': [10., 1000.]},
+           {'op': 'mean', 'axis': 'theta', 'weights': [1., 2., 3., 4.]},
+           {'op': 'integrate', 'axis': 1}]
+
+    def setUp(self):
+        self.dist = _distribution_var()
+
+    def test_operations_are_applied_in_order(self):
+        selected = sel(self.dist, 'energy', slice(10., 1000.))
+        expected = integrate(np.average(selected, axis=2, weights=[1., 2., 3., 4.]), 1)
+        np.testing.assert_allclose(apply_operations(self.dist, self.OPS).values, expected.values)
+
+    def test_each_op_and_what_it_does(self):
+        v = self.dist
+        for op, expected in (({'op': 'isel', 'axis': 'theta', 'index': 1}, v[:, :, 1]),
+                             ({'op': 'isel', 'axis': 'theta', 'index': [0, 2]}, v[:, :, 0:2]),
+                             ({'op': 'sel', 'axis': 'energy', 'value': 100., 'method': 'nearest'},
+                              sel(v, 'energy', 100., method='nearest')),
+                             ({'op': 'sum', 'axis': 'phi'}, np.sum(v, axis=1)),
+                             ({'op': 'mean', 'axis': 'phi'}, np.mean(v, axis=1)),
+                             ({'op': 'mean', 'axis': 'theta', 'weights': [1., 0., 0., 3.]},
+                              np.average(v, axis=2, weights=[1., 0., 0., 3.])),
+                             ({'op': 'integrate', 'axis': 'phi', 'edges': list(range(9))}, np.sum(v, axis=1))):
+            with self.subTest(op=op):
+                result = apply_operations(v, [op])
+                np.testing.assert_allclose(result.values, expected.values)
+                self.assertEqual(result.axes_labels, expected.axes_labels)
+
+    def test_sum_and_mean_skip_fill_and_nan_and_give_nan_where_all_are_missing(self):
+        values = np.array(self.dist.values)
+        values[0, :, 0, 0] = -1e31
+        values[1, 2, 1, 3] = np.nan
+        v = _distribution_var(values=values, fill=-1e31)
+        for op, function in (('sum', np.nansum), ('mean', np.nanmean)):
+            with self.subTest(op=op):
+                result = apply_operations(v, [{'op': op, 'axis': 'phi'}]).values
+                self.assertTrue(np.isnan(result[0, 0, 0]))
+                np.testing.assert_allclose(result[1, 1, 3], function(np.delete(values[1, :, 1, 3], 2)))
+                np.testing.assert_allclose(result[2], function(values[2], axis=0))
+
+    def test_a_weighted_mean_drops_missing_values_from_the_weights(self):
+        values = np.ones(self.dist.values.shape)
+        values[:, :, 3, :] = np.nan
+        v = _distribution_var(values=values)
+        result = apply_operations(v, [{'op': 'mean', 'axis': 'theta', 'weights': [1., 2., 3., 100.]}])
+        np.testing.assert_allclose(result.values, 1.)
+
+    def test_weights_need_the_shape_of_the_axis(self):
+        v = self.dist
+        with self.assertRaisesRegex(ValueError, r"weights for 'dist_theta' must have shape \(4,\).*got \(2,\)"):
+            apply_operations(v, [{'op': 'mean', 'axis': 'theta', 'weights': [1., 2.]}])
+
+    def test_malformed_operations_say_what_is_allowed(self):
+        for op, message in (({'op': 'average', 'axis': 'x'}, r"'op' must be one of isel, sel, sum, mean, integrate"),
+                            ({'mean': 'x'}, r"'op' must be one of"),
+                            ({'op': 'sum'}, r"sum takes 'axis', got"),
+                            ({'op': 'isel', 'axis': 'x'}, r"isel takes 'axis', 'index', got"),
+                            ({'op': 'sum', 'axis': 'x', 'weights': [1]}, r"sum takes 'axis', got .*weights"),
+                            ({'op': 'mean', 'axis': 'x', 'unit': 'eV'}, r"mean takes 'axis' and optionally 'weights'")):
+            with self.subTest(op=op), self.assertRaisesRegex(ValueError, message):
+                checked_operations([op])
+
+    def test_the_list_and_its_items_are_checked(self):
+        self.assertEqual(checked_operations(self.OPS), tuple(self.OPS))
+        for operations, message in (('mean phi', r"a list of operations like \[\{'op': 'mean', 'axis': 'phi'\}\]"),
+                                    ({'op': 'sum', 'axis': 'x'}, r"a list of operations"),
+                                    (['mean phi'], r"each operation is a dict like \{'op': 'mean', 'axis': 'phi'\}"),
+                                    ([{'op': 'sum', 'axis': 'x'}, {'op': 'sum'}], r"sum takes 'axis', got")):
+            with self.subTest(operations=operations), self.assertRaisesRegex(ValueError, message):
+                checked_operations(operations)
+
+    def test_nothing_runs_when_a_later_operation_is_malformed(self):
+        operations = [{'op': 'sum', 'axis': 'nope'}, {'op': 'average', 'axis': 'phi'}]
+        with self.assertRaisesRegex(ValueError, r"'op' must be one of"):
+            apply_operations(self.dist, operations)
+
+
+class TestPublicTemplateApi(unittest.TestCase):
+    """SciQLop applies a template's 'reduce' list with these names; renaming them breaks SciQLop, so this fails."""
+
+    def test_the_names_other_tools_use(self):
+        import speasy.plotting.sciqlop_template as template
+        from speasy.plotting.sciqlop_template import OPERATIONS, apply_operations
+        from speasy.signal.reduction import dimension
+        self.assertEqual(set(template.__all__), {'OPERATIONS', 'apply_operations'})
+        self.assertEqual(set(OPERATIONS), {'isel', 'sel', 'sum', 'mean', 'integrate'})
+        dist = _distribution_var()
+        reduced = apply_operations(dist, [{'op': 'mean', 'axis': 'phi'}])
+        np.testing.assert_allclose(reduced.values, np.nanmean(dist, axis=dimension(dist, 'phi')).values)
+
+
+class TestReducedRender(_TempDir):
+
+    def setUp(self):
+        super().setUp()
+        self.dist = _distribution_var()
+        p = mock.patch('speasy.get_data', return_value=self.dist)
+        p.start()
+        self.addCleanup(p.stop)
+        doc = _v3(_timeseries(_plot(_product('a/dist', graph_type='SciQLopColorMap',
+                                             reduce=[{'op': 'mean', 'axis': 'phi'},
+                                                     {'op': 'mean', 'axis': 'theta'}]), z_log=True)))
+        self.template = load_template(self.write(doc))
+
+    def test_a_3d_distribution_reduced_by_the_template_plots_as_a_spectrogram(self):
+        data, failures = fetch_window(self.template, _utc(2022, 1, 1), _utc(2022, 1, 1, 2))
+        self.assertEqual(failures, [])
+        spectrum = data[0][0]
+        self.assertEqual(spectrum.values.shape, (120, 16))
+        self.assertEqual(spectrum.axes[1].name, 'dist_energy')
+        np.testing.assert_allclose(spectrum.values, np.mean(self.dist.values, axis=(1, 2)))
+        fig = figure(self.template, data, _utc(2022, 1, 1), _utc(2022, 1, 1, 2))
+        self.assertEqual(len(fig.axes[0].collections), 1)  # one colormap mesh
+        fig.savefig(os.path.join(self.dir, 'out.png'))
+        self.assertEqual(plt.get_fignums(), [])
+
+    def test_a_reduction_that_fails_on_the_data_is_a_product_failure(self):
+        doc = _v3(_timeseries(_plot(_product('a/dist', reduce=[{'op': 'sum', 'axis': 'psi'}]))))
+        data, failures = fetch_window(load_template(self.write(doc)), _utc(2022, 1, 1), _utc(2022, 1, 1, 2))
+        self.assertEqual(data, [[None]])
+        self.assertRegex(failures[0], r"a/dist: ValueError: No axis 'psi'")
+
+    def test_a_window_without_data_is_not_reduced(self):
+        with mock.patch('speasy.get_data', return_value=None):
+            data, failures = fetch_window(self.template, _utc(2022, 1, 1), _utc(2022, 1, 1, 2))
+        self.assertEqual((data, failures), ([[None]], []))
 
 
 class TestTwinAxes(_TempDir):
@@ -277,6 +446,12 @@ class TestQuicklookCli(_TempDir):
         _, out = self.run_cli('quicklook', self.write(doc), '--start', '2022-01-01', '--stop', '2022-01-02',
                               '--output-dir', self.dir)
         self.assertIn('vp//x', out)
+
+    def test_a_bad_reduce_is_a_clean_error(self):
+        doc = _v3(_timeseries(_plot(_product('amda/imf', reduce=[{'op': 'average', 'axis': 'x'}]))))
+        code, out = self.run_cli('quicklook', self.write(doc), '--start', '2022-01-01', '--stop', '2022-01-02')
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"Error: product .*amda/imf.*'op' must be one of")
 
     def test_missing_template_is_a_clean_error(self):
         code, out = self.run_cli('quicklook', 'nonexistent.json', '--start', '2022-01-01', '--stop', '2022-01-02')
