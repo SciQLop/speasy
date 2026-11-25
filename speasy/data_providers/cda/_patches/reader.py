@@ -35,7 +35,7 @@ def _error_message(url: str, dataset: str, error: Exception) -> str:
 @CacheCall(cache_retention=timedelta(hours=12), is_pure=True)
 def _read_patched(url: str, dataset: str, variable: str, decoder: Decoder) -> Optional[SpeasyVariable]:
     try:
-        return decoder.decode(_load(url), variable)
+        return decoder.decode(_load(url), variable, source=url)
     except OSError as e:
         raise OSError(_error_message(url, dataset, e)) from e
     except Exception as e:

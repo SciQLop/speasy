@@ -231,3 +231,47 @@ class EpochPlusSamplingRateAnyRateTest(unittest.TestCase):
         self.assertEqual(result.time[1] - result.time[0], _ns(1e9 / 256))
         self.assertEqual(result.time[5] - result.time[4], _ns(round(1e9 / 4096)))
         self.assertEqual(result.time[4], epoch[1])
+
+
+@ddt
+class MismatchedRecordCounts(unittest.TestCase):
+    """psp_fld_l2_tds_wf_20190415_v00.cdf has 2 records of per-sample times for 1 record of data. Whatever the
+    recipe, the records present in both the time side and the data are kept, with one warning."""
+
+    @staticmethod
+    def _time_matrix(time_records, data_records):
+        cdf = pycdfpp.CDF()
+        _add_time(cdf, 'time', T0 + np.arange(time_records * 4).reshape(time_records, 4) * _ns(10))
+        _add_data(cdf, 'wave', np.arange(data_records * 4, dtype=np.float32).reshape(data_records, 4))
+        return TimeMatrix(time='time'), cdf
+
+    @staticmethod
+    def _epoch_plus_offsets(time_records, data_records):
+        cdf = _epoch_cdf(T0 + np.arange(time_records) * np.timedelta64(1, 's'),
+                         np.arange(data_records * 4, dtype=np.float32).reshape(data_records, 4))
+        cdf.add_variable('off', values=np.tile(np.arange(4, dtype=np.int64), (time_records, 1)))
+        return EpochPlusOffsets(offsets='off', ns_per_unit=1.), cdf
+
+    @staticmethod
+    def _epoch_plus_rate(time_records, data_records):
+        cdf = _epoch_cdf(T0 + np.arange(time_records) * np.timedelta64(1, 's'),
+                         np.arange(data_records * 4, dtype=np.float32).reshape(data_records, 4))
+        cdf.add_variable('rate', values=np.full(time_records, 256, dtype=np.int32))
+        return EpochPlusSamplingRate(rate='rate', rate_hz=256), cdf
+
+    @data(('_time_matrix', 2, 1), ('_time_matrix', 1, 2), ('_epoch_plus_offsets', 2, 1),
+          ('_epoch_plus_offsets', 1, 2), ('_epoch_plus_rate', 2, 1), ('_epoch_plus_rate', 1, 2))
+    @unpack
+    def test_the_records_present_in_both_are_kept(self, recipe, time_records, data_records):
+        decoder, cdf = getattr(self, recipe)(time_records, data_records)
+        result = decoder.decode(cdf, 'wave')
+        np.testing.assert_array_equal(result.values.reshape(-1), [0, 1, 2, 3])
+        self.assertEqual(len(result.time), 4)
+
+    @data('_time_matrix', '_epoch_plus_offsets', '_epoch_plus_rate')
+    def test_one_warning_names_the_file_and_the_counts(self, recipe):
+        decoder, cdf = getattr(self, recipe)(2, 1)
+        with self.assertLogs('speasy.data_providers.cda._patches.decoders', 'WARNING') as logs:
+            decoder.decode(cdf, 'wave', source='psp_fld_l2_tds_wf_20190415_v00.cdf')
+        self.assertEqual(len(logs.output), 1)
+        self.assertRegex(logs.output[0], r"psp_fld_l2_tds_wf_20190415_v00\.cdf.*'wave'.*1 record.*2 records")

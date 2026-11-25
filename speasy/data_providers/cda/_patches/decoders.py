@@ -1,6 +1,7 @@
 """Decoders turning bucket waveform CDF layouts (one record holds N samples) into flat 1D time series."""
+import logging
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import pycdfpp
@@ -8,6 +9,8 @@ import pycdfpp
 from speasy.core.data_containers import fill_value_mask
 from speasy.core.codecs.bundled_codecs.istp import _fix_attributes_types
 from speasy.products import SpeasyVariable, VariableTimeAxis, DataContainer
+
+log = logging.getLogger(__name__)
 
 _FAR_FUTURE = np.datetime64(np.iinfo(np.int64).max, 'ns')
 _FAR_PAST = np.datetime64(np.iinfo(np.int64).min + 1, 'ns')
@@ -85,6 +88,23 @@ def _build(cdf: pycdfpp.CDF, name: str, times: np.ndarray, values: np.ndarray,
     return _to_variable(cdf, name, times.reshape(-1)[kept], values[kept])
 
 
+def _records(n: int) -> str:
+    return f"{n} record" if n == 1 else f"{n} records"
+
+
+def _same_records(source: str, variable: str, data: np.ndarray, **time_side: np.ndarray) -> Tuple[np.ndarray, ...]:
+    """``data`` and the per-record time-side arrays cut to the records present in all of them: record i of each
+    describes the same bucket, but a file can hold more of one than of the other
+    (psp_fld_l2_tds_wf_20190415_v00.cdf has 2 records of sample times for 1 record of data)."""
+    counts = {name: len(array) for name, array in time_side.items()}
+    kept = min(len(data), *counts.values())
+    if any(count != len(data) for count in counts.values()):
+        others = ', '.join(f"{name!r} has {_records(count)}" for name, count in counts.items())
+        log.warning(f"{source or 'CDF file'}: {variable!r} has {_records(len(data))} but {others}: keeping the "
+                    f"first {_records(kept)}")
+    return (data[:kept],) + tuple(array[:kept] for array in time_side.values())
+
+
 def _offsets_as_timedelta(offsets: np.ndarray, ns_per_unit: float) -> np.ndarray:
     return np.rint(offsets * ns_per_unit).astype('int64').astype('timedelta64[ns]')
 
@@ -103,10 +123,11 @@ class TimeMatrix:
     Samples whose timestamp is below the time variable's VALIDMIN are padding and dropped."""
     time: str
 
-    def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
-        times = _time_values(cdf[self.time])
+    def decode(self, cdf: pycdfpp.CDF, variable: str, source: str = "") -> Optional[SpeasyVariable]:
+        values, times = _same_records(source, variable, cdf[variable].values,
+                                      **{self.time: _time_values(cdf[self.time])})
         valid = _not_padding_mask(cdf[self.time], times)
-        return _build(cdf, variable, times, _samples_first(cdf[variable].values, 1), valid)
+        return _build(cdf, variable, times, _samples_first(values, 1), valid)
 
 
 @dataclass(frozen=True)
@@ -117,10 +138,14 @@ class EpochPlusOffsets:
     sample_axis: int = 1
     epoch: str = "Epoch"
 
-    def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
-        offsets = _offsets_as_timedelta(cdf[self.offsets].values, self.ns_per_unit)
-        times = _time_values(cdf[self.epoch]).reshape(-1, 1) + offsets
-        return _build(cdf, variable, times, _samples_first(cdf[variable].values, self.sample_axis))
+    def decode(self, cdf: pycdfpp.CDF, variable: str, source: str = "") -> Optional[SpeasyVariable]:
+        offsets = cdf[self.offsets].values
+        per_record = {self.epoch: _time_values(cdf[self.epoch]).reshape(-1)}
+        if offsets.shape[0] > 1:  # (1, N) offsets apply to every record
+            per_record[self.offsets] = offsets
+        values, epoch, *per_record_offsets = _same_records(source, variable, cdf[variable].values, **per_record)
+        offsets = _offsets_as_timedelta(per_record_offsets[0] if per_record_offsets else offsets, self.ns_per_unit)
+        return _build(cdf, variable, epoch.reshape(-1, 1) + offsets, _samples_first(values, self.sample_axis))
 
 
 @dataclass(frozen=True)
@@ -132,14 +157,15 @@ class EpochPlusSamplingRate:
     sample_axis: int = 1
     epoch: str = "Epoch"
 
-    def decode(self, cdf: pycdfpp.CDF, variable: str) -> Optional[SpeasyVariable]:
-        rates = cdf[self.rate].values.reshape(-1)
+    def decode(self, cdf: pycdfpp.CDF, variable: str, source: str = "") -> Optional[SpeasyVariable]:
+        values, epoch, rates = _same_records(source, variable, cdf[variable].values,
+                                             **{self.epoch: _time_values(cdf[self.epoch]).reshape(-1),
+                                                self.rate: cdf[self.rate].values.reshape(-1)})
         keep = np.ones(rates.shape, dtype=bool) if self.rate_hz is None else rates == self.rate_hz
-        n_samples = cdf[variable].shape[self.sample_axis]
         periods_ns = 1e9 / rates[keep].astype(np.float64)
-        offsets = _offsets_as_timedelta(np.arange(n_samples) * periods_ns.reshape(-1, 1), 1.0)
-        times = _time_values(cdf[self.epoch]).reshape(-1)[keep].reshape(-1, 1) + offsets
-        return _build(cdf, variable, times, _samples_first(cdf[variable].values[keep], self.sample_axis))
+        offsets = _offsets_as_timedelta(np.arange(values.shape[self.sample_axis]) * periods_ns.reshape(-1, 1), 1.0)
+        times = epoch[keep].reshape(-1, 1) + offsets
+        return _build(cdf, variable, times, _samples_first(values[keep], self.sample_axis))
 
 
 Decoder = Union[TimeMatrix, EpochPlusOffsets, EpochPlusSamplingRate]
