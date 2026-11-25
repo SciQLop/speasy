@@ -119,3 +119,64 @@ speasy products on time series plots are drawn; virtual products, plugin plots a
 skipped. Log scales come from the template, while saved axis ranges are ignored: they record one zoom level
 and would clip other windows. A product that fails to download leaves its plot empty, and the command
 exits with ``1``.
+
+A product can carry a ``reduce`` key, next to its ``knobs``: a list of operations applied to the data before it is
+plotted, so a 3D particle distribution plots as an energy spectrogram. Each operation names what to do along one axis
+and gives its arguments. They are applied in order, so the list below averages over phi, then takes the solid-angle
+weighted average over theta (see :doc:`reducing_axes` for the same in Python):
+
+.. code-block:: yaml
+
+    version: 3
+    name: mms_omni
+    panel:
+      kind: sciqlop.time_panel
+      config: {time_range: null}
+      slots:
+        plots:
+        - kind: sciqlop.timeseries
+          config:
+            z_axis: {log: true}
+            products:
+            - kind: speasy
+              speasy_id: cda/MMS1_FPI_FAST_L2_DIS-DIST/mms1_dis_dist_fast
+              graph_type: SciQLopColorMap
+              reduce:
+              - {op: mean, axis: phi}
+              - {op: mean, axis: theta, weights: [0.0192, 0.0569, ...]}
+
+In the older v2 layout, the key sits at ``plots[i].products[j].reduce``. The operations are:
+
+========================================================== ==========================================================
+Operation                                                  What it does
+========================================================== ==========================================================
+``{"op": "isel", "axis": a, "index": i}``                  keeps position ``i`` (``var[:, ..., i]``); the axis goes
+                                                           away
+``{"op": "isel", "axis": a, "index": [start, stop]}``      keeps positions ``start <= k < stop``
+                                                           (``var[:, ..., start:stop]``)
+``{"op": "sel", "axis": a, "value": x}``                   keeps the value ``x``, exactly, or the closest with
+                                                           ``"method": "nearest"``; the axis goes away
+``{"op": "sel", "axis": a, "value": [lo, hi]}``            keeps the values within ``[lo, hi]``, both included
+``{"op": "sum", "axis": a}``                               sums the values, fill values and NaN ignored; NaN where
+                                                           all are missing
+``{"op": "mean", "axis": a}``                              averages the values, fill values and NaN ignored
+``{"op": "mean", "axis": a, "weights": [...]}``            weighted average, one weight per value of the axis; a
+                                                           missing value drops out of the weights too
+``{"op": "integrate", "axis": a, "edges": [...]}``         sums each value times its bin width, edges optional (see
+                                                           :doc:`reducing_axes`); the unit is multiplied by the
+                                                           axis'
+========================================================== ==========================================================
+
+``a`` is an axis name, a part of one matching a single axis (ignoring case), or a dimension. Values are in the axis
+unit. A malformed ``reduce`` stops the command before anything is downloaded, with the product named; one that does
+not fit the data, an axis that is not there for instance, counts as a failed product.
+
+Tools that read templates can apply ``reduce`` exactly as ``speasy quicklook`` does, by calling speasy's own code;
+SciQLop does:
+
+.. code-block:: python
+
+    from speasy.plotting.sciqlop_template import OPERATIONS, apply_operations
+
+    reduced = apply_operations(var, product["reduce"])   # var: what spz.get_data returned
+    sorted(OPERATIONS)                                   # the op names it accepts

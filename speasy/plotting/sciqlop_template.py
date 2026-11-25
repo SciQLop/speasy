@@ -2,13 +2,36 @@
 
 Only what Speasy can fetch on its own is kept: speasy products on time series plots. Everything else
 (virtual products, plugin plots and panels, ...) is listed in ``Template.skipped`` instead.
+
+A product's optional ``reduce`` key, next to its ``knobs``, is a list of operations applied after ``get_data``, in
+order. Each is a dict naming the operation and its arguments, so any tool implements it in a few lines::
+
+    {"op": "isel", "axis": a, "index": i | [start, stop]}
+    {"op": "sel", "axis": a, "value": x | [lo, hi], "method": "nearest"}     # method optional
+    {"op": "sum", "axis": a}
+    {"op": "mean", "axis": a, "weights": [w, ...]}                           # weights optional
+    {"op": "integrate", "axis": a, "edges": [e, ...]}                        # edges optional
+
+``a`` is an axis name, a part of one matching a single axis, or a dimension. Here ``isel`` is indexing, ``sel`` and
+``integrate`` are :mod:`speasy.signal.reduction`'s, ``sum`` and ``mean`` are numpy's nan-aware ones on the data with
+fill values replaced by NaN, NaN where every value is missing. The list is checked at load.
+
+SciQLop and other tools that read templates apply ``reduce`` with :func:`apply_operations`, so a product is reduced
+exactly as ``speasy quicklook`` does, and read :data:`OPERATIONS` for the op names.
 """
 import json
 import os
+import warnings
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Tuple
 
+import numpy as np
 import yaml
+
+from speasy.signal import reduction
+
+__all__ = ['OPERATIONS', 'apply_operations']
+
 
 SPEASY_PRODUCT_KINDS = ('sciqlop.speasy', 'speasy')
 TIME_PANEL = 'sciqlop.time_panel'
@@ -24,6 +47,7 @@ class Product:
     colormap: bool = False
     right_axis: bool = False
     kwargs: dict = field(default_factory=dict)
+    reduce: tuple = ()  # operations applied after get_data, see apply_operations
 
 
 @dataclass(frozen=True)
@@ -40,6 +64,109 @@ class Template:
     time_range: Optional[Tuple[str, str]]
     plots: Tuple[PlotSpec, ...]
     skipped: Tuple[str, ...] = ()
+
+
+def _isel(var, dimension: int, index):
+    return var[(slice(None),) * dimension + (slice(*index) if isinstance(index, (list, tuple)) else index,)]
+
+
+def _with_nan(var):
+    return var.replace_fillval_by_nan(convert_to_float=True)
+
+
+def _all_missing_as_nan(result, values: np.ndarray, dimension: int):
+    result.values[np.all(np.isnan(values), axis=dimension)] = np.nan
+    return result
+
+
+def _sum(var, dimension: int):
+    var = _with_nan(var)
+    return _all_missing_as_nan(np.nansum(var, axis=dimension), var.values, dimension)
+
+
+def _weights_along(var, dimension: int, weights) -> np.ndarray:
+    weights = np.asarray(getattr(weights, 'values', weights), dtype=float)
+    axis = var.axes[dimension]
+    if weights.shape != axis.values.shape[-1:]:
+        raise ValueError(f"weights for {axis.name!r} must have shape {axis.values.shape[-1:]}, got {weights.shape}")
+    shape = [1] * var.values.ndim
+    shape[dimension] = weights.shape[0]
+    return np.broadcast_to(weights.reshape(shape), var.values.shape)
+
+
+def _mean(var, dimension: int, weights=None):
+    var = _with_nan(var)
+    if weights is None:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)  # "Mean of empty slice" where all values are missing
+            return np.nanmean(var, axis=dimension)
+    weights = np.where(np.isnan(var.values), 0., _weights_along(var, dimension, weights))
+    result = np.nansum(var, axis=dimension)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        result.values[...] = np.nansum(var.values * weights, axis=dimension) / np.sum(weights, axis=dimension)
+    return result
+
+
+#: The ``reduce`` operations, by name: ``(implementation, required keys, optional keys)``. The implementation takes
+#: the variable, the dimension the op's ``axis`` resolves to, and the op's other keys. Its keys are the op names
+#: SciQLop and other tools accept; the tuples are speasy's own business.
+OPERATIONS = {
+    'isel': (_isel, ('index',), ()),
+    'sel': (reduction.sel, ('value',), ('method',)),
+    'sum': (_sum, (), ()),
+    'mean': (_mean, (), ('weights',)),
+    'integrate': (reduction.integrate, (), ('edges',)),
+}
+
+
+def _usage(name: str) -> str:
+    _, required, optional = OPERATIONS[name]
+    usage = f"{name} takes " + ', '.join(repr(key) for key in ('axis', *required))
+    return usage + (" and optionally " + ', '.join(map(repr, optional)) if optional else '')
+
+
+def _checked(op: dict) -> dict:
+    if not isinstance(op, dict):
+        raise ValueError(f"each operation is a dict like {{'op': 'mean', 'axis': 'phi'}}, got {op!r}")
+    name = op.get('op')
+    if name not in OPERATIONS:
+        raise ValueError(f"'op' must be one of {', '.join(OPERATIONS)}, got {op!r}")
+    _, required, optional = OPERATIONS[name]
+    options = set(op) - {'op', 'axis'}
+    if 'axis' not in op or not set(required) <= options <= set(required) | set(optional):
+        raise ValueError(f"{_usage(name)}, got {op!r}")
+    return op
+
+
+def checked_operations(operations) -> tuple:
+    """Checks a ``reduce`` list without applying it, e.g. when a template is loaded.
+
+    :param operations: a list (or tuple) of dicts, each with ``op``, ``axis`` and that op's keys
+    :return: the operations as a tuple
+    :raises ValueError: when ``operations`` is not a list, or an op is unknown, misses a key or has an unknown one;
+        the message names the op and the keys it takes
+    """
+    if not isinstance(operations, (list, tuple)):
+        raise ValueError(f"expected a list of operations like [{{'op': 'mean', 'axis': 'phi'}}], got {operations!r}")
+    return tuple(_checked(op) for op in operations)
+
+
+def apply_operations(var, operations):
+    """Applies a template product's ``reduce`` list to a variable, as ``speasy quicklook`` does.
+
+    SciQLop and other tools that read templates call it, so every tool reduces a product the same way.
+
+    :param var: the :class:`~speasy.products.variable.SpeasyVariable` ``get_data`` returned
+    :param operations: the product's ``reduce`` list, applied in order
+    :return: the reduced variable; every op returns a new one, ``var`` is left as it was
+    :raises ValueError: when the list is malformed (see :func:`checked_operations`, checked before any op runs), or
+        an ``axis`` matches no axis, several, or time (see :func:`speasy.signal.reduction.dimension`), or an op
+        cannot run on this data, e.g. ``sel`` finds no value in its range
+    """
+    for op in checked_operations(operations):
+        options = {key: value for key, value in op.items() if key not in ('op', 'axis')}
+        var = OPERATIONS[op['op']][0](var, reduction.dimension(var, op['axis']), **options)
+    return var
 
 
 class _TemplateLoader(yaml.SafeLoader):
@@ -81,8 +208,15 @@ def _speasy_id(product: dict, resolve_path) -> Optional[str]:
     return resolve_path(segments[1:]) if segments[0] == 'speasy' and len(segments) > 1 else None
 
 
+def _reduce(product: dict, name: str) -> tuple:
+    try:
+        return checked_operations(product.get('reduce') or [])
+    except ValueError as e:
+        raise ValueError(f"product {name}: 'reduce': {e}") from None
+
+
 def _product(product: dict, resolve_path) -> Tuple[Optional[Product], Optional[str]]:
-    name = product.get('path') or product.get('label') or '<unnamed>'
+    name = product.get('path') or product.get('label') or product.get('speasy_id') or '<unnamed>'
     if product.get('kind') not in SPEASY_PRODUCT_KINDS:
         return None, f"product {name}: its source is '{product.get('kind')}', only speasy products can be rendered"
     speasy_id = _speasy_id(product, resolve_path)
@@ -92,7 +226,7 @@ def _product(product: dict, resolve_path) -> Tuple[Optional[Product], Optional[s
     colormap = 'ColorMap' in product.get('graph_type', '')
     return Product(speasy_id=speasy_id, label=product.get('label', ''), colormap=colormap,
                    right_axis=product.get('y_axis', 'y2' if colormap else 'y') == 'y2',
-                   kwargs=_kwargs(product.get('knobs') or {})), None
+                   kwargs=_kwargs(product.get('knobs') or {}), reduce=_reduce(product, name)), None
 
 
 def _log(axis: Optional[dict], default=False):

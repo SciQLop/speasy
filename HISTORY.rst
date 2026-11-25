@@ -14,6 +14,9 @@ New features:
 * ``speasy.signal.reduction`` adds what numpy can't do along an axis: ``dimension`` (find an axis by name, or part of
   one), ``sel`` (select by value, as in xarray) and ``integrate`` (value times bin width) (docs: "Selecting and
   reducing axes").
+* ``speasy quicklook`` applies a product's ``reduce`` key from the SciQLop template before plotting: a list of
+  operations (``isel``, ``sel``, ``sum``, ``mean``, ``integrate``) along named axes,
+  ``[{"op": "mean", "axis": "phi"}, ...]``, so a 3D particle distribution can be drawn as an energy spectrogram.
 * ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
   DELTA_MINUS_VAR. Data cached before has none, and ``integrate`` then takes the widths from the midpoints between
   the axis values.
