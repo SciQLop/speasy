@@ -52,7 +52,7 @@ def to_dataset_and_variable(index_or_str: ParameterIndex | str) -> Tuple[str, st
         raise TypeError(f"given parameter {index_or_str} of type {type(index_or_str)} is not a compatible index")
     if len(parts) != 2:
         raise UnknownProduct(f"CSA product id {index_or_str!r} must look like 'DATASET/variable', "
-                         f"e.g. 'C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN'")
+                             f"e.g. 'C1_CP_FGM_SPIN/B_vec_xyz_gse__C1_CP_FGM_SPIN'")
     return parts[0], parts[1]
 
 

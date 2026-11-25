@@ -72,7 +72,7 @@ def provider_class(name: str) -> type:
     cls = _PROVIDER_CLASSES.get(name)
     if cls is None:
         raise UnknownProvider(f"Unknown provider {name!r}, use one of {sorted(registered_providers())} "
-                         f"or one of their alternative names")
+                              f"or one of their alternative names")
     return cls
 
 

@@ -12,6 +12,7 @@ from unittest import mock
 import numpy as np
 
 from speasy.core.data_containers import DataContainer, VariableTimeAxis
+from speasy.core.exceptions import UnknownDataset, UnknownParameter
 from speasy.core.hapi.exceptions import HapiRequestError
 from speasy.core.hapi import inventory as hapi_inventory
 from speasy.core.hapi.inventory import HapiDatasetIndex, HapiServerIndex
@@ -417,6 +418,28 @@ class TestGetData(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, r"(?s)'v2/dataset1' is a HAPI dataset.*one by one.*hapi\.v2"):
                 self._get('v2/dataset1')
 
+    def test_unknown_dataset_error_names_it(self):
+        with _hapi_provider() as provider:
+            with self.assertRaisesRegex(UnknownDataset, r"(?s)Unknown HAPI dataset 'v2/nope'.*hapi\.v2"):
+                provider.dataset_range('v2/nope')
+
+    def test_a_dataset_dropped_by_an_inventory_update_during_get_data_says_so(self):
+        # the update lands between the parameter lookup and the dataset lookup
+        v2 = SERVERS['https://fake/v2/hapi']
+        with _hapi_provider() as provider:
+            tree.hapi.v2.dataset1.scalar
+            find = provider._find
+
+            def update_then_find(uid, kind):
+                if kind == 'datasets':
+                    provider._find = find
+                    provider.update_inventory()
+                return find(uid, kind)
+            provider._find = update_then_find
+            with mock.patch.dict(v2, {'catalog': [e for e in v2['catalog'] if e['id'] != 'dataset1']}), \
+                    self.assertRaisesRegex(UnknownDataset, r"(?s)'v2/dataset1' is no longer listed.*hapi\.v2"):
+                self._get('v2/dataset1/scalar')
+
     def test_unreachable_server_error_is_raised(self):
         with _hapi_provider():
             with self.assertRaisesRegex(ConnectionError, r"(?s)'down'.*unreachable.*disabled_servers"):
@@ -469,6 +492,12 @@ class TestThroughTheProxy(unittest.TestCase):
         with _hapi_provider(proxy=proxy):
             self._get(tree.hapi.v3.dataset1.vector)
             self.assertEqual(proxy.data_requests, ['hapi/v3/dataset1/vector'])
+
+    def test_an_unknown_product_of_a_server_the_proxy_filled_contacts_no_server(self):
+        with _hapi_provider(proxy=FakeProxy()):
+            with self.assertRaisesRegex(UnknownParameter, "'v3/dataset1/nope'"):
+                self._get('hapi/v3/dataset1/nope')
+            self.assertEqual(FakeClient.instances, [])
 
     def test_a_failing_proxy_falls_back_to_the_server_of_the_proxy_tree(self):
         proxy = FakeProxy(fails=True)

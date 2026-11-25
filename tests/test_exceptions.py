@@ -52,6 +52,23 @@ class UnknownIdsRaiseUnknownProduct(unittest.TestCase):
             provider_class("not_a_provider")
 
 
+    def test_an_unknown_csa_dataset_has_no_last_update(self):
+        # it was a bare KeyError
+        from speasy.core.exceptions import UnknownDataset
+        with self.assertRaisesRegex(UnknownDataset, "Unknown dataset: NOT_A_DATASET"):
+            spz.csa.product_last_update("NOT_A_DATASET/not_a_variable")
+
+    def test_an_unknown_amda_product_has_no_parent_dataset(self):
+        from speasy.core.exceptions import UnknownProduct
+        with self.assertRaisesRegex(UnknownProduct, "Unknown product: this_product_does_not_exist"):
+            spz.amda.find_parent_dataset("this_product_does_not_exist")
+
+    def test_initializing_an_unknown_provider(self):
+        from speasy.core.exceptions import UnknownProvider
+        from speasy.core.requests_scheduling.request_dispatch import init_provider
+        with self.assertRaisesRegex(UnknownProvider, "Unknown provider 'not_a_provider'"):
+            init_provider("not_a_provider")
+
 EXCEPTIONS = {
     "speasy.core.hapi.exceptions": ("HapiError", "HapiRequestError", "HapiServerError", "HapiNoData",
                                     "HapiServerUnavailable"),
