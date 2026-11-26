@@ -2,6 +2,15 @@
 History
 =======
 
+Unreleased
+----------
+
+Bug fixes:
+
+* HAPI spectra (a 1-D array with bins, such as the das2 Cassini RPWS and LISIRD spectra) and REIMEI ``total`` and
+  ``gomi`` counts carry ``DISPLAY_TYPE`` spectrogram, on the inventory node and the data. SciQLop drew them as one
+  line per bin.
+
 1.10.0 (2026-11-26)
 -------------------
 
