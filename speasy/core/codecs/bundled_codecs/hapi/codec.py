@@ -37,12 +37,21 @@ def _decode_fill_value(fill: Any, hapi_type: str) -> Any:
         return None
 
 
+def is_spectrum(parameter: Mapping[str, Any]) -> bool:
+    # HAPI has no display hint, but a 1-D array described by bins is a spectrum (HAPI 3.3 §3.6.7, bins): clients that
+    # choose a spectrogram from ISTP's DISPLAY_TYPE, as SciQLop does, would otherwise draw one line per bin.
+    size = parameter.get("size") or []
+    return bool(parameter.get("bins")) and len(size) == 1 and size[0] > 1
+
+
 def _decode_meta(meta: Dict[str, Any]) -> Dict[str, Any]:
     if "units" in meta:
         meta["UNITS"] = meta.pop("units")
     fill = _decode_fill_value(meta.pop("fill", None), meta.get("type", ""))
     if fill is not None:
         meta["FILLVAL"] = fill
+    if is_spectrum(meta):
+        meta["DISPLAY_TYPE"] = "spectrogram"
     return meta
 
 def _hapi_size(shape: Tuple[int, ...]) -> List[int]:

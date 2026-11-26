@@ -1,6 +1,9 @@
+import os
 import unittest
 
 import numpy as np
+
+import speasy
 
 from speasy.core.codecs import get_codec
 
@@ -102,6 +105,29 @@ class ReimeiL2FromDarts(unittest.TestCase):
         self.assertEqual(counts.time[0], np.datetime64("2008-02-29T11:14:27.3097", "ns"))
         self.assertEqual(counts.axes[1].values[2], 11400.0)
         self.assertEqual(counts.axes[2].values[4], 148.84)
+
+
+class ReimeiArchiveNodes(unittest.TestCase):
+    """SciQLop picks a spectrogram from the node's DISPLAY_TYPE (ISTP). The archive also copies it into the data."""
+
+    def setUp(self):
+        from speasy.core.inventory.indexes import SpeasyIndex
+        from speasy.data_providers.generic_archive import load_inventory_file
+        self.root = SpeasyIndex(name='archive', provider='archive', uid='')
+        load_inventory_file(os.path.join(os.path.dirname(speasy.__file__), 'data', 'archive', 'reimei.yaml'), self.root)
+
+    def test_energy_spectra_are_spectrograms(self):
+        for instrument in ("esa_l2", "isa_l2"):
+            for name in ("total", "gomi"):
+                with self.subTest(instrument=instrument, name=name):
+                    node = getattr(getattr(self.root.darts.REIMEI, instrument), name)
+                    self.assertEqual(node.DISPLAY_TYPE, "spectrogram")
+
+    def test_the_3d_distribution_has_no_display_type(self):
+        # time x energy x channel: a spectrogram only after a reduction over one of its axes.
+        for instrument in ("esa_l2", "isa_l2"):
+            with self.subTest(instrument=instrument):
+                self.assertNotIn("DISPLAY_TYPE", getattr(self.root.darts.REIMEI, instrument).counts.__dict__)
 
 
 class ReimeiInTheArchive(unittest.TestCase):
