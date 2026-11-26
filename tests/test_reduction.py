@@ -62,6 +62,22 @@ class Dimension(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r"(?s)No axis 3.*'x' \(1\), 'y' \(2\)"):
             dimension(v, 3)
 
+    def test_an_axis_is_a_name_or_an_integer_nothing_else(self):
+        v = _variable()
+        self.assertEqual(dimension(v, np.int64(2)), 2)
+        for axis in (1.5, True, None, [1]):
+            with self.subTest(axis=axis), self.assertRaisesRegex(
+                    TypeError, r"axis is an axis name or a dimension \(an int\), got"):
+                dimension(v, axis)
+
+    def test_a_variable_with_only_time_says_so(self):
+        table = SpeasyVariable(axes=[VariableTimeAxis(values=_TIME)],
+                               values=DataContainer(np.ones((_T, 3)), name='b'), columns=['Bx', 'By', 'Bz'])
+        for axis in ('Bx', 1):
+            with self.subTest(axis=axis), self.assertRaisesRegex(
+                    ValueError, r"No axis .*: this variable has no axis besides time"):
+                dimension(table, axis)
+
     def test_two_axes_with_the_same_name_need_a_dimension(self):
         v = _variable(axes=[_axis(_X, 'x'), _axis(_Y, 'x')])
         with self.assertRaisesRegex(ValueError, r"Several axes are named 'x'.*dimension"):

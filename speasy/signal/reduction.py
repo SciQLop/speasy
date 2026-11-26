@@ -28,6 +28,12 @@ def _axes_list(var) -> str:
     return ', '.join(f"{axis.name!r} ({i})" for i, axis in enumerate(var.axes[1:], 1))
 
 
+def _no_axis(var, axis, how: str) -> ValueError:
+    if len(var.axes) < 2:
+        return ValueError(f"No axis {axis!r}: this variable has no axis besides time")
+    return ValueError(f"No axis {axis!r}: give one of {_axes_list(var)}, {how}")
+
+
 def _named(var, name: str) -> int:
     """The axis named exactly ``name``, else the only non-time axis whose name contains it, ignoring case."""
     exact = [i for i, axis in enumerate(var.axes) if axis.name == name]
@@ -37,7 +43,7 @@ def _named(var, name: str) -> int:
         raise ValueError(f"Several axes are named {name!r}: give its dimension instead, one of {_axes_list(var)}")
     found = [i for i, axis in enumerate(var.axes[1:], 1) if name.lower() in axis.name.lower()]
     if not found:
-        raise ValueError(f"No axis {name!r}: give one of {_axes_list(var)}, by name, part of a name, or dimension")
+        raise _no_axis(var, name, "by name, part of a name, or dimension")
     if len(found) > 1:
         matches = ', '.join(f"{var.axes[i].name!r} ({i})" for i in found)
         raise ValueError(f"{name!r} matches several axes, {matches}: give more of the name, or the dimension")
@@ -54,13 +60,15 @@ def _array(given) -> np.ndarray:
 def dimension(var, axis: Axis) -> int:
     """The dimension of ``axis`` in ``var.values``, for numpy's ``axis=``: ``axis`` is an exact axis name, a part of a
     name matching a single axis (ignoring case), or a dimension (negative counts from the end). Time is refused."""
+    if not isinstance(axis, (str, int, np.integer)) or isinstance(axis, bool):
+        raise TypeError(f"axis is an axis name or a dimension (an int), got {axis!r}")
     index = _named(var, axis) if isinstance(axis, str) else int(axis)
     if -len(var.axes) < index < 0:
         index += len(var.axes)
     if index == 0:
         raise ValueError("The time axis is not one to reduce: select time with the requested range, or v[start:stop]")
     if not 0 < index < len(var.axes):
-        raise ValueError(f"No axis {axis!r}: give one of {_axes_list(var)}, by name or dimension")
+        raise _no_axis(var, axis, "by name or dimension")
     return index
 
 
