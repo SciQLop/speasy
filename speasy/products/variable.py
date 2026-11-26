@@ -289,10 +289,11 @@ class SpeasyVariable(SpeasyProduct):
         SpeasyVariable
             a SpeasyVariable with only selected columns
         """
-        unknown = [c for c in columns if c not in self.__columns]
+        labels = self.__labels()
+        unknown = [c for c in columns if c not in labels]
         if unknown:
-            raise KeyError(f"Unknown column(s) {unknown}, this variable has {self.__columns}")
-        indexes = list(map(lambda v: self.__columns.index(v), columns))
+            raise KeyError(f"Unknown column(s) {unknown}, this variable has {labels}")
+        indexes = [labels.index(c) for c in columns]
         if len(self.__axes) == 1:
             axes = deepcopy(self.__axes)
         elif len(self.__axes) == 2:
@@ -414,14 +415,20 @@ class SpeasyVariable(SpeasyProduct):
             return list(self.__columns[index])
         return [f"column_{i}" for i in range(values.shape[1] if values.ndim > 1 else 1)]
 
+    def __labels(self) -> List[str]:
+        """The column names; a variable without any, as sel and integrate return, gets numpy's column_i ones."""
+        if self.__columns or self.values.ndim < 2:
+            return self.__columns
+        return [f"column_{i}" for i in range(self.values.shape[1])]
+
     def __column_names(self, selection) -> List[str]:
-        if isinstance(selection, str):
-            return [selection]
-        if isinstance(selection, (int, np.integer)):
-            return [self.columns[selection]]
+        labels = self.__labels()
         if isinstance(selection, slice):
-            return self.columns[selection]
-        return [c if isinstance(c, str) else self.columns[c] for c in selection]
+            return labels[selection]
+        selection = [selection] if isinstance(selection, (str, int, np.integer)) else selection
+        if any(not isinstance(c, str) and not -len(labels) <= c < len(labels) for c in selection):
+            raise IndexError(f"Column {selection} is out of range for a SpeasyVariable with {len(labels)} columns")
+        return [c if isinstance(c, str) else labels[c] for c in selection]
 
     def __row_slice(self, index: int) -> slice:
         if not -len(self) <= index < len(self):
