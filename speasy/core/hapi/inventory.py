@@ -10,6 +10,7 @@ from threading import Lock
 from typing import Callable, Dict, Iterable, List, Mapping, Optional
 
 from speasy.core import fix_name
+from speasy.core.codecs.bundled_codecs.hapi.codec import is_spectrum
 from speasy.core.codecs.bundled_codecs.hapi.isotime import calendar_isotime
 from speasy.core.inventory.indexes import DatasetIndex, ParameterIndex, SpeasyIndex
 
@@ -179,6 +180,8 @@ def _has_dates(info: Mapping) -> bool:
 def _add_parameter(dataset: DatasetIndex, parameter: Mapping) -> None:
     meta = {**parameter, 'dataset': dataset.spz_uid(), 'start_date': dataset.__dict__.get('start_date'),
             'stop_date': dataset.__dict__.get('stop_date')}
+    if is_spectrum(parameter):
+        meta['DISPLAY_TYPE'] = 'spectrogram'
     uid = f"{dataset.spz_uid()}/{parameter['name']}"
     _new_child(dataset, parameter['name'],
                lambda n: ParameterIndex(name=n, provider=dataset.spz_provider(), uid=uid, meta=meta))

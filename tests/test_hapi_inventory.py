@@ -122,6 +122,35 @@ def _info(*names):
             'parameters': [{'name': 'Time', 'type': 'isotime'}] + [{'name': n, 'type': 'double'} for n in names]}
 
 
+def _binned_info():
+    frequency = {'name': 'frequency', 'units': 'Hz', 'centers': [1., 2., 4.]}
+    angle = {'name': 'angle', 'units': 'deg', 'centers': [0., 90.]}
+    info = _info('scalar')
+    info['parameters'] += [
+        {'name': 'spectrum', 'type': 'double', 'size': [3], 'bins': [frequency]},
+        {'name': 'vector', 'type': 'double', 'size': [3]},
+        {'name': 'one_bin', 'type': 'double', 'size': [1], 'bins': [dict(frequency, centers=[1.])]},
+        {'name': 'distribution', 'type': 'double', 'size': [3, 2], 'bins': [frequency, angle]},
+    ]
+    return info
+
+
+class TestDisplayType(unittest.TestCase):
+    """SciQLop and other clients choose a spectrogram from DISPLAY_TYPE, as for ISTP products. HAPI has no display
+    hint, but a 1-D array described by bins is a spectrum (HAPI 3.3 §3.6.7, bins)."""
+
+    def setUp(self):
+        self.ds = _build([{'id': 'ds', 'info': _binned_info()}]).ds
+
+    def test_a_1d_array_with_bins_is_a_spectrogram(self):
+        self.assertEqual(self.ds.spectrum.DISPLAY_TYPE, 'spectrogram')
+
+    def test_parameters_that_are_not_spectra_get_no_display_type(self):
+        for name in ('scalar', 'vector', 'one_bin', 'distribution'):
+            with self.subTest(name):
+                self.assertNotIn('DISPLAY_TYPE', getattr(self.ds, name).__dict__)
+
+
 class TestIdentifiers(unittest.TestCase):
     def test_slashes_in_dataset_ids_become_levels(self):
         root = _build([{'id': 'data/IBEX/ENA/AVG5MIN', 'title': 't', 'info': _info('flux')},

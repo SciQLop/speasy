@@ -194,6 +194,27 @@ class TestHapiCsvCodec(unittest.TestCase):
         self.assertEqual(v_axis.shape, (4,))
         self.assertEqual(v_axis.unit, "MeV")
 
+    @data(('HAPI_ndData_TimeIndependent_Axis.csv', 'ace_epam_de_e'),
+          ('HAPI_ndData_TimeVarying_Axis.csv', 'spectra_time_dependent_bins'))
+    @unpack
+    def test_a_1d_array_with_bins_is_a_spectrogram(self, csv_file, name):
+        filepath = os.path.join(__HERE__, 'resources', csv_file)
+        v = get_codec('hapi/csv').load_variable(variable=name, file=filepath, disable_cache=True)
+        self.assertEqual(v.meta['DISPLAY_TYPE'], 'spectrogram')
+
+    def test_a_2d_array_with_bins_gets_no_display_type(self):
+        header = {"HAPI": "3.2", "startDate": "2020-01-01T00:00:00Z", "stopDate": "2020-01-01T00:00:01Z",
+                  "format": "csv", "status": {"code": 1200, "message": "OK"},
+                  "parameters": [
+                      {"name": "Time", "type": "isotime", "units": "UTC", "fill": None, "length": 24},
+                      {"name": "v", "type": "double", "units": None, "fill": None, "size": [2, 2],
+                       "bins": [{"name": "angle", "units": "deg", "centers": [45., 135.]},
+                                {"name": "energy", "units": "keV", "centers": [5., 15.]}]}]}
+        payload = ("#" + json.dumps(header) + "\n2020-01-01T00:00:00.000Z,1,2,3,4\n").encode()
+        v = get_codec("hapi/csv").load_variable(variable="v", file=io.BytesIO(payload), disable_cache=True)
+        self.assertEqual(v.values.ndim, 3)
+        self.assertNotIn('DISPLAY_TYPE', v.meta)
+
     def test_reads_the_fill_value_from_the_headers(self):
         hapi_csv_codec: CodecInterface = get_codec('hapi/csv')
         filepath = os.path.join(__HERE__, 'resources', 'HAPI_sample_csv.csv')
