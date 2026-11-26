@@ -81,12 +81,9 @@ def _delta_values(istp_loader: pyistp.loader.ISTPLoader, name: str, values: np.n
 
 def _axis_deltas(istp_loader, axis, values: np.ndarray) -> dict:
     """An axis variable's DELTA_PLUS_VAR / DELTA_MINUS_VAR are its bin half widths; those of a data variable are
-    error bars and are never read here. One given alone is used for both sides."""
-    plus = _delta_values(istp_loader, axis.attributes.get('DELTA_PLUS_VAR'), values)
-    minus = _delta_values(istp_loader, axis.attributes.get('DELTA_MINUS_VAR'), values)
-    if plus is None and minus is None:
-        return {}
-    return {'delta_plus': plus if plus is not None else minus, 'delta_minus': minus if minus is not None else plus}
+    error bars and are never read here. ISTP 5.2.7 uses them as a pair; a side the file doesn't give stays None."""
+    return {'delta_plus': _delta_values(istp_loader, axis.attributes.get('DELTA_PLUS_VAR'), values),
+            'delta_minus': _delta_values(istp_loader, axis.attributes.get('DELTA_MINUS_VAR'), values)}
 
 
 def _make_axis(istp_loader, axis, time_axis_name, n_records):
