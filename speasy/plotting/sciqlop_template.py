@@ -125,6 +125,12 @@ def _usage(name: str) -> str:
     return usage + (" and optionally " + ', '.join(map(repr, optional)) if optional else '')
 
 
+def _is_index(index) -> bool:
+    def position(i):
+        return isinstance(i, int) and not isinstance(i, bool)
+    return position(index) or (isinstance(index, (list, tuple)) and len(index) == 2 and all(map(position, index)))
+
+
 def _checked(op: dict) -> dict:
     if not isinstance(op, dict):
         raise ValueError(f"each operation is a dict like {{'op': 'mean', 'axis': 'phi'}}, got {op!r}")
@@ -135,6 +141,8 @@ def _checked(op: dict) -> dict:
     options = set(op) - {'op', 'axis'}
     if 'axis' not in op or not set(required) <= options <= set(required) | set(optional):
         raise ValueError(f"{_usage(name)}, got {op!r}")
+    if name == 'isel' and not _is_index(op['index']):
+        raise ValueError(f"isel's 'index' is a position like 3 or a [start, stop] pair like [1, 3], got {op!r}")
     return op
 
 
