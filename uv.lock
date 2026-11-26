@@ -4467,7 +4467,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "packaging" },
     { name = "pandas" },
-    { name = "pycdfpp", specifier = ">=0.15.0" },
+    { name = "pycdfpp", specifier = ">=0.17.0" },
     { name = "pyistp", specifier = ">=0.9.3" },
     { name = "pysciqlop-cache", marker = "sys_platform != 'emscripten'", specifier = ">=0.4.2,<0.5" },
     { name = "pysocks" },
