@@ -3411,16 +3411,16 @@ wheels = [
 
 [[package]]
 name = "pyistp"
-version = "0.9.2"
+version = "0.9.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "netcdf4", version = "1.7.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' and platform_machine == 'ARM64' and sys_platform == 'win32'" },
     { name = "netcdf4", version = "1.7.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and sys_platform == 'win32') or (platform_machine != 'ARM64' and sys_platform == 'win32') or (sys_platform != 'emscripten' and sys_platform != 'win32')" },
     { name = "pycdfpp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/df/c9/1ef6bf2230295946eb849b34563c0d57186907e5e37dbcd74df998188811/pyistp-0.9.2.tar.gz", hash = "sha256:40c47e8f03f3c16c718dd3ae57dcb472311e41e95d2b85d496dae5d2d1ff047e", size = 12641, upload-time = "2026-11-20T17:01:13.376Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/aa/0b62a1fe11ed6712c707cd4989cc7060bed3cf67a4fdb9535797aeb82edd/pyistp-0.9.3.tar.gz", hash = "sha256:0a6960591f5f225191978b765f21c192d4a53e8f6363f184e2ea6646b98bfc56", size = 13192, upload-time = "2026-11-26T12:01:02.506Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/b5/720f8c40ed2a5143c51e0a75d5aa407950f1a72bbc03f8c6ad53b6891394/pyistp-0.9.2-py3-none-any.whl", hash = "sha256:942d7e26f85af69017abcfec9f06389365d8bc786a9d5a090553f6fb5652dce4", size = 15058, upload-time = "2026-11-20T17:01:12.295Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/ff/a4fe7a9a8b9f06ee3a9a025fbd647789ae816628174ee7e176ac340cb9b4/pyistp-0.9.3-py3-none-any.whl", hash = "sha256:54e970f42a3aa07443579dc44e43f1dea3a528f79e7f7512cc74bb60f37aabb4", size = 15654, upload-time = "2026-11-26T12:01:01.651Z" },
 ]
 
 [[package]]
@@ -4468,7 +4468,7 @@ requires-dist = [
     { name = "packaging" },
     { name = "pandas" },
     { name = "pycdfpp", specifier = ">=0.15.0" },
-    { name = "pyistp", specifier = ">=0.9.2" },
+    { name = "pyistp", specifier = ">=0.9.3" },
     { name = "pysciqlop-cache", marker = "sys_platform != 'emscripten'", specifier = ">=0.4.2,<0.5" },
     { name = "pysocks" },
     { name = "python-dateutil" },
