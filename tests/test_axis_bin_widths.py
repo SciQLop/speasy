@@ -180,7 +180,38 @@ class IstpCodecLoadsAxisDeltas(unittest.TestCase):
 
     def test_a_delta_of_the_wrong_shape_is_ignored(self):
         deltas = {"energy_dp": (np.ones((1, 3)), {"VAR_TYPE": "support_data"})}
-        self.assertIsNone(_load("flux", {"DELTA_PLUS_VAR": "energy_dp"}, deltas).axes[1].delta_plus)
+        with self.assertLogs('speasy', level='DEBUG') as logs:
+            v = _load("flux", {"DELTA_PLUS_VAR": "energy_dp"}, deltas)
+        self.assertIsNone(v.axes[1].delta_plus)
+        self.assertTrue(any("constant DELTA of energy" in line and "(3,)" in line for line in logs.output),
+                        logs.output)
+
+    def test_a_record_varying_delta_of_the_wrong_shape_is_ignored(self):
+        deltas = {"energy_dp": (np.ones((_N, 3)), {"VAR_TYPE": "support_data", "DEPEND_0": "Epoch"})}
+        with self.assertLogs('speasy', level='DEBUG') as logs:
+            v = _load("flux_tv", {}, {**_DELTAS, **deltas})
+        self.assertIsNone(v.axes[1].delta_plus)
+        self.assertTrue(any("energy_tv" in line and "(6, 3)" in line for line in logs.output), logs.output)
+
+
+class IstpCodecLoadsDeltaValueAttributes(unittest.TestCase):
+    """DELTA_PLUS / DELTA_MINUS holding the values themselves (CAA-MDD-0001 Table 12; ISTP 5.2.6, a proposal): they
+    apply to every record."""
+
+    def test_a_single_value_applies_to_every_bin_and_record(self):
+        v = _load("flux", {"DELTA_PLUS": 5.0, "DELTA_MINUS": 0.0}, {})
+        np.testing.assert_array_equal(v.axes[1].delta_plus, np.full(_E, 5.0))
+        np.testing.assert_array_equal(v.axes[1].delta_minus, np.zeros(_E))
+
+    def test_one_value_per_bin(self):
+        v = _load("flux", {"DELTA_PLUS": _DP, "DELTA_MINUS": _DM}, {})
+        np.testing.assert_array_equal(v.axes[1].delta_plus, _DP)
+        np.testing.assert_array_equal(v.axes[1].delta_minus, _DM)
+
+    def test_the_two_forms_mix(self):
+        v = _load("flux", {"DELTA_PLUS_VAR": "energy_dp", "DELTA_MINUS": 0.0})
+        np.testing.assert_array_equal(v.axes[1].delta_plus, _DP)
+        np.testing.assert_array_equal(v.axes[1].delta_minus, np.zeros(_E))
 
 
 if __name__ == '__main__':
