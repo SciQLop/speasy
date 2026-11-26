@@ -6,7 +6,7 @@ import numpy as np
 
 from speasy.core.data_containers import DataContainer, VariableAxis, VariableTimeAxis
 from speasy.products import SpeasyVariable
-from speasy.signal.reduction import dimension, integrate, sel
+from speasy.signal.reduction import bin_widths, dimension, integrate, sel
 
 _T = 3
 _TIME = np.arange('2020-01-01', '2020-01-01T00:00:03', np.timedelta64(1, 's'), dtype='datetime64[ns]')
@@ -214,6 +214,13 @@ class Integrate(unittest.TestCase):
         v = _variable(axes=[_axis([1., 4., 2., 8.], 'x'), _y()])
         with self.assertRaisesRegex(ValueError, r"(?s)widths of 'x'.*not sorted.*edges="):
             integrate(v, 'x')
+
+    def test_one_delta_alone_gives_no_widths_and_asks_for_edges(self):
+        # ISTP 5.2.7: the pair is "always used together"; a lone one says nothing about the other side
+        for side, missing in (('delta_plus', 'delta_minus'), ('delta_minus', 'delta_plus')):
+            with self.subTest(side=side), self.assertRaisesRegex(
+                    ValueError, rf"widths of 'x': it has {side} but no {missing}\. Give its bin edges"):
+                bin_widths(VariableAxis(values=_X, name='x', **{side: _X / 4}))
 
     def test_unusable_deltas_are_an_error(self):
         v = _variable(axes=[_axis(_X, 'x', delta=[1., np.nan, 1., 1.]), _y()])
