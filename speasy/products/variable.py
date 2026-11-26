@@ -564,6 +564,7 @@ class SpeasyVariable(SpeasyProduct):
             return SpeasyVariable.__dict__[func.__name__].__func__(self)
         if 'out' in kwargs:
             raise ValueError("out parameter is not supported")
+        self.__refuse_keepdims(kwargs)
         _refuse_joining(func)
         f_args = [_values(arg) for arg in args]
         f_kwargs = {name: _values(value) for name, value in kwargs.items()}
@@ -574,7 +575,6 @@ class SpeasyVariable(SpeasyProduct):
         if isinstance(res, np.ndarray):
             if res.shape != self.shape and (res.shape[0] != len(self.time) or 0 in self.__reduced_dimensions(axis)):
                 return res
-        self.__refuse_keepdims(kwargs)
         return SpeasyVariable(
             axes=self.__np_build_axes__(res, axis=axis),
             values=DataContainer(values=res,
