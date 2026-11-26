@@ -111,6 +111,36 @@ def _axis_deltas(istp_loader, axis, values: np.ndarray) -> dict:
             'delta_minus': _delta_values(istp_loader, axis, 'MINUS', values)}
 
 
+# ISTP 5.2.7: a time variable's deltas have its own data type, so a delta declaring no UNITS is in the unit ISTP 5.2.37
+# gives that type
+_TIME_TYPE_UNITS = {'CDF_TIME_TT2000': 'ns', 'CDF_EPOCH': 'ms', 'CDF_EPOCH16': 'ps'}
+
+
+def _as_durations(values: np.ndarray, units: Optional[str], name: str) -> Optional[np.ndarray]:
+    import astropy.units as u
+    try:
+        to_ns = u.Unit(units).to(u.ns)
+    except (TypeError, ValueError, u.UnitsError):
+        log.debug(f"Ignoring a time delta of {name}: {units!r} is not a unit of time")
+        return None
+    durations = np.full(values.shape, np.timedelta64('NaT', 'ns'))
+    known = np.isfinite(values)
+    durations[known] = np.round(values[known] * to_ns).astype(np.int64)
+    return durations
+
+
+def _time_delta(istp_loader: pyistp.loader.ISTPLoader, epoch, side: str) -> Optional[np.ndarray]:
+    """The Epoch's DELTA_<side> as durations, one per record of this file, in the delta's own UNITS, else in the
+    Epoch's unit."""
+    declared = _declared_delta(istp_loader, epoch, side)
+    if declared is None:
+        return None
+    raw, constant, attributes = declared
+    values = _shaped(raw, constant, epoch.values.shape, epoch.name)
+    units = str(attributes.get('UNITS') or '').strip() or _TIME_TYPE_UNITS.get(epoch.cdf_type)
+    return None if values is None else _as_durations(values, units, epoch.name)
+
+
 def _make_axis(istp_loader, axis, time_axis_name, n_records):
     values = axis.values.copy()
     return VariableAxis(values=values, meta=_fix_attributes_types(axis.attributes), name=axis.name,
@@ -187,8 +217,10 @@ def _load_variable(istp_loader: pyistp.loader.ISTPLoader, variable) -> SpeasyVar
             return None
     if (var is not None) and (var.values.shape[0] == var.axes[0].values.shape[0]):
         time_axis_name = var.axes[0].name
-        time_axis = VariableTimeAxis(values=var.axes[0].values.copy(),
-                                     meta=_fix_attributes_types(var.axes[0].attributes))
+        epoch = var.axes[0]
+        time_axis = VariableTimeAxis(values=epoch.values.copy(), meta=_fix_attributes_types(epoch.attributes),
+                                     delta_plus=_time_delta(istp_loader, epoch, 'PLUS'),
+                                     delta_minus=_time_delta(istp_loader, epoch, 'MINUS'))
         values = DataContainer(values=var.values.copy(), meta=_fix_attributes_types(var.attributes), name=var.name,
                                is_time_dependent=True)
         extra_axes = [_make_axis(istp_loader, axis, time_axis_name, len(time_axis))

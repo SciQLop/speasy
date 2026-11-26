@@ -5,6 +5,8 @@ A variable with more than one axis besides time, such as a spectrogram or a part
 than one plot can show. numpy selects and reduces along its axes, and keeps the right ones: the axis reduced goes away,
 the others keep their values, their bin widths (``delta_plus`` / ``delta_minus``) and the variable's unit. Speasy
 adds what numpy can't do: find an axis by name, select by value, and integrate with bin widths.
+The time axis carries its measurement periods the same way, as durations: ``var.axes[0].delta_plus`` and
+``delta_minus``, from the Epoch's ISTP ``DELTA_PLUS_VAR`` / ``DELTA_MINUS_VAR``.
 
 .. code-block:: python
 

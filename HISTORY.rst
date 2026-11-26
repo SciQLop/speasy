@@ -18,8 +18,13 @@ New features:
   operations (``isel``, ``sel``, ``sum``, ``mean``, ``integrate``) along named axes,
   ``[{"op": "mean", "axis": "phi"}, ...]``, so a 3D particle distribution can be drawn as an energy spectrogram.
 * ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
-  DELTA_MINUS_VAR. Data cached before has none, and ``integrate`` then takes the widths from the midpoints between
-  the axis values.
+  DELTA_MINUS_VAR, or from DELTA_PLUS / DELTA_MINUS holding the values (Cluster). A side the file doesn't give stays
+  None. Data cached before has none, and ``integrate`` then takes the widths from the midpoints between the axis
+  values.
+* The time axis keeps the Epoch's measurement periods too: ``VariableTimeAxis.delta_plus`` / ``delta_minus`` are
+  durations (timedelta64[ns], one per record), read in the delta's own UNITS, else in the Epoch's unit. MMS FPI fast
+  gives +4.5 s / -0 s, Cluster CIS 3D distributions +duration / -0 s. They need pyistp reading UNITS from the file
+  that holds the values.
 * ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product
   id now raises ``UnknownProduct`` (or ``UnknownProvider``, ``UnknownDataset``, ``UnknownParameter``,
   ``UnknownVirtualProduct``), still a ``ValueError``, from every provider. The existing exceptions keep their old
