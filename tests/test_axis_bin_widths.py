@@ -143,9 +143,11 @@ class IstpCodecLoadsAxisDeltas(unittest.TestCase):
         np.testing.assert_array_equal(v.axes[1].delta_plus, _DP)
         np.testing.assert_array_equal(v.axes[1].delta_minus, _DM)
 
-    def test_a_single_delta_is_used_for_both_sides(self):
+    def test_a_lone_delta_leaves_the_other_side_unknown(self):
+        # ISTP 5.2.7: the pair is "always used together"; nothing defines the missing side
         v = _load("flux", {"DELTA_PLUS_VAR": "energy_dp"})
-        np.testing.assert_array_equal(v.axes[1].delta_minus, _DP)
+        np.testing.assert_array_equal(v.axes[1].delta_plus, _DP)
+        self.assertIsNone(v.axes[1].delta_minus)
 
     def test_a_constant_delta_is_broadcast_to_a_time_dependent_axis(self):
         v = _load("flux_tv", {})
