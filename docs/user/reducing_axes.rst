@@ -56,7 +56,9 @@ use the nan-aware functions, so that missing values count in neither the sum nor
     d = dist.replace_fillval_by_nan()
     np.nansum(d, axis=dimension(d, "phi"))
     np.nanmean(d, axis=(dimension(d, "phi"), dimension(d, "theta")))
-    np.average(d, axis=dimension(d, "theta"), weights=w)     # one weight per value of the axis
+
+``np.average(d, axis=..., weights=w)`` takes one weight per value of the axis; the omni-spectrum example below builds
+such weights.
 
 Two numpy behaviours to know:
 
