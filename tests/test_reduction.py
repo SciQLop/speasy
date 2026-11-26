@@ -118,6 +118,24 @@ class Selection(unittest.TestCase):
         v = _variable(axes=[_axis(_X[::-1], 'x'), _y()])
         np.testing.assert_array_equal(sel(v, 'x', slice(1.5, 5.)).axes[1].values, [4., 2.])
 
+    def test_an_open_bound_is_no_limit_like_xarray(self):
+        v = _variable()
+        for value, kept in ((slice(2., None), [2., 4., 8.]), (slice(None, 4.), [1., 2., 4.]), (slice(None), _X),
+                            ([2., None], [2., 4., 8.]), ([None, 2.], [1., 2.])):
+            with self.subTest(value=value):
+                np.testing.assert_array_equal(sel(v, 'x', value).axes[1].values, kept)
+
+    def test_a_step_is_refused(self):
+        v = _variable()
+        with self.assertRaisesRegex(ValueError, r"sel takes no step, got slice\(1.0, 8.0, 2.0\): .*v\[:, ::2\]"):
+            sel(v, 'x', slice(1., 8., 2.))
+
+    def test_a_range_given_as_a_list_has_two_bounds(self):
+        v = _variable()
+        for value in ([4.], [1., 2., 3.], []):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, r"a range is \[lo, hi\], got"):
+                sel(v, 'x', value)
+
     def test_an_empty_range_is_an_error(self):
         v = _variable()
         with self.assertRaisesRegex(ValueError, r"No value of 'x' in \[100.0, 200.0\] eV"):

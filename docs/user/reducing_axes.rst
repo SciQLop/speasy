@@ -36,8 +36,9 @@ Indexing works along any dimension, as in numpy. An int drops the axis; a slice 
     dist["2015-10-16T13:01":"2015-10-16T13:02", :, :, 0]   # rows by time, as before
 
 ``sel`` selects by value, like xarray's ``sel``. A range is a slice or a ``[lo, hi]`` pair, in the axis unit, both
-bounds included. A single value picks it, exactly or the closest with ``method="nearest"``, and drops the axis. On a
-record-varying axis, such as MMS energies, the selection is made per record:
+bounds included; ``None`` leaves that side open. A single value picks it, exactly or the closest with
+``method="nearest"``, and drops the axis. On a record-varying axis, such as MMS energies, the selection is made per
+record:
 
 .. code-block:: python
 
