@@ -2,29 +2,31 @@
 History
 =======
 
-Unreleased
-----------
+1.10.0 (2026-11-26)
+-------------------
 
 New features:
 
 * numpy reductions on a ``SpeasyVariable`` take negative axes and tuples of axes, refuse ``keepdims=True`` with a clear
   message, and keep the column names when dimension 1 stays.
 * Indexing works along any dimension: ``var[:, :, 3]`` drops the axis, ``var[:, :, 1:3]`` keeps part of it, with the
-  axis values and bin widths cut to match (record-varying axes per record).
+  axis values and bin widths cut to match (record-varying axes per record). A variable without column names, such as
+  what ``sel`` and ``integrate`` return, takes positions and numpy's ``column_i`` names: ``var[:, 0]``.
 * ``speasy.signal.reduction`` adds what numpy can't do along an axis: ``dimension`` (find an axis by name, or part of
-  one), ``sel`` (select by value, as in xarray) and ``integrate`` (value times bin width) (docs: "Selecting and
-  reducing axes").
+  one), ``sel`` (select by value, as in xarray, open-ended ranges included) and ``integrate`` (value times bin width)
+  (docs: "Selecting and reducing axes").
 * ``speasy quicklook`` applies a product's ``reduce`` key from the SciQLop template before plotting: a list of
   operations (``isel``, ``sel``, ``sum``, ``mean``, ``integrate``) along named axes,
   ``[{"op": "mean", "axis": "phi"}, ...]``, so a 3D particle distribution can be drawn as an energy spectrogram.
+  The key is checked when the template is loaded. ``speasy.plotting.sciqlop_template.apply_operations`` and
+  ``OPERATIONS`` are public, for SciQLop.
 * ISTP axes keep their bin widths: ``VariableAxis.delta_plus`` / ``delta_minus`` come from the axis' DELTA_PLUS_VAR /
   DELTA_MINUS_VAR, or from DELTA_PLUS / DELTA_MINUS holding the values (Cluster). A side the file doesn't give stays
-  None. Data cached before has none, and ``integrate`` then takes the widths from the midpoints between the axis
-  values.
+  None, and ``integrate`` then asks for edges, as ISTP defines the two only as a pair. Data cached before has none, and
+  ``integrate`` then takes the widths from the midpoints between the axis values.
 * The time axis keeps the Epoch's measurement periods too: ``VariableTimeAxis.delta_plus`` / ``delta_minus`` are
   durations (timedelta64[ns], one per record), read in the delta's own UNITS, else in the Epoch's unit. MMS FPI fast
-  gives +4.5 s / -0 s, Cluster CIS 3D distributions +duration / -0 s. They need pyistp reading UNITS from the file
-  that holds the values.
+  gives +4.5 s / -0 s, Cluster CIS 3D distributions +duration / -0 s.
 * ``speasy.core.exceptions`` holds Speasy's public exceptions, all derived from ``SpeasyError``. An unknown product
   id now raises ``UnknownProduct`` (or ``UnknownProvider``, ``UnknownDataset``, ``UnknownParameter``,
   ``UnknownVirtualProduct``), still a ``ValueError``, from every provider. The existing exceptions keep their old
@@ -39,6 +41,103 @@ New features:
   ``spz.config.csa.output_format`` or ``output_format="CDF_ISTP"`` on a request switches back to CDF for the datasets
   CSA serves as CDF. Each format keeps its own cache entries: data cached from CDF before is downloaded again as CEF.
   CSA requests skip proxies older than 0.27.0, whose speasy can't take the format.
+* ``get_data(..., force_refresh=True)`` downloads the data again even when the cache is up to date,
+  and stores the result in the cache. It works with every provider, and always bypasses the proxy
+  server.
+* ``speasy.DataIndex(path)``, a persistent data index (#122): a folder that keeps exactly the data a
+  study used, never expires, and works offline. ``DataIndex.get_data`` downloads only what the index
+  doesn't hold yet; ``refresh=True`` and ``update_all_data()`` download it again on request.
+  ``export_data`` and ``import_data`` hand an index to someone else as a single tar. It stores whatever
+  ``speasy.get_data`` gives (time series, datasets, timetables, catalogs), and ``DataIndex.get_data``
+  takes the same arguments. Inside a ``with spz.DataIndex(path):`` block, plain ``spz.get_data`` goes through the index,
+  so existing code becomes reproducible unchanged; it is back to normal when the block ends. The ``speasy index``
+  command fills (``fill``, with the same ranges as ``cache warm``), inspects, exports and imports one.
+* ``numcodecs`` is now a dependency (except under Pyodide), so data from the community cache server
+  always comes ``blosc`` compressed. The ``blosc`` extra is kept, empty, so ``speasy[blosc]`` still
+  installs. ``speasy.core.proxy.blosc_arrays`` encodes numpy arrays in that same format, the inverse of
+  ``unblosc_arrays``.
+* CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
+  parameters sharing a time axis can be told apart from the inventory alone.
+* Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
+  URL in ``url_pattern`` or ``master_file``. Folder listing (``use_file_list``, ``random`` splits) and
+  the file cache work as for HTTP.
+* ``DataProvider.request_options(**kwargs)``, a classmethod, gives the ``get_data`` options that change
+  the returned data, with their defaults filled in: the coordinate system for SSCWeb, the frame and
+  sampling for CDPP 3DView, and the output format, restricted period and template inputs for AMDA. It
+  works without starting the provider. ``speasy.core.dataprovider.provider_class(name)`` gives the
+  class registered under a provider name or alias.
+* CDAWeb waveform datasets stored as buckets (PSP FIELDS burst, SolO RPW TDS and LFR, Van Allen Probes
+  EMFISIS, TRACERS TS1/TS2 MSC, Voyager PWS) are served as flat time series with one timestamp per sample.
+  SolO RPW LFR variables are split per sampling rate (``<variable>_F0``, ``_F1``, ``_F2``), and the SolO RPW
+  waveform datasets missing from CDAWeb's inventory are added to it.
+* Virtual products: ``speasy.virtual_products.register_virtual_product("virtual/<path>", function)``, or used as a
+  decorator, serves a local function as a product, through ``spz.get_data`` and the inventory tree, with optional
+  ``meta`` and ``labels`` (docs: "Virtual products"). Packages ship them through a ``speasy.virtual_products`` entry
+  point; ``.py`` files in the user's ``virtual_products`` folder, and in ``core.user_vp_extra_dirs``, are loaded by
+  ``import speasy``, a broken one is skipped with a warning naming the file. A product that requests itself, at any
+  time range, is refused.
+* Virtual expressions: Python operators on inventory products (``+ - * / **``, negation, ``abs``) build an expression,
+  such as ``10 * B / N``, without downloading anything. It is computed by calling it with a time range, or registered
+  as a virtual product. Products on different time axes raise ``TimeAxisMismatch`` unless aligned with
+  ``speasy.virtual_products.resample`` (one regular grid) or ``interpolate`` (the time axis of a reference product).
+  Fill values and values outside VALIDMIN/VALIDMAX become NaN first, and UNITS are kept when the operation preserves
+  them (docs: "Virtual expressions").
+* A ``speasy`` command, runnable with ``uvx speasy``: ``get`` (to a ``.cdf``, ``.csv`` or ``.nc`` file),
+  ``config show/set/reset/add/remove`` (with the source of each value, passwords masked, bad values refused),
+  ``providers list/enable/disable``, ``archive validate/dirs``, ``cache info``, ``cache warm`` (prefetch products on
+  time ranges given on the command line, in a file, or by the events of a timetable or catalog), ``index`` (see
+  ``DataIndex`` above) and ``quicklook`` (one image per day, month or year from a SciQLop plot template) (docs:
+  "Command line"). The config helpers it uses are in ``speasy.config`` for Python use.
+* ``speasy.data_providers.generic_archive.validate_inventory_file(file, start_time, stop_time)`` checks a direct-archive
+  YAML file: unknown keys (with a "did you mean"), missing or invalid values, and optionally one fetch per dataset.
+  A broken file or dataset no longer shows up as an empty folder, or disables the whole archive provider: it costs only
+  itself, with a warning saying why.
+* A ``hapi`` provider serves every server of the official HAPI registry (the 15 servers of
+  https://github.com/hapi-server/servers): ``spz.get_data("hapi/<server>/<dataset>/<parameter>", start, stop)`` and
+  ``spz.inventories.tree.hapi.<server>``. A server's catalog and each dataset's details load on first access, the
+  path shown by the tree works as a product string, and requests are split on each server's maximum duration. The
+  ``[HAPI]`` config section disables servers (CDAWeb, AMDA, CSA and SSCWeb are always left to their native providers)
+  and adds others. With speasy-proxy 0.27.0 or later, the tree and the data come through the proxy (docs: "HAPI
+  servers").
+* ``SpeasyVariable.to_dataarray()`` / ``SpeasyVariable.from_dataarray()`` and ``Dataset.from_xarray()`` convert to and
+  from xarray: dims and coords are named after the axes, record-varying axes become time-dependent coords, columns a
+  coordinate, and ISTP UNITS, FILLVAL, VALIDMIN, VALIDMAX the CF attributes. xarray is the optional ``speasy[xarray]``
+  extra.
+* ``SpeasyVariable.with_labels()`` and ``with_meta()`` give a new variable sharing the data, with other column names or
+  metadata. ``from_dataframe`` accepts any ``DatetimeIndex``, timezone-aware or not, and pandas 3's microsecond ones.
+* ``var[rows, columns]`` selects both at once, columns by name, position, slice or list. ``//``, ``%`` and ``divmod``
+  work on variables like numpy's ``floor_divide`` and ``mod``; ``-v``, ``+v`` and ``abs(v)`` work too, and so does
+  ``variable + datetime.timedelta``. ``"2018-01-02" in event`` checks a single time. ``interpolate(ref, [a, None])``
+  keeps the ``None`` that ``get_data`` gives for a failed product. ``get_data`` warns when a product's time axis is not
+  sorted.
+* CDAWeb: the virtual variables ``arr_slice``, ``alternate_view`` (and its ``flip_vert`` variant) and ``clone`` are
+  computed from the data files, as CDAWeb computes them, checked against its web service on every dataset using them.
+  Those products (FAST ESA energy spectra, IMAGE EUV, RBSP REPT...) no longer go to the web service. FAST files named
+  with their orbit number (``%q``) are found in the archive.
+* REIMEI ESA and ISA Level-2 counts from JAXA DARTS, under ``archive/darts/REIMEI``, read with a new ``reimei/l2``
+  codec. Direct archives get ``list_next_folder`` for archives that file data in the next period's folder.
+* ``speasy.core.codecs.has_codec(name)`` tells whether a codec is available.
+
+Behavior changes:
+
+* CDAWeb data read from the archive takes its UNITS, SI_CONVERSION, FILLVAL, VALIDMIN and VALIDMAX from the data file
+  that holds the values, through pyistp 0.9.3; the master CDF still gives the other attributes. Where the two disagree,
+  these attributes change: MMS FPI fast ``Epoch_plus_var`` used to read as 4.5 ms, it is 4.5 s.
+* ``get_codec`` raises a ``ValueError`` listing the registered codecs for an unknown name, instead of returning
+  ``None``.
+* ``merge()`` refuses variables whose samples differ in shape; it used to broadcast a 1-column variable into every
+  column. numpy's joining functions (``np.concatenate``, ``vstack``, ``hstack``...) on variables raise a ``TypeError``
+  pointing to ``merge()``.
+* SSCWeb raises with SSCWeb's reason when it rejects a request (a bad ``coordinate_system``), instead of returning
+  ``None`` after three retries.
+* CSA: a range without data gives ``None``; other HTTP errors raise an ``IOError`` that points at an outage.
+* AMDA: rejected credentials raise ``InvalidCredentials``, saying how to fix them, instead of disabling the whole
+  provider; public products keep working.
+* A request whose start is after its stop says to swap them, from ``spz.get_data`` and from every provider.
+* A bad value in the config file or the environment falls back to the default with a warning saying how to fix it, and
+  ``speasy config set`` refuses one. Boolean entries take only true or false (``maybe`` used to mean false). A cache or
+  index folder that can't be created disables it with a warning instead of failing ``import speasy``.
+* A direct-archive split rule Speasy doesn't know raises instead of returning ``None``.
 
 Bug fixes:
 
@@ -94,41 +193,68 @@ Bug fixes:
   bug (astropy/astroquery#3228). Its inventory is now fetched with speasy's own small TAP client
   (``speasy.core.tap``), so ``astroquery`` is no longer a dependency, along with the 14 packages only it
   pulled in. In the CSA inventory, empty fields are now ``None`` instead of ``''``.
+* CDAWeb: cached data reaching past the end of a dataset's coverage was kept for 7 days, hiding data appended since.
+  It is now kept for one hour, as AMDA's already was. Concurrent requests for the same uncached range of CDAWeb or
+  CDPP 3DView are downloaded once instead of once per caller (#371).
+* An empty fetch kept its cache locks, so any other thread or process asking for the same range waited 10 minutes.
+* A failed cache write (a full disk) threw away the data just downloaded; it now warns and returns it.
+* CDAWeb datasets whose master drops DEPEND_0 on record-varying support data (SOLO_L2_SWA-EAS-PAD-DEF) failed their
+  shape check; such axes are time dependent (#399).
+* CDAWeb: variables a master lists but a data file lacks (MMS EPD-EIS) load as no data instead of raising
+  ``KeyError``. Axes that don't fit the data (GOES12_EPHEMERIS_SSC, RBSPICE TOFXEH) are dropped, as CDAWeb does, instead
+  of failing the request.
+* The archive no longer lists the variables CDAWeb masters declare virtual and only its web service computes: about 40
+  CDAWeb products that always returned ``None``. A file whose name holds no valid date (Voyager 2 on May 32nd 1984) is
+  skipped with a warning instead of failing the request.
+* netCDF files: numeric attributes stay numbers, so FILLVAL masking works and ``clamp_with_nan`` no longer crashes on
+  VALIDMIN / VALIDMAX.
+* AMDA: ``get_data`` works on parameter components such as ``amda/imf(1)``, listed in the tree but refused as unknown.
+  The user's timetables, catalogs, derived and private parameters are cached per user: after switching accounts, the
+  previous user's lists were served for up to 15 minutes. A request AMDA reports as done but whose result file is
+  missing says it is a server-side problem, and failed requests log their reason as warnings.
+* CDPP 3DView errors quote the server's answer, not only the HTTP status.
+* CSA: a wrong product id gives a clear error instead of a bare ``assert``.
+* A proxy answer other than 200 (unknown product, server errors) looked like "no data", so the source was never asked.
+  It now falls back to the source with one warning. A failing proxy request no longer prints the raw exception.
+* uiowaephtool: Hyperion trajectories returned ``None`` (the server's code is ``hype``); rows past a body's ephemeris
+  coverage held 1970 timestamps and junk values, they are dropped; Methone, Anthe, Pallene, Telesto and Helene end in
+  2050, not 2094.
+* User codec files failed with ``NameError`` when a function used a name defined in the same file.
+* The cache is closed at interpreter exit, so an embedding host (Julia's PythonCall) no longer leaks its database.
+* ``SpeasyVariable``:
 
-New features:
+  * ``v[0]`` and ``v[-1]`` select one row, as documented; an unknown column raises a ``KeyError`` listing the columns;
+  * numpy functions taking lists of variables recursed forever;
+  * ``np.add(v, 1, out=w)`` returns ``w``, ``np.add(v, 1, where=mask)`` no longer crashes, and ``np.cumsum``,
+    ``np.sort`` and ``np.gradient`` along time keep the time axis;
+  * ``np.asarray(v)`` gives the values;
+  * ``to_dataframe()`` / ``from_dataframe()`` keep the name and metadata;
+  * ``unit_applied()`` on a variable without UNITS gives dimensionless values instead of raising;
+  * ``replace_fillval_by_nan()`` and ``clamp_with_nan()`` on integer data say to pass ``convert_to_float=True``
+    instead of numpy's "cannot convert float NaN to integer";
+  * ``repr()`` and ``str()`` are readable outside IPython.
+* ``resample``, ``interpolate`` and the filters give an empty result for an empty variable, and refuse values with 3 or
+  more dimensions with a clear error.
+* Plotting: spectrograms without DISPLAY_TYPE (CSA) are drawn as colormaps instead of lines, and values with 3 or more
+  dimensions say how to reduce them. ``plot.colormap()`` on a vector points to ``plot.line()``, and plotting a
+  spectrogram on a given Axes no longer leaks a pyplot figure.
+* ``Catalog.append()`` names the item it refuses and its type.
+* Codecs:
 
-* ``get_data(..., force_refresh=True)`` downloads the data again even when the cache is up to date,
-  and stores the result in the cache. It works with every provider, and always bypasses the proxy
-  server.
+  * ``hapi/csv`` keeps the full float64 precision (it wrote 7 digits);
+  * the HAPI readers take the bytes ``save_variables`` returns, and read labels back as column names;
+  * the CDF and netCDF writers keep column names and default VAR_TYPE to ``data``, so a round trip gives the variable
+    back; they no longer add DEPEND_* entries to the variable's own metadata;
+  * two variables whose time axes share a name but not their values are saved, where the CDF writer raised and the
+    netCDF writer gave the second one the first one's timestamps.
 
-* ``speasy.DataIndex(path)``, a persistent data index (#122): a folder that keeps exactly the data a
-  study used, never expires, and works offline. ``DataIndex.get_data`` downloads only what the index
-  doesn't hold yet; ``refresh=True`` and ``update_all_data()`` download it again on request.
-  ``export_data`` and ``import_data`` hand an index to someone else as a single tar. It stores whatever
-  ``speasy.get_data`` gives (time series, datasets, timetables, catalogs), and ``DataIndex.get_data``
-  takes the same arguments. Inside a ``with spz.DataIndex(path):`` block, plain ``spz.get_data`` goes through the index,
-  so existing code becomes reproducible unchanged; it is back to normal when the block ends. The ``speasy index``
-  command fills (``fill``, with the same ranges as ``cache warm``), inspects, exports and imports one.
+Dependencies:
 
-* ``numcodecs`` is now a dependency (except under Pyodide), so data from the community cache server
-  always comes ``blosc`` compressed. The ``blosc`` extra is kept, empty, so ``speasy[blosc]`` still
-  installs. ``speasy.core.proxy.blosc_arrays`` encodes numpy arrays in that same format, the inverse of
-  ``unblosc_arrays``.
-
-* CDAWeb parameters in the inventory carry their ``DEPEND_0``, the name of their time variable, so
-  parameters sharing a time axis can be told apart from the inventory alone.
-* Direct archives (and ``speasy.core.any_files``) can read files from FTP servers: use an ``ftp://``
-  URL in ``url_pattern`` or ``master_file``. Folder listing (``use_file_list``, ``random`` splits) and
-  the file cache work as for HTTP.
-* ``DataProvider.request_options(**kwargs)``, a classmethod, gives the ``get_data`` options that change
-  the returned data, with their defaults filled in: the coordinate system for SSCWeb, the frame and
-  sampling for CDPP 3DView, and the output format, restricted period and template inputs for AMDA. It
-  works without starting the provider. ``speasy.core.dataprovider.provider_class(name)`` gives the
-  class registered under a provider name or alias.
-* CDAWeb waveform datasets stored as buckets (PSP FIELDS burst, SolO RPW TDS and LFR, Van Allen Probes
-  EMFISIS, TRACERS TS1/TS2 MSC, Voyager PWS) are served as flat time series with one timestamp per sample.
-  SolO RPW LFR variables are split per sampling rate (``<variable>_F0``, ``_F1``, ``_F2``), and the SolO RPW
-  waveform datasets missing from CDAWeb's inventory are added to it.
+* pyistp 0.9.3 or later (see Behavior changes), pycdfpp 0.17.0 or later (CDAWeb virtual variables), pysciqlop-cache
+  0.4.2 (same on-disk layout, no migration).
+* New: cefast 0.2.2 or later (the CEF codec), cyclopts (the ``speasy`` command), msgspec (the data index), and
+  numcodecs, until now the ``blosc`` extra (except under Pyodide).
+* astroquery and the 14 packages only it pulled in are gone. xarray is the optional ``xarray`` extra.
 
 1.9.1 (2026-10-06)
 ------------------
