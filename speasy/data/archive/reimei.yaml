@@ -25,10 +25,12 @@ esa_l2:
         Acknowledgement: *esa_acknowledgement
     total:
       meta:
+        DISPLAY_TYPE: spectrogram
         CATDESC: Electron total counts per energy step
         Acknowledgement: *esa_acknowledgement
     gomi:
       meta:
+        DISPLAY_TYPE: spectrogram
         CATDESC: Electron 'gomi' counts per energy step, as the file names them
         Acknowledgement: *esa_acknowledgement
 isa_l2:
@@ -54,9 +56,11 @@ isa_l2:
         Acknowledgement: *isa_acknowledgement
     total:
       meta:
+        DISPLAY_TYPE: spectrogram
         CATDESC: Ion total counts per energy step
         Acknowledgement: *isa_acknowledgement
     gomi:
       meta:
+        DISPLAY_TYPE: spectrogram
         CATDESC: Ion 'gomi' counts per energy step, as the file names them
         Acknowledgement: *isa_acknowledgement
