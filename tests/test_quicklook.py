@@ -303,6 +303,15 @@ class TestOperations(unittest.TestCase):
             with self.subTest(op=op), self.assertRaisesRegex(ValueError, message):
                 checked_operations([op])
 
+    def test_an_isel_index_is_a_position_or_a_start_stop_pair(self):
+        for index in ([1], [1, 3, 2], [], 'a', 1.5, True, [0, 'x']):
+            with self.subTest(index=index), self.assertRaisesRegex(
+                    ValueError, r"isel's 'index' is a position like 3 or a \[start, stop\] pair like \[1, 3\], got"):
+                checked_operations([{'op': 'isel', 'axis': 'x', 'index': index}])
+        for index in (2, -1, [1, 3], (0, 2), [-3, -1]):
+            with self.subTest(index=index):
+                checked_operations([{'op': 'isel', 'axis': 'x', 'index': index}])
+
     def test_the_list_and_its_items_are_checked(self):
         self.assertEqual(checked_operations(self.OPS), tuple(self.OPS))
         for operations, message in (('mean phi', r"a list of operations like \[\{'op': 'mean', 'axis': 'phi'\}\]"),
