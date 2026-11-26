@@ -135,6 +135,9 @@ def _widths_from_edges(axis: VariableAxis, edges) -> np.ndarray:
 
 
 def _widths_from_deltas(axis: VariableAxis) -> np.ndarray:
+    if axis.delta_plus is None or axis.delta_minus is None:
+        given, missing = ('delta_plus', 'delta_minus') if axis.delta_minus is None else ('delta_minus', 'delta_plus')
+        raise _width_error(axis, f"it has {given} but no {missing}")
     widths = axis.delta_plus + axis.delta_minus
     if not np.all(np.isfinite(widths) & (widths > 0)):
         raise _width_error(axis, "its DELTA_PLUS_VAR / DELTA_MINUS_VAR hold missing or non-positive widths")
@@ -153,11 +156,11 @@ def _widths_from_midpoints(axis: VariableAxis) -> np.ndarray:
 
 
 def bin_widths(axis: VariableAxis, edges=None) -> np.ndarray:
-    """Each bin's width, with the shape of the axis values: from ``edges``, else from the axis deltas, else from the
-    midpoints between its values."""
+    """Each bin's width, with the shape of the axis values: from ``edges``, else from the axis deltas (both are needed),
+    else from the midpoints between its values."""
     if edges is not None:
         return _widths_from_edges(axis, edges)
-    if axis.delta_plus is not None:
+    if axis.delta_plus is not None or axis.delta_minus is not None:
         return _widths_from_deltas(axis)
     return _widths_from_midpoints(axis)
 

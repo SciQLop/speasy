@@ -75,6 +75,7 @@ times the axis'. The bin widths come from, in this order:
 
 #. ``edges=``, one more than the axis values, when given;
 #. the axis' ISTP ``DELTA_PLUS_VAR`` / ``DELTA_MINUS_VAR``, kept on the axis as ``delta_plus`` and ``delta_minus``;
+   ISTP uses them as a pair, so with only one of them it asks for ``edges`` instead of guessing the other side;
 #. the midpoints between its values.
 
 When none of these works, for an unsorted axis for instance, it raises an error and asks for ``edges``.
