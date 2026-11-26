@@ -50,8 +50,10 @@ class NumpyAxes(unittest.TestCase):
 
     def test_keepdims_is_refused_with_a_way_out(self):
         v = self.v
-        with self.assertRaisesRegex(ValueError, r"keepdims=True is not supported.*np\.sum\(var\.values"):
-            np.sum(v, axis=2, keepdims=True)
+        for axis in (2, 0, (0, 2), None):
+            with self.subTest(axis=axis), \
+                    self.assertRaisesRegex(ValueError, r"keepdims=True is not supported.*np\.sum\(var\.values"):
+                np.sum(v, axis=axis, keepdims=True)
 
     def test_column_names_survive_when_dimension_1_does(self):
         self.assertEqual(np.mean(self.v, axis=2).columns, self.v.columns)
