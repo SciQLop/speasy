@@ -158,5 +158,27 @@ class ColumnNamesStillPickColumns(unittest.TestCase):
                 _ = v[key]
 
 
+class ColumnsByPosition(unittest.TestCase):
+    """A variable without column names, as sel and integrate return, is indexed by position like any other."""
+
+    def setUp(self):
+        time = np.arange('2020-01-01', '2020-01-01T00:00:05', np.timedelta64(1, 's'), dtype='datetime64[ns]')
+        self.unnamed = SpeasyVariable(axes=[VariableTimeAxis(values=time)],
+                                      values=DataContainer(values=np.arange(_T * 3.).reshape(_T, 3), name='u'))
+
+    def test_an_int_picks_that_column(self):
+        r = self.unnamed[:, 1]
+        np.testing.assert_array_equal(r.values, self.unnamed.values[:, 1:2])
+        self.assertEqual(r.columns, ['column_1'])
+
+    def test_a_slice_and_rows(self):
+        r = self.unnamed[1:3, 0:2]
+        np.testing.assert_array_equal(r.values, self.unnamed.values[1:3, 0:2])
+
+    def test_out_of_range_says_how_many_columns_there_are(self):
+        with self.assertRaisesRegex(IndexError, "3 columns"):
+            _ = self.unnamed[:, 5]
+
+
 if __name__ == '__main__':
     unittest.main()
