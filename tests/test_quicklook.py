@@ -197,6 +197,10 @@ class TestWindows(unittest.TestCase):
         self.assertEqual(windows('2018-01-01', '2018-01-03', 'daily'),
                          [(_utc(2018, 1, 1), _utc(2018, 1, 2)), (_utc(2018, 1, 2), _utc(2018, 1, 3))])
 
+    def test_an_unknown_split_lists_the_valid_ones(self):
+        with self.assertRaisesRegex(ValueError, r"Unknown split 'weekly': use daily, monthly, yearly or none"):
+            windows('2018-01-01', '2018-03-01', 'weekly')
+
     def test_none_is_a_single_window(self):
         self.assertEqual(windows('2018-01-01', '2018-03-01', 'none'), [(_utc(2018, 1, 1), _utc(2018, 3, 1))])
 
