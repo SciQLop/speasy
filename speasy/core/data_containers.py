@@ -597,12 +597,25 @@ class VariableAxis(DataContainerProtocol['VariableAxis']):
         return self.__data.dtype
 
 
+def _durations(delta: Optional[np.ndarray], which: str) -> Optional[np.ndarray]:
+    if delta is None:
+        return None
+    delta = np.asarray(delta)
+    if not np.issubdtype(delta.dtype, np.timedelta64):
+        raise ValueError(f"{which} of axis 'time' must be durations (timedelta64), got {delta.dtype}")
+    return delta.astype('timedelta64[ns]')
+
+
 @numpy_supported
 class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
-    __slots__ = ['__data']
+    """The time axis of a SpeasyVariable. ``delta_plus`` and ``delta_minus``, when known, are durations
+    (timedelta64[ns], one per record) from each time to its measurement period's end and start (the Epoch's ISTP
+    DELTA_PLUS_VAR / DELTA_MINUS_VAR)."""
+    __slots__ = ['__data', '__delta_plus', '__delta_minus']
     __LIKE_NP_FUNCTIONS__ = {'zeros_like', 'empty_like', 'ones_like'}
 
-    def __init__(self, values: np.array = None, meta: Dict = None, name: str = "time", data: DataContainer = None):
+    def __init__(self, values: np.array = None, meta: Dict = None, name: str = "time", data: DataContainer = None,
+                 delta_plus: Optional[np.ndarray] = None, delta_minus: Optional[np.ndarray] = None):
         if data is not None:
             self.__data = data
         else:
@@ -611,44 +624,76 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
                     f"Please provide datetime64[ns] for time axis, got {values.dtype}")
             self.__data = DataContainer(
                 values=values, name=name, meta=meta, is_time_dependent=True)
+        self.__delta_plus = _checked_delta(_durations(delta_plus, 'delta_plus'), self.__data.values, 'delta_plus', 'time')
+        self.__delta_minus = _checked_delta(_durations(delta_minus, 'delta_minus'), self.__data.values, 'delta_minus',
+                                            'time')
+
+    def __setstate__(self, state):
+        # time axes pickled before deltas existed only carry __data
+        self.__delta_plus = self.__delta_minus = None
+        for part in state if isinstance(state, tuple) else (state,):
+            for name, value in (part or {}).items():
+                setattr(self, name, value)
+
+    def __with_deltas(self, data: DataContainer, transform) -> 'VariableTimeAxis':
+        plus, minus = self.__delta_plus, self.__delta_minus
+        return VariableTimeAxis(data=data, delta_plus=None if plus is None else transform(plus),
+                                delta_minus=None if minus is None else transform(minus))
+
+    @property
+    def delta_plus(self) -> Optional[np.ndarray]:
+        return self.__delta_plus
+
+    @property
+    def delta_minus(self) -> Optional[np.ndarray]:
+        return self.__delta_minus
 
     def to_dictionary(self, array_to_list=False) -> Dict[str, object]:
         d = self.__data.to_dictionary(array_to_list=array_to_list)
         d.update({"type": "VariableTimeAxis"})
+        for key, delta in (("delta_plus", self.__delta_plus), ("delta_minus", self.__delta_minus)):
+            if delta is not None:
+                d[key] = delta.astype(np.int64).tolist() if array_to_list else delta.copy()
         return d
 
     def select(self, indices, inplace=False) -> "VariableTimeAxis":
-        if inplace:
-            res = self
-        else:
-            res = deepcopy(self)
-        res.__data.select(indices, inplace=True)
-        return res
+        data = deepcopy(self.__data)
+        data.select(indices, inplace=True)
+        selected = self.__with_deltas(data, lambda delta: delta[indices])
+        if not inplace:
+            return selected
+        self.__data, self.__delta_plus, self.__delta_minus = selected.__data, selected.__delta_plus, \
+            selected.__delta_minus
+        return self
 
     def zeros_like(self) -> "VariableTimeAxis":
-        return VariableTimeAxis(data=DataContainer.zeros_like(self.__data))
+        return self.__with_deltas(DataContainer.zeros_like(self.__data), np.copy)
 
     def ones_like(self) -> "VariableTimeAxis":
-        return VariableTimeAxis(data=DataContainer.ones_like(self.__data))
+        return self.__with_deltas(DataContainer.ones_like(self.__data), np.copy)
 
     def empty_like(self) -> "VariableTimeAxis":
-        return VariableTimeAxis(data=DataContainer.empty_like(self.__data))
+        return self.__with_deltas(DataContainer.empty_like(self.__data), np.copy)
 
     @property
     def shape(self):
         return self.__data.shape
 
     def astype(self, dtype) -> 'VariableTimeAxis':
-        return VariableTimeAxis(data=self.__data.astype(dtype))
+        return self.__with_deltas(self.__data.astype(dtype), np.copy)
 
     @staticmethod
     def from_dictionary(dictionary: Dict[str, Union[str, Dict[str, str], List]], time=None) -> "VariableTimeAxis":
         assert dictionary['type'] == "VariableTimeAxis"
-        return VariableTimeAxis(data=DataContainer.from_dictionary(dictionary, dtype=np.dtype('datetime64[ns]')))
+        deltas = {key: np.asarray(dictionary[key]).astype('timedelta64[ns]') for key in ("delta_plus", "delta_minus")
+                  if dictionary.get(key) is not None}
+        return VariableTimeAxis(data=DataContainer.from_dictionary(dictionary, dtype=np.dtype('datetime64[ns]')),
+                                **deltas)
 
     @staticmethod
     def reserve_like(other: 'VariableTimeAxis', length: int = 0) -> 'VariableTimeAxis':
-        return VariableTimeAxis(data=DataContainer.reserve_like(other.__data, length))
+        return other.__with_deltas(DataContainer.reserve_like(other.__data, length),
+                                   lambda delta: np.full(length, np.timedelta64('NaT', 'ns')))
 
     def __getitem__(self, key):
         return self.view(key)
@@ -656,6 +701,9 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
     def __setitem__(self, k, v: Union['VariableTimeAxis', float, int]):
         if type(v) is VariableTimeAxis:
             self.__data[k] = v.__data
+            for mine, theirs in ((self.__delta_plus, v.__delta_plus), (self.__delta_minus, v.__delta_minus)):
+                if mine is not None and theirs is not None:
+                    mine[k] = theirs
         else:
             self.__data[k] = v
 
@@ -690,10 +738,12 @@ class VariableTimeAxis(DataContainerProtocol['VariableTimeAxis']):
         return res
 
     def view(self, index_range: Union[slice, np.ndarray]) -> 'VariableTimeAxis':
-        return VariableTimeAxis(data=self.__data[index_range])
+        return self.__with_deltas(self.__data[index_range], lambda delta: delta[index_range])
 
     def __eq__(self, other: 'VariableTimeAxis') -> bool:
-        return type(other) is VariableTimeAxis and self.__data == other.__data
+        return type(other) is VariableTimeAxis and self.__data == other.__data and \
+            _same_or_both_none(self.__delta_plus, other.__delta_plus) and \
+            _same_or_both_none(self.__delta_minus, other.__delta_minus)
 
     @property
     def is_time_dependent(self) -> bool:
