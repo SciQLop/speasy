@@ -191,12 +191,17 @@ def _take_columns(var, index: int, columns: np.ndarray, values: Optional[np.ndar
 
 
 def _as_slice(key):
-    return slice(*key) if isinstance(key, (list, tuple)) else key
+    if isinstance(key, (list, tuple)) and len(key) != 2:
+        raise ValueError(f"a range is [lo, hi], got {key!r}: give both bounds, None for no limit on that side")
+    key = slice(*key) if isinstance(key, (list, tuple)) else key
+    if isinstance(key, slice) and key.step is not None:
+        raise ValueError(f"sel takes no step, got {key!r}: select the range, then index it, e.g. v[:, ::2]")
+    return key
 
 
 def _sel_range(var, index: int, start, stop):
     axis = var.axes[index]
-    lo, hi = sorted((float(start), float(stop)))
+    lo, hi = sorted((-np.inf if start is None else float(start), np.inf if stop is None else float(stop)))
     inside = (axis.values >= lo) & (axis.values <= hi)
     columns = np.flatnonzero(inside if inside.ndim == 1 else inside.any(axis=0))
     if len(columns) == 0:
@@ -230,8 +235,8 @@ def _sel_value(var, index: int, value, method: Optional[str]):
 
 def sel(var, axis: Axis, value, method: Optional[str] = None):
     """Select by value, like xarray's sel: a slice or a [lo, hi] pair keeps the values within both bounds (in either
-    order); a single value picks it and drops the axis, exactly or with ``method='nearest'`` the closest. On a
-    record-varying axis the selection is made per record."""
+    order, None for no limit on that side; no step); a single value picks it and drops the axis, exactly or with
+    ``method='nearest'`` the closest. On a record-varying axis the selection is made per record."""
     index = _reducible(var, axis)
     value = _as_slice(value)
     if isinstance(value, slice):
