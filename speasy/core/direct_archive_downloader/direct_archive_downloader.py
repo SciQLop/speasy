@@ -112,7 +112,7 @@ def spilt_range(split_frequency: str, start_time: AnyDateTimeType, stop_time: An
         return [start + relativedelta(years=y) for y in range(relativedelta(stop, start).years + 1)]
     if split_frequency.lower() == "none":
         return [start]
-    raise ValueError(f"Unknown/unimplemented split_frequency: {split_frequency}")
+    raise ValueError(f"Unknown split {split_frequency!r}: use daily, monthly, yearly or none")
 
 
 _ONE_PERIOD = {'daily': relativedelta(days=1), 'monthly': relativedelta(months=1), 'yearly': relativedelta(years=1)}
