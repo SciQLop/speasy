@@ -59,31 +59,56 @@ def _display_type(variable: pyistp.loader.DataVariable) -> str:
     return ''
 
 
-def _delta_values(istp_loader: pyistp.loader.ISTPLoader, name: str, values: np.ndarray) -> Optional[np.ndarray]:
-    """The values of the DELTA variable ``name``, with the shape of the axis ``values``, or None."""
-    delta = istp_loader.support_data_variable(name) if name else None
-    if delta is None:
-        return None
-    raw = np.asarray(delta.values)
+def _as_floats(raw: np.ndarray, attributes: dict) -> Optional[np.ndarray]:
     if not np.issubdtype(raw.dtype, np.number):
         return None
-    mask = fill_value_mask(raw, delta.attributes)
+    mask = fill_value_mask(raw, attributes)
     raw = raw.astype(float)
     if mask is not None:
         raw[mask] = np.nan
-    if raw.size == values.shape[-1]:  # one width per bin, the same for every record
-        return np.broadcast_to(raw.reshape(-1), values.shape).copy()
-    if raw.shape == values.shape:
+    return raw
+
+
+def _declared_delta(istp_loader: pyistp.loader.ISTPLoader, variable, side: str):
+    """``(values, constant, attributes)`` of ``variable``'s DELTA_<side>_VAR variable, else of its DELTA_<side> value
+    attribute (CAA-MDD-0001 Table 12; ISTP 5.2.6, a proposal), which applies to every record; None when the file gives
+    neither, or a non-numeric one."""
+    name = variable.attributes.get(f'DELTA_{side}_VAR')
+    if name:
+        delta = istp_loader.support_data_variable(name)
+        if delta is None:
+            return None
+        raw = _as_floats(np.asarray(delta.values), delta.attributes)
+        return None if raw is None else (raw, delta.is_nrv, delta.attributes)
+    value = variable.attributes.get(f'DELTA_{side}')
+    raw = None if value is None else _as_floats(np.asarray(value), {})
+    return None if raw is None else (raw, True, {})
+
+
+def _shaped(raw: np.ndarray, constant: bool, shape, name: str) -> Optional[np.ndarray]:
+    """A delta with the shape of its variable's values: a constant one is spread over every record."""
+    if raw.shape == shape:
         return raw
-    log.debug(f"Ignoring {name}: its shape {raw.shape} does not fit its axis {values.shape}")
-    return None
+    if not constant:
+        log.debug(f"Ignoring the DELTA of {name}: its shape {raw.shape} does not fit {shape}")
+        return None
+    try:
+        return np.broadcast_to(raw, shape).copy()
+    except ValueError as e:
+        log.debug(f"Ignoring the constant DELTA of {name}: its shape {raw.shape} does not fit {shape} ({e})")
+        return None
+
+
+def _delta_values(istp_loader: pyistp.loader.ISTPLoader, axis, side: str, values: np.ndarray) -> Optional[np.ndarray]:
+    declared = _declared_delta(istp_loader, axis, side)
+    return None if declared is None else _shaped(declared[0], declared[1], values.shape, axis.name)
 
 
 def _axis_deltas(istp_loader, axis, values: np.ndarray) -> dict:
     """An axis variable's DELTA_PLUS_VAR / DELTA_MINUS_VAR are its bin half widths; those of a data variable are
     error bars and are never read here. ISTP 5.2.7 uses them as a pair; a side the file doesn't give stays None."""
-    return {'delta_plus': _delta_values(istp_loader, axis.attributes.get('DELTA_PLUS_VAR'), values),
-            'delta_minus': _delta_values(istp_loader, axis.attributes.get('DELTA_MINUS_VAR'), values)}
+    return {'delta_plus': _delta_values(istp_loader, axis, 'PLUS', values),
+            'delta_minus': _delta_values(istp_loader, axis, 'MINUS', values)}
 
 
 def _make_axis(istp_loader, axis, time_axis_name, n_records):
