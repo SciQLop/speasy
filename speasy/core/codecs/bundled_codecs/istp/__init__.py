@@ -148,11 +148,17 @@ def _make_axis(istp_loader, axis, time_axis_name, n_records):
                         **_axis_deltas(istp_loader, axis, values))
 
 
+def _is_flat_list_of_labels(labels) -> bool:
+    return type(labels) is list and all(type(label) is str for label in labels)
+
+
 def _build_labels(variable: pyistp.loader.DataVariable):
     if variable.labels is None and len(variable.values.shape) != 2:
         return []
     if len(variable.values.shape) != 2:
-        return _fix_value_type(variable.labels)
+        # columns are one label per column, a grid of labels (one per matrix element) has no place there
+        labels = _fix_value_type(variable.labels)
+        return labels if _is_flat_list_of_labels(labels) else []
     if type(variable.labels) is list and len(variable.labels) == variable.values.shape[1]:
         return _fix_value_type(variable.labels)
     if type(variable.labels) is list and len(variable.labels) == 1:
